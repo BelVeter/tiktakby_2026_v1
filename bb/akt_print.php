@@ -9,7 +9,7 @@ namespace bb;
 session_start();
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php'); // включаем подключение к базе данных
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/tovar.php'); // включаем класс
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/client_old.php'); // включаем класс
+require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/client.php'); // включаем класс
 
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Base.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Db.php');
