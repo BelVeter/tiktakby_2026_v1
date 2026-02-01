@@ -46,7 +46,8 @@ class L2ModelWeb
 
   public function __construct($lang = '')
   {
-    if ($lang == '') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
 
     $this->lang = $lang;
     $this->_availableAtOfficesIds = [];
@@ -84,19 +85,25 @@ class L2ModelWeb
    */
   public static function getL2ModelWebById($id, $lang = '')
   {
-    if ($lang == '') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
 
     $l2 = new self($lang);
     //if no web info - no need to print model
     if ($mw = ModelWeb::getByModelIdLangSafe($id, $lang)) {
       $l2->setModelWeb($mw);
-    } else return false;
-    if ($mw->getStatus() == 'not_show') return false;
+    } else
+      return false;
+    if ($mw->getStatus() == 'not_show')
+      return false;
 
-    if ($m = Model::getById($id)) $l2->setModel($m);
+    if ($m = Model::getById($id))
+      $l2->setModel($m);
 
-    if ($t = TariffModel::getChippestTarifByModelId($id)) $l2->setTarif($t);
-    else $l2->setTarif(new Tariff());
+    if ($t = TariffModel::getChippestTarifByModelId($id))
+      $l2->setTarif($t);
+    else
+      $l2->setTarif(new Tariff());
 
     $tars = TariffModel::getTariffsForModel($id);
     $l2->addTariffsAll($tars);
@@ -150,9 +157,22 @@ class L2ModelWeb
   /**
    * @return bool
    */
-  public function isL2AvailabilityVisible(){
-    if ($this->getModelWeb()->getL2AvailabilityShow()) return true;
+  public function isL2AvailabilityVisible()
+  {
+    if ($this->getModelWeb()->getL2AvailabilityShow())
+      return true;
     return false;
+  }
+
+  /**
+   * @return float
+   */
+  public function getEstimatedValue()
+  {
+    if ($this->model && $this->model->agr_price > 0) {
+      return $this->model->agr_price;
+    }
+    return 0;
   }
 
   /**
@@ -182,8 +202,10 @@ class L2ModelWeb
    */
   public function isKarnaval()
   {
-    if ($this->model_web->isKarnaval()) return true;
-    else return false;
+    if ($this->model_web->isKarnaval())
+      return true;
+    else
+      return false;
   }
 
   /**
@@ -192,7 +214,8 @@ class L2ModelWeb
   public function loadOfficeAvailability()
   {
     $rez = tovar::getFreeItemsOfficeArrayForModelId($this->getModelId());
-    if ($rez && is_array($rez)) $this->_availableAtOfficesIds = $rez;
+    if ($rez && is_array($rez))
+      $this->_availableAtOfficesIds = $rez;
     return true;
   }
 
@@ -202,8 +225,10 @@ class L2ModelWeb
    */
   public function isAvailableAtOffice($num)
   {
-    if (is_array($this->_availableAtOfficesIds) && in_array($num, $this->_availableAtOfficesIds)) return true;
-    else return false;
+    if (is_array($this->_availableAtOfficesIds) && in_array($num, $this->_availableAtOfficesIds))
+      return true;
+    else
+      return false;
   }
 
 
@@ -212,8 +237,10 @@ class L2ModelWeb
    */
   public function getL3Url($lang = '')
   {
-    if ($lang == '') $lang = $this->lang;
-    if ($lang == '') $lang = 'ru';
+    if ($lang == '')
+      $lang = $this->lang;
+    if ($lang == '')
+      $lang = 'ru';
     $razd_name = \Illuminate\Support\Facades\Request::route('razdel');
     $cat = \Illuminate\Support\Facades\Request::route('cat');
     if ($cat == '') {
@@ -239,7 +266,8 @@ class L2ModelWeb
    */
   public function getTarifLinePeriodDaysNumber()
   {
-    if ($this->isKarnaval()) return 1;
+    if ($this->isKarnaval())
+      return 1;
     else {
       switch ($this->model_web->getTarifLinePeriod()) {
         case 'day':
@@ -264,8 +292,10 @@ class L2ModelWeb
   public function getBaseDaysForPlusMinus()
   {
     if ($this->model_web->getTarifBaseDays() < 1) {
-      if ($this->isKarnaval()) return 1;
-      else return 28;
+      if ($this->isKarnaval())
+        return 1;
+      else
+        return 28;
     } else {
       return $this->model_web->getTarifBaseDays();
     }
@@ -283,10 +313,12 @@ class L2ModelWeb
   public function getName($maxLettersNum = 'all')
   {
     $name = $this->translateStringInside($this->model_web->getL2Name(), 'лет');
-    if ($maxLettersNum == 'all') return $name;
+    if ($maxLettersNum == 'all')
+      return $name;
     else {
       $lngth = mb_strlen($name);
-      if ($lngth <= $maxLettersNum) return $name;
+      if ($lngth <= $maxLettersNum)
+        return $name;
       else {
         return mb_substr($name, 0, $lngth - 1) . '...';
       }
@@ -304,10 +336,12 @@ class L2ModelWeb
     $name = $this->translateStringInside($this->model_web->getL2Name(), 'лет');
     $name = strip_tags($name);
 
-    if ($maxLettersNum == 'all') return $name;
+    if ($maxLettersNum == 'all')
+      return $name;
     else {
       $lngth = mb_strlen($name);
-      if ($lngth <= $maxLettersNum) return $name;
+      if ($lngth <= $maxLettersNum)
+        return $name;
       else {
         return mb_substr($name, 0, $maxLettersNum - 1) . '...';
       }
@@ -357,7 +391,8 @@ class L2ModelWeb
   {
     $tar = $this->tarif;
     $days = $tar->getPeriodInDays();
-    if ($days < 1) $days = 1;
+    if ($days < 1)
+      $days = 1;
     $day = $tar->getTotalAmount() / $days;
     $day = round($day, 2);
     return $day;
@@ -365,7 +400,8 @@ class L2ModelWeb
 
   public function translate($textRU)
   {
-    if ($this->lang == 'ru' || $this->lang == '') return $textRU;
+    if ($this->lang == 'ru' || $this->lang == '')
+      return $textRU;
 
     $this->lang == 'lt' ? $langIndex = 0 : $langIndex = 1; //lt = 0, en = 1
     $translatedText = '';
@@ -381,11 +417,15 @@ class L2ModelWeb
   {
     $freeItems = count($this->_availableAtOfficesIds);
     if ($freeItems > 0) {
-      if ($rezType == 'bool') return true;
-      else return 1;
+      if ($rezType == 'bool')
+        return true;
+      else
+        return 1;
     } else {
-      if ($rezType == 'bool') return false;
-      else return 0;
+      if ($rezType == 'bool')
+        return false;
+      else
+        return 0;
     }
   }
 
@@ -396,7 +436,8 @@ class L2ModelWeb
    */
   public function translateStringInside($str, $pattern)
   {
-    if ($this->lang == 'ru' || $this->lang == '') return $str;
+    if ($this->lang == 'ru' || $this->lang == '')
+      return $str;
 
     $this->lang == 'lt' ? $langIndex = 0 : $langIndex = 1; //lt = 0, en = 1
 

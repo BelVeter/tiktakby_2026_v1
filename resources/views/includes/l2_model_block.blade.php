@@ -12,7 +12,7 @@
     </div>
 
     <div class="l2-card_estimated-cost">
-      Оценочная стоимость: 9500 BYN
+      Оценочная стоимость: {{ number_format($l2->getEstimatedValue(), 0, ',', ' ') }} BYN
     </div>
 
     <div class="l2-card_rating">
@@ -36,21 +36,21 @@
 
   <!-- Pricing Bar Section -->
   <div class="l2-card_pricing-bar">
-    <div class="point-labels">
+    <div class="l2-card_point-labels">
       <span>1 неделя</span>
       <span>2 недели</span>
       <span>3 недели</span>
       <span>4 недели</span>
     </div>
 
-    <div class="pricing-track">
-      <div class="node node-1"></div>
-      <div class="node node-2"></div>
-      <div class="node node-3"></div>
-      <div class="node node-4"></div>
+    <div class="l2-card_pricing-track">
+      <div class="l2-card_node node-1"></div>
+      <div class="l2-card_node node-2"></div>
+      <div class="l2-card_node node-3"></div>
+      <div class="l2-card_node node-4"></div>
     </div>
 
-    <div class="point-prices">
+    <div class="l2-card_point-prices">
       <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(7), 0, ',', ' ') }} <small>BYN</small></span>
       <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ') }}
         <small>BYN</small></span>

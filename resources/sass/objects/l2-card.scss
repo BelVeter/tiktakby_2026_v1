@@ -108,7 +108,7 @@
 }
 
 // Labels atop the bar
-.point-labels {
+.l2-card_point-labels {
   display: flex;
   justify-content: space-between;
   width: 100%;
@@ -137,7 +137,7 @@
   }
 }
 
-.pricing-track {
+.l2-card_pricing-track {
   width: 100%;
   height: 6px;
   border-radius: 3px;
@@ -148,7 +148,7 @@
 }
 
 // Prices below the bar
-.point-prices {
+.l2-card_point-prices {
   display: flex;
   justify-content: space-between;
   width: 100%;
@@ -169,7 +169,7 @@
   }
 }
 
-.point-nodes {
+.l2-card_point-nodes {
   position: absolute;
   top: 3px; // Center vertically on 6px track (12px node -> -3px top offset)
   left: 0;
@@ -180,7 +180,7 @@
   pointer-events: none; // Allow clicks to pass through
 }
 
-.node {
+.l2-card_node {
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -188,6 +188,7 @@
   // border: 2px solid white; // Removed as per user request
   border: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+
   transform: translateY(-50%); // Center vertically base style
   top: 50%; // Center relative to track height
   position: absolute; // Ensure absolute positioning is explicit
@@ -262,4 +263,19 @@
     max-width: 350px;
     margin: 0 auto 20px;
   }
+}
+
+// Fix for layout grid - overriding l2.css restriction
+.l2-cards-container {
+  display: flex !important;
+  flex-flow: row wrap !important;
+  width: 100% !important;
+  justify-content: flex-start;
+  padding-top: 24px;
+  padding-left: 20px;
+}
+
+.l2-card_container {
+  margin-right: 20px;
+  margin-bottom: 20px;
 }
