@@ -9,7 +9,7 @@ namespace bb;
 session_start();
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php'); // включаем подключение к базе данных
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/tovar.php'); // включаем класс
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/client.php'); // включаем класс
+require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/client_old.php'); // включаем класс
 
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Base.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Db.php');
@@ -152,11 +152,11 @@ function sub_querty_prep ($table, $sub_id) {
 
     $q="
         SELECT sub.`acc_date`, sub.`place`, deal.client_id, deal.item_inv_n FROM `$sub_table` AS sub
-    
+
         LEFT JOIN $deal_table AS deal ON sub.`deal_id` = deal.`deal_id`
-    
+
         WHERE sub_deal_id=$sub_id
-    
+
     ";
     return $q;
 }

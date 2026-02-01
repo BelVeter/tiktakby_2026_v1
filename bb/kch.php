@@ -2,7 +2,7 @@
 session_start();
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Db.php'); // включаем подключение к базе данных
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/models/User.php'); // включаем подключение к базе данных
-require_once $_SERVER['DOCUMENT_ROOT'].'/bb/classes/client.php';
+require_once $_SERVER['DOCUMENT_ROOT'].'/bb/classes/Сlient.php';
 require_once $_SERVER['DOCUMENT_ROOT'].'/bb/classes/tovar.php';
 require_once $_SERVER['DOCUMENT_ROOT'].'/bb/classes/rtf.php';
 

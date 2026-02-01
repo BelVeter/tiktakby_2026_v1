@@ -1,3 +1,4 @@
 [01-Feb-2026 13:44:34 Europe/Minsk] PHP Warning:  Use of undefined constant color - assumed 'color' (this will throw an Error in a future version of PHP) in /home/tiktakby/public_html/bb/dogovor_new.php on line 2698
 [01-Feb-2026 14:10:25 Europe/Minsk] PHP Warning:  Use of undefined constant color - assumed 'color' (this will throw an Error in a future version of PHP) in /home/tiktakby/public_html/bb/dogovor_new.php on line 2698
 [01-Feb-2026 14:10:25 Europe/Minsk] PHP Warning:  Use of undefined constant color - assumed 'color' (this will throw an Error in a future version of PHP) in /home/tiktakby/public_html/bb/dogovor_new.php on line 2701
+[01-Feb-2026 21:44:31 Europe/Minsk] PHP Warning:  mysqli::__construct(): (28000/1045): Access denied for user 'root'@'localhost' (using password: YES) in /home/tiktakby/public_html/bb/database_new.php on line 5

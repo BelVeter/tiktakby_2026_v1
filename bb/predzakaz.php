@@ -1,6 +1,6 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php'); // включаем подключение к базе данных
-require_once $_SERVER['DOCUMENT_ROOT'].'/bb/classes/client.php';
+require_once $_SERVER['DOCUMENT_ROOT'].'/bb/classes/client_old.php';
 require_once $_SERVER['DOCUMENT_ROOT'].'/bb/classes/tovar.php';
 require_once $_SERVER['DOCUMENT_ROOT'].'/bb/classes/rtf.php';
 
