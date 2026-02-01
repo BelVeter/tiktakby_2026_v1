@@ -419,7 +419,9 @@ input[type=number]::-webkit-outer-spin-button {
   position: relative !important;
 }
 
-.breadcrumb-item, .breadcrumb-item a, .breadcrumb-item.active {
+.breadcrumb-item,
+.breadcrumb-item a,
+.breadcrumb-item.active {
   position: relative;
   color: var(--main-blue);
   font-family: "Nunito";
@@ -639,7 +641,8 @@ h1.title {
   display: none;
 }
 
-.footer-text, .footer-text a {
+.footer-text,
+.footer-text a {
   color: white;
   font-weight: 100;
 }
@@ -1502,8 +1505,10 @@ a.button-more:hover {
 }
 
 .mobile-next-level_menu-container {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .listing-end-results {
@@ -1685,382 +1690,241 @@ a.button-more:hover {
   color: #000000;
 }
 
-.l2-cards-container {
-  display: flex;
-  flex-flow: row wrap;
-  gap: 18px;
-  justify-content: flex-start;
-  padding-left: 18px;
-  width: 100%;
-}
-@media screen and (max-width: 767px) {
-  .l2-cards-container {
-    padding-left: 0px;
-    justify-content: space-around;
-    gap: 0px;
-  }
-}
-
-.l2karn-card_container {
-  position: relative;
-  display: flex;
-  flex-flow: column nowrap;
-  width: 285px;
-  padding: 12px 0px;
-  background: #FFFFFF;
-  border: none;
-  border-radius: 10px;
-}
-@media screen and (max-width: 767px) {
-  .l2karn-card_container {
-    width: 183px;
-    padding: 9px 0px;
-    margin-bottom: 20px;
-  }
-}
-.l2karn-card_container .l2heart {
-  width: 20px;
-  position: absolute;
-  top: 16px;
-  right: 13px;
-}
-.l2karn-card_container .l2karn-card_img-a-container {
-  display: flex;
-  flex-flow: column nowrap;
-  width: 100%;
-  text-decoration: none;
-}
-.l2karn-card_container .l2karn-card_img-a-container .l2karn-card_img {
-  height: 283px;
-  align-self: center;
-  margin-top: 12px;
-  margin-bottom: 30px;
-}
-@media screen and (max-width: 767px) {
-  .l2karn-card_container .l2karn-card_img-a-container .l2karn-card_img {
-    height: 180px;
-    margin-bottom: 5px;
-  }
-}
-.l2karn-card_container .l2karn-card_img-a-container .l2karn-card_line-2 {
-  width: 100%;
-  padding: 0 10px;
-}
-.l2karn-card_container .l2karn-card_img-a-container .l2karn-card_line-2 span {
-  text-align: left;
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 22px;
-  color: #000000;
-}
-@media screen and (max-width: 767px) {
-  .l2karn-card_container .l2karn-card_img-a-container .l2karn-card_line-2 span {
-    display: block;
-    font-size: 11px;
-    overflow: hidden;
-    white-space: nowrap;
-    margin-top: 6px;
-  }
-}
-.l2karn-card_container .l2karn-card_img-a-container .l2karn-card_line-3 {
-  width: 100%;
-  padding: 0 10px;
-  margin-top: 10px;
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 500;
-  font-size: 16px;
-  line-height: 15px;
-  color: #CB4F47;
-}
-@media screen and (max-width: 767px) {
-  .l2karn-card_container .l2karn-card_img-a-container .l2karn-card_line-3 {
-    margin-top: 6px;
-    font-size: 13px;
-  }
-}
-.l2karn-card_container .l2karn-card_img-a-container .l2karn-card_line-4 {
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0 10px;
-  margin-top: 10px;
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 15px;
-  color: #696969;
-}
-@media screen and (max-width: 767px) {
-  .l2karn-card_container .l2karn-card_img-a-container .l2karn-card_line-4 {
-    margin-top: 6px;
-    font-size: 11px;
-  }
-}
-
 .l2-card_container {
-  position: relative;
-  display: flex;
-  flex-flow: column nowrap;
-  width: 285px;
-  padding: 12px 8px;
   background: #FFFFFF;
-  border: 0.3px solid #FFFFFF;
-  border-radius: 10px;
-}
-@media screen and (max-width: 767px) {
-  .l2-card_container {
-    border: none;
-    width: 183px;
-    padding: 9px 8px 12px 8px;
-    margin-bottom: 20px;
-  }
-}
-.l2-card_container .office-available {
-  position: absolute;
-  width: 14px;
-  height: 14px;
   border: none;
-  border-radius: 50%;
+  border-radius: 12px;
+  padding: 16px;
+  width: 300px;
+  /* Adjust based on grid, but usually fixed or 100% of col */
+  max-width: 100%;
+  margin-bottom: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.l2-card_container .office-available.off1 {
-  top: 150px;
-  right: 6px;
-  background-color: #7BC600;
-}
-.l2-card_container .office-available.off2 {
-  top: 171px;
-  right: 6px;
-  background-color: #F8E255;
+.l2-card_container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-.l2-card_img-container,
-.l2-card_img-container:hover {
-  display: flex;
-  flex-flow: column nowrap;
-  justify-content: space-between;
-  align-items: center;
-  background-color: white;
-  width: 100%;
-  border-radius: 5px;
+.l2-card_top-section {
+  margin-bottom: 12px;
+}
+
+.l2-card_header-link {
   text-decoration: none;
+  color: inherit;
+  width: 85%;
 }
 
 .l2-card_header {
-  margin: 14px 2px 0 10px;
-  align-self: start;
-  width: 100%;
-  overflow: hidden;
-  height: 46px;
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 22px;
-  color: #000000;
-  text-decoration: none;
-}
-@media screen and (max-width: 767px) {
-  .l2-card_header {
-    height: 40px;
-    margin: 0;
-    font-weight: 600;
-    font-size: 13px;
-    line-height: 18px;
-  }
+  font-family: "Nunito", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #000;
+  display: block;
+  margin-bottom: 4px;
 }
 
-.l2-card_img {
-  margin: 14px auto;
-  width: 200px;
-  height: 200px;
+.l2-card_wishlist {
+  color: #C1D9F3;
+  font-size: 20px;
+  cursor: pointer;
+  transition: color 0.2s;
 }
-@media screen and (max-width: 767px) {
-  .l2-card_img {
-    margin: 12px auto;
-    width: 150px;
-    height: 150px;
-  }
+.l2-card_wishlist:hover, .l2-card_wishlist.active {
+  color: #3180d1;
 }
 
-.l2-card_line-2 {
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: space-between;
-  margin-top: 17px;
-  padding-left: 9px;
+.l2-card_estimated-cost {
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  color: #999;
+  font-weight: 300;
+  margin-bottom: 4px;
 }
-@media screen and (max-width: 767px) {
-  .l2-card_line-2 {
-    display: none;
-  }
-}
-.l2-card_line-2 > .l2-col1, .l2-card_line-2 > .l2-col2 {
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 400;
+
+.l2-card_rating {
+  color: #FFD700;
   font-size: 14px;
-  line-height: 19px;
-  color: #696969;
+  margin-bottom: 8px;
 }
-.l2-card_line-2 > .l2-col2 {
-  padding-right: 4px;
+.l2-card_rating i {
+  margin-right: 1px;
 }
 
-.l2-card_line-2_mobile {
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 19px;
+.l2-card_img-container {
+  display: block;
   text-align: center;
-  color: #000000;
+  margin-bottom: 16px;
+  position: relative;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.l2-card_img-container .l2-card_img {
+  max-width: 100%;
+  max-height: 100%;
+  -o-object-fit: contain;
+     object-fit: contain;
 }
 
-.l2-card_line-3 {
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: space-between;
-  margin-top: 2px;
-  padding-right: 3px;
-  padding-left: 9px;
+.l2-card_price-label {
+  font-family: "Nunito", sans-serif;
+  font-size: 16px;
+  color: #000;
+  margin-bottom: 12px;
 }
-@media screen and (max-width: 767px) {
-  .l2-card_line-3 {
-    display: none;
-  }
-}
-.l2-card_line-3 > .l2-col3 {
-  display: flex;
-  flex-flow: column nowrap;
-  margin-top: 2px;
-}
-.l2-card_line-3 > .l2-col3 > .day {
-  font-family: "Nunito";
-  font-style: normal;
+.l2-card_price-label .price-from {
   font-weight: 700;
   font-size: 20px;
-  line-height: 27px;
-  color: #000000;
-}
-.l2-card_line-3 > .l2-col3 > .total {
-  margin-top: 2px;
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 400;
-  font-size: 18px;
-  line-height: 25px;
-  color: #696969;
 }
 
-.l2-card_input-form {
+.l2-card_pricing-bar {
+  width: 100%;
+  margin-bottom: 20px;
   position: relative;
+  padding-top: 20px;
 }
-.l2-card_input-form > .arrow-up, .l2-card_input-form > .arrow-down {
-  background: transparent;
+
+.point-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 12px;
+}
+.point-labels span {
+  font-family: "Nunito", sans-serif;
+  font-size: 11px;
+  color: #333;
+  width: 30px;
+  text-align: center;
+}
+.point-labels span:first-child {
+  text-align: left;
+  width: auto;
+}
+.point-labels span:last-child {
+  text-align: right;
+  width: auto;
+}
+
+.pricing-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #E85D47 0%, #F8A047 33%, #F8D847 66%, #6DC26D 100%);
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.point-prices {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 4px;
+}
+.point-prices span {
+  font-family: "Nunito", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  width: auto;
+}
+.point-prices span small {
+  font-size: 10px;
+  font-weight: 400;
+  color: #777;
+}
+
+.point-nodes {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  width: 100%;
+  height: 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.node {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: white;
   border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transform: translateY(-50%);
+  top: 50%;
   position: absolute;
 }
-.l2-card_input-form > .arrow-up {
-  top: -2px;
-  right: 3px;
+.node.node-1 {
+  background: #E85D47;
+  left: 0;
+  margin-left: -6px;
 }
-.l2-card_input-form > .arrow-down {
-  bottom: 0;
-  right: 3px;
-  transform: rotate(180deg);
+.node.node-2 {
+  background: #F8A047;
+  left: 33.333%;
+  transform: translateX(-50%) translateY(-50%) !important;
+}
+.node.node-3 {
+  background: #F8D847;
+  left: 66.666%;
+  transform: translateX(-50%) translateY(-50%) !important;
+}
+.node.node-4 {
+  background: #6DC26D;
+  right: 0;
+  margin-right: -6px;
+  transform: translateY(-50%) !important;
 }
 
-.l2-card_number-input {
-  width: 87px;
-  height: 53px;
-  padding-right: 32px;
-  background: #FFFDFD;
-  border: 0.2px solid rgba(61, 149, 176, 0.45);
-  border-radius: 2px;
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 400;
-  font-size: 22px;
-  line-height: 30px;
+.l2-card_action-btn-container {
+  width: 100%;
+}
+
+.l2-card_btn {
+  display: block;
+  width: 100%;
+  padding: 12px 0;
   text-align: center;
-  color: #696969;
-}
-
-.l2-card_number-input::-webkit-outer-spin-button,
-.l2-card_number-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.l2-card_number-input[type=number] {
-  -moz-appearance: textfield;
-}
-
-.l2-card_line-4-a,
-.l2-card_line-4-a:hover,
-.l2-card_line-4-a:visited {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 16px;
-  width: 262px;
-  height: 41px;
-  align-self: center;
-  font-family: "Gilroy";
-  font-style: normal;
-  font-weight: 300;
-  font-size: 15px;
-  line-height: 20px;
-  text-align: center;
-  color: #FFFFFF;
-  text-decoration: none;
+  background-color: #4A8AD3;
+  color: white;
+  font-family: "Gilroy", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
   text-transform: uppercase;
-  background: #3180d1;
-  border-radius: 2px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background-color 0.2s;
+  border: none;
 }
-@media screen and (max-width: 767px) {
-  .l2-card_line-4-a .l2-card_btn-desctop,
-.l2-card_line-4-a:hover .l2-card_btn-desctop,
-.l2-card_line-4-a:visited .l2-card_btn-desctop {
-    display: none;
-  }
+.l2-card_btn:hover {
+  background-color: #3180d1;
+  color: white;
+  text-decoration: none;
 }
-.l2-card_line-4-a .l2-card_btn-mobile,
-.l2-card_line-4-a:hover .l2-card_btn-mobile,
-.l2-card_line-4-a:visited .l2-card_btn-mobile {
-  display: none;
+.l2-card_btn.btn-book {
+  background-color: #E85D47;
 }
-@media screen and (max-width: 767px) {
-  .l2-card_line-4-a .l2-card_btn-mobile,
-.l2-card_line-4-a:hover .l2-card_btn-mobile,
-.l2-card_line-4-a:visited .l2-card_btn-mobile {
-    display: block;
-    font-size: 14px;
-  }
-}
-@media screen and (max-width: 767px) {
-  .l2-card_line-4-a,
-.l2-card_line-4-a:hover,
-.l2-card_line-4-a:visited {
-    width: 146px;
-    font-family: "Nunito";
-    font-style: normal;
-    font-weight: 400;
-    font-size: 16px;
-    line-height: 172.69%;
-    text-transform: unset;
-    text-align: center;
-    letter-spacing: 0.0029em;
-    color: #FFFFFF;
-    border-radius: 8px;
-  }
+.l2-card_btn.btn-book:hover {
+  background-color: #D14030;
 }
 
+@media screen and (max-width: 767px) {
+  .l2-card_container {
+    width: 100%;
+    max-width: 350px;
+    margin: 0 auto 20px;
+  }
+}
 .faforite-section {
   margin-top: 59px;
   background: rgba(202, 222, 243, 0.46);
