@@ -1,0 +1,35 @@
+
+.form-order-num{
+    width: 60px;
+}
+
+.razd-icon{
+    max-width: 80px;
+}
+
+.form-edit {
+    display: none;
+}
+
+.show-block{
+    display: block;
+}
+
+.change-btn.show-block {
+    display: block;
+}
+.change-btn {
+    display: none;
+}
+
+.new_razdel {
+    display: none;
+}
+.new_razdel.show{
+    display: table-row;
+}
+
+.image-back {
+    background-color: #dee2e6;
+}
+

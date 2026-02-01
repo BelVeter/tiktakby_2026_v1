@@ -1,0 +1,129 @@
+.br_wh_cont {
+    background-color:#FFF;
+    padding:10px;
+    position: absolute;
+    right: 0;
+    z-index: 10;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    -khtml-border-radius: 10px;
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.5);
+}
+
+.kb_date_choose {
+    display: block;
+    width: 300px;
+    height: 50px;
+    position: absolute;
+    right: 0;
+    top: -20px;
+    background-color: #00a1d3;
+    z-index: 5;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    -khtml-border-radius: 10px;
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.5);
+    padding: 5px;
+}
+
+.br_cont {
+    width:432px;/*=3 дня по 24*6 пикселов; 1 день = 144 */
+    height:80px;
+    background-color:#F60;
+    position:relative;
+    margin:0;
+    padding:0;
+    border:none;
+}
+
+.br_day_name {
+    text-align:center;
+    background-color:#FFF;
+    color:#00a3d8;
+
+    position:absolute;
+    top:0;
+    width:144px; /*нет минус 2 пкс на границу*/
+    height:40px;
+    margin:0;
+    padding:0;
+}
+.br_day {
+    position:absolute;
+    top:40px;
+
+    text-align:center;
+
+    border-style:solid;
+    border-color:#FFF;
+    border-width:0 1px 0 1px;
+
+    width:142px; /*минус 2 пкс на границу*/
+    height:40px;
+    float:left;
+    margin:0;
+    padding:0;
+}
+
+.br_free_div {
+    opacity:0.8;
+    z-index:2;
+    text-decoration:none;
+    color:#000;
+    display:block;
+    height:40px;
+    background-color:#00c400;
+
+    position:absolute;
+    top:40px;
+}
+
+.br_free_h_left {
+    position:absolute;
+    top:0;
+    left:0;
+}
+
+.br_free_h_right {
+    position:absolute;
+    bottom:0;
+    right:0;
+}
+
+.bron_form {
+
+    padding: 15px;
+    position: absolute;
+    right: 0;
+    top: 100px;
+    z-index: 10;
+    display: block;
+    background-color: #00a1d3;
+    -webkit-border-radius: 15px;
+    -moz-border-radius: 15px;
+    -khtml-border-radius: 15px;
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.5);
+
+}
+.kb_w2{
+
+    position: absolute;
+    right: -80px;
+    height: 50px;
+    top: -20px;
+    z-index: 10;
+}
+.kb_w3{
+
+    position: absolute;
+    right: 330px;
+    height: 50px;
+    top: 40px;
+    z-index: 10;
+}
+
+.pause_div {
+    position: absolute;
+    background-color: yellow;
+    height: 40px;
+}

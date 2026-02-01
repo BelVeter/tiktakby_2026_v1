@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./style.css">
+    <title>TicTacToe</title>
+</head>
+<body>
+    <header class="header">
+        <div class="info">
+            <span class="new-game"> Идет игра<div class=""></div></span>
+            <span class="won hide">Выиграли <span data-winner="">неизвестно</span> !</span>
+            <span>Ход № <span data-step="">0</span></span>
+            <button class="reload">играть заново</button>
+        </div>
+        <div class="play"></div>
+    </header>
+    <main class="main">
+        <div class="container-main">
+            <div></div>
+            <div class="border-l-r"></div>
+            <div></div>
+            <div class="border-t-d"></div>
+            <div class="border-t-d border-l-r"></div>
+            <div class="border-t-d"></div>
+            <div></div>
+            <div class="border-l-r"></div>
+            <div></div>
+        </div>
+        <div class="result-list"></div>
+    </main>
+    <footer class="container footer-container">
+        <a href="https://github.com/BelVeter/rsschool-cv">©&nbsp;&nbsp;&nbsp; 2022&nbsp;&nbsp;&nbsp; github</a>
+        <a href="https://rs.school/js-stage0"><img src="./assets/svg/rss.svg" alt="RSS" height="60"></a>
+    </footer>
+    <script src="index.js"></script>
+</body>
+</html>

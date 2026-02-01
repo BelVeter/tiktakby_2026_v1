@@ -1,0 +1,244 @@
+.review-section{
+    background-color: #3180D1;
+}
+
+.review-section .container-app{
+    background-image: url("/public/svg/toys_back.svg");
+    background-repeat: no-repeat;
+    background-position: center center;
+    position: relative;
+
+    @media screen and (max-width: 440px) {
+        background-image: url("/public/svg/toys_back_mobile.svg");
+        background-position: 30px 100px;
+    }
+}
+
+.review-section h2{
+    margin-top: 60px;
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 30px;
+    text-align: center;
+    letter-spacing: 0.05em;
+    color: #FFFFFF;
+    color: #FFFFFF;
+    line-height: 100%;
+
+    @media screen and (max-width: 440px) {
+        margin-top: 27px;
+        font-size: 20px;
+    }
+}
+
+.review-container{
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+}
+
+.review-container .description{
+    margin-top: 23px;
+    margin-bottom: 20px;
+
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 200;
+    font-size: 22px;
+    line-height: 32px;
+    text-align: center;
+    letter-spacing: 0.0029em;
+    color: #FFFFFF;
+
+    @media screen and (max-width: 440px) {
+        font-size: 16px;
+    }
+}
+
+.review-slider-container {
+    margin-right: 18%;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    position: relative;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+
+    @media screen and (max-width: 1070px) {
+        margin: 0;
+    }
+}
+
+.review-item{
+    display: none;
+}
+
+.review-item.current {
+    display: flex;
+}
+
+.review-item{
+    flex-flow: row nowrap;
+    position: relative;
+    transition: all 1s;
+    align-items: center;
+
+    @media screen and (max-width: 900px) {//it was 440px
+        flex-flow: column nowrap;
+    }
+}
+
+.review-item.current.right{
+    right: 0;
+}
+.review-item.current.left{
+    left: 0;
+}
+
+.review-item.next.right{
+    display: flex;
+    position: absolute;
+    right: -110%;
+
+    transition: all 1s;
+}
+
+
+.review-item.next.left{
+    display: flex;
+    position: absolute;
+    left: -110%;
+
+    transition: all 1s;
+
+}
+
+
+.review-item>img {
+    height: 170px;
+    width: 170px;
+    margin-right: 47px;
+    border-radius: 50%;
+
+
+    @media screen and (max-width: 900px) {
+        margin: 0 0 46px 0;
+    }
+
+    @media screen and (max-width: 440px) {
+        width: 150px;
+        height: 150px;
+    }
+}
+
+.review-item .message-box{
+    position: relative;
+    padding: 11px 41px 20px 52px;
+    width: 657px;
+    //height: 168px;
+    background: #FFFFFF;
+    border-radius: 30px;
+
+    &:after{
+        position: absolute;
+        display: block;
+        content: '';
+        background: white;
+        width: 40px;
+        height: 40px;
+        transform: rotate(45deg);
+        left: -20px;
+        top: calc(50% - 20px);
+    }
+
+    @media screen and (max-width: 900px) {
+        width: 100%;
+
+        &:after{
+
+            left: calc(50% - 20px);;
+            top: -20px
+        }
+    }
+
+    @media screen and (max-width: 440px) {
+
+    }
+
+
+}
+
+
+
+.review-item .message-text {
+    padding: 0px;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 200;
+    font-size: 20px;
+    line-height: 27px;
+    letter-spacing: 0.0029em;
+    color: #3180D1;
+}
+
+.review-item .review-line {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+}
+
+.message-box .review-line .name {
+    margin-right: 18px;
+
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 200;
+    font-size: 16px;
+    line-height: 22px;
+    letter-spacing: 0.0029em;
+    color: #656565;
+}
+
+.star{
+    margin-right: 5px;
+    display: inline-block;
+    height: 16px;
+    width: 16px;
+    background-image: url("/public/svg/star-review.svg");
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.review-container .pages{
+    margin-top: 45px;
+    display: flex;
+    flex-flow: row nowrap;
+    gap: 15px;
+    margin-bottom: 105px;
+
+    @media screen and (max-width: 440px) {
+        margin-bottom: 40px;
+    }
+}
+
+.review-container .page{
+    width: 15px;
+    height: 15px;
+
+    border: 1.5px solid #FFFFFF;
+    box-sizing: border-box;
+    border-radius: 50%;
+}
+
+.review-container .page.active{
+    background-color: #FFFFFF;;
+}
+
+

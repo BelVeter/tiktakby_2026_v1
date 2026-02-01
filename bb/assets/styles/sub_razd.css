@@ -1,0 +1,31 @@
+.new-form-row{
+    display: none;
+}
+
+.new-form-row.show{
+    display: table-row;
+}
+
+.form-icon {
+    max-width: 80px;
+}
+
+.edit-field{
+    display: none;
+}
+
+.edit-field.show-block {
+    display: block;
+}
+
+.hide-when-edit.hide{
+    display: none;
+}
+
+.image-back {
+    background-color: #dee2e6;
+}
+
+.hide{
+  display: none;
+}

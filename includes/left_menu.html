@@ -1,0 +1,222 @@
+<style>
+    @font-face {
+        font-family: Gilroy;
+        src: url("/Gilroy-Light.otf") format("opentype");
+    }
+    #nav {
+        width: 200px;
+        float: left;
+        position:relative;
+
+        display: flex;
+        flex-flow: column nowrap;
+        margin: 0;
+        padding: 0;
+
+        box-shadow: 0.18em 0.2em 0.6em rgba(38, 122, 148, 28%);
+    }
+
+    #nav img {
+        margin-left: 3px;
+    }
+
+    #nav span {
+        margin-left: 5px;
+    }
+
+
+    #nav a::after{
+        position: absolute;
+        bottom: 0;
+        left: 62px;
+        content: '';
+        width: 50%;
+        height: 0px;
+        box-shadow: 0px 0px 0px 0.2px rgb(42 104 167 / 78%);
+    }
+
+
+    #nav a {
+        position: relative;
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+
+        margin: 0 0 5px 0;
+        padding: 2px 0;
+
+        text-decoration: none;
+        font-family: Gilroy;
+        font-style: normal;
+        font-weight: 300;
+        font-size: 16px;
+        line-height: 18px;
+        color: #333;
+        transition-duration: 0.5s;
+    }
+
+    #nav a:hover {
+        transform: scale(1.1);
+        transition-duration: 0.5s;
+        background-color: rgba(255, 255, 255, 70%);
+        border-radius: 10px;
+    }
+
+    blockquote {
+        box-shadow: rgba(38, 122, 148, 0.09) 0.6em 0.3em 0.6em;
+    }
+</style>
+<div id="nav">
+    <a href="/karnaval/karnaval.htm">
+        <img src="/images/left_menu/karnaval.png" width="62" height="62" alt="Прокат нарядных платьев, карнавальных костюмов" title="Карнавальные новогодние костюмы напрокат Минск" />
+        <span>Карнавальные костюмы</span>
+    </a>
+
+    <a href="/vesy/vesy.htm">
+        <img src="/images/left_menu/vesy.png" width="62" height="62" alt="Прокат весов для новорожденных" title="Прокат детских электронных весов в Минске" />
+        <span>Весы для новорожденных</span>
+    </a>
+
+    <a href="/radioniani.htm">
+        <img src="/images/left_menu/radioniani.png" width="62" height="62" alt="Прокат видеоняни радионяни" title="Видеоняня радионяня напрокат Минск" />
+        <span>Радио- видеоняни</span>
+    </a>
+
+    <a href="/lakatory/lakatory.htm">
+        <img src="/images/left_menu/molokootsos.png" width="62" height="62" alt="Молокоотсос на прокат" title="Прокат молокоотсосов Минск" />
+        <span>Молокоотсосы, стерилизаторы</span>
+    </a>
+
+    <a href="/uvlazhniteli_vozduha_naprokat.htm">
+        <img src="/images/left_menu/uvlazhnitel_vozduha.png" width="62" height="62" alt="Прокат увлажнителей воздуха для детской" title="Увлажнитель воздуха, мойка воздуха прокат в Минске" />
+        <span>Увлажнители, мойки воздуха</span>
+    </a>
+    
+    <a href="/prokat/ingaliatory/ingaliatory.htm">
+        <img src="/images/left_menu/ingaliator.png" width="62" height="62" alt="Прокат детских ингаляторов" title="Прокат ингаляторов Минск" />
+        <span>Ингаляторы,<br>УФ-облучатели</span>
+    </a>
+    
+    <a href="/avtokresla/avtokresla.htm">
+        <img src="/images/left_menu/avtokresla.png" width="62" height="62" alt="Прокат автокресел" title="Автокресла детские напрокат Минск" />
+        <span>Автокресла детские</span>
+    </a>
+
+    <a href="/kolyaski_detskie.htm">
+        <img src="/images/left_menu/kolyaski_detskie.png" width="62" height="62" alt="Прокат колясок" title="Коляски детские напрокат в Минске" />
+        <span>Коляски детские</span>
+    </a>
+
+    <a href="/manezhi/manezhi.htm">
+        <img src="/images/left_menu/manezhi_krovati.png" width="62" height="62" alt="Манеж-кровать напрокат" title="Прокат кроватки дорожной Минск" />
+        <span>Кроватки дорожные</span>
+    </a>
+
+    <a href="/slingi.htm">
+        <img src="/images/left_menu/ergorukzak.png" width="62" height="62" alt="Эргорюкзаки, слини, нагрудные сумки напрокат" напрокат" title="Прокат эргорюкзаков рюкзаков переносок Минск" />
+        <span>Эргорюкзаки, нагрудные сумки, слинги</span>
+    </a>
+
+    <a href="/prokat/konvert_na_vypisku/konvert_na_vypisku_naprokat.htm">
+        <img src="/images/left_menu/konvert_na_vypisku_naprokat.png" width="62" height="62" alt="Конверт на выписку купить Минск" title="Конверт на выписку зимний Минск" />
+        <span>Конверты на выписку</span>
+    </a>
+
+    <a href="/prokat/kupanie/kupanie.htm">
+        <img src="/images/left_menu/kupanie.png" width="62" height="62" alt="Пеленальный столик напрокат" title="Прокат ванночки детской Минск" />
+        <span>Купание пеленание</span>
+    </a>
+
+    <a href="/kolybeli.htm">
+        <img src="/images/left_menu/kolybeli.png" width="62" height="62" alt="Прокат детских кроваток, колыбелей" title="Колыбели кроватки прокат в Минске" />
+        <span>Кроватки, колыбели, коконы</span>
+    </a>
+
+    <a href="/mobile_karuselki_nochniki.htm">
+        <img src="/images/left_menu/mobile.png" width="62" height="62" alt="Прокат мобиле, карусельки на кроватку" title="Прокат проектора в Минске" />
+        <span>Мобиле, ночники, проекторы</span>
+    </a>
+
+    <a href="/shezlongi.htm">
+        <img src="/images/left_menu/shezlongi.png" width="62" height="62" alt="Прокат детских шезлонгов" title="Кресла-качалки шезлонги прокат в Минске" />
+        <span>Шезлонги, кресла-качалки</span>
+    </a>
+
+    <a href="/kacheli/kacheli.htm">
+        <img src="/images/left_menu/kacheli.png" width="62" height="62" alt="Прокат детских электронных качелей" title="Прокат качелек детских Минск" />
+        <span>Колыбели-качели электронные</span>
+    </a>
+
+    <a href="/kacheli_napol1.htm">
+        <img src="/images/left_menu/kacheli_mechan.png" width="62" height="62" alt="Качели детские напрокат" title="Прокат детских качелей Минск" />
+        <span>Качели механические</span>
+    </a>
+
+    <a href="/stul/stul.htm">
+        <img src="/images/left_menu/stulchik.png" width="62" height="62" alt="Стульчик для кормления напрокат" title="Прокат детских стульчиков для кормления Минск" />
+        <span>Стульчики для кормления</span>
+    </a>
+
+    <a href="/prokat/manezhi/manezh_igrovoi_prokat.htm">
+        <img src="/images/left_menu/manezh_igrovoi.png" width="62" height="62" alt="Игровой манеж напрокат" title="Прокат детских манежей Минск" />
+        <span>Манежи игровые</span>
+    </a>
+
+    <a href="/igrushki_naprokat.htm">
+        <img src="/images/left_menu/igrushki_naprokat.png" width="62" height="62" alt="Игрушки напрокат" title="Прокат детских игрушек Минск" />
+        <span>Игрушки, игровые центры</span>
+    </a>
+
+    <a href="/prygunki_fisher_price.htm"">
+        <img src="/images/left_menu/prygunki_naprokat.png" width="62" height="62" alt="Прыгунки детские напрокат" title="Прокат прыгунков Минск" />
+        <span>Прыгунки напольные</span>
+    </a>
+
+    <a href="/hoduny.htm">
+        <img src="/images/left_menu/hodunki_prokat.png" width="62" height="62" alt="Ходунки детские напрокат" title="Прокат детских ходунков Минск" />
+        <span>Ходунки детские</span>
+    </a>
+
+    <a href="/hodilki_naprokat.htm">
+        <img src="/images/left_menu/hodilka_prokat.png" width="62" height="62" alt="Ходилка-каталка напрокат" title="Прокат детских ходилок Минск" />
+        <span>Ходилки-каталки</span>
+    </a>
+    
+    <a href="/prokat/sanki_tubingi/sanki_tubingi.htm">
+        <img src="/images/left_menu/sanki_tubingi.png" width="62" height="62" alt="Тюбинг напрокат" title="Прокат тюбингов санок Минск" />
+        <span>Тюбинги, санки</span>
+    </a>
+
+    <a href="/activity.htm">
+        <img src="/images/left_menu/gorki_batuty.png" width="62" height="62" alt="Горка детская напрокат, прокат батутов" title="Прокат горок батутов Минск" />
+        <span>Горки, батуты</span>
+    </a>
+
+    <a href="/velo/velo.htm">
+        <img src="/images/left_menu/velosidenie.png" width="62" height="62" alt="Велосиденья детские напрокат" title="Прокат детских велосидений Минск" />
+        <span>Велосиденья и аксессуары</span>
+    </a>
+
+    <a href="/prokat/begovel/begovel_naprokat_minsk.htm">
+        <img src="/images/left_menu/begovel.png" width="62" height="62" alt="Беговел напрокат" title="Прокат беговелов Минск" />
+        <span>Велосипеды, беговелы</span>
+    </a>
+
+    <a href="/prokat/samokaty_dlia_vzroslyh/samokaty_dlia_vzroslyh_naprokat_minsk.htm">
+        <img src="/images/left_menu/samokat_prokat_minsk.png" width="62" height="62" alt="Самокат детский напрокат" title="Прокат самокатов Минск" />
+        <span>Самокаты Micro</span>
+    </a>
+
+    <a href="/compleksy/compleksy.htm">
+    <img src="/images/left_menu/prokat_trenazhiorov_minsk.png" width="62" height="62" alt="Тренажеры напрокат" title="Прокат беговой дорожки элипсоида Минск" />
+    <span>Тренажеры для пап и мам</span>
+    </a> 
+
+    <a href="/prokat/last_rent/last_rent.htm">
+        <img src="/images/left_menu/last_rent.png" width="62" height="62" alt="прокат детских товаров в Минске" title="Прокат весов молокоотсосов коляско детских" />
+        <span>Прокат с выкупом</span>
+    </a>
+
+  
+  </div>
+          

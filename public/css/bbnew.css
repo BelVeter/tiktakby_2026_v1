@@ -1,0 +1,33 @@
+@font-face {
+  font-family: "Let's Be Glyphs CYR";
+  src: url("/public/fonts/LetsBeGlyphsCYR-Regular.ttf");
+}
+@font-face {
+  font-family: "Gilroy";
+  src: url("/public/fonts/Gilroy-Light.otf");
+  font-style: normal;
+  font-weight: 300;
+}
+@font-face {
+  font-family: "Gilroy";
+  src: url("/public/fonts/Gilroy-ExtraBold.otf");
+  font-style: normal;
+  font-weight: 800;
+}
+.client-srch-result {
+  font-family: "Gilroy";
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 18px;
+  color: #000000;
+}
+
+.client_srch-table {
+  font-family: "Gilroy";
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 18px;
+  color: #000000;
+}

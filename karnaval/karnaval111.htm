@@ -1,0 +1,591 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Новогодние костюмы для детей в Минске | Детские карнавальные костюмы напрокат | Прокат новогодних костюмов |  Tiktak.by</title>
+<link href="../tt_karn.css" rel="stylesheet" type="text/css" />
+<meta name="description" content="Прокат карнавальных костюмов в Минске. Салон проката детских новогодних костюмов. Вел. 630-35-58, мтс. 735-35-95" />
+<meta name="keywords" content="прокат карнавальных костюмов, маскарадные костюмы напрокат, Новый год, праздник" />
+
+<!--[if IE 6]>
+<script src="../DD_belatedPNG.js"></script>
+<script>
+  DD_belatedPNG.fix('#box_right, img.skidki'); 
+</script>
+<![endif]-->
+
+<?php
+$sex="m";
+$k_rost='';
+$k_day='';
+$k_y_m='';
+
+foreach ($_GET as $key => $value) {
+	$$key = get_get($key);
+}
+
+function get_get($var)
+{
+	return mysql_real_escape_string($_GET[$var]);
+}
+
+
+?>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-15543442-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+
+
+
+<script type="text/javascript">
+
+function copy_addr(id) {
+	document.getElementById('reg_str_'+id).value=document.getElementById('str_'+id).value; 
+	document.getElementById('reg_dom_'+id).value=document.getElementById('dom_'+id).value;
+	document.getElementById('reg_kv_'+id).value=document.getElementById('kv_'+id).value;
+	document.getElementById('reg_city_'+id).value=document.getElementById('city_'+id).value;
+	}
+	
+	
+
+function getXmlHttp(){
+	  var xmlhttp;
+	  try {
+	    xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+	  } catch (e) {
+	    try {
+	      xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+	    } catch (E) {
+	      xmlhttp = false;
+	    }
+	  }
+	  if (!xmlhttp && typeof XMLHttpRequest!='undefined') {
+	    xmlhttp = new XMLHttpRequest();
+	  }
+	  return xmlhttp;
+	}
+
+function cans_form (model_id) {
+	document.getElementById('zakaz_div_' + model_id).innerHTML='<a href="#" class="zakaz_a" onclick="show_form(\'' + model_id + '\', \'karnaval\'); return false;"><img src="img/price_karnaval.gif" /></a>';
+}
+
+
+function cans_pas (model_id) {
+	document.getElementById('zakaz_pas_div_' + model_id).innerHTML='<a href="#" class="zakaz_a" onclick="show_pas(\'' + model_id + '\', \'pas\'); return false;">Внести данные для договора</a>';
+}
+
+
+
+
+function show_form (model_id, q_type) {
+	
+	document.getElementById('zakaz_div_' + model_id).innerHTML='<img src="/includes/loading.gif" />';
+
+	var xmlhttp = getXmlHttp()
+	xmlhttp.open("POST", '/includes/zakaz.php', true)
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	
+		var params = 'model_id=' + encodeURIComponent(model_id) + '&q_type=' + encodeURIComponent(q_type);
+
+	xmlhttp.send(params);
+	xmlhttp.onreadystatechange = function() {
+	  if (xmlhttp.readyState == 4) {
+	     if(xmlhttp.status == 200) {
+		    document.getElementById('zakaz_div_' + model_id).innerHTML=xmlhttp.responseText;
+	           }
+	  		}
+		}
+}
+
+
+
+
+function show_pas (model_id, q_type) {
+	
+	document.getElementById('zakaz_pas_div_' + model_id).innerHTML='<img src="/includes/loading.gif" />';
+
+	var xmlhttp = getXmlHttp()
+	xmlhttp.open("POST", '/includes/zakaz.php', true)
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	
+		var params = 'model_id=' + encodeURIComponent(model_id) + '&q_type=' + encodeURIComponent(q_type);
+
+	xmlhttp.send(params);
+	xmlhttp.onreadystatechange = function() {
+	  if (xmlhttp.readyState == 4) {
+	     if(xmlhttp.status == 200) {
+		    document.getElementById('zakaz_pas_div_' + model_id).innerHTML=xmlhttp.responseText;
+	           }
+	  		}
+		}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function send_form (model_id, no_bron) {
+
+	valid = true;
+
+	kk_name = kk_phone = kk_date_d = kk_rost = "";
+
+	// проверка клиента
+	if (document.getElementById('name_' + model_id).value=="")
+	{kk_name="Имя, ";
+     valid = false;}
+
+	if (document.getElementById('phone_' + model_id).value=="")
+	{kk_phone="Телефон, ";
+     valid = false;}
+
+	if (document.getElementById('date_d_' + model_id).value=="")
+		{kk_date_d="Дата утренника, ";
+		 valid = false;}
+
+	if (document.getElementById('rost_' + model_id).value=="")
+		{kk_rost="Рост, ";
+		 valid = false;}
+		 
+	if (valid==false){
+	alert ('Заполните все поля формы! В частности: ' + kk_name + kk_phone + kk_date_d + kk_rost);
+		}
+
+if (valid==true) {
+		 
+	if (no_bron=="no_bron" && document.getElementById('date_m_' + model_id).value==12 && document.getElementById('date_d_' + model_id).value<28 ) {
+		alert ('К сожалению данный костюм на указанную Вами дату уже занят. Бронирование невозможно.');
+		return false;
+	}
+	
+	
+	
+	
+		 
+		 
+	var q_type='form_send';
+	
+	
+
+//gether values for base / letter
+	var k_name=document.getElementById('name_' + model_id).value;
+	var phone=document.getElementById('phone_' + model_id).value;
+	var operator=document.getElementById('operator_' + model_id).value;
+	var date_d=document.getElementById('date_d_' + model_id).value;
+	var date_m=document.getElementById('date_m_' + model_id).value;
+	var k_time=document.getElementById('k_time_' + model_id).value;
+	var rost=document.getElementById('rost_' + model_id).value;
+	var kompl=document.getElementById('kompl_' + model_id).value;
+	var info=document.getElementById('info_' + model_id).value;
+
+	var xmlhttp = getXmlHttp()
+	xmlhttp.open("POST", '/includes/zakaz.php', true)
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+	var params = 'k_name=' + encodeURIComponent(k_name) + '&phone=' + encodeURIComponent(phone) + '&operator=' + encodeURIComponent(operator) + '&date_d=' + encodeURIComponent(date_d) + '&date_m=' + encodeURIComponent(date_m) + '&k_time=' + encodeURIComponent(k_time) + '&rost=' + encodeURIComponent(rost) + '&kompl=' + encodeURIComponent(kompl) + '&info=' + encodeURIComponent(info) + '&q_type=' + encodeURIComponent(q_type) + '&model_id=' + encodeURIComponent(model_id);
+
+	document.getElementById('zakaz_div_' + model_id).innerHTML='<img src="/includes/loading.gif" />';
+
+	xmlhttp.send(params);
+	xmlhttp.onreadystatechange = function() {
+	  if (xmlhttp.readyState == 4) {
+	     if(xmlhttp.status == 200) {
+			
+		    document.getElementById('zakaz_div_' + model_id).innerHTML=xmlhttp.responseText;
+	           }
+	  		}
+		}
+
+
+
+
+}
+
+}//enf of valid if
+
+
+function send_pas (model_id) {
+	
+	valid = true;
+
+	info = family = p_name = otch = str = dom = kv = city = reg_str = reg_dom = reg_kv = reg_city = pas_n = pas_date_d = pas_date_m = pas_date_y = pas_who = phone_1 = "";
+
+	// проверка клиента
+	if (document.getElementById('info_' + model_id).value=="")
+	{info="Номер брони, ";
+     valid = false;}
+
+	if (document.getElementById('family_' + model_id).value=="")
+	{family="Фамилия, ";
+     valid = false;}
+
+	if (document.getElementById('name_' + model_id).value=="")
+		{p_name="Имя, ";
+		 valid = false;}
+
+	if (document.getElementById('otch_' + model_id).value=="")
+		{otch="Отчество, ";
+		 valid = false;}
+		 
+	if (document.getElementById('str_' + model_id).value=="")
+		{str="Улица(проживание), ";
+		 valid = false;}
+
+
+	if (document.getElementById('dom_' + model_id).value=="")
+		{dom="Дом (проживание), ";
+		 valid = false;}		 
+		 
+	if (document.getElementById('kv_' + model_id).value=="")
+		{kv="Квартира (проживание), ";
+		 valid = false;}
+
+	if (document.getElementById('city_' + model_id).value=="")
+		{city="Город (проживание), ";
+		 valid = false;}		 
+	
+
+	if (document.getElementById('reg_str_' + model_id).value=="")
+		{reg_str="Улица(прописка), ";
+		 valid = false;}
+
+
+	if (document.getElementById('reg_dom_' + model_id).value=="")
+		{reg_dom="Дом (прописка), ";
+		 valid = false;}		 
+		 
+	if (document.getElementById('reg_kv_' + model_id).value=="")
+		{reg_kv="Квартира (прописка), ";
+		 valid = false;}
+
+	if (document.getElementById('reg_city_' + model_id).value=="")
+		{reg_city="Город (прописка), ";
+		 valid = false;}	
+	
+	if (document.getElementById('pas_n_' + model_id).value=="")
+		{pas_n="Серия и номер паспорта, ";
+		 valid = false;}	
+
+	if (document.getElementById('pas_date_d_' + model_id).value=="")
+		{pas_date_d="паспорт выдан (день), ";
+		 valid = false;}
+
+	if (document.getElementById('pas_date_m_' + model_id).value=="")
+		{pas_date_m="паспорт выдан (месяц), ";
+		 valid = false;}
+
+	if (document.getElementById('pas_date_y_' + model_id).value=="")
+		{pas_date_y="паспорт выдан (год), ";
+		 valid = false;}
+
+	if (document.getElementById('pas_who_' + model_id).value=="")
+		{pas_who="паспорт (кем выдан), ";
+		 valid = false;}
+
+	if (document.getElementById('phone_1_' + model_id).value=="")
+		{phone_1="Телефон 1, ";
+		 valid = false;}	
+		 
+		 
+	if (valid==false){
+	alert ('Заполните все поля формы! В частности: ' + info + family + p_name + otch + str + dom + kv + city + reg_str + reg_dom + reg_kv + reg_city + pas_n + pas_date_d + pas_date_m + pas_date_y + pas_who + phone_1);
+		}//end of false if valid
+		
+	if (valid==true) {
+			 
+	var q_type='pas_send';
+	
+	
+
+//gether values for base / letter
+	var info=document.getElementById('info_' + model_id).value;
+	var family=document.getElementById('family_' + model_id).value;
+	var p_name=document.getElementById('name_' + model_id).value;
+	var otch=document.getElementById('otch_' + model_id).value;
+	var str=document.getElementById('str_' + model_id).value;
+	var dom=document.getElementById('dom_' + model_id).value;
+	var kv=document.getElementById('kv_' + model_id).value;
+	var city=document.getElementById('city_' + model_id).value;
+	var reg_str=document.getElementById('reg_str_' + model_id).value;
+	var reg_dom=document.getElementById('reg_dom_' + model_id).value;
+	var reg_kv=document.getElementById('reg_kv_' + model_id).value;
+	var reg_city=document.getElementById('reg_city_' + model_id).value;
+	var pas_n=document.getElementById('pas_n_' + model_id).value;
+	var pas_date_d=document.getElementById('pas_date_d_' + model_id).value;
+	var pas_date_m=document.getElementById('pas_date_m_' + model_id).value;
+	var pas_date_y=document.getElementById('pas_date_y_' + model_id).value;
+	var pas_who=document.getElementById('pas_who_' + model_id).value;
+	var phone_1=document.getElementById('phone_1_' + model_id).value;
+	var phone_2=document.getElementById('phone_2_' + model_id).value;
+	
+	var xmlhttp = getXmlHttp()
+	xmlhttp.open("POST", '/includes/zakaz.php', true)
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+	var params = 'model_id=' + encodeURIComponent(model_id) + '&info=' + encodeURIComponent(info) + '&family=' + encodeURIComponent(family) + '&p_name=' + encodeURIComponent(p_name) + '&otch=' + encodeURIComponent(otch) + '&str=' + encodeURIComponent(str) + '&dom=' + encodeURIComponent(dom) + '&kv=' + encodeURIComponent(kv) + '&city=' + encodeURIComponent(city) + '&reg_str=' + encodeURIComponent(reg_str) + '&reg_dom=' + encodeURIComponent(reg_dom) + '&reg_kv=' + encodeURIComponent(reg_kv) + '&reg_city=' + encodeURIComponent(reg_city) + '&pas_n=' + encodeURIComponent(pas_n) + '&pas_date_d=' + encodeURIComponent(pas_date_d) + '&pas_date_m=' + encodeURIComponent(pas_date_m) + '&pas_date_y=' + encodeURIComponent(pas_date_y) + '&pas_who=' + encodeURIComponent(pas_who) + '&phone_1=' + encodeURIComponent(phone_1) + '&phone_2=' + encodeURIComponent(phone_2) + '&q_type=' + encodeURIComponent(q_type);
+
+	document.getElementById('zakaz_pas_div_' + model_id).innerHTML='<img src="/includes/loading.gif" />';
+
+	xmlhttp.send(params);
+	xmlhttp.onreadystatechange = function() {
+	  if (xmlhttp.readyState == 4) {
+	     if(xmlhttp.status == 200) {
+			
+		    document.getElementById('zakaz_pas_div_' + model_id).innerHTML=xmlhttp.responseText;
+	           }
+	  		}
+		}
+
+
+
+
+}
+		
+		
+		
+}//end of function
+
+
+
+
+
+
+
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/fancybox/jquery.fancybox.css">
+<script type="text/javascript" src="/fancybox/jquery-1.3.2.min.js"></script>
+<script type="text/javascript" src="/fancybox/jquery.easing.1.3.js"></script>
+<script type="text/javascript" src="/fancybox/jquery.fancybox-1.2.1.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function() { 
+$("a.first").fancybox(); 
+$("a.two").fancybox(); 
+$("a.video").fancybox({"frameWidth":520,"frameHeight":400}); 
+$("a.content").fancybox({"frameWidth":600,"frameHeight":300}); 
+});
+</script>
+
+
+</head>
+
+<body>
+ 
+
+<div id="container">
+
+<!--Включаем шапку и верхнее меню-->
+<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/includes/header_karnaval.html'); ?>
+
+<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/includes/zakaz_inpage.php'); ?>  
+
+ 
+<div id="main2">
+<div id="k_container" class="k_container">
+<div class="k_top2">
+<span style="font-family: verdana, sens-serif; font-size: 12px; color: #00a0d0; font-style: italic;"> <a href="/">Главная</a> <img src="/images/ar.png" /> Прокат карнавальных костюмов: коллекции</span>
+<h1>ПРОКАТ НОВОГОДНИХ КАРНАВАЛЬНЫХ КОСТЮМОВ ДЛЯ ДЕТЕЙ</h1>
+<?php 
+echo '
+		
+<blockquote style="color:#00a0d0;"><img src="img/karnaval/karnavalnie_kostumy_poisk.gif" class="floatRight" title="Условия проката" alt="поиск карнавальных костюмов" width="180" height="180" style="position:relative; top:-20px;" />
+ <form method="get" action="/karnaval/karnaval.htm#srch_rez" id="karn_s_form">
+ <h1>Поиск костюма:</h1>
+ <p>для 
+ <select name="sex" style="width:150px; text-align:center;">
+ 	<option value="m" '.sel_d($sex, 'm').'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;мальчика</option>
+   	<option value="f" '.sel_d($sex, 'f').'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;девочки</option>
+ </select>
+  на рост (см) <input type="number" step="1" name="k_rost" style="width:120px; text-align:center;" value="'.$k_rost.'" /> дата торжества
+ 	<input name="k_day" type="number" step="1" min="0" max="31" id="k_day" style="width:35px;" value="'.$k_day.'">
+    <select name="k_y_m" id="k_y_m" style="width:90px;">
+    	'.m_plus2(0, $k_y_m).m_plus2(1, $k_y_m).m_plus2(2, $k_y_m).'
+    </select>
+ </p>
+ <h1><input type="submit" name="action" value="показать >>>" /></h1>
+ </form>
+ </blockquote>
+		
+';
+
+?>
+</div>
+<div class="k_top2" style="margin-bottom: 20px;">
+<h2 style="text-align:center; font-family: verdana, sans-serif; font-size: 20px; color: #00a0d0; font-weight: bold; stext-align: center; margin:0;">КОЛЛЕКЦИИ КОСТЮМОВ</h2>
+</div>
+<div class="k_col1">
+	<div class="k_div_l2"><a href="/karnaval/prokat_nariadnyh_plat'ev_dlia_devochki.htm" class="k_a_new"><img style="width:250px; height:380px;" 
+	src="/karnaval/img_kollektsii/nariadnye_detskie_platia-1.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">ПЛАТЬЯ, ФРАКИ</span></a></div>
+		
+	<div class="k_div_l2"><a href="/karnaval/prokat_kostumov_dlia_malyshei_minsk.htm" class="k_a_new"><img style="width:250px; height:273px;"
+	src="/karnaval/img_kollektsii/kostumy_dlia_malyshei_top-2.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">"МАЛЫШ"</span></a></div>
+	
+	<div class="k_div_l2"><a href="/karnaval/prokat_kostuma_korolia_velmozhi.htm" class="k_a_new"><img style="width:250px; height:307px;"
+	src="/karnaval/img_kollektsii/detskiy_karnavalnyi_costume_korol_b.jpg" /><span class="k_kol_text" style="top:60px; left:20px;">"КОРОЛЬ И ЕГО СВИТА"</span></a></div>
+	
+	<div class="k_div_l2"><a href="/karnaval/prokat_kostumy_voinov.htm" class="k_a_new"><img style="width:250px; height:307px;"
+	src="/karnaval/img_kollektsii/detskiy_karnavalnyi_costume_korol_b.jpg" /><span class="k_kol_text" style="top:60px; left:20px;">ВОИНЫ, ПОЛКОВОДЦЫ</span></a></div>
+	
+	
+	<div class="k_div_l2"><a href="/karnaval/prokat_kostum_geroi_multfilmov.htm" class="k_a_new"><img style="width:250px; height:307px;"
+	src="/karnaval/img_kollektsii/detskiy_karnavalnyi_costume_korol_b.jpg" /><span class="k_kol_text" style="top:60px; left:20px;">ГЕРОИ МУЛЬТФИЛЬМОВ</span></a></div>
+	
+	<div class="k_div_l2"><a href="/karnaval/prokat_golovnyh_uborov_parikov.htm" class="k_a_new"><img style="width:250px; height:307px;"
+	src="/karnaval/img_kollektsii/detskiy_karnavalnyi_costume_korol_b.jpg" /><span class="k_kol_text" style="top:60px; left:20px;">ГОЛОВНЫЕ УБОРЫ, ПАРИКИ</span></a></div>
+	
+	<!--- Не удалять: div растягиватель-->
+	<div style="clear:both;"></div>
+</div>
+<div class="k_col2">
+
+        
+<div class="k_div_l2"><a href="/karnaval/prokat_kostum_pirata_kovboya.htm" class="k_a_new"><img style="width:250px; height:333px;" 
+src="/karnaval/img_kollektsii/detskiy_novogodnyi_costume_pirat_top-5.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">ПИРАТЫ, РАЗБОЙНИКИ</span></a></div>
+
+<div class="k_div_l2"><a href="/karnaval/prokat_kostum_vostochnyi.htm" class="k_a_new"><img 
+style="width:250px; height:359px;" src="/karnaval/img_kollektsii/kostjum_vostochnoj_princessy.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">"ВОСТОК ДЕЛО ТОНКОЕ"</span></a></div>
+
+<div class="k_div_l2"><a href="/karnaval/prokat_kostum_mushketior.htm" class="k_a_new"><img 
+style="width:250px; height:359px;" src="/karnaval/img_kollektsii/kostjum_vostochnoj_princessy.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">МУШКЕТЕРЫ</span></a></div>
+
+
+<div class="k_div_l2"><a href="/karnaval/prokat_kostum_disney.htm" class="k_a_new"><img style="width:250px; height:176px;"
+	src="/karnaval/img_kollektsii/printsessy_disney.jpg" /><span class="k_kol_text" style="top:60px; left:20px;">ПРИНЦЕССЫ ДИСНЕЯ</span></a></div>
+	
+
+
+<div class="k_div_l2"><a href="/karnaval/prokat_kostum_geroi_skazok.htm" class="k_a_new"><img style="width:250px; height:307px;"
+	src="/karnaval/img_kollektsii/detskiy_karnavalnyi_costume_korol_b.jpg" /><span class="k_kol_text" style="top:60px; left:20px;">"В ГОСТЯХ У СКАЗКИ"</span></a></div>
+	
+<div class="k_div_l2"><a href="/karnaval/prokat_kostum_kloun_arlekin_shut.htm" class="k_a_new"><img style="width:250px; height:307px;"
+	src="/karnaval/img_kollektsii/detskiy_karnavalnyi_costume_korol_b.jpg" /><span class="k_kol_text" style="top:60px; left:20px;">"КЛОУНЫ, ШУТЫ"</span></a></div>
+	
+
+	
+	<!--- Не удалять: div растягиватель-->
+	<div style="clear:both;"></div>
+	
+</div>
+<div class="k_col3">
+	<div class="k_div_l2"><a href="/karnaval/ded_moroz_i_snegurochka.htm" class="k_a_new"><img style="width:250px; height:340px;"
+	src="/karnaval/img_kollektsii/detskie_novogodnie_kostumy-2.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">НОВОГОДНЯЯ СКАЗКА</span></a></div>
+	
+	<div class="k_div_l2"><a href="/karnaval/prokat_kostum_starwars_minsk.htm" class="k_a_new"><img style="width:250px; height:306px;"
+src="/karnaval/img_kollektsii/star_wars_arenda_kostuma-1.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">STAR WARS</span></a></div>
+
+<div class="k_div_l2"><a href="/karnaval/prokat_kostum_volshbnika_fei.htm" class="k_a_new"><img style="width:250px; height:306px;"
+src="/karnaval/img_kollektsii/star_wars_arenda_kostuma-1.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">ВОЛШЕБСТВО И МАГИЯ</span></a></div>
+
+
+<div class="k_div_l2"><a href="/karnaval/prokat_kostumov_zverei.htm" class="k_a_new"><img 
+style="width:250px; height:317px;" src="/karnaval/img_kollektsii/kostumy_zverei_top.jpg	" /><span class="k_kol_text" style="top:30px; left:20px;">ЗВЕРИ, ПТИЦЫ, НАСЕКОМЫЕ</span></a></div>
+
+	
+	<div class="k_div_l2"><a href="/karnaval/prokat_kostum_helloween.htm" class="k_a_new"><img style="width:250px; height:281px;"
+	src="/karnaval/img_kollektsii/detsie_kostumy_na_helloween.jpg" /><span class="k_kol_text" style="top:30px; left:20px;">ХЭЛЛОУВИН</span></a></div>
+	
+	
+	<div class="k_div_l2"><a href="/karnaval/prokat_kostum_supergeroi.htm" class="k_a_new"><img style="width:250px; height:299px;"
+	src="/karnaval/img_kollektsii/kostumy_supergeroev_prokat_minsk.jpg" /><span class="k_kol_text" style="top:160px; left:20px;">СУПЕРГЕРОИ</span></a></div>
+	
+	
+	
+	<!--- Не удалять: div растягиватель-->
+	<div style="clear:both;"></div>
+</div>
+
+</div>
+
+
+<div id="main_box" class="bodycopy" style="width:950px;">
+
+<p><b>Дорогие друзья! Мамы и папы!</b></p>
+<a href="terms_karnaval.htm"><img src="img/karnaval/karnavalnie_kostumy.png" class="floatRight" title="Условия проката" alt="Условия проката карнавальных костюмов" width="240" height="237" /></a>
+
+<p>Салон проката карнавальных костюмов TikTak с радостью предлагает Вам шикарную коллекциию детских маскарадных костюмов: у нас Вы точно найдете то, что искали!</p>
+
+<p>Покупать <b>новогодние костюмы для детей</b> дорого, да и в магазинах выбор карнавальных костюмов в Минске оставляет желать лучшего. Шить достойный костюм самому – недешевле, плюс требует определенных навыков и времени. А самое главное – маскарадные костюмы нужны, как правило, на один день, а то и всего лишь на  несколько часов. Как же быть, ведь хочется видеть своего ребенка самым красивым и счастливым на празднике?</p>
+<p>Прокат новогодних костюмов – отличный выход – за небольшие деньги (а в нашем салоне проката стоимость аренды одна из самых низких в Минске) Вы подарите своему ребенку замечательное настроение и ощущение волшебного праздника.</p>
+
+<p>ВНИМАНИЕ! К новогодним праздникам наша коллекция пополнилась замечательными костюмами к утренникам: для девочек шикарные платья принцесс (Золушка, Аврора, Ариеэль, Жасмин и др.), феи, пиратки; для мальчиков - персонажи &quot;Звездных войн&quot;, трансформеры, гусары, пираты, Кощей Бессмертный, Шут, Иван Царевич, клоуны и мн.других! Звоните и спрашивайте - будем рады помочь!</p>
+
+
+<blockquote><img src="img/mask.gif" class="floatLeft" /><h2><strong>Уважаемые клиенты!</strong></h2>
+
+<p>Мы понимаем как важно для Вас быть уверенными в том, что забронированный <strong>карнавальный костюм</strong> будет выдан в нужную дату и в надлежащем состоянии. Новогодний утренник, день рождения, и прочие торжественные события не перенесешь на другую дату, а ваш ребенок должен быть самым красивым и счастливым на празднике. Мы просто не имеем права подвести своих маленьких клиентов! Поэтому мы пострались сделать все возможное для разработки удобной и надежной системы бронирования <strong>карнавальных костюмов</strong>.</p>  
+<p>Просим Вас внимательно ознакомиться с нижеприведенными правилами бронирования и проката новогодних костюмов в салоне проката Tiktak. 
+Обращаем ваше внимаение, что бронирование производится клиентом ТОЛЬКО через наш сайт. Консультант поможет Вам при примерке, ответит на интересующие Вас вопросы касательно цвета, размера, комлектации новогодних костюмов, однако само бронирование производится клиентом самостоятельно путем заполнения <strong>on-line</strong> формы. </p></blockquote>
+
+<blockquote><h2><strong>ПОШАГОВАЯ ИНСТРУКЦИЯ ПО БРОНИРОВАНИЮ КАРНАВАЛЬНЫХ КОСТЮМОВ:</strong></h2>
+<p>1. Выберите на сайте нужный Вам костюм (обращаем Ваше внимание, что ростовки на костюмах указаны для среднего по комплекции ребенка, некоторые модели крайне желательно примерять заранее, например, приталенные платья для девочек, платья &quot;в пол&quot; и т.д.)</p>
+<p>2. В подробном описании модели заполните дату, на которую хотите забронировать карнавальный костюм (даже если Вы планируете забирать костюм накануне, указывайте саму дату торжества) и нажимаете кнопку &quot;ЗАБРОНИРОВАТЬ&quot;</p>
+<p>3. Если на выбранную вами дату костюм свободен, программа предложит Вам выбрать период проката - заполните поля формы. <Font color="red">Пожалуйста, ответственно отнеситесь к срокам возврата новогоднего костюма - не подводите детей, которые забронировали костюм после Вас!</Font> Обращаем Ваше внимание: при аренде костюма менее, чем на сутки - взымается полная арендная плата за сутки. При аренде более, чем на 24 часа - оплачиваются полные вторые сутки проката новогоднего костюма.</p>
+<p>4. При удачно проведенном бронировании, Вам будет присвоен номер брони, который следует запомнить/записать/сфотографировать, и придет подтверждение на указанный вами e-mail. С момента присвоения номера брони карнавальный костюм считается забронированным за вами на указанный Вами период времени.</p>
+<p>5. Если Вы забронировали костюм НЕ более, чем за 10 дней до даты праздника, вносить предоплату не требуется. Договор проката будет заключен непосредственно в момент выдачи карнавального костюма. Если Вы забронировали костюм РАНЕЕ, чем за 10 дней до даты праздника, требуется внести предоплату в размере 100% за выбранный вами период проката не позднее 3-х дней с момента бронирования, в противном случае бронь будет автоматически аннулирована.</p> 
+<p>6. В назначенный срок необходимо забрать костюм из салона проката.<ul> При себе иметь: <li>паспорт,</li><li>сумму залога,</li> </li><li>сумму для оплаты стоимости проката (если предоплата не вносилась)</li></ul>
+</p></blockquote> 
+
+
+<blockquote><h2><strong>ПРИМЕРКА КОСТЮМА:</strong></h2>
+<p>Посмотреть/померять карнавальный костюм можно в нашем салоне проката по адресу: г.Минск, пр-т Победителей, 127. Просим заранее согласовать время примерки с сотрудником салона по телефонам, указанным в шапке сайта. Обращаем Ваше внимание, что в период с 15 по 31 декабря примерки не осуществляются (либо осуществляются в исключительных случаях, если карнавальный костюм свободен от проката).<p> </p>Стоимость примерки:<br /> до 3-х костюмов - бесплатно;<br />
+каждый последующий костюм - 2 руб. </p></blockquote>
+
+<blockquote><h2><strong>ДОСТАВКА КАРНАВАЛЬНЫХ КОСТЮМОВ:</strong></h2>
+<p>Доставка карнавальных костюмов НЕ осуществляется. Однако в исключительных случаях, когда клиент по каким-либо причинам не может вовремя забрать или вернуть костюм, курьер может осуществить доставку/возврат. Экстренный выезд курьера (день в день) стоит 100 тыс. рублей. За пределы МКАД - оговаривается в частном порядке.</p></blockquote>
+
+<blockquote><h2><strong>ЗАКЛЮЧЕНИЕ ДОГОВОРА:</strong></h2>
+ <p>Отношения аренды между Клиентом и салоном TikTak оформляются договором проката. Заключение договора осуществляется в момент передачи карнавального костюма либо в момент внесения предоплаты при наличии у клиента паспортра с постоянной регистрации в г.Минске или Минской области. При отсутсвии таковой арендатор вносит оценочную стоимость карнавального костюма указанную в <a href="karnaval.htm#katalog_karnaval">Каталоге</a> в виде залога.</p>
+
+<img src="img/prokat.png" style="float:left;" />
+<h2><strong>Залог</strong></h2>
+<p>Исполнения договора проката АРЕНДАТОРОМ обеспечивается залогом. Размер залога указан в <a href="karnaval.htm#katalog_karnaval">Каталоге карнавальных костюмов</a>. При несвоевременном возврате карнавального костюма, а также при возврате костюма в грязном, порванном виде, некомплекте администрация имеет право признать Клиента нарушившим договор проката и применить к нему санкции, указанные в договоре проката, в частности удержать сумму залога полностью или частично.</p>  
+  
+<p><b>ВНИМАНИЕ!</b> Сумма залога не равна оценочной стоимости костюма, в случае невозврата костюма либо полной его порчи, арендатор обязан выплатить салону прокат ущерб в размере оценочной стоимости костюма.</p>
+
+ 
+<h2><strong>Передача карнавального костюма</strong></h2>
+<p>Сотрудник салона проката в момент выдачи карнавального костюма, в присутствии Клиента проверяет комплектность и внешний вид сдаваемого в аренду имущества, а также знакомит Клиента с правилами эксплуатации имущества. После подписания договора проката претензии к переданному по договору проката карнавальному костюму не принимаются.</p>
+
+<h2><strong>Возврат карнавального костюма</strong></h2>
+<p>Клиент обязан вернуть взятый напрокат карнавальный костюм в том же состоянии, в котором он его получил в салоне проката в момент выдачи. Наличие всех комплектующих обязательно. При возврате новогоднего костюма в срок в чистом виде и полном комплекте клиенту возвращается внесенный ранее залог в полном размере, в договоре клиента ставится отметка о возврате, подтверждающая сдачу товара в салон проката. Отсутствие данной отметки означает, что товар находится на руках у Клиента.
+В случае появления у карнавального костюма дефектов, возникших в процессе эксплуатации товара Клиентом, последний обязуется выплатить в бесспорном порядке прокату Tiktak.by оценочную стоимость имущества указанную в договоре проката в 3-х дневный срок. Возврат предмета проката в некомплекте оценивается как полная порча прокатного имущества т.к. теряется комплектность товара, либо Клиент по согласованию с салоном проката Tiktak.by доукомплектовывает маскарадный костюм за свой счет аналогичной деталью.</p></blockquote> 
+
+
+
+
+</div> 
+</div>   
+
+
+ 
+<!--Включаем футер по крутому -->
+<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/includes/footer.html'); ?>
+</div>
+</body>
+</html>

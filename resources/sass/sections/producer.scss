@@ -1,0 +1,127 @@
+.produser-section{
+    background-color:  #E7F0FA;
+    padding: 59px 0 40px 0;
+}
+
+.producer-container{
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+.producer-container h2{
+    margin-bottom: 8px;
+
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 172.69%;
+    text-align: center;
+    letter-spacing: 0.05em;
+
+    color: #000000;
+
+    @media screen and (max-width: 440px) {
+        font-size: 20px;
+        margin-bottom: 31px;
+    }
+}
+
+.producer-container .description{
+    margin-bottom: 52px;
+
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 200;
+    font-size: 22px;
+    line-height: 30px;
+
+    text-align: center;
+    letter-spacing: 0.0029em;
+    color: #000000;
+}
+
+.producer-card-container{
+    padding-left: 19px;
+    padding-bottom: 55px;
+    display: flex;
+    flex-flow: column wrap;
+    justify-content: space-between;
+    gap: 34px;
+
+    height: 445px;
+    overflow-x: scroll;
+    overflow-y: hidden;
+
+    @media screen and (max-width: 440px) {
+        height: 335px;
+        padding-bottom: 25px;
+        gap: 19px;
+    }
+}
+
+.producer-card-container::-webkit-scrollbar {
+    //-webkit-appearance: none;
+    height: 6px;
+    background: white;
+    border-radius: 50px;
+}
+.producer-card-container::-webkit-scrollbar-thumb {
+    //-webkit-appearance: none;
+    border-radius: 50px;
+    background-color: #436DBD;
+}
+
+.producer-card,
+.producer-card:visited{
+    position: relative;
+    display: flex;
+    flex-flow: column nowrap;
+    width: 170px;
+    height: 170px;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex: 0 0 auto;
+
+    box-sizing: border-box;
+
+    padding: 0 10px;
+
+    background: #FFFFFF;
+    border-radius: 0 50% 50%;
+
+    text-decoration: none;
+
+    @media screen and (max-width: 440px) {
+        width: 140px;
+        height: 140px;
+    }
+}
+
+.producer-card img {
+    max-width: 100%;
+}
+
+.producer-card span{
+    position: absolute;
+    top: 16px;
+    left: 16px;
+
+    align-self: flex-start;
+
+    text-align: left;
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 172.69%;
+    letter-spacing: 0.1em;
+
+    color: #BABABA;
+
+    @media screen and (max-width: 440px) {
+        top: 8px;
+        left: 5px;
+    }
+}

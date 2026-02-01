@@ -1,0 +1,113 @@
+
+.nav-left {
+    width: 285px;
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.nav-left_sub-razdel_ul{
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    display: flex;
+    flex-flow: column nowrap;
+
+    &>li{
+        padding: 25px 15px;
+        display: flex;
+        flex-flow: column nowrap;
+
+        border-bottom: 1px solid #DAEBFF;
+    }
+
+    & .nav-left_arrow-btn{
+        transition: all 0.7s;
+    }
+
+    & .nav-left_arrow-btn.show{
+        transform: rotate(180deg);
+    }
+
+    & button {
+        display: flex;
+        background: none;
+        border: none;
+    }
+
+    & .sub-razdel-row{
+        display: flex;
+        flex-flow: row nowrap;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    &>li>.sub-razdel-row>a {
+        margin-right: 5px;
+        font-family: 'Nunito';
+        font-style: normal;
+        font-weight: 400;
+        font-size: 16px;
+        line-height: 22px;
+        color: #000000;
+        text-transform: uppercase;
+    }
+}
+
+.nav-left_sub-razdel_ul .cat-row {
+    display: flex;
+    flex-flow: column nowrap;
+    list-style: none;
+
+    max-height: 0;
+
+    margin: 0 0 0 7px;
+    padding: 0;
+
+    overflow-y: auto;
+
+    transition: all 1s;
+
+    &.show{
+        padding-top: 8px;
+        max-height: 400px;
+        transition: all 1s;
+    }
+
+    & li{
+        margin: 10px 0;
+    }
+
+    & li a{
+        display: flex;
+        flex-flow: row nowrap;
+    }
+
+    & .nl-cat-radio{
+        display: block;
+        width: 24px;
+        height: 24px;
+        margin-right: 16px;
+
+        border: 0.5px solid #000000;
+        border-radius: 5px;
+
+        &.current{
+            background-image: url("/public/svg/nav-left-radio-active.svg");
+            background-position: center center;
+            background-repeat: no-repeat;
+        }
+    }
+
+    & .nl-cat-text {
+        font-family: 'Nunito';
+        font-style: normal;
+        font-weight: 400;
+        font-size: 16px;
+        line-height: 22px;
+        color: #000000;
+    }
+}
+

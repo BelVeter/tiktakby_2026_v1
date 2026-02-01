@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="icon" type="image/x-icon" href="./assets/img/favicon.ico">
+
+  <link rel="stylesheet" href="./style.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;400&family=Merriweather:wght@700&display=swap"
+    rel="stylesheet">
+
+  <title>Portfolio</title>
+</head>
+
+<body>
+  <div class="main-container">
+    <header class="container container-header">
+      <div class="top-logo"><img src="./assets/svg/logo.svg" alt="logo background" width="50" height="40"></div>
+      <nav class="top-nav">
+        <ul class="nav-list">
+          <li class="nav-item"><a class="nav-link" href="#skills">Skills</a></li>
+          <li class="nav-item"><a class="nav-link" href="#portfolio">Portfolio</a></li>
+          <li class="nav-item"><a class="nav-link" href="#video">Video</a></li>
+          <li class="nav-item"><a class="nav-link" href="#price">Price</a></li>
+          <li class="nav-item"><a class="nav-link" href="#contacts">Contacts</a></li>
+        </ul>
+      </nav>
+      <div class="lang">
+        <span> <span class="lang-active">en</span> / ru</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="container container-main">
+        <section class="section hero">
+          <div class="hero-block">
+            <h1>Alexa Rise</h1>
+            <p>
+              Save sincere emotions, romantic feelings and happy moments of life together with professional photographer
+              Alexa Rise
+            </p>
+            <button class="hero-btn">Hire me</button>
+          </div>
+        </section>
+        <section class="section skills" id="skills">
+          <h2 class="section-title">Skills</h2>
+          <div class="skills-line">
+            <div class="skill-div">
+              <img src="./assets/svg/camera.svg" alt="camera">
+              <div class="skill-name">Digital photography</div>
+              <div class="skill-descr">High-quality photos in the studio and on the nature</div>
+            </div>
+            <div class="skill-div">
+              <img src="./assets/svg/Vector.png" alt="camera">
+              <div class="skill-name">Video shooting</div>
+              <div class="skill-descr">Capture your moments so that they always stay with you</div>
+            </div>
+            <div class="skill-div">
+              <img src="./assets/svg/pic_img.png" alt="camera">
+              <div class="skill-name">Retouch</div>
+              <div class="skill-descr">I strive to make photography surpass reality</div>
+            </div>
+            <div class="skill-div">
+              <img src="./assets/svg/mic.png" alt="camera">
+              <div class="skill-name">Audio</div>
+              <div class="skill-descr">Professional sounds recording for video, advertising, portfolio</div>
+            </div>
+          </div>
+        </section>
+        <section class="section portfolio" id="portfolio">
+          <h2 class="section-title">Portfolio</h2>
+          <ul class="portfolio-cat-list">
+            <li><button>Winter</button></li>
+            <li><button>Spring</button></li>
+            <li><button>Summer</button></li>
+            <li class="active"><button>Autumn</button></li>
+          </ul>
+          <div class="photo-items">
+            <img class="portfolio-item" src="./assets/img/portfolio-img-1.jpg" alt="photo 1">
+            <img class="portfolio-item" src="./assets/img/portfolio-img-2.jpg" alt="photo 2">
+            <img class="portfolio-item" src="./assets/img/portfolio-img-3.jpg" alt="photo 3">
+            <img class="portfolio-item" src="./assets/img/portfolio-img-4.jpg" alt="photo 4">
+            <img class="portfolio-item" src="./assets/img/portfolio-img-5.jpg" alt="photo 5">
+            <img class="portfolio-item" src="./assets/img/portfolio-img-6.jpg" alt="photo 6">
+          </div>
+        </section>
+        <section class="section video" id="video">
+          <h2 class="section-title">Video</h2>
+          <video></video>
+          <button class="video-btn"></button>
+        </section>
+        <section class="section price" id="price">
+          <h2 class="section-title">Price</h2>
+          <div class="price-items">
+            <div class="price-item">
+              <h3>Standard</h3>
+              <div class="price">500 $</div>
+              <ul>
+                <li>One location</li>
+                <li>120 photos in color</li>
+                <li>12 photos in retouch</li>
+                <li>Readiness 2-3 weeks</li>
+                <li>Make up, visage</li>
+              </ul>
+              <button>Order shooting</button>
+            </div>
+            <div class="price-item">
+              <h3>Premium</h3>
+              <div class="price">700 $</div>
+              <ul>
+                <li>One or two locations</li>
+                <li>200 photos in color</li>
+                <li>20 photos in retouch</li>
+                <li>Readiness 1-2 weeks</li>
+                <li>Make up, visage</li>
+              </ul>
+              <button>Order shooting</button>
+            </div>
+            <div class="price-item">
+              <h3>Gold</h3>
+              <div class="price">1000 $</div>
+              <ul>
+                <li>Three locations or more</li>
+                <li>300 photos in color</li>
+                <li>50 photos in retouch</li>
+                <li>Readiness 1 week</li>
+                <li>Make up, visage, hairstyle</li>
+              </ul>
+              <button>Order shooting</button>
+            </div>
+          </div>
+        </section>
+        <div class="section contacts" id="contacts">
+          <form method="post" action="#" class="contacts-container">
+            <div class="contacts-title">Contact me</div>
+            <input class="email" type="email" name="email" placeholder="E-mail">
+            <input class="phone" type="text" name="phone" placeholder="Phone">
+            <textarea class="message" name="message" placeholder="Message"></textarea>
+            <button class="submit-btn">Send message</button>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer container-footer">
+      <div class="container">
+        <a href="https://github.com/BelVeter/rsschool-cv">&#169;&nbsp;&nbsp;&nbsp; 2022&nbsp;&nbsp;&nbsp; github</a>
+        <a href="https://rs.school/js-stage0">Rolling Scopes School</a>
+        <ul>
+          <li><img src="./assets/svg/insta.svg" alt="social insta"></li>
+          <li><img src="./assets/svg/facebook.svg" alt="social facebook"></li>
+          <li><img src="./assets/svg/tweet.svg" alt="social tweeter"></li>
+          <li><img src="./assets/svg/pinterests.svg" alt="social pint"></li>
+        </ul>
+      </div>
+    </footer>
+
+  </div>
+  <script src="./index.js"></script>
+</body>
+
+</html>

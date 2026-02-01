@@ -1,0 +1,93 @@
+@font-face {
+  font-family: "Let's Be Glyphs CYR";
+  src: url("/public/fonts/LetsBeGlyphsCYR-Regular.ttf");
+}
+
+@font-face {
+  font-family: "Gilroy";
+  src: url("/public/fonts/Gilroy-Light.otf");
+  font-style: normal;
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Gilroy";
+  src: url("/public/fonts/Gilroy-ExtraBold.otf");
+  font-style: normal;
+  font-weight: 800;
+}
+
+.client-srch-result{
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 18px;
+  color: #000000;
+}
+
+.corrected-label{
+  //left: unset !important;
+}
+
+.client_srch-table{
+  font-family: "Gilroy";
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 18px;
+  color: #000000;
+  tr td:nth-child(3) span{
+    text-align: right;
+  }
+}
+
+.client_str-select{
+  position: absolute;
+  top: 5px;
+  right: 2px;
+  opacity: 0.65;
+  border: none;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #212529;
+  text-align: right;
+}
+
+.row-pass{
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 15px;
+}
+
+.col-pass-who{
+  flex-basis: 300px;
+}
+
+.client_new-input.hide{
+  display: none !important;
+}
+
+.client_new-input{
+  opacity: 0;
+  transition: all 0.7s;
+}
+.client_new-input.show{
+  opacity: 1;
+}
+
+
+.client_new-btn{
+  margin: 0;
+  padding: 0;
+  width: 50px;
+  height: 50px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  border-radius: 50%;
+  border: solid 2px green;
+  font-size: 30px;
+}

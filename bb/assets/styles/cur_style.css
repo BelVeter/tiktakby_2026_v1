@@ -1,0 +1,849 @@
+:root {
+    --color-dark: #000000;
+    --color-white: #FFFFFF;
+    --color-gold: #fade6f;
+}
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+a,
+a:visited,
+a:hover {
+    text-decoration: none;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    padding-bottom: 80px;/* !!! for sticky footer menu */
+}
+
+.header-shift {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-start;
+}
+
+.header-shift .arrow-left img {
+    width: 20px;
+    height: 16px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    padding: 0 15px;
+}
+
+.container-shift {
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+.container-header{
+    padding-top: 5px;
+    padding-bottom: 5px;
+
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    align-items: center;
+    height: 100px;
+
+    color: #000000;
+
+    border-bottom: 1px solid #E6E6E6;
+}
+
+.header-date {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: center;
+
+    position: relative;
+
+    padding: 10px 0;
+}
+
+.header-date .line1 {
+    /*font-family: Let's Be Glyphs CYR;*/
+    font-style: normal;
+    font-weight: normal;
+    font-size: 24px;
+    line-height: 31px;
+}
+
+.header-date .line2 {
+    font-family: Lato;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 20px;
+    line-height: 24px;
+    letter-spacing: 0.0029em;
+
+    color: #302323;
+}
+
+.date-menu,
+.cur-menu {
+    position: absolute;
+    background: lightblue;
+    top:-430px;
+    left:0px;
+    width: 100%;
+    z-index: 10;
+    box-shadow: 0px 0px 5px 3px lightblue;
+
+    transition: 0.5s;
+}
+.date-menu ul,
+.cur-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.date-menu ul li,
+.cur-menu ul li {
+    text-align: center;
+    font-size: 26px;
+    padding: 20px 0;
+    cursor: pointer;
+    border-bottom: 1px solid;
+}
+
+.date-menu button,
+.cur-menu button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    font-size: 26px;
+    padding: 8px 16px;
+    z-index: 11;
+}
+
+.date-menu.show,
+.cur-menu.show {
+    top: 0;
+}
+
+.cur-flower {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 86px;
+    height: 88px;
+    position: relative;
+}
+
+
+
+
+.cur-flower .cur-total-taken.cur-total-taken {
+    position: absolute;
+    bottom: 8px;
+    right: 0;
+    width: 39px;
+
+    text-align: center;
+
+    font-style: normal;
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 24px;
+    color: white;
+}
+
+.cur-total {
+    position: absolute;
+    left: 0;
+    top:8px;
+    width: 39px;
+
+    text-align: center;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 24px;
+    color: white;
+}
+
+.cur-total-notmy {
+    position: absolute;
+    left: 8px;
+    bottom:8px;
+    width: 39px;
+
+    text-align: center;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 24px;
+    color: white;
+}
+
+.cur-total-free {
+    position: absolute;
+    right: 0px;
+    top: 17px;
+    width: 39px;
+
+    text-align: center;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 24px;
+    color: white;
+}
+
+.container-main {
+    display: flex;
+    flex-flow: column nowrap;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.cur-line{
+    padding: 1px 0px 1px 10px;
+    display: flex;
+    flex-flow: row nowrap;
+    /*justify-content: stretch;*/
+    align-items: center;
+    border-bottom: 1px solid #E6E6E6;
+}
+
+.cur-tovar-container{
+    display: flex;
+    flex-flow: row nowrap;
+    flex: 0 0;
+}
+
+.tov-item {
+    display: flex;
+    flex-flow: column nowrap;
+    position: relative;
+    /*height: 70px;*/
+    min-width: 50px;
+    max-width: 70px;/*in order not to grow when picture shring*/
+
+}
+.tov-item > img {
+    width: 50px;
+    height: 50px;
+    position: relative;
+
+    transition: 0.3s;
+}
+.tov-item > img.big {
+    width: 300px;
+    height: 300px;
+    position: absolute;
+    left: 0px;
+    z-index: 3;
+    box-shadow: 0px 0px 5px 3px lightblue;
+}
+
+.tov-item .inv-n{
+    margin-top: 8px;
+    margin-bottom: 2px;
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 200;
+    font-size: 12px;
+    line-height: 14px;
+
+    text-align: center;
+    color: #000000;
+}
+
+.cur-tovar-container .office {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1px;
+    width: 15px;
+    height: 15px;
+    background: #F2B61C;
+    border-radius: 5px;
+
+    text-align: center;
+    color: white;
+
+    font-family: Lato;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 8px;
+    line-height: 10px;
+}
+
+.office-container {
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+.dop-office-free {
+    margin-top: 2px;
+    width: 15px;
+    height: 3px;
+
+    background: #078DC7;
+    border-radius: 2px;
+}
+
+.cur-client{
+    display: flex;
+    flex-flow: column nowrap;
+    flex: 1 1 auto;
+    margin: 0 18px;
+}
+
+.cur-client span {
+    text-align: left;
+}
+.cur-client .line1 {
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 19px;
+}
+
+.cur-client .line2 {
+
+    font-family: Lato;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 17px;
+}
+
+.cur-action {
+    position: relative;
+
+    flex: 0 0 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer;
+
+    background-color: yellow;
+
+    background: url(/bb/assets/images/svg/heart_white.svg);
+    background-size: auto;
+    background-position: center center;
+    background-repeat: no-repeat;
+
+    transition: 0.3s;
+
+}
+
+.cur-action.taken {
+    background: url(/bb/assets/images/svg/heart_red.svg);
+    background-size: auto;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.cur-action.notmy {
+    background: url(/bb/assets/images/svg/heart_blue.svg);
+    background-size: auto;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.cur-action.taken.done,
+.cur-action.done
+{
+    background: url(/bb/assets/images/png/done.png);
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.cur-action.taken.fail,
+.cur-action.fail
+{
+    background: url(/bb/assets/images/png/fail.png);
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.message {
+
+    width: 300px;
+    position: absolute;
+    right: -320px;
+    padding: 20px;
+    background-color: white;
+
+    box-shadow: 0px 0px 5px 3px lightblue;
+    border-radius: 10px;
+
+    z-index: 3;
+
+    text-align: center;
+
+    transition: 0.5s;
+
+}
+
+.modal{
+    display: flex;
+    flex-flow: column nowrap;
+    padding: 0;
+
+    box-shadow: 0px 0px 5px 3px lightblue;
+
+    position: fixed;
+    z-index: 20;
+    background: white;
+    width: 100%;
+    top: 50px;
+    display: none;
+}
+
+.modal .client {
+    display: flex;
+    flex-flow: column nowrap;
+    background: rgba(138, 201, 205, 0.46);
+    padding: 15px;
+}
+.address-div,
+.fio-div,
+.info-div {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal .img-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+}
+
+.address-div a {
+    margin-left: 8px;
+    margin-right: auto;
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 24px;
+    line-height: 28px;
+
+    color: #000000;
+}
+
+.address-div button {
+    font-size: 20px;
+    padding: 3px 7px;
+}
+
+.fio-div span {
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 19px;
+    margin-left: 8px;
+
+    color: #000000;
+}
+
+.info-div span {
+    font-family: Lato;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 17px;
+    margin-left: 8px;
+
+    color: #4F4F4F;
+}
+
+.deliv-deal {
+    display: flex;
+    align-items: center;
+    flex-flow: row nowrap;
+    padding: 15px;
+
+    border-bottom: 0.5px solid #C9E6E8;;
+}
+
+.pic-div {
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+.pic-div img {
+    width: 50px;
+    height: 50px;
+}
+
+.pic-div span {
+    font-family: Lato;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 17px;
+
+    color: #000000;
+}
+
+.operation-info {
+    display: flex;
+    flex-flow: column nowrap;
+    margin-left: 14px;
+    margin-right: auto;
+}
+
+.operation-info .line1 {
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 16px;
+    text-decoration-line: underline;
+    color: #000000;
+}
+.operation-info .line2 {
+    margin-top: 8px;
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 14px;
+    line-height: 16px;
+}
+.operation-info .line3 {
+    margin-top: 8px;
+    font-family: Lato;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 17px;
+
+}
+
+.topay {
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 19px;
+    text-align: right;
+
+    color: #000000;
+}
+
+.final-div {
+    display: flex;
+    flex-flow: row nowrap;
+    margin-top: 37px;
+    padding: 0 15px;
+
+}
+
+.final-div img {
+    margin-left: 3px;
+    margin-right: 42px;
+}
+
+.totals {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: stretch;
+    flex: 1 1;
+}
+
+.totals .line1,
+.totals .line2 {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 19px;
+
+    color: #000000;
+}
+
+.totals .line2 {
+    margin-top: 8px;
+}
+
+.totals .line3 {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    margin-top: 13px;
+
+    ont-family: Roboto;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 19px;
+
+    color: #000000;
+}
+
+
+
+.modal-phones {
+    display: flex;
+    flex-flow: column nowrap;
+}
+.modal-phones a {
+    font-size: 20px;
+    padding: 20px 0;
+    margin: 0 auto;
+    text-decoration: underline;
+}
+
+.delivery-status {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-around;
+
+    margin: 10px 0;
+}
+
+
+
+.blur {
+    filter: blur(5px);
+}
+
+
+
+
+
+
+/*.modal::before{*/
+/*    display: block;*/
+/*    content: '';*/
+/*    background-color: white;*/
+/*    position: fixed;*/
+/*    width: 100%;*/
+/*    top: 0;*/
+/*    bottom: 0;*/
+/*    z-index: 19;*/
+/*}*/
+
+.modal.show-modal {
+    display: flex;
+}
+
+.message.show{
+    right: 5px;
+}
+.gray-transparent {
+    /*filter: grayscale(100%);*/
+    opacity: 0.4;
+}
+
+
+
+.cur-container {
+    display: flex;
+    flex-flow: column nowrap;
+    max-width: 600px;
+    margin: 0 auto;
+}
+.cur-container h1 {
+    font-family: "Let's Be Glyphs CYR";
+    font-style: normal;
+    font-weight: normal;
+    font-size: 24px;
+    line-height: 31px;
+    text-align: center;
+    margin-top: 100px;
+
+    color: #000000;
+}
+
+.cur-start-menu {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    list-style: none;
+    margin: 0 -15px;
+    padding: 0;
+}
+.cur-start-menu button {
+    width: 171px;
+    height: 40px;
+
+    border: 0.3px solid #000000;
+    box-sizing: border-box;
+    margin: 5px;
+
+    font-family: Gilroy;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 18px;
+
+    letter-spacing: 0.0029em;
+    background-color: white;
+
+    color: #000000;
+}
+
+
+
+.cur-main-shift {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-end;
+    margin-top: 320px;
+}
+
+.cur-main-shift span {
+    padding-top: 3px;
+    margin-right: 20px;
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 22px;
+    line-height: 26px;
+    letter-spacing: 0.0029em;
+
+    color: #000000;
+}
+
+.cur-toggle-btn {
+    width: 65px;
+    height: 36px;
+    margin-right: 40px;
+    background-color: transparent;
+    background-image: url("/bb/assets/images/png/btn_toggle.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    border: none;
+}
+
+.cur-footer {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center;
+    margin: 0 -15px;
+
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+
+    background-color: #F6F6F6;
+}
+.cur-footer ul {
+    margin: 8px 0 22px 0;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    padding: 0;
+    list-style: none;
+    width: 100%;
+}
+.cur-footer ul li {
+    margin: 0 15px;
+    height: 50px;
+    width: 50px;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.cur-footer ul li a {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.cur-footer ul li span {
+    margin-top: 4px;
+    font-family: Lato;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 11px;
+    line-height: 13px;
+    text-align: center;
+}
+
+
+
+
+
+
+.container-shift h1 {
+
+    text-align: center;
+    letter-spacing: 0.07em;
+    margin: 40px auto 0 auto;
+
+    font-family: "Let's Be Glyphs CYR";
+    font-style: normal;
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 29px;
+
+    color: #000000;
+}
+
+.shift-car {
+    display: flex;
+    border: 0.3px solid #000000;
+    box-sizing: border-box;
+    box-shadow: 3px 3px 4px rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 28px;
+    letter-spacing: 0.0029em;
+    color: #302323;
+}
+
+.shift-car select {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 28px;
+    letter-spacing: 0.0029em;
+    color: #302323;
+}
+
+
+.menu-gray-transparent{
+    filter: grayscale(1);
+    opacity: 0.6;
+}
+
+
+.hide {
+    display: none;
+}
+
+.print-img{
+  width: 50px;
+}

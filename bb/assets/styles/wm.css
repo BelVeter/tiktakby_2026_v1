@@ -1,0 +1,14 @@
+.wm_file-col img{
+  width: 100%;
+  max-width: 100px;
+}
+
+.file-del-checkbox{
+  width: 20px;
+  height: 20px;
+}
+
+.photo-row{
+  border-bottom: solid 1px grey;
+  margin-top: 10px;
+}

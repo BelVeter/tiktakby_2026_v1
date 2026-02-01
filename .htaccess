@@ -1,0 +1,53 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+    RewriteCond %{HTTP_REFERER} pfbaza.website [NC]
+    RewriteRule .* – [F]
+
+    RewriteEngine On
+    RewriteCond %{HTTP_REFERER} gay-andrey.online [NC]
+    RewriteRule .* – [F]
+
+    RewriteEngine On
+    RewriteCond %{HTTP:X-Forwarded-Proto} =http
+    RewriteRule .* https://%{HTTP:Host}%{REQUEST_URI} [L,R=permanent]
+    
+    RewriteEngine On
+
+    RewriteRule ^(bb) - [L]
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+
+    RewriteRule ^ index.php [L]
+
+    #RemoveHandler .html .htm 
+
+#AddType application/x-httpd-php .php .htm .html .phtml
+#AddHandler php-cgi .php .htm .html .phtml
+
+Options +ExecCGI
+AddHandler application/x-httpd-lsphp .html .htm 
+
+
+</IfModule>
+
+<Files 403.shtml>
+order allow,deny
+allow from all
+</Files>
+
+deny from 95.217.141.56

@@ -1,0 +1,117 @@
+.age-breackdown-section {
+    padding-top: 60px;
+    margin-bottom: 30px;
+
+    @media screen and (max-width: 440px) {
+        padding-top: 28px;
+    }
+}
+
+.age-breackdown-section h2{
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 130%;
+    /* or 48px */
+    text-align: center;
+    letter-spacing: 0.0029em;
+
+    color: var(--main-text-color);
+
+    @media screen and (max-width: 440px) {
+        font-size: 20px;
+        max-width: 330px;
+    }
+}
+
+.age-filters-container{
+    margin-top: 50px;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-around;
+    gap: 50px;
+
+    @media screen and (max-width: 440px) {
+        margin-top: 27px;
+        padding: 0 40px;
+        gap: 45px;
+    }
+}
+
+.age-filter,
+.age-filter:hover,
+.age-filter:visited{
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+    text-decoration: none;
+    width: 142px;
+
+    @media screen and (max-width: 440px) {
+        width: 114px;
+    }
+}
+
+.age-filter_age-circle{
+    width: 100px;
+    height: 100px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 800;
+    font-size: 28px;
+    line-height: 172.69%;
+    /* or 48px */
+    letter-spacing: 0.0029em;
+    color: #FFFFFF;
+
+    border-radius: 50%;
+    background:  #ff0016;
+
+    @media screen and (max-width: 440px) {
+        width: 70px;
+        height: 70px;
+        font-size: 24px;
+    }
+
+}
+
+.age-filter_agetext {
+    margin-top: 30px;
+    font-family: var(--main-text-font-family);
+    font-style: normal;
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 172.69%;
+    /* or 35px */
+    text-align: center;
+    letter-spacing: 0.0029em;
+
+    color: var(--main-text-color);
+
+    @media screen and (max-width: 440px) {
+        margin-top: 13px;
+        font-weight: 400;
+        font-size: 16px;
+    }
+
+}
+
+.age-filter_bottom-border {
+    margin-top: 35px;
+    height: 72px;
+    width: 100%;
+    background: url('/public/svg/wave2.svg');
+    background-repeat: repeat-x;
+    background-position: center;
+    background-size: auto;
+
+    @media screen and (max-width: 440px) {
+        background-position-x: -8px;
+    }
+}

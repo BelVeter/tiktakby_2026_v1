@@ -1,0 +1,192 @@
+﻿.tarifs_table_new {
+	table-layout:fixed;
+	width:300px;
+	margin:15px 0 15px 25px;
+	font-family:Verdana, sans-serif;
+	font-size:13px;
+	line-height:1.5;
+	border:none;
+	border-spacing:0px;
+	color:#009CEA;
+	font-weight:bold;
+}
+
+.t_h_r {
+	font-family:Verdana, sans-serif;
+	font-size:14px;
+	font-weight:bold;
+	color:#FFF;
+	background-color:#00a0d0;
+	text-align:center;
+	line-height:1.5;
+}
+
+.t_h_1 {
+	width:90px;
+	border-color:#FFF;
+	border-style:none solid solid none;
+	border-width:0 1px 2px 0;
+
+	border-radius:10px 0 0 0;
+	-webkit-border-radius:10px 0 0 0;
+	-moz-border-radius:10px 0 0 0;
+	-khtml-border-radius:10px 0 0 0;
+}
+
+.t_h_2 {
+	width:90px;
+	border-color:#FFF;
+	border-style:none solid solid none;
+	border-width:0 1px 2px 0;
+
+	border-radius:0 0 0 0;
+	-webkit-border-radius:0 0 0 0;
+	-moz-border-radius:0 0 0 0;
+	-khtml-border-radius:0 0 0 0;
+}
+
+.t_h_3 {
+	width:115px;
+	border-color:#FFF;
+	border-style:none none solid none;
+	border-width:0 0 2px 0;
+
+
+	border-radius:0 10px 0 0;
+	-webkit-border-radius:0 10px 0 0;
+	-moz-border-radius:0 10px 0 0;
+	-khtml-border-radius:0 10px 0 0;
+}
+
+.t_l_1 {
+	border-color:#FFF;
+	border-style:none solid none none;
+	border-width:0 1px 0 0;
+
+	background-color:#e5f8fb;
+	text-align:left;
+	padding:0px 10px;
+	border-spacing:0 2px;
+}
+
+.t_l_2 {
+	border-color:#FFF;
+	border-style:none solid none none;
+	border-width:0 1px 0 0;
+
+
+	background-color:#e5f8fb;
+	text-align:right;
+	font-weight:normal;
+	font-style:italic;
+	padding:0px 10px;
+	border-spacing:0 2px;
+}
+
+.t_l_3 {
+	background-color:#e5f8fb;
+	text-align:right;
+	padding:0px 10px;
+	border-spacing:0 2px;
+}
+
+.t_el_1 {
+	border-color:#FFF;
+	border-style:none solid none none;
+	border-width:0 1px 0 0;
+
+	background-color:#e5f8fb;
+	text-align:left;
+	padding:0px 10px 10px 10px;
+	border-spacing:0 2px;
+
+	border-radius:0 0 0 10px;
+	-webkit-border-radius:0 0 0 10px;
+	-moz-border-radius:0 0 0 10px;
+	-khtml-border-radius:0 0 0 10px;
+
+}
+
+.t_el_2 {
+	border-color:#FFF;
+	border-style:none solid none none;
+	border-width:0 1px 0 0;
+
+
+	background-color:#e5f8fb;
+	text-align:right;
+	font-weight:normal;
+	font-style:italic;
+	padding:0px 10px 10px 10px;
+	border-spacing:0 2px;
+}
+
+.t_el_3 {
+	background-color:#e5f8fb;
+	text-align:right;
+	padding:0px 10px 10px 10px;
+	border-spacing:0 2px;
+
+	border-radius:0 0 10px 0;
+	-webkit-border-radius:0 0 10px 0;
+	-moz-border-radius:0 0 10px 0;
+	-khtml-border-radius:0 0 10px 0;
+
+}
+
+
+
+
+.tarifs_table {
+	font-family:Verdana, sans-serif;
+	font-size:13px;
+	line-height:1.5;
+	border:none;
+	border-spacing:2px;
+	position:relative;
+	top:64px;
+	left:22px;
+	color:#009CEA;
+	font-weight:bold;
+}
+
+.tar_1 {
+	width:80px;
+//	background-color:#0C3;
+	padding:5px 0 0 10px;
+}
+
+.tar_2 {
+	width:82px;
+//	background-color:#36F;
+	padding:5px 10px 0 0;
+	text-align:right;
+        font-weight:normal;
+        font-style:italic;
+}
+
+.tar_3 {
+	width:101px;
+//	background-color:#F30;
+	padding:5px 10px 0 0;
+	text-align:right;
+}
+
+.ots_st_t {
+	font-family: verdana, sans-serif;
+	font-weight:bold;
+	color:#cec7c7;
+	font-size:14px;
+	text-align:center;
+
+}
+
+#ots_st_t {
+	font-family: verdana, sans-serif;
+	font-weight:bold;
+	color:#cec7c7;
+	font-size:14px;
+	text-align:center;
+	padding:15px 0;
+}
+

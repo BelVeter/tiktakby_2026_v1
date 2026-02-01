@@ -1,0 +1,23 @@
+
+.new-form-row{
+    display: none;
+}
+.new-form-row.show {
+    display: table-row;
+}
+
+.form-edit {
+    display: none;
+}
+
+.form-edit.show-block{
+    display: block;
+}
+
+.change-btn.show-block{
+    display: block;
+}
+
+.change-btn {
+    display: none;
+}

@@ -1,0 +1,338 @@
+@font-face {
+  font-family: "Let's Be Glyphs CYR";
+  src: url("/public/fonts/LetsBeGlyphsCYR-Regular.ttf");
+}
+
+@font-face {
+  font-family: "Gilroy";
+  src: url("/public/fonts/Gilroy-Light.otf");
+  font-style: normal;
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Gilroy";
+  src: url("/public/fonts/Gilroy-ExtraBold.otf");
+  font-style: normal;
+  font-weight: 800;
+}
+
+
+.main-container{
+  overflow: hidden;
+}
+
+.office_row{
+  margin-top: 20px;
+  display: flex;
+  flex-flow: row nowrap;
+  width: 1200px;
+  gap: 10px;
+}
+
+body{
+  background-color: #E5E5E5;
+  padding: 10px;
+}
+
+.day{
+  box-sizing: content-box;
+  flex-grow: 0;
+  flex-shrink: 0;
+  padding: 26px 8px 18px 8px;
+  width: 216px;
+  min-height: 20px;
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 2px;
+
+  background: #FFFFFF;
+  border: 1px solid #FFFFFF;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+
+.office_row .day:nth-child(6n+6),
+.office_row .day:nth-child(7n+7){
+  background-color: #FBEAEA;
+  border-color: #FBEAEA;
+}
+
+.office_row .day:nth-child(6n+6) .hour span,
+.office_row .day:nth-child(7n+7) .hour span{
+  background-color: #FBEAEA;
+}
+
+.office_row.vacation .day{
+  border-color: red;
+}
+
+.current-date,
+.current-office-name{
+  position: absolute;
+  right: 8px;
+  bottom: 0;
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 14px;
+  letter-spacing: 0.0029em;
+  color: #302323;
+}
+.current-office-name{
+  bottom: 0;
+  left: 8px;
+}
+
+.hour-greed{
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  display: flex;
+  flex-flow: row nowrap;
+  flex-grow: 0;
+  flex-shrink: 0;
+
+  z-index: 0;
+}
+
+.hour{
+  box-sizing: border-box;
+  width: 18px;
+  border-left: 0.5px solid rgba(209, 209, 209, 0.41);
+
+  flex-grow: 0;
+  flex-shrink: 0;
+
+  text-align: center;
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 12px;
+  line-height: 14px;
+  color: #909090;
+}
+
+.hour-greed .hour:last-child{
+  border-right: 0.5px solid rgba(209, 209, 209, 0.41);
+}
+
+.hour span{
+  position: relative;
+  left: -9px;
+  background-color: white;
+}
+
+.employee-hours{
+  position: relative;
+  z-index: 2;
+
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 12px;
+  line-height: 14px;
+  text-align: center;
+
+  color: #485A36;
+}
+
+.dates-row{
+  margin: 5px 0 15px 0;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  gap: 15px;
+  align-items: center;
+}
+
+.current_date{
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 172.69%;
+  letter-spacing: 0.0029em;
+  color: #000000;
+}
+
+.prev-next_date,
+.arrow{
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 172.69%;
+  /* or 24px */
+  letter-spacing: 0.0029em;
+  color: #000000;
+}
+
+.months-row{
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 172.69%;
+  /* or 31px */
+  letter-spacing: 0.0029em;
+  color: #000000;
+}
+
+.new-shift_row{
+  margin: 30px 0;
+  display: flex;
+  flex-flow: row wrap;
+  gap: 10px;
+}
+
+.new-shift_container {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 10px;
+  padding: 20px 10px;
+  width: 350px;
+
+  background: #FFFFFF;
+  border: 0.5px solid #485A35;
+  border-radius: 10px;
+}
+
+.sch-day{
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  color: #485A36;
+}
+
+.sch-day select{
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 14px;
+  color: #000000;
+  border: none;
+}
+
+.shift-select{
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 18px;
+  /* identical to box height */
+  color: #485A36;
+}
+
+.shift-select-label{
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 300;
+  font-size: 14px;
+  color: #000000;
+}
+
+.week-day{
+  width: 116px;
+}
+
+.week-schedule{
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 10px;
+}
+
+
+.container-scroll{
+  overflow-x: auto;
+  padding-bottom: 15px;
+}
+
+table.work-hours{
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.day_header{
+  font-size: 10px;
+  min-width: 20px;
+  text-align: center;
+  font-weight: normal;
+}
+
+/*modal*/
+/* Styles for the modal */
+.modal {
+  display: none;
+  position: fixed;
+  width: min-content;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+}
+
+/* Styles for the modal overlay */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Adjust the opacity as needed */
+  z-index: 999;
+}
+
+/* Styles for the close button */
+.close {
+  position: absolute;
+  top: -11px;
+  right: 3px;
+  cursor: pointer;
+  font-size: 25px;
+}
+
+.shift_table,
+.shift_table td,
+.shift_table th
+{
+  border: 1px solid #cbcbcb;
+}
+
+.week_day_6,
+.week_day_7 {
+  background-color: rgba(211, 207, 207, 0.58);
+  font-style: normal;
+  font-weight: normal;
+  border-left-width: 2px !important;
+  border-right-width: 2px !important;
+}
+
+.week_day{
+  text-align: center;
+  font-size: 12px;
+}
+
+.office1{
+  background-color: rgba(178, 255, 108, 0.6);
+}
+.office2{
+  background-color: rgba(255, 215, 55, 0.43);
+}
+.vacation{
+  background-color: rgba(255, 104, 89, 0.62);
+}

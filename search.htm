@@ -1,0 +1,169 @@
+﻿<?php
+
+use bb\classes\Model;
+
+session_start();
+	//ini_set("display_errors",1);
+	//error_reporting(E_ALL);
+
+	require_once ($_SERVER['DOCUMENT_ROOT'].'/includes/adv_monitor.php'); // включаем advertising monitor
+    require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Model.php'); // включаем advertising monitor
+    require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Db.php');
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Результаты поиска | Прокат детских товаров | Tiktak.by</title>
+<link href="../tt.css" rel="stylesheet" type="text/css" />
+<meta name="description" content="Прокат детских товаров в минске: поиск." />
+<meta name="keywords" content="Прокат детских товаров в минске: поиск." />
+
+<!--[if IE 6]>
+<script src="../DD_belatedPNG.js"></script>
+<script>
+  DD_belatedPNG.fix('#box_right, img.skidki'); 
+</script>
+<![endif]-->
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-15543442-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+
+
+</head>
+
+<body>
+<div id="container">
+ 
+<!--Включаем шапку и верхнее меню-->
+<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/includes/header.html'); ?>
+      
+  <div id="katalog">
+  <div id="katalog_left"><img src="../images/katalog_11.gif" width="200" height="70" /></div>
+<div id="katalog_right">
+<span style="font-family: verdana, sens-serif; font-size: 12px; color: #00a0d0; font-style: italic;"> <a href="/">Прокат детских товаров</a> <img src="/images/ar.png" /> Поиск</span>
+<h1>Результаты поиска</h1>
+ </div>
+ </div> 
+   
+   
+
+<!--Включаем левое меню -->
+ 
+<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/includes/left_menu.html'); ?>
+ 
+
+<div id="main">
+
+<div id="main_box">
+
+<div class="bodycopy" id="box_d">
+
+ 
+<div id="main_box">
+
+
+<?php
+
+$sw='';
+
+foreach ($_POST as $key => $value) {
+	$$key = get_post($key);
+}
+
+echo '
+<form name="srch_form" method="post" id="srch_form" action="/search.htm">
+	<input type="text" size="50" name="sw" value="'.$sw.'" />
+	<input type="submit" name="action" value="найти" /> 
+</form>
+		
+		';
+
+// выбираем информацию о модели
+$m_info = "SELECT rent_model_web.page_addr, rent_model_web.l2_name, rent_model_web.l2_pic, rent_model_web.l2_alt, rent_model_web.model_id, tovar_rent_items.status 
+        FROM rent_model_web 
+        LEFT JOIN tovar_rent_items ON (rent_model_web.model_id = tovar_rent_items.model_id AND tovar_rent_items.status='to_rent') 
+        WHERE MATCH (`title`, `keywords`, `l2_name`, `item_name_main`) AGAINST ('$sw' IN BOOLEAN MODE) AND tovar_rent_items.model_id>0
+        ORDER BY `status` DESC LIMIT 30";
+	//echo $m_info;
+	$result_m_info = $mysqli->query($m_info);
+if (!$result_m_info) {die('Сбой при доступе к базе данных: '.$m_info.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+//$m_i_num=$result_m_info->num_rows;
+
+//$prev_model_id=0;
+//echo $m_info;
+    $used_ids=array();
+
+while ($m_i=$result_m_info->fetch_assoc()) {
+
+    if (in_array($m_i['model_id'],$used_ids,true)){//to avoid dublicates
+        continue;
+    }
+//print_r($m_i);
+//if ($prev_model_id==$m_i['model_id']) {continue;}
+//else {$prev_model_id=$m_i['model_id'];}
+
+    $tarifs=tars($m_i['model_id']);
+    echo $tarifs[2];
+
+    echo '
+    <div class="tov2_cont"> <form style="display:none;" id="f_'.$m_i['model_id'].'" action="'.$m_i['page_addr'].'" ><input type="hidden" value="max" name="step" /></form>
+        <div class="tov2_top">'.$m_i['l2_name'].'</div>
+            <img class="tov2_img" src="'.$m_i['l2_pic'].'" alt="'.$m_i['l2_alt'].'" />
+            <a href="'.$m_i['page_addr'].'" class="tov2_a"></a>
+            <div class="tov2_lcont">
+                <div class="tov2_ltr">'.$tarifs[1].'</div>
+                <div class="tov2_ltl">Тариф за '.$tarifs[0].'</div>
+                <div>
+                    <input type="number" form="f_'.$m_i['model_id'].'" value="'.$tarifs[3].'" class="tov2_num" id="tov2_num_'.$m_i['model_id'].'" onchange="l2_calculate(\''.$m_i['model_id'].'\');" min="1" step="1" />
+                    <div class="tov2_vned" id="nedel_'.$m_i['model_id'].'">'.($tarifs[4]).' руб</div>
+                    <div class="tov2_vsego" id="total_'.$m_i['model_id'].'">('.($tarifs[4]*$tarifs[3]).' руб. ВСЕГО)</div>
+                        <input type="submit" name="action" class="tov2_but" form="f_'.$m_i['model_id'].'" value="К БРОНИРОВАНИЮ" />
+                    </div>
+            </div>
+    </div>
+    
+    ';
+
+    $used_ids[]=$m_i['model_id'];//add used model ids in order to avoit dublicates
+
+//	echo '
+//
+//<a href="'.$m_i['page_addr'].'" ><div id="';
+//	model_yn($m_i['model_id']);
+//	echo'">
+//	<div id= "box_name"><div class= "kristy_new">'.$m_i['l2_name'].'</div></div>
+//	<div id= "box_img"><img src="'.$m_i['l2_pic'].'" alt="'.$m_i['l2_alt'].'" /></div>
+//</div> </a>
+//
+//		';
+
+}
+
+function get_post($var)
+{
+	GLOBAL $mysqli;
+	return $mysqli->real_escape_string($_POST[$var]);
+}
+
+
+?>
+
+
+
+
+ </div>    
+  
+
+ 
+<!--Включаем футер по крутому -->
+<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/includes/footer.html'); ?>
+</body>
+</html>

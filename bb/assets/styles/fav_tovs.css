@@ -1,0 +1,15 @@
+.edit-field{
+    display: none;
+}
+
+.edit-field.show-block {
+    display: block;
+}
+
+.hide-when-edit.hide{
+    display: none;
+}
+
+input[type=text].edit-field {
+    min-width: 280px;
+}

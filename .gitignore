@@ -1,0 +1,92 @@
+# Laravel specific
+/vendor
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+docker-compose.override.yml
+
+# Environment specific
+.env
+.env.backup
+.env.*
+.env.local
+.env.example
+.env.testing
+.env.dusk.local
+/bb/Db.php
+
+# IDEs and editors
+/.idea
+/.vscode
+/.phpstorm.meta.php
+/.phpstorm.meta.php.ser
+/.phpstorm.meta.php.stub
+/.phpstorm.stubs.xml
+/.phpunit.result.cache
+/nbproject
+/psalm.xml
+/php-cs-fixer.php
+/.php_cs.cache
+/dimanay.php
+
+# Testing specific
+/tests/_output/
+/tests/acceptance.suite.yml
+/tests/coverage/
+/tests/functional.suite.yml
+/tests/integration.suite.yml
+/tests/unit.suite.yml
+
+# Ignore all pictures and video
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.ico
+*.svg
+*.mp4
+*.mov
+*.avi
+*.wmv
+*.flv
+*.mkv
+*.webm
+*.webp
+public/public
+
+# Uppercase extensions
+*.JPG
+*.JPEG
+*.PNG
+*.GIF
+
+# Exceptions for BB folder (allow images/video in bb)
+!/bb/**/*.jpg
+!/bb/**/*.jpeg
+!/bb/**/*.png
+!/bb/**/*.gif
+!/bb/**/*.bmp
+!/bb/**/*.tiff
+!/bb/**/*.ico
+!/bb/**/*.svg
+!/bb/**/*.mp4
+!/bb/**/*.mov
+!/bb/**/*.avi
+!/bb/**/*.wmv
+!/bb/**/*.flv
+!/bb/**/*.mkv
+!/bb/**/*.webm
+!/bb/**/*.webp
+
+# Uppercase extensions
+!/bb/**/*.JPG
+!/bb/**/*.JPEG
+!/bb/**/*.PNG
+!/bb/**/*.GIF

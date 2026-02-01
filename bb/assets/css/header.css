@@ -1,0 +1,254 @@
+@font-face {
+    font-family: Gilroy;
+    src: url("/assets/fonts/Gilroy-Light.otf") format("opentype");
+    font-weight: 400;
+    font-style: normal;
+}
+@font-face {
+    font-family: Gilroy;
+    src: url("/assets/fonts/Gilroy-ExtraBold.otf") format("opentype");
+    font-weight: 800;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Let's Be Glyphs CYR";
+    src: url("/assets/fonts/LetsBeGlyphsCYR-Regular.ttf");
+}
+
+#container::after {
+    content: " ";
+    display: block;
+    height: 0;
+    clear: both;
+}
+
+#gr_fone {
+    display: block;
+    position: absolute;
+    background: white;
+    /* height: 100px; */
+    /* width: 100px; */
+    z-index: 2;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    opacity: 0.8;
+    display: none;
+}
+
+
+.header-new {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+}
+
+.header-new .col1 {
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+.header-new .header-logo {
+    width: 200px;
+    height: 80px;
+}
+
+.header-new .col2 {
+    display: flex;
+    flex-flow: column nowrap;
+    flex: 0 1 670px;
+}
+
+.header-new .address-line {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 16px;
+    text-decoration-line: underline;
+
+    color: #333;
+}
+
+.header-new .address-line li {
+    position: relative;
+    margin: 0;
+    padding: 0 0 10px 0;
+    cursor: pointer;
+}
+
+/*for zv plzcement*/
+.call-back-link {
+    position: relative;
+}
+
+.header-new .header-top {
+    font-family: "Let's Be Glyphs CYR";
+
+    font-style: normal;
+    font-weight: 400;
+    font-size: 38px;
+    line-height: 150%;
+    /* or 66px */
+    letter-spacing: 0.02em;
+    color: #1380d3;
+}
+
+.header-new .col2 .line2 {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.header-new .phone-link {
+    position: relative;
+    font-family: "Let's Be Glyphs CYR";
+    font-style: normal;
+    font-weight: 400;
+    font-size: 38px;
+    line-height: 50px;
+    text-align: right;
+    text-decoration: none;
+
+    color: #fb1e0d;
+}
+.header-new .phone-link span {
+    position: absolute;
+    bottom: -5px;
+    right: 0;
+
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 15px;
+
+    color: #000000;
+}
+
+
+/*office modals*/
+
+
+.office-top-container {
+    display: none; /*flex*/
+    flex-flow: row wrap;
+    padding: 6px 22px 15px 22px;
+    justify-content: space-between;
+
+    position: absolute;
+    background: #FFFFFF;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    z-index: 25;
+    transition: all 0.5s ease-in;
+}
+
+.office-top-container.off-1 {
+    top: 17px;
+    left: 0px;
+    transition: 0.5s;
+    width: 647px;
+}
+
+.office-top-container.off-3 {
+    top: 17px;
+    left: -191px;
+    transition: 0.5s;
+    width: 660px;
+}
+
+.office-top-container.off-2 {
+    width: 655px;
+    top: 17px;
+    left: -392px;
+    transition: 0.5s;
+}
+
+.office-top-container .off-photo{
+    margin: 0 auto;
+}
+
+.office-top-container .off-photo img {
+    width: 600px;
+}
+
+.office-top-container.show{
+    display: flex;
+    transition: all 0.5s ease-in;
+}
+
+
+
+.office-top-container .ofcol1 {
+    display: flex;
+    flex-flow: column nowrap;
+    min-width: max-content;
+    padding: 0;
+    margin-right: 26px;
+}
+
+.office-top-container .office-address {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: flex-start;
+
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 16px;
+    color: #333;
+    text-decoration: none;
+}
+
+.office-top-container .office-address img{
+    align-self: center;
+    width: 66px;
+    height: 55px;
+}
+.office-top-container .office-address span{
+    margin-top: 5px;
+}
+
+.office-top-container .sub-header {
+    margin: 20px 0 10px 0;
+    font-family: "Let's Be Glyphs CYR";
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
+    color: #3277BD;
+}
+
+.office-top-container .textline {
+    margin: 4px 0px;
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 16px;
+    color: #333;
+    text-decoration: none;
+}
+
+.office-top-container .ofcol2 {
+    padding: 10px 0px 13px 0;
+    margin: 0;
+}
+
+.office-top-container .ofcol2 iframe{
+    width: 440px;
+    height: 252px;
+    border-radius: 5px;
+}

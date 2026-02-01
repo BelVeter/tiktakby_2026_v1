@@ -1,0 +1,882 @@
+﻿
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+
+<!-- Facebook Pixel Code -->
+<script>
+	!function(f,b,e,v,n,t,s)
+	{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+			n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+		if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+		n.queue=[];t=b.createElement(e);t.async=!0;
+		t.src=v;s=b.getElementsByTagName(e)[0];
+		s.parentNode.insertBefore(t,s)}(window,document,'script',
+			'https://connect.facebook.net/en_US/fbevents.js');
+	fbq('init', '2900742666616942');
+	fbq('track', 'PageView');
+</script>
+<noscript>
+	<img height="1" width="1"
+		 src="https://www.facebook.com/tr?id=2900742666616942&ev=PageView
+&noscript=1"/>
+</noscript>
+<!-- End Facebook Pixel Code -->
+
+<!--Start of Zopim Live Chat Script-->
+<script type="text/javascript">
+window.$zopim||(function(d,s){var z=$zopim=function(c){z._.push(c)},$=z.s=
+d.createElement(s),e=d.getElementsByTagName(s)[0];z.set=function(o){z.set.
+_.push(o)};z._=[];z.set._=[];$.async=!0;$.setAttribute('charset','utf-8');
+$.src='//v2.zopim.com/?1fNcDaKvbuLZFXc7ZsO5PVc9ChG7jbW5';z.t=+new Date;$.
+type='text/javascript';e.parentNode.insertBefore($,e)})(document,'script');
+
+//для тарифов
+var tars = [];
+</script>
+<!--End of Zopim Live Chat Script-->
+<style>
+
+.search {margin: 0 auto}
+
+
+.search {
+	/* устанавливаем необходимую ширину формы в зависимости от дизайна
+	** форма без проблем растягивается */
+	width: 202px;
+
+	/* кнопку отправки будем позиционировать абсолютно,
+	** поэтому необходимо это свойство */
+	position: absolute;
+	top:230px;
+	left:0px;
+}
+
+.search input {
+	/* отключаем бордюры у инпутов */
+	border: none;
+}
+
+/* стили для поля ввода */
+.search .input {
+	/* растягиваем поле ввода на всю ширину формы */
+	width: 100%;
+
+	/* за счет верхнего (8px) и нижнего (9px) внутренних отступов
+	** регулируем высоту формы
+	** внутренний отступ справа (37px) делаем больше левого,
+	** т.к. там будет размещена кнопка отправки	*/
+	padding: 8px 15px 9px 37px;
+
+	/* чтобы ширина поля ввода (100%) включала в себя внутренние отступы */
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+
+	/* добавляем внутренние тени */
+	box-shadow: inset 0 0 5px rgba(0,0,0,0.1), inset 0 1px 2px rgba(0,0,0,0.3);
+
+	/* закругляем углы */
+	border-radius: 5px;
+
+	background: #EEE;
+	font: 13px Tahoma, Arial, sans-serif;
+	color: #555;
+	outline: none;
+}
+
+/* меняем оформление поля ввода при фокусе */
+.search .input:focus {
+	box-shadow: inset 0 0 5px rgba(0,0,0,0.2), inset 0 1px 2px rgba(0,0,0,0.4);
+	background: #E8E8E8;
+	color: #333;
+}
+
+/* оформляем кнопку отправки */
+.search .submit {
+	/* позиционируем кнопку абсолютно от правого края формы */
+	position: absolute;
+	top: 0;
+	left: 0;
+
+	width: 37px;
+
+	/* растягиваем кнопку на всю высоту формы */
+	height: 100%;
+
+	cursor: pointer;
+	background: url(https://lh4.googleusercontent.com/-b-5aBxcxarY/UAfFW9lVyjI/AAAAAAAABUg/gQtEXuPuIds/s13/go.png) 50% no-repeat;
+
+	/* добавляем прозрачность кнопке отправки */
+	opacity: 0.5;
+}
+
+/* при наведении курсора меняем прозрачность кнопки отправки */
+.search .submit:hover {
+	opacity: 0.8;
+}
+
+/* данное свойство необходимо для того, чтобы в браузерах
+** Chrome и Safari можно было стилизовать инпуты */
+input[type="search"] {
+	-webkit-appearance: none;
+}
+</style>
+
+<!--[if lt IE 9]>
+<style>
+/* задаем отдельные стили для браузеров IE ниже 9-й версии */
+*+html .search {
+	/* для IE7 подгоняем ширину под другие браузеры и добавляем правый
+	** внутренний отступ, чтобы кнопка отправки стала на свое место */
+	width: 28%;
+	padding: 0 52px 0 0;
+}
+.search .input {
+	border: 1px solid #DFDFDF;
+	border-top: 1px solid #B3B3B3;
+	padding-top: 7px;
+	background-bottom: 8px;
+}
+.search .input:focus {
+	border: 1px solid #CFCFCF;
+	border-top: 1px solid #999;
+}
+.search .submit {
+	filter: alpha(opacity=50);
+}
+.search .submit:hover {
+	filter: alpha(opacity=80);
+}
+</style>
+<![endif]-->
+
+<!--наличие товара-->
+<link href="/assets/css/header.css?v=5" rel="stylesheet" type="text/css" />
+
+<?php   
+
+require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php'); // включаем подключение к базе данных
+
+function getGoogleMapsUrl ($addr) {
+	return 'https://google.com/maps/search/?api=1&query='.urldecode($addr);
+}
+
+function model_yn($id) {
+	global $mysqli;
+
+	$free_q1 = "SELECT (item_id) FROM tovar_rent_items WHERE model_id='$id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) AND item_place='1' LIMIT 1";
+	$result_free1 = $mysqli->query($free_q1);
+	if (!$result_free1) {die('Сбой при доступе к базе данных: '.$free_q1.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free1=$result_free1->num_rows;
+
+	$free_q2 = "SELECT (item_id) FROM tovar_rent_items WHERE model_id='$id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) AND item_place='2' LIMIT 1";
+	$result_free2 = $mysqli->query($free_q2);
+	if (!$result_free2) {die('Сбой при доступе к базе данных: '.$free_q2.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free2=$result_free2->num_rows;
+	
+	if ($free1>0 && $free2>0) {
+		echo 'top_2';
+	}
+	elseif ($free1>0 && $free2==0) {
+		echo 'top_2_1';
+	}
+	elseif ($free1==0 && $free2>0) {
+		echo 'top_2_2';
+	}
+	else {
+		echo 'top_3';
+	}
+}
+
+
+function model_yn_2l($id) {
+	global $mysqli;
+
+	$free_q1 = "SELECT (item_id) FROM tovar_rent_items WHERE model_id='$id' AND `state`!='3' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) AND item_place='1' LIMIT 1";
+	$result_free1 = $mysqli->query($free_q1);
+	if (!$result_free1) {die('Сбой при доступе к базе данных: '.$free_q1.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free1=$result_free1->num_rows;
+
+	$free_q2 = "SELECT (item_id) FROM tovar_rent_items WHERE model_id='$id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) AND item_place='2' LIMIT 1";
+	$result_free2 = $mysqli->query($free_q2);
+	if (!$result_free2) {die('Сбой при доступе к базе данных: '.$free_q2.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free2=$result_free2->num_rows;
+	
+	if ($free1>0 && $free2>0) {
+		return 'top_2';
+	}
+	elseif ($free1>0 && $free2==0) {
+		return 'top_2_1';
+	}
+	elseif ($free1==0 && $free2>0) {
+		return 'top_2_2';
+	}
+	else {
+		return 'top_3';
+	}
+}
+
+function model_yn_all_off($id) {
+	global $mysqli;
+
+	$free_q1 = "SELECT (item_id) FROM tovar_rent_items WHERE model_id='$id' AND `state`!='3' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) LIMIT 1";
+	$result_free1 = $mysqli->query($free_q1);
+	if (!$result_free1) {die('Сбой при доступе к базе данных: '.$free_q1.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free1=$result_free1->num_rows;
+
+	if ($free1>0) {
+		return '1';
+	}
+	else {
+		return '0';
+	}
+}
+
+function model_yn2($cat_id, $color) {
+	global $mysqli;
+
+	$free_q1 = "SELECT (item_id) FROM tovar_rent_items WHERE cat_id='$cat_id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) AND item_color='$color' AND item_place='1' LIMIT 1";
+	$result_free1 = $mysqli->query($free_q1);
+	if (!$result_free1) {die('Сбой при доступе к базе данных: '.$free_q1.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free1=$result_free1->num_rows;
+
+	$free_q2 = "SELECT (item_id) FROM tovar_rent_items WHERE cat_id='$cat_id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) AND item_color='$color' AND item_place='2' LIMIT 1";
+	$result_free2 = $mysqli->query($free_q2);
+	if (!$result_free2) {die('Сбой при доступе к базе данных: '.$free_q2.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free2=$result_free2->num_rows;
+
+	if ($free1>0 && $free2>0) {
+		echo 'top_2';
+	}
+	elseif ($free1>0 && $free2==0) {
+		echo 'top_2_1';
+	}
+	elseif ($free1==0 && $free2>0) {
+		echo 'top_2_2';
+	}
+	else {
+		echo 'top_3';
+	}
+}
+
+
+
+
+function model_yn3 ($model_id, $color) {
+	global $mysqli;
+
+	$free_q1 = "SELECT (item_id) FROM tovar_rent_items WHERE model_id='$model_id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) AND item_color='$color' AND item_place='1' LIMIT 1";
+	$result_free1 = $mysqli->query($free_q1);
+	if (!$result_free1) {die('Сбой при доступе к базе данных: '.$free_q1.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free1=$result_free1->num_rows;
+
+	$free_q2 = "SELECT (item_id) FROM tovar_rent_items WHERE model_id='$model_id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<".time().")) AND item_color='$color' AND item_place='2' LIMIT 1";
+	$result_free2 = $mysqli->query($free_q2);
+	if (!$result_free2) {die('Сбой при доступе к базе данных: '.$free_q2.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$free2=$result_free2->num_rows;
+
+	if ($free1>0 && $free2>0) {
+		echo 'top_2';
+	}
+	elseif ($free1>0 && $free2==0) {
+		echo 'top_2_1';
+	}
+	elseif ($free1==0 && $free2>0) {
+		echo 'top_2_2';
+	}
+	else {
+		echo 'top_3';
+	}
+}
+
+function tars ($model_id) {
+	global $mysqli;
+	
+	$tarif_q = "SELECT * FROM rent_tarif_act WHERE model_id='$model_id' ORDER BY sort_num DESC, kol_vo";
+	$result_tarif = $mysqli->query($tarif_q);
+	if (!$result_tarif) {die('Сбой при доступе к базе данных: '.$tarif_q.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$tar_num=$result_tarif->num_rows;
+	
+	$tars= Array();
+	$tmp_step='';
+	$tar[0]='';
+	$i=1;
+	$values='"-"';
+	$last_tar=0;
+	//'tars['.$model_id.'] = new Array("-"';
+	//разребаем 1-й тариф
+	if ($tar_num>0) {
+		while ($tar=$result_tarif->fetch_assoc()) {
+			if ($tmp_step=='') $tmp_step=$tar['step'];//запоминаем первый период проката
+			if ($tmp_step!=$tar['step']) break; //как только сменился период проката - выходим
+			if ($i<=$tar['kol_vo']) {
+				for ($j=$i; $j<=$tar['kol_vo']; $j++) {
+					//$tars[j]=$tar['rent_per_step'];
+					$values.=', "'.$tar['rent_per_step'].'"';
+					$last_tar=$tar['rent_per_step'];
+				}
+				$i=$j;
+			}		
+		}
+	}
+	
+	$js_arr='<script>tars['.$model_id.'] = new Array('.$values.');</script>';
+
+	switch ($tmp_step) {
+		case 'week':
+			$per1='неделю';
+			$per2='Недель';
+			break;
+		
+		case 'month':
+			$per1='месяц';
+			$per2='Месяцев';
+			break;
+		
+		default:
+			$per1='день';
+			$per2='Дней';
+		break;
+	}
+	
+	
+	return array($per1, $per2, $js_arr, $i-1, $last_tar);
+	
+}
+
+
+function models ($cat_id, $out_lim) {
+	global $mysqli;
+
+	$inn_list='';
+	foreach ($cat_id as $value) {
+    	$inn_list.='\''.$value.'\', ';
+	}
+	
+	$inn_list=substr($inn_list,0,strlen($inn_list)-2);
+	
+	//запрос по основным категориям
+	//$web_model_q= "SELECT * FROM rent_model_web WHERE cat_id IN ($inn_list)";
+    $web_model_q="SELECT rent_model_web.*, COUNT(tovar_rent_items.model_id) AS tov_num FROM rent_model_web
+                    LEFT JOIN tovar_rent_items 
+                    ON rent_model_web.model_id=tovar_rent_items.model_id
+                    WHERE tovar_rent_items.model_id>0 AND rent_model_web.cat_id IN ($inn_list)
+                    GROUP BY rent_model_web.model_id";
+	$result_web = $mysqli->query($web_model_q);
+	if (!$result_web) {die('Сбой при доступе к базе данных: '.$web_model_q.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$web_n=$result_web->num_rows;
+
+	//запрос по доп. категориям
+	$web_model_dq= "SELECT * FROM multi_web WHERE add_cat_id IN ($inn_list) AND act_cat_id NOT IN ($inn_list)";
+	
+	$result_dweb = $mysqli->query($web_model_dq);
+	if (!$result_dweb) {die('Сбой при доступе к базе данных: '.$web_model_dq.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$web_n2=$result_dweb->num_rows;
+	
+	if ($web_n2>0) {
+	//делаем перечень доп. моделей
+		$d_mod_list=array();
+		while ($dop_mod=$result_dweb->fetch_assoc()) {
+			$d_mod_list[]=$dop_mod['model_id'];
+		}
+		
+		$d_mod_srch='';
+		foreach ($d_mod_list as $value) {
+			$d_mod_srch.='\''.$value.'\', ';
+		}
+		
+		$d_mod_srch=substr($d_mod_srch,0,strlen($d_mod_srch)-2);
+		
+		
+		
+	//достаем полноценную информацию по доп. моделям
+	$web_dm_q= "SELECT * FROM rent_model_web LEFT JOIN multi_web ON (rent_model_web.model_id = multi_web.model_id) WHERE rent_model_web.model_id IN ($d_mod_srch) AND add_cat_id IN ($inn_list)";
+	$result_dm_web = $mysqli->query($web_dm_q);
+	if (!$result_dm_web) {die('Сбой при доступе к базе данных: '.$web_dm_q.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$web_n3=$result_dm_web->num_rows;
+	}	
+	
+	$output='';
+	$output_bussy=array();
+	$output_free=array();
+	$output_free_done=array();
+	$lim_line=0;
+	
+	//обрабатываем основные категории
+	while ($web_model=$result_web->fetch_assoc()) {
+		
+		$tov_pl=model_yn_all_off($web_model['model_id']);
+		
+		if ($tov_pl=='0') {//если занято
+			
+			isset($output_bussy[$web_model['sort_n']]) ? '' : $output_bussy[$web_model['sort_n']]='';
+		if (!in_array($web_model['model_id'],$output_free_done, true)) {
+			//грузим новые тарифы			
+			$tarifs=tars($web_model['model_id']);
+			echo $tarifs[2];
+			$output_bussy[$web_model['sort_n']].='		
+			<div class="tov2_cont"> <form style="display:none;" id="f_'.$web_model['model_id'].'" action="'.$web_model['page_addr'].'" ><input type="hidden" value="max" name="step" /></form>
+            	<div class="tov2_top">'.$web_model['l2_name'].'</div>
+                <img class="tov2_img" src="'.$web_model['l2_pic'].'" alt="'.$web_model['l2_alt'].'" />
+                <a href="'.$web_model['page_addr'].'" class="tov2_a"></a>
+                <div class="tov2_lcont">
+                    <div class="tov2_ltr">'.$tarifs[1].'</div>
+                	<div class="tov2_ltl">Тариф за '.$tarifs[0].'</div>
+                	<div>
+                    	<input type="number" form="f_'.$web_model['model_id'].'" value="'.$tarifs[3].'" class="tov2_num" id="tov2_num_'.$web_model['model_id'].'" onchange="l2_calculate(\''.$web_model['model_id'].'\');" min="1" step="1" />
+                   		<div class="tov2_vned" id="nedel_'.$web_model['model_id'].'">'.($tarifs[4]).' руб</div>
+                    	<div class="tov2_vsego" id="total_'.$web_model['model_id'].'">('.($tarifs[4]*$tarifs[3]).' руб. ВСЕГО)</div>
+                    	<input type="submit" name="action" class="tov2_but_bussy" form="f_'.$web_model['model_id'].'" value="ОФОРМИТЬ ЗАЯВКУ" />
+                    </div>
+                </div>
+            
+          	</div>
+		
+			';
+			$output_free_done[]=$web_model['model_id'];
+			}
+		}
+		else {//если свободно
+
+			isset($output_free[$web_model['sort_n']]) ? '' : $output_free[$web_model['sort_n']]='';
+		if (!in_array($web_model['model_id'],$output_free_done, true)) {
+			//грузим новые тарифы			
+			$tarifs=tars($web_model['model_id']);
+			echo $tarifs[2];
+			$output_free[$web_model['sort_n']].='
+			<div class="tov2_cont"> <form style="display:none;" id="f_'.$web_model['model_id'].'" action="'.$web_model['page_addr'].'" ><input type="hidden" value="max" name="step" /></form>
+            	<div class="tov2_top">'.$web_model['l2_name'].'</div>
+                <img class="tov2_img" src="'.$web_model['l2_pic'].'" alt="'.$web_model['l2_alt'].'" />
+                <a href="'.$web_model['page_addr'].'" class="tov2_a"></a>
+                <div class="tov2_lcont">
+                    <div class="tov2_ltr">'.$tarifs[1].'</div>
+                	<div class="tov2_ltl">Тариф за '.$tarifs[0].'</div>
+                	<div>
+                    	<input type="number" form="f_'.$web_model['model_id'].'" value="'.$tarifs[3].'" class="tov2_num" id="tov2_num_'.$web_model['model_id'].'" onchange="l2_calculate(\''.$web_model['model_id'].'\');" min="1" step="1" />
+                   		<div class="tov2_vned" id="nedel_'.$web_model['model_id'].'">'.($tarifs[4]).' руб</div>
+                    	<div class="tov2_vsego" id="total_'.$web_model['model_id'].'">('.($tarifs[4]*$tarifs[3]).' руб. ВСЕГО)</div>
+                    	<input type="submit" name="action" class="tov2_but" form="f_'.$web_model['model_id'].'" value="К БРОНИРОВАНИЮ" />
+                    </div>
+                </div>
+            
+          	</div>
+			';
+			$output_free_done[]=$web_model['model_id'];
+			}
+		}
+	
+
+	}//end of while
+	
+	if ($web_n2>0) {
+	//обрабатываем дополнительные категории
+
+	$dop_mod_ids = array();	
+
+	while ($web_model=$result_dm_web->fetch_assoc()) {
+
+		if (in_array($web_model['model_id'], $dop_mod_ids)) {
+			continue;
+		}
+		
+		$tov_pl=model_yn_all_off($web_model['model_id']);
+		
+		if ($web_model['l2_pic_add']=='' || $web_model['l2_pic_add']=='0') {//если есть доп. картинка - выводим доп. картинку, иначе - ориганал
+			$l2_addr=$web_model['l2_pic'];
+		}
+		else {
+			$l2_addr=$web_model['l2_pic_add'];
+		}
+		
+		if ($tov_pl==0) {//если занято
+
+			isset($output_bussy[$web_model['sort_n']]) ? '' : $output_bussy[$web_model['sort_n']]='';
+		if (!in_array($web_model['model_id'],$output_free_done, true)) {
+			//грузим новые тарифы			
+			$tarifs=tars($web_model['model_id']);
+			echo $tarifs[2];
+			$output_bussy[$web_model['sort_n']].='
+			<div class="tov2_cont"> <form style="display:none;" id="f_'.$web_model['model_id'].'" action="'.$web_model['page_addr'].'" ><input type="hidden" value="max" name="step" /></form>
+            	<div class="tov2_top">'.$web_model['l2_name'].'</div>
+                <img class="tov2_img" src="'.$l2_addr.'" alt="'.$web_model['l2_alt'].'" />
+                <a href="'.$web_model['page_addr'].'" class="tov2_a"></a>
+                <div class="tov2_lcont">
+                    <div class="tov2_ltr">'.$tarifs[1].'</div>
+                	<div class="tov2_ltl">Тариф за '.$tarifs[0].'</div>
+                	<div>
+                    	<input type="number" form="f_'.$web_model['model_id'].'" value="'.$tarifs[3].'" class="tov2_num" id="tov2_num_'.$web_model['model_id'].'" onchange="l2_calculate(\''.$web_model['model_id'].'\');" min="1" step="1" />
+                   		<div class="tov2_vned" id="nedel_'.$web_model['model_id'].'">'.($tarifs[4]).' руб</div>
+                    	<div class="tov2_vsego" id="total_'.$web_model['model_id'].'">('.($tarifs[4]*$tarifs[3]).' руб. ВСЕГО)</div>
+                    	<input type="submit" name="action" class="tov2_but_bussy" form="f_'.$web_model['model_id'].'" value="ОФОРМИТЬ ЗАЯВКУ" />
+                    </div>
+                </div>
+            
+          	</div>
+			';
+			$output_free_done[]=$web_model['model_id'];
+			}
+		}
+		else {//если свободно
+
+			isset($output_free[$web_model['sort_n']]) ? '' : $output_free[$web_model['sort_n']]='';
+		if (!in_array($web_model['model_id'],$output_free_done, true)) {
+			//грузим новые тарифы			
+			$tarifs=tars($web_model['model_id']);
+			echo $tarifs[2];
+			$output_free[$web_model['sort_n']].='
+			<div class="tov2_cont"> <form style="display:none;" id="f_'.$web_model['model_id'].'" action="'.$web_model['page_addr'].'" ><input type="hidden" value="max" name="step" /></form>
+            	<div class="tov2_top">'.$web_model['l2_name'].'</div>
+                <img class="tov2_img" src="'.$l2_addr.'" alt="'.$web_model['l2_alt'].'" />
+                <a href="'.$web_model['page_addr'].'" class="tov2_a"></a>
+                <div class="tov2_lcont">
+                    <div class="tov2_ltr">'.$tarifs[1].'</div>
+                	<div class="tov2_ltl">Тариф за '.$tarifs[0].'</div>
+                	<div>
+                    	<input type="number" form="f_'.$web_model['model_id'].'" value="'.$tarifs[3].'" class="tov2_num" id="tov2_num_'.$web_model['model_id'].'" onchange="l2_calculate(\''.$web_model['model_id'].'\');" min="1" step="1" />
+                   		<div class="tov2_vned" id="nedel_'.$web_model['model_id'].'">'.($tarifs[4]).' руб</div>
+                    	<div class="tov2_vsego" id="total_'.$web_model['model_id'].'">('.($tarifs[4]*$tarifs[3]).' руб. ВСЕГО)</div>
+                    	<input type="submit" name="action" class="tov2_but" form="f_'.$web_model['model_id'].'" value="К БРОНИРОВАНИЮ" />
+                    </div>
+                </div>
+            
+          	</div>
+			';
+			$output_free_done[]=$web_model['model_id'];
+			}
+		}
+	
+	$dop_mod_ids[]=$web_model['model_id'];
+	
+	}//end of while
+	}
+
+	
+	ksort($output_free);
+	ksort($output_bussy);
+
+	$output=array_merge($output_free, $output_bussy); // сливаем массивы товаров. свободные вперед
+
+	foreach ($output as $value) {
+    	echo $value;
+		$lim_line+=1;		
+		if ($out_lim>0 && $lim_line==$out_lim) {//если достигли лимита - выходим
+		break;
+		}
+	}
+
+}//end of fucntion
+
+
+
+
+
+function models2 ($cat_id, $out_lim, $cat_name, $href) {
+	global $mysqli;
+
+	$inn_list='';
+	foreach ($cat_id as $value) {
+		$inn_list.='\''.$value.'\', ';
+	}
+
+	$inn_list=substr($inn_list,0,strlen($inn_list)-2);
+
+	$web_model_q= "SELECT * FROM rent_model_web WHERE cat_id IN ($inn_list)";
+	$result_web = $mysqli->query($web_model_q);
+	if (!$result_web) {die('Сбой при доступе к базе данных: '.$web_model_q.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+	$web_n=$result_web->num_rows;
+
+	$output='';
+	$output_bussy=array();
+	$output_free=array();
+	$lim_line=0;
+
+	while ($web_model=$result_web->fetch_assoc()) {
+
+		$tov_pl=model_yn_2l($web_model['model_id']);
+
+		if ($tov_pl=='top_3') {
+			$output_bussy[]='
+				<a href="'.$web_model['page_addr'].'" ><div id="'.$tov_pl.'">
+				<div id= "box_name"><div class= "kristy_new">'.$web_model['l2_name'].'</div></div>
+				<div id= "box_img"><img src="'.$web_model['l2_pic'].'" alt="'.$web_model['l2_alt'].'" /></div>
+				</div> </a>
+			';
+		}
+		else {
+			$output_free[]='
+				<a href="'.$web_model['page_addr'].'" ><div id="'.$tov_pl.'">
+				<div id= "box_name"><div class= "kristy_new">'.$web_model['l2_name'].'</div></div>
+				<div id= "box_img"><img src="'.$web_model['l2_pic'].'" alt="'.$web_model['l2_alt'].'" /></div>
+				</div> </a>
+			';
+		}
+
+
+	}//end of while
+
+	$output=array_merge($output_free, $output_bussy); // сливаем массивы товаров. свободные вперед
+
+	foreach ($output as $value) {
+		echo $value;
+		$lim_line+=1;
+		if ($out_lim>0 && $lim_line==$out_lim) {//если достигли лимита - выходим
+			break;
+		}
+	}
+	
+	echo '
+	<div class="podr_div1">Показаны '.$out_lim.' товаров из '.$web_n.' из категорий "'.$cat_name.'"</div>
+	<div class="podr_div2"><a href="'.$href.'" class="podr_a1">Показать все товары из этой категории >>></a></div>
+			
+			
+			';
+
+}//end of fucntion
+
+
+
+?>
+
+
+<!--Zvonki Script-->
+<script type="text/javascript">
+//new l2 tarif calculation
+function l2_calculate (m_id) {
+	var tarif;
+	var result;
+	var num=+document.getElementById('tov2_num_'+m_id).value;
+	
+	if (num<1) {
+		num=1;
+		document.getElementById('tov2_num_'+m_id).value=num;
+	}
+	
+	if (num>tars[m_id].length-1) {
+		tarif=+tars[m_id][tars[m_id].length-1];
+		result=tarif*num;
+	}
+	else {
+		tarif=+tars[m_id][num];
+		result=tarif*num;;
+	}
+	document.getElementById('nedel_'+m_id).innerHTML=tarif.toFixed(2)+' руб.';
+	document.getElementById('total_'+m_id).innerHTML='('+result.toFixed(2)+' руб. ВСЕГО)';
+}
+
+//zvonki
+
+
+function getXmlHttp(){
+	  var xmlhttp;
+	  try {
+	    xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+	  } catch (e) {
+	    try {
+	      xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+	    } catch (E) {
+	      xmlhttp = false;
+	    }
+	  }
+	  if (!xmlhttp && typeof XMLHttpRequest!='undefined') {
+	    xmlhttp = new XMLHttpRequest();
+	  }
+	  return xmlhttp;
+	}
+
+
+function zv_show (e) {
+	document.getElementById('zv_place').innerHTML='<img src="/includes/loading.gif" />';
+	//console.log(e.target.dataset);
+	var q_type=e.target.dataset.qtype;
+    var officeId=e.target.dataset.officeid;
+
+	var xmlhttp = getXmlHttp()
+	xmlhttp.open("POST", '/includes/zvonok.php', true)
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	
+		var params = 'q_type=' + encodeURIComponent(q_type) + '&officeid='+officeId;
+
+	xmlhttp.send(params);
+	xmlhttp.onreadystatechange = function() {
+	  if (xmlhttp.readyState == 4) {
+	     if(xmlhttp.status == 200) {
+		    document.getElementById('zv_place').innerHTML=xmlhttp.responseText;
+		    //document.getElementById('gr_fone').style.display="block";
+            document.querySelector('body').addEventListener('click', bodyZvCans);
+	           }
+	  		}
+		}
+}
+
+function bodyZvCans(e){
+    body=document.querySelector('body');
+    if (e.target===body) {
+        cans_zv();
+        document.querySelector('body').removeEventListener('click', bodyZvCans);
+    }
+}
+
+
+function cans_zv () {
+	document.getElementById('zv_place').innerHTML='';
+    //document.getElementById('gr_fone').style.display="none";
+}
+
+
+function zv_send () {
+	valid = true;
+
+	kk_name = kk_phone = "";
+
+	// проверка клиента
+	if (document.getElementById('z_name').value=="")
+	{kk_name="Имя, ";
+     valid = false;}
+
+	if (document.getElementById('phone').value=="")
+	{kk_phone="Телефон, ";
+     valid = false;}
+		 
+	if (valid==false){
+	alert ('Заполните все поля формы! В частности: ' + kk_name + kk_phone);
+		}
+
+if (valid==true) {	 
+	 
+	var q_type='zv_send';
+	
+//gether values for base / letter
+	var z_name=document.getElementById('z_name').value;
+	var phone=document.getElementById('phone').value;
+	var operator=document.getElementById('operator').value;
+	var tema=document.getElementById('tema').value;
+	var info=document.getElementById('info').value;
+
+	var xmlhttp = getXmlHttp()
+	xmlhttp.open("POST", '/includes/zvonok.php', true)
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+	var params = 'z_name=' + encodeURIComponent(z_name) + '&phone=' + encodeURIComponent(phone) + '&operator=' + encodeURIComponent(operator) + '&tema=' + encodeURIComponent(tema) + '&info=' + encodeURIComponent(info) + '&q_type=' + encodeURIComponent(q_type);
+
+	document.getElementById('zv_place').innerHTML='<img src="/includes/loading.gif" />';
+
+	xmlhttp.send(params);
+	xmlhttp.onreadystatechange = function() {
+	  if (xmlhttp.readyState == 4) {
+	     if(xmlhttp.status == 200) {
+		
+		    document.getElementById('zv_place').innerHTML=xmlhttp.responseText;
+	           }
+	  		}
+		}
+
+
+}//end of valid if
+}//end of zv_send function
+
+</script>
+<!--End of Zvonki Script-->
+<div id="gr_fone"></div>
+<div class="header-new">
+    <div class="col1">
+        <a href="/"><img class="header-logo" src="/images/prokat_new_logo_main.jpg" alt="Прокат детских товаров в Минске - лого"></a>
+        <form action="/search.htm" method="post" class="search" style="position: relative; top: 15px; left: 0;">
+            <input type="search" name="sw" placeholder="поиск" class="input" />
+            <input type="submit" name="" value="" class="submit" />
+        </form>
+    </div>
+    <div class="col2">
+        <div id="zv_place" style="position:absolute; right:0px; top: 0px"></div>
+        <ul class="address-line">
+            <li data-qtype="office" data-officeid="1">ул. Литературная 22
+                <div class="office-top-container off-1">
+                    <div class="ofcol1">
+                        <a class="office-address" href="#">
+                            <img src="/assets/pics/png/zamok.png" alt="Офис">
+                            <span>ул. Литературная 22</span>
+                        </a>
+                        <span class="sub-header">Телефоны:</span>
+                        <a href="tel:+375296303532" class="textline phone">+375 (29) 630-35-32</a>
+                        <a href="tel:+375297454040" class="textline phone">+375 (29) 745-40-40</a>
+                        <span class="sub-header">Часы работы:</span>
+                        <span class="textline">пн-пт: 10.00-19.00</span>
+                        <span class="textline">сб, вс: 10.00-16.00</span>
+                    </div>
+                    <div class="ofcol2">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d37576.53071565148!2d27.49688255176978!3d53.940037097398736!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbcf987119c2ed%3A0x38a520fb62e6031d!2sTIKTAK%20SALON%20PROKATA%20DETSKIH%20TOVAROV%20UP%20TODDLER%20FAN!5e0!3m2!1sen!2spl!4v1648465519790!5m2!1sen!2spl" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                    <div class="off-photo">
+                        <img src="/assets/pics/jpg/literaturnaya.jpg" alt="Прокат детских товаров на Победителей 125">
+                    </div>
+                </div>
+            </li>
+<!--            <li data-qtype="office" data-officeid="3">пр-т Победителей, 125-->
+<!--                <div class="office-top-container off-3">-->
+<!--                    <div class="ofcol1">-->
+<!--                        <a class="office-address" href="#">-->
+<!--                            <img src="/assets/pics/png/zamok.png" alt="Офис">-->
+<!--                            <span>пр-т Победителей, 125</span>-->
+<!--                        </a>-->
+<!--                        <span class="sub-header">Телефоны:</span>-->
+<!--                        <a href="tel:+37529296944040" class="textline phone">+375 (29) 694-40-40</a>-->
+<!--                        <a href="tel:+375336944040" class="textline phone">+375 (33) 694-40-40</a>-->
+<!--                        <span class="sub-header">Часы работы:</span>-->
+<!--                        <span class="textline">пн-пт: 10.00-19.00</span>-->
+<!--                        <span class="textline">сб, вс: 11.00-15.00</span>-->
+<!--                    </div>-->
+<!--                    <div class="ofcol2">-->
+<!--                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2348.571860997931!2d27.466276251599684!3d53.93934978000999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbc4fcb2357655%3A0xffd68328ee180dac!2z0J_RgNC-0LrQsNGCINC00LXRgtGB0LrQuNGFINGC0L7QstCw0YDQvtCyIFRpa3Rhay4g0KHQsNC70L7QvSDihJYzLg!5e0!3m2!1sen!2spl!4v1648465785555!5m2!1sen!2spl" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>-->
+<!--                    </div>-->
+<!--                    <div class="off-photo">-->
+<!--                        <img src="/assets/pics/jpg/pobedutelei.jpg" alt="Прокат детских товаров на Победителей 125">-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </li>-->
+            <li data-qtype="office" data-officeid="2">ул. Ложинская, 5
+                <div class="office-top-container off-2">
+                    <div class="ofcol1">
+                        <a class="office-address" href="#">
+                            <img src="/assets/pics/png/zamok.png" alt="Офис">
+                            <span>ул. Ложинская, 5</span>
+                        </a>
+                        <span class="sub-header">Телефоны:</span>
+                        <a href="tel:+375296303558" class="textline phone">+375 (29) 630-35-58</a>
+                        <a href="tel:+375297454040" class="textline phone">+375 (29) 745-40-40</a>
+                        <span class="sub-header">Часы работы:</span>
+                        <span class="textline">пн-пт: 10.00-19.00</span>
+                        <span class="textline">сб, вс: 11.00-15.00</span>
+                    </div>
+                    <div class="ofcol2">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2348.1549247760463!2d27.685609051599968!3d53.94675598001161!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbc9357a6cbe07%3A0xc6249534647e615d!2z0J_RgNC-0LrQsNGCINC00LXRgtGB0LrQuNGFINGC0L7QstCw0YDQvtCyIFRpa1Rhay4g0KHQsNC70L7QvSDihJYyLg!5e0!3m2!1sen!2spl!4v1648465657389!5m2!1sen!2spl" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                    <div class="off-photo">
+                        <img src="/assets/pics/jpg/lozhinskaya.jpg" alt="Прокат детских товаров на Ложинской 5">
+                    </div>
+                </div>
+            </li>
+            <li data-qtype="zakaz_zv" data-officeid="0" class="call-back-link">Обратный звонок</li>
+        </ul>
+        <div class="line2">
+            <div class="header-top">Прокат детских товаров</div>
+            <a class="phone-link" href="tel:7454040" title="Позвонить в прокат детских товаров.">745 40 40<span>А1&nbsp;&nbsp;&nbsp;МТС&nbsp;&nbsp;&nbsp;Life&nbsp;&nbsp;&nbsp;Viber</span></a>
+        </div>
+        <div class="navi1" style="position: relative; top: 0; left: 0;">
+            <ul style="margin: 0; padding: 0;">
+                <li class="sm1"><a href="/index.html"></a></li>
+                <li class="sm2"><a href="/about/usloviya.htm"></a></li>
+                <li class="sm3"><a href="/about/oplata.htm"></a></li>
+                <li class="sm4"><a href="/about/dostavka.htm"></a></li>
+                <li class="sm5"><a href="/about/usloviya_1.htm"></a></li>
+                <li class="sm6"><a href="/about/skidki.htm"></a></li>
+                <li class="sm7"><a href="/about/o_nas.htm"></a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+
+<!--<div class="obyava" id="obyava">
+	<img src="/images/ob.jpg" class="floatLeft">
+</div>-->
+
+<script src="/assets/js/header.js?v=5"></script>

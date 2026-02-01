@@ -1,0 +1,202 @@
+.img-slider {
+    margin: 0 auto;
+    padding: 0;
+    position: relative;
+    max-width: 1200px;
+    aspect-ratio: 1200/450;
+    box-sizing: border-box;
+    font-family: 'Nunito';
+}
+
+.img-slider .slide {
+    z-index: 1;
+    position: absolute;
+    width: 100%;
+    clip-path: circle(0% at 0 50%);
+}
+
+.img-slider .slide.active {
+    clip-path: circle(150% at 0 50%);
+    transition: 2s;
+    transition-property: clip-path;
+}
+
+.img-slider .slide img {
+    z-index: 1;
+    width: 100%;
+    border-radius: 5px;
+}
+
+.img-slider .slide .info {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    top: 0;
+    padding: 3vw 30px;
+}
+
+.img-slider .slide .info h3 {
+    font-style: normal;
+    font-weight: 400;
+    font-size: clamp(1.5rem, 1.7vw, 3rem);
+    line-height: 3.7vw;
+    text-transform: lowercase;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 223, 0);
+    padding: 0 10px 0 30px;
+    margin-left: -30px;
+
+}
+
+.img-slider .slide .info h2 {
+    font-style: normal;
+    line-height: 2.5vw;
+    padding-top: clamp(1rem, 4vw, 1.6rem);
+    margin: 0;
+    font-weight: 600;
+    font-size: clamp(1.5rem, 4vw, 2.6rem);
+    display: flex;
+    align-items: center;
+}
+
+.img-slider .slide .info p {
+    font-style: normal;
+    font-weight: 400;
+    line-height: clamp(1rem, 3vw, 2.2rem);
+    margin: 3% 0;
+    font-size: clamp(1.5rem, 1.8vw, 1.9rem);
+    align-items: center;
+}
+
+
+.slider-to-rent,
+.slider-to-rent:hover
+{
+    z-index: 2;
+    position: absolute;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 192px;
+    height: 60px;
+    bottom: 10%;
+    left: 3vw;
+    background: url(/public/slider/btn-img.svg);
+    background-size: cover;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 18px;
+    color:rgba(255, 255, 255);
+    text-decoration: none;
+}
+
+.img-slider .navigation {
+    z-index: 2;
+    position: absolute;
+    display: flex;
+    bottom: 3%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.img-slider .navigation .btnkr {
+    background: rgba(255, 255, 255, 0.9);
+    width: 12px;
+    height: 12px;
+    margin: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.img-slider .navigation .btnkr.active {
+    background: rgba(34, 136, 238, 0.9);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+}
+
+@media (min-width: 577px) and (max-width: 992px) {
+    .img-slider .slide .info h3 {
+        font-size: clamp(1rem, 2.6vw, 2rem);
+        line-height: 4vw;
+    }
+
+    .img-slider .slide .info h2 {
+        font-style: normal;
+        line-height: 2.5vw;
+        padding-top: clamp(1rem, 4vw, 1.6rem);
+        margin: 0;
+        font-weight: 600;
+        font-size: clamp(1.5rem, 4vw, 2.6rem);
+        display: flex;
+        align-items: center;
+    }
+
+    .img-slider .slide .info p {
+        line-height: clamp(1rem, 3vw, 2rem);
+        font-size: clamp(1rem, 2.6vw, 2rem);
+    }
+
+
+    .slider-to-rent,
+    .slider-to-rent:hover
+    {   width: 130px;
+        height: 40px;
+        bottom: 10%;
+        left: 5%;
+        font-size: clamp(0.9rem, 1.3vw, 1.2rem);
+        color:rgba(255, 255, 255);
+    }
+
+    .img-slider .navigation .btnkr {
+        width: 8px;
+        height: 8px;
+        margin: 8px;
+        box-shadow: 0 0 1px rgba(0, 0, 0, 0.6);
+    }
+}
+
+@media (max-width: 576px) {
+    .img-slider .slide .info {
+        padding: 3vw 10px;
+    }
+
+    .img-slider .slide .info h3 {
+        font-size: clamp(0.7rem, 2vw, 1.2rem);
+        line-height: 4vw;
+        padding: 0 0 0 10px;
+        margin-left: -10px;
+    }
+
+    .img-slider .slide .info h2 {
+        font-style: normal;
+        line-height: 2.5vw;
+        padding-top: 6px;
+        margin: 0;
+        font-weight: 600;
+        font-size: clamp(1rem, 3.2vw, 2rem);
+        display: flex;
+        align-items: center;
+    }
+
+    .img-slider .slide .info p {
+        line-height: 15px;
+        font-size: 2.6vw;
+    }
+
+    .slider-to-rent,
+    .slider-to-rent:hover {
+        width: 110px;
+        height: 34px;
+        bottom: 12px;
+        font-size: 12px;
+    }
+
+    .img-slider .navigation .btnkr {
+        display: none;
+    }
+}
+
+

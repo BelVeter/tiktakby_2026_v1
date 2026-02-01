@@ -1,0 +1,271 @@
+@font-face {
+  font-family: Gilroy;
+  src: url("/assets/fonts/Gilroy-Light.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: Gilroy;
+  src: url("/assets/fonts/Gilroy-ExtraBold.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+}
+
+.comment{
+  display: flex;
+  flex-flow: row nowrap;
+}
+.comment .datetime,
+.comment .who {
+  color: #005d9e
+}
+
+.comment .datetime{
+  width: 100px;
+}
+.comment .who{
+  padding-right: 5px;
+}
+
+.task_text{
+  max-width: 600px;
+}
+
+
+.tasks_container{
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.drop-div{
+  flex: 1 0 300px;
+  min-height: 300px;
+}
+
+.drop-div.border{
+  border: solid #4f5050;
+}
+
+.in-process{
+  border-right: 1px solid #000000;
+}
+
+.in-process .drop-task{
+  background-color: #FFE9D5;
+}
+
+.done{
+
+}
+
+.done .drop-task{
+  background-color: #D4EBFF;
+}
+
+.drop-task{
+  position: relative;
+  font-family: Gilroy;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 10px;
+  margin: 10px;
+  padding: 17px;
+  width: auto;
+  border-radius: 14px;
+}
+
+.drop-task.pastdue{
+  border: 2px solid red;
+}
+
+.in-process .drop-task ul [data-action="back-to-in-process"],
+.in-process .drop-task ul [data-action="approved"] {
+  display: none;
+}
+
+.drop-task:not([data-status="done"]) .context-menu li[data-action="approved"]{
+  display: none;
+}
+
+
+.drop-task .line1 {
+
+}
+
+.tasks_container .line1 .status{
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 15px;
+  color: #000000;
+  border: 4px solid #FFFFFF;
+  text-transform: uppercase;
+  background-color: white;
+  border-radius: 5px;
+}
+
+.task-message-container{
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 15px;
+
+  padding: 10px;
+  width: auto;
+  background: #FFFFFF;
+  border-radius: 10px;
+}
+
+.task-message-container .date-line span{
+  padding-right: 10px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 15px;
+  color: #000000;
+}
+
+.task-message-container .text{
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 15px;
+  color: #000000;
+}
+
+.task-message-container .deadline{
+  text-align: right;
+}
+
+.task-message-container .deadline span{
+  padding-left: 10px;
+
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 15px;
+  color: #000000;
+
+}
+
+.deadline span:last-child{
+  color: red;
+}
+
+.comments{
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+
+.drop-task .comment{
+  display: flex;
+  flex-flow: column nowrap;
+  margin-top: 10px;
+  background-color: #FFFFFF;
+  border-radius: 10px;
+  padding: 10px;
+
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 15px;
+
+  color: #000000;
+}
+.drop-task .comment .who{
+  display: none;
+}
+
+.drop-task .comment .datetime{
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 15px;
+}
+
+.new-comment{
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 10px;
+}
+
+.show-new-btn{
+  padding: 0 5px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  /* identical to box height */
+  color: #000000;
+  cursor: pointer;
+}
+.show-new-btn.hide{
+  display: none;
+}
+
+.new-comment .btns{
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 40px;
+  align-items: center;
+}
+.new-comment .show-new-btn.hide{
+  display: none;
+}
+
+.new-comment .btns.hide{
+  display: none;
+}
+.new-comment textarea.hide{
+  display: none;
+}
+
+
+
+.new-task-btn{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  margin: 0;
+
+  background-color: #3180D1;
+  border: none;
+  border-radius: 50%;
+
+  font-size: 40px;
+  color: white;
+
+}
+
+.new-task-btn span{
+  position: relative;
+  top: -3px;
+}
+
+
+.context-menu{
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  display: flex;
+  flex-flow: column nowrap;
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background-color: #bdbfc2;
+  width: fit-content;
+  transition: all 0.3s;
+  z-index: 10;
+}
+
+.context-menu li {
+  cursor: pointer;
+}
+.context-menu li:hover {
+  background-color: #65737a;
+}
+

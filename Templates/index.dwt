@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- TemplateBeginEditable name="doctitle" -->
+<title>Untitled Document</title>
+<!-- TemplateEndEditable -->
+<link href="../tt.css" rel="stylesheet" type="text/css" />
+<!-- TemplateBeginEditable name="head" -->
+<!-- TemplateEndEditable -->
+</head>
+
+<body>
+
+<div id="container">
+  <div id="header"><img src="../images/header_01.jpg" width="950" height="251" /></div>
+  <div id="nav_top"><img src="../images/top_nav_03.gif" width="79" height="25" alt="Главная" /><img src="../images/top_nav_04.gif" width="107" height="25" alt="О прокате" /><img src="../images/top_nav_05.gif" width="71" height="25" alt="Заказ" /><img src="../images/top_nav_06.gif" width="194" height="25" alt="Доставка и оплата" /><img src="../images/top_nav_07.gif" width="150" height="25" alt="Бронирование" /><img src="../images/top_nav_08.gif" width="88" height="25" alt="Скидки" /></div>
+  
+  <div id="katalog">
+  <div id="katalog_left"><img src="../images/katalog_11.gif" width="264" height="57" /></div>
+  <div class="header" id="katalog_right">Ходунки Активный центр «Детский шаг» Chicco</div>
+  </div>
+   
+  <div id="nav"><img src="../images/nav_15.gif" width="190" height="91" alt="Автокресла" /><img src="../images/nav_17.gif" width="190" height="83" alt="Кенгуру, слинги" /><img src="../images/nav_18.gif" width="190" height="65" alt="Весы, радионяни" /><img src="../images/nav_19.gif" width="190" height="69" alt="Игровые коврики, центры" /><img src="../images/nav_20.gif" width="190" height="79" alt="Качели електронные" /><img src="../images/nav_21.gif" width="190" height="73" alt="Ходунки, ходилки, " /><img src="../images/nav_22.gif" width="190" height="81" alt="Мобиле, ночники" /><img src="../images/nav_23.gif" width="191" height="76" alt="Колыбели" /><img src="../images/nav_25.gif" width="191" height="73" alt="Манежи, шезлонги" /><img src="../images/nav_26.gif" width="191" height="84" alt="Стульчики для кормления" /><img src="../images/nav_27.gif" width="190" height="79" alt="Ингаляторы, лактаторы" /><img src="../images/nav_29.gif" width="190" height="76" alt="Спортивные комплексы, тренажеры для мам" /><img src="../images/nav_30.gif" width="190" height="89" alt="Увлажнители, очистители, ионизаторы воздуха " /></div>
+  
+
+  <div id="main">
+  
+<!-- первый блок без хэдера-->  
+ <div class="header" id="box">
+   <div id="box_p">
+   <div id="box_left"><img src="../katalog/images/1.jpg" width="205" height="253" /></div>
+   <div id="box_right">
+     <p class="bodysmall">Цена проката:<br />
+       2500 руб/сутки</p>
+     <p class="bodysmall">Минимальный срок <br />
+       проката: 2 недели</p>
+     <p class="bodysmall">Оценочная стоимость:<br />
+       400 000 рублей</p>
+      <a href="Http:////00"><img src="../images/skidki.png" width="120" height="66" class="skidki" /></a>
+    </div>
+   </div>
+  <div class="bodycopy" id="box_d">
+    <p>текст
+      </p>
+    
+  </div>
+ </div>
+<!-- конец первого блока -->
+
+<!-- второй блок с хэдером-->  
+ <div class="header" id="box">
+   <div class="header" id="box_h">Test</div>
+   <div id="box_p">
+   <div id="box_left"><img src="../katalog/images/1.jpg" width="205" height="253" /></div>
+   <div id="box_right">
+     <p class="bodysmall">Цена проката:<br />
+       2500 руб/сутки</p>
+     <p class="bodysmall">Минимальный срок <br />
+       проката: 2 недели</p>
+     <p class="bodysmall">Оценочная стоимость:<br />
+       400 000 рублей</p>
+      <a href="Http:////00"><img src="../images/skidki.png" width="120" height="66" class="skidki" /></a>
+    </div>
+   </div>
+  <div class="bodycopy" id="box_d">
+    <p>текст
+      </p>
+    
+  </div>
+ </div>
+<!-- конец второго блока -->
+
+<!-- третий блок с хэдером-->  
+ <div class="header" id="box">
+   <div class="header" id="box_h">Test</div>
+   <div id="box_p">
+   <div id="box_left"><img src="../katalog/images/1.jpg" width="205" height="253" /></div>
+   <div id="box_right">
+     <p class="bodysmall">Цена проката:<br />
+       2500 руб/сутки</p>
+     <p class="bodysmall">Минимальный срок <br />
+       проката: 2 недели</p>
+     <p class="bodysmall">Оценочная стоимость:<br />
+       400 000 рублей</p>
+      <a href="Http:////00"><img src="../images/skidki.png" width="120" height="66" class="skidki" /></a>
+    </div>
+   </div>
+  <div class="bodycopy" id="box_d">
+    <p>текст
+      </p>
+    
+  </div>
+ </div>
+<!-- конец третего блока -->
+
+<!-- четвертый блок с хэдером-->  
+ <div class="header" id="box">
+   <div class="header" id="box_h">Test</div>
+   <div id="box_p">
+   <div id="box_left"><img src="../katalog/images/1.jpg" width="205" height="253" /></div>
+   <div id="box_right">
+     <p class="bodysmall">Цена проката:<br />
+       2500 руб/сутки</p>
+     <p class="bodysmall">Минимальный срок <br />
+       проката: 2 недели</p>
+     <p class="bodysmall">Оценочная стоимость:<br />
+       400 000 рублей</p>
+      <a href="Http:////00"><img src="../images/skidki.png" width="120" height="66" class="skidki" /></a>
+    </div>
+   </div>
+  <div class="bodycopy" id="box_d">
+    <p>текст
+      </p>
+    
+  </div>
+ </div>
+<!-- конец четвертого блока -->
+
+  </div>  
+</div>
+
+</body>
+</html>

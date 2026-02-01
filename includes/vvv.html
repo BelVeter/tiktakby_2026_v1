@@ -1,0 +1,216 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="robots" content="all" />
+<title>jQuery Floater Plugin v 1.2</title>
+
+<link rel="stylesheet" href="css/dcfloater.css" type="text/css" media="screen" />
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script type='text/javascript' src='js/jquery.hoverIntent.minified.js'></script>
+<script type="text/javascript" src="js/jquery.easing.js"></script>
+<script type="text/javascript" src="js/jquery.floater.1.2.js"></script>
+<script type="text/javascript">
+$(document).ready(function($){
+	$('#floater-1').dcFloater();
+	$('#floater-2').dcFloater({
+			width: 180,
+			location: 'top',
+			align: 'right',
+			offsetLocation: 10,
+			offsetAlign: 10,
+			speedFloat: 1500,
+			speedContent: 400,
+			tabText: 'Floater 2',
+			autoClose: true,
+			tabClose: false,
+			easing: 'easeOutQuint',
+			event: 'hover'
+	});
+	$('#floater-3').dcFloater({
+			width: 150,
+			location: 'top',
+			align: 'right',
+			offsetLocation: 250,
+			offsetAlign: 410,
+			speedFloat: 1500,
+			speedContent: 400,
+			tabText: 'Floater 3',
+			autoClose: true,
+			easing: 'easeOutQuint',
+			event: 'click'
+	});
+	$('#floater-4').dcFloater({
+			width: 180,
+			location: 'bottom',
+			align: 'left',
+			offsetLocation: 10,
+			offsetAlign: 10,
+			speedFloat: 1500,
+			speedContent: 400,
+			tabText: 'Floater 4',
+			autoClose: false,
+			easing: 'easeOutBounce',
+			event: 'click'
+	});
+	$('#floater-5').dcFloater({
+			width: 180,
+			location: 'bottom',
+			align: 'right',
+			offsetLocation: 10,
+			offsetAlign: 10,
+			speedFloat: 1500,
+			speedContent: 400,
+			tabText: 'Floater 5',
+			autoClose: true,
+			tabClose: false,
+			easing: 'easeOutBounce',
+			event: 'hover'
+	});
+	$('#floater-6').dcFloater({
+			width: 150,
+			location: 'top',
+			align: 'right',
+			offsetLocation: 250,
+			offsetAlign: 210,
+			speedFloat: 2000,
+			speedContent: 600,
+			tabText: 'Floater 6',
+			autoClose: true,
+			easing: 'easeOutQuint',
+			event: 'hover'
+	});
+});
+</script>
+
+
+
+</head>
+<body>
+<div id="container">
+
+<!--Включаем шапку и верхнее меню-->
+<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/includes/header.html'); ?>
+
+ <div id="katalog">
+  <div id="katalog_left"><img src="../images/katalog_11.gif" width="264" height="70" /></div>
+   
+<div class="breadcrumbs"> 
+<div class="kristy">Вы сейчас здесь: <br/><a href="/">Главная</a> <img src="/images/ar.png" /> <a href="/toys.htm">Игрушки</a> <img src="/images/ar.png" />Крупногабаритные игрушки: 6 мес.- 3 года</div> </div>
+ </div>   
+<!--Включаем левое меню -->
+<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/includes/left_menu.html'); ?>
+  
+
+
+<div id="main">
+ <div id="main_box">
+
+<a href="kovriki/kovriki.htm#zhiraf" ><div id="top_2">
+<div id= "box_name"><div class= "kristy_new">Музыкальный комплекс<br/>Fisher-price <br/>"Жираф" 6+</div></div>
+<div id= "box_img"><img src="igrushki/img/fisher_price_giraf_top.jpg" alt="игрушки fisher-price" /></div>
+</div> </a>
+
+<a href="kovriki/mushroom.htm" ><div id="top_2">
+<div id= "box_name"><div class= "kristy_new">Музыкальная игрушка<br/>BKids<br/>"Удивительный гриб" 6+ </div></div>
+<div id= "box_img"><img src="igrushki/img/mushroom_bkids_top.jpg" alt="Удивительный гриб bkids" /></div>
+</div> </a>
+ 
+
+<a href="kovriki/fisher_lion.htm" ><div id="top_2">
+<div id= "box_name"><div class= "kristy_new">Игровая стойка<br/>Fisher-price<br/>"Музыкальный лев"  6+</div></div>
+<div id= "box_img"><img src="igrushki/img/fisher_lion_top.jpg" alt="прокат игрушек fisher-price" /></div>
+</div></a>
+
+<!--ряд -->
+          
+<a href="kovriki/kovriki.htm#fisher_price_ice" ><div id="top_2">
+<div id= "box_name"><div class= "kristy_new">Игровой центр<br/>Fisher-Price<br/>"Ледяные горки" 6+ </div></div>
+<div id= "box_img"><img src="igrushki/img/fisher_price_ice_top.jpg" alt="ballapalooza fisher-price" /></div>
+</div> </a>
+
+<a href="kovriki/kovriki.htm#fisher_price_zebra" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Развлекательный центр "Веселая зебра"<br/>Fisher-Price</div></div>
+<div id= "box_img"><img src="igrushki/img/fisher_price_zebra_top.jpg" alt="Зебра Fisher-Price" /></div>
+</div> </a>
+
+<a href="kovriki/cruise_fisher.htm" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Игровой центр<br/> "Круиз" Fisher-Price<br/>свет/звук 6+ </div></div>
+<div id= "box_img"><img src="igrushki/img/rampa_fisher_price_top.jpg" alt="ballapalooza fisher-price" /></div>
+</div> </a>
+
+ <!--ряд -->
+
+<a href="kovriki/kovriki.htm#smoby" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Горка с фонтанчиком<br/> Smoby</div></div>
+<div id= "box_img"><img src="igrushki/img/gorka_smoby_top.jpg" alt="Горка с фонтанчиком Smoby" /></div>
+</div></a>
+
+
+<a href="kovriki/incrediblock.htm" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Большой куб "ИнкредиБлок" <br/>Fisher-Price</div></div>
+<div id= "box_img"><img src="igrushki/img/incrediblock_top.jpg" alt="incrediblock fisher-price" /></div>
+</div> </a>
+
+
+<a href="kovriki/stand_up_fisher.htm" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Игровой комплекс Fisher-Price "Вулкан" 6+</div></div>
+<div id= "box_img"><img src="igrushki/img/fisher_price_balcano_top.jpg" alt="fisher-price balcano" /></div>
+</div></a>
+
+<!--ряд -->
+
+
+<a href="kovriki/rampa_fisher.htm" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Игровой центр "Мертвая метля" 12+ <br/>Fisher-Price</div></div>
+<div id= "box_img"><img src="igrushki/img/rampa_fisher_top.jpg" alt="rampa fisher-price" /></div>
+</div> </a>
+
+<a href="kovriki/kovriki.htm#parking" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Большой гараж-паркинг<br/>Fisher-Price 12+ </div></div>
+<div id= "box_img"><img src="igrushki/img/parking_top.jpg" alt="parking fisher-price" /></div>
+</div> </a>
+
+<a href="kovriki/tiger_kiddieland.htm" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Качалка-балансир "Тигруля" Kiddieland 12+</div></div>
+<div id= "box_img"><img src="igrushki/img/tigra_top.jpg" alt="Качалка-балансир" /></div>
+</div></a>
+
+<!--ряд -->
+
+<a href="kovriki/kovriki.htm#fisher_price_monkey" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Музыкальный центр<br/>Fisher-price <br/>"Танцующая обезьяна"</div></div>
+<div id= "box_img"><img src="igrushki/img/fisher_price_monkey_top.jpg" alt="обезьяна fisher-price" /></div>
+</div> </a>
+
+<a href="kovriki/rainforest_cruise.htm" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Игровая стойка<br/>Fisher-price<br/>"Музыка джунглей"</div></div>
+<div id= "box_img"><img src="igrushki/img/fisher_rainforest_cruise_top.jpg" alt="друзья из джунглей fisher-price" /></div>
+</div> </a>
+
+
+<a href="kovriki/kovriki.htm#fisher_price_dino" ><div id="top_3">
+<div id= "box_name"><div class= "kristy_new">Развлекательный центр<br/>Fisher-price<br/>"Динозавр" 6+</div></div>
+<div id= "box_img"><img src="igrushki/img/fisher_price_dino_top.jpg" alt="прокат игрушек fisher-price" /></div>
+</div></a>
+
+<!--ряд -->
+
+</div>
+</div>
+ 
+
+<div id="floater-2">
+<ul class="nav-main">
+  <li><a href="http://www.designchemical.com/"><span>Design Chemical</span></a></li>
+  <li><a href="http://www.designchemical.com/about.htm" title="About Design Chemical"><span>About</span></a></li>
+  <li><a href="http://www.designchemical.com/portfolio/web-design/" title="Web Design Portfolio"><span>Our Work</span></a></li>
+  <li><a href="http://www.designchemical.com/bangkok_web_print_and_graphic_design.htm"><span>Services</span></a></li>
+  <li><a href="http://www.designchemical.com/blog/" title="Design Chemical Blog"><span>Blog</span></a></li>
+  <li><a href="http://www.designchemical.com/contacts.htm" title="Contact Design Chemical"><span>Contacts</span></a></li>
+</ul>
+<div class="dc-corner"><span></span></div>
+</div>
+
+</body>
+</html>
