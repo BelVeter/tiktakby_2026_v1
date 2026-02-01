@@ -1,77 +1,57 @@
 @php /** @var \App\MyClasses\L2ModelWeb $l2 */ @endphp
 
 <div class="l2-card_container">
-  <div class="l2-card_top-section">
-    <div class="d-flex justify-content-between align-items-start">
-      <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_header-link">
-        <span class="l2-card_header">{!! $l2->getName() !!}</span>
-      </a>
-      <div class="l2-card_wishlist">
-        <i class="fas fa-heart"></i>
+  <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_img-container">
+    <span class="l2-card_header">{!! $l2->getName() !!}</span>
+    <img src="{{ $l2->getPicUrl(request()->lang) }}" class="l2-card_img" alt="{{$l2->getPicAltText()}}">
+  </a>
+  <div class="l2-card_line-2">
+    <div class="l2-col1">{{$l2->translate('Тариф за сутки')}}</div>
+    <div class="l2-col2">{{$l2->translate('Суток')}}</div>
+  </div>
+  <div class="l2-card_line-2_mobile d-block d-md-none">
+    от {{number_format($l2->getMinDayTarifValue(), 2, ',', ' ')}}<sup>Br</sup> {{ $l2->translate('в сутки') }}
+  </div>
+  <div class="l2-card_line-3">
+    <div class="l2-col3">
+      <span class="day"><span class="day-tarif-span">{{number_format($l2->getTarifModel()->getDaylyTarifForDaysPeriod(($l2->getBaseDaysForPlusMinus())), 2, ',', ' ')}}</span><sup>Br</sup></span>
+      <span class="total"><span class="total-rent-span">{{number_format($l2->getTarifModel()->getAmmountForDaysPeriod(($l2->getBaseDaysForPlusMinus())), 2, ',', ' ')}}</span><sup>Br</sup> {{$l2->translate('ВСЕГО')}}</span>
+    </div>
+    <div class="l2-col4">
+      <div class="l2-card_input-form">
+        <button class="arrow-up" type="button"><img src="/public/svg/arrow-up-input.svg"></button>
+        <button class="arrow-down" type="button"><img src="/public/svg/arrow-up-input.svg"></button>
+        <input type="number" value="{{($l2->getBaseDaysForPlusMinus())}}" class="l2-card_number-input" id="{{$l2->getModelId()}}" onchange="" min="1" step="1">
+        @if(is_array($l2->getTariffsAll()))
+          @foreach($l2->getTariffsAll() as $t)
+            <input type="hidden" class="tarif" data-days="{{$t->getDaysCalculatedNumber()}}" value="{{$t->getTotalAmount()}}">
+          @endforeach
+        @endif
       </div>
     </div>
-
-    <div class="l2-card_estimated-cost">
-      Оценочная стоимость: {{ number_format($l2->getEstimatedValue(), 0, ',', ' ') }} BYN
-    </div>
-
-    <div class="l2-card_rating">
-      <i class="fas fa-star"></i>
-      <i class="fas fa-star"></i>
-      <i class="fas fa-star"></i>
-      <i class="fas fa-star-half-alt"></i>
-      <i class="far fa-star"></i>
-    </div>
   </div>
 
-  <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_img-container">
-    <img src="{{ $l2->getPicUrl(request()->lang) }}" class="l2-card_img" alt="{{$l2->getPicAltText()}}">
-    <!-- Plus icon logic if needed visually, implied by screenshot but maybe part of image? Adding overlay just in case -->
-    <!-- <div class="l2-card_img-overlay">+</div> -->
-  </a>
+{{--button variants--}}
+  @if($l2->isL2AvailabilityVisible())
 
-  <div class="l2-card_price-label">
-    Тариф: <span class="price-from">от {{number_format($l2->getMinDayTarifValue(), 2, ',', ' ')}} BYN</span> за сутки
-  </div>
+    <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_line-4-a" {!! $l2->hasItemsAvailable() ? '' : 'style="background-color: #ff0013"' !!}}>
+      <span class="l2-card_btn-desctop">{{$l2->translate(($l2->hasItemsAvailable() ? 'Доступен к прокату' : 'Оставить заявку'))}}</span>
+      <span class="l2-card_btn-mobile">{{$l2->translate(($l2->hasItemsAvailable() ? 'Доступен к прокату' : 'Оставить заявку'))}}</span>
+      <input type="hidden" name="dima-info" value="{{ $l2->getModelWeb()->getWebId() }}">
+    </a>
 
-  <!-- Pricing Bar Section -->
-  <div class="l2-card_pricing-bar">
-    <div class="l2-card_point-labels">
-      <span>1 неделя</span>
-      <span>2 недели</span>
-      <span>3 недели</span>
-      <span>4 недели</span>
-    </div>
-
-    <div class="l2-card_pricing-track">
-      <div class="l2-card_node node-1"></div>
-      <div class="l2-card_node node-2"></div>
-      <div class="l2-card_node node-3"></div>
-      <div class="l2-card_node node-4"></div>
-    </div>
-
-    <div class="l2-card_point-prices">
-      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(7), 0, ',', ' ') }} <small>BYN</small></span>
-      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ') }}
-        <small>BYN</small></span>
-      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(21), 0, ',', ' ') }}
-        <small>BYN</small></span>
-      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}
-        <small>BYN</small></span>
-    </div>
-  </div>
-
-  <!-- Button -->
-  <div class="l2-card_action-btn-container">
-    @if($l2->isL2AvailabilityVisible() && $l2->hasItemsAvailable())
-      <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_btn btn-rent">
-        ВЗЯТЬ НАПРОКАТ
-      </a>
-    @else
-      <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_btn btn-book">
-        ЗАБРОНИРОВАТЬ
-      </a>
+    @if(!$l2->isKarnaval() && $l2->isAvailableAtOffice(1))
+      <div class="office-available off1"></div>
     @endif
-  </div>
+    @if(!$l2->isKarnaval() && $l2->isAvailableAtOffice(2))
+      <div class="office-available off2"></div>
+    @endif
+
+  @else
+    <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_line-4-a">
+      <span class="l2-card_btn-desctop">Забронировать</span>
+      <input type="hidden" name="dima-info" value="{{ $l2->getModelWeb()->getWebId() }}">
+    </a>
+  @endif
 
 </div>

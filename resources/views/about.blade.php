@@ -185,49 +185,49 @@
     <script src="/public/js/about.js"></script>
 
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "RentalBusiness",
-      "name": "TikTak",
-      "image": "https://tiktak.by/images/logo.png",
-      "@id": "https://tiktak.by",
-      "url": "https://tiktak.by",
-      "telephone": "+37529XXXXXXX",
-      "priceRange": "$$",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Улица, дом",
-        "addressLocality": "Минск",
-        "addressCountry": "BY"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": 53.9006,
-        "longitude": 27.5590
-      }
-    }
-    </script>
+                            {
+                              "@context": "https://schema.org",
+                              "@type": "RentalBusiness",
+                              "name": "TikTak",
+                              "image": "https://tiktak.by/images/logo.png",
+                              "@id": "https://tiktak.by",
+                              "url": "https://tiktak.by",
+                              "telephone": "+37529XXXXXXX",
+                              "priceRange": "$$",
+                              "address": {
+                                "@type": "PostalAddress",
+                                "streetAddress": "Улица, дом",
+                                "addressLocality": "Минск",
+                                "addressCountry": "BY"
+                              },
+                              "geo": {
+                                "@type": "GeoCoordinates",
+                                "latitude": 53.9006,
+                                "longitude": 27.5590
+                              }
+                            }
+                            </script>
 
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [{
-        "@type": "Question",
-        "name": "Насколько безопасно брать медицинские товары напрокат?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Абсолютно безопасно. Все части, контактирующие с телом, либо являются одноразовыми/сменными, либо проходят стерилизацию медицинского уровня."
-        }
-      }, {
-        "@type": "Question",
-        "name": "Как быстро вы доставляете по Минску?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "При оформлении заказа до 14:00 доставка часто возможна в тот же день."
-        }
-      }]
-    }
-    </script>
+                            {
+                              "@context": "https://schema.org",
+                              "@type": "FAQPage",
+                              "mainEntity": [{
+                                "@type": "Question",
+                                "name": "Насколько безопасно брать медицинские товары напрокат?",
+                                "acceptedAnswer": {
+                                  "@type": "Answer",
+                                  "text": "Абсолютно безопасно. Все части, контактирующие с телом, либо являются одноразовыми/сменными, либо проходят стерилизацию медицинского уровня."
+                                }
+                              }, {
+                                "@type": "Question",
+                                "name": "Как быстро вы доставляете по Минску?",
+                                "acceptedAnswer": {
+                                  "@type": "Answer",
+                                  "text": "При оформлении заказа до 14:00 доставка часто возможна в тот же день."
+                                }
+                              }]
+                            }
+                            </script>
 
 @endsection
