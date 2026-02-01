@@ -142,13 +142,13 @@ Route::get(
 Route::get(
     '/{lang}/producer',
     'App\Http\Controllers\SearchController@producerFilter'
-)->name('filter');
+)->name('filter.producer');
 
 
 Route::get(
     '/{lang}/filter',
     'App\Http\Controllers\SearchController@ageFilter'
-)->name('filter');
+)->name('filter.age');
 
 
 
@@ -178,7 +178,7 @@ Route::get(
 Route::get(
     '/{lang}/{razdel}/{subrazdel}/{category}',
     'App\Http\Controllers\CatController@categoryMainPage'
-)->name('razdelPage');
+)->name('categoryPage');
 
 Route::post(
     //'/ru/prokat/{cat}/{model}',

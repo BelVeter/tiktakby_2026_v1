@@ -67,6 +67,10 @@ public/public
 *.PNG
 *.GIF
 
+*.log
+
+Deploy.php
+
 # Exceptions for BB folder (allow images/video in bb)
 !/bb/**/*.jpg
 !/bb/**/*.jpeg
