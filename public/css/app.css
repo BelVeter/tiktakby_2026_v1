@@ -3839,10 +3839,8 @@ h1.l3_h1-mobile {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .l3__slider__small_pics_container {
-  -ms-overflow-style: none;
-  /* IE and Edge */
-  scrollbar-width: none;
-  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
   max-height: 500px;
 }
 
@@ -3913,10 +3911,8 @@ h1.l3_h1-mobile {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .l3__slider__big_pic_container {
-  -ms-overflow-style: none;
-  /* IE and Edge */
-  scrollbar-width: none;
-  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 .l3__slider__big_pic {
@@ -3942,17 +3938,14 @@ h1.l3_h1-mobile {
   flex-flow: column nowrap;
   justify-content: space-between;
   background-color: white;
-  width: 600px;
-  /* Widened to fit slider */
-  padding: 20px;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  width: 516px;
+  padding: 16px 8px 8px 8px;
+  border-radius: 10px;
 }
 @media screen and (max-width: 767px) {
   .l3__tovar_info_container {
     width: 100%;
     background-color: transparent;
-    box-shadow: none;
   }
 }
 
@@ -3960,8 +3953,9 @@ h1.l3_h1-mobile {
   display: flex;
   flex-flow: row nowrap;
   align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 5px;
+  justify-content: center;
+  align-items: center;
+  margin-left: 20px;
 }
 .row__l3_tovar_name h1 {
   margin: 0;
@@ -3969,12 +3963,12 @@ h1.l3_h1-mobile {
   width: 100%;
   font-family: "Nunito";
   font-style: normal;
-  font-weight: 600;
-  font-size: 28px;
-  /* Increased font size */
-  line-height: 1.2;
+  font-weight: 400;
+  font-size: 23px;
+  line-height: 33px;
   color: #000000;
   text-align: left;
+  letter-spacing: unset;
 }
 @media screen and (max-width: 767px) {
   .row__l3_tovar_name {
@@ -3983,16 +3977,45 @@ h1.l3_h1-mobile {
 }
 
 .row__dog_price {
-  margin-bottom: 20px;
+  margin-left: 20px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
 }
-
-.l3__slider_container {
-  margin-bottom: 30px !important;
+@media screen and (max-width: 767px) {
+  .row__dog_price {
+    margin-top: 16px;
+  }
+}
+.row__dog_price span {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 20px;
+  color: #AEAEAE;
+  width: 200px;
+}
+@media screen and (max-width: 767px) {
+  .row__dog_price span {
+    width: unset;
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 20px;
+  }
+}
+.row__dog_price img {
+  max-width: 160px;
+}
+@media screen and (max-width: 767px) {
+  .row__dog_price img {
+    display: none;
+  }
 }
 
 .row__l3_tarif_gradient {
-  padding: 0;
-  margin-top: 10px;
+  padding: 0 28px;
 }
 @media screen and (max-width: 767px) {
   .row__l3_tarif_gradient {
@@ -4004,15 +4027,13 @@ h1.l3_h1-mobile {
 }
 
 .l3_gradient-header {
-  font-family: "Nunito", sans-serif;
-  font-weight: 400;
-  font-size: 24px;
-  margin-bottom: 15px;
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 172.69%;
+  letter-spacing: 0.0029em;
   color: #000000;
-}
-.l3_gradient-header span.price-val {
-  font-weight: 700;
-  font-size: 28px;
 }
 @media screen and (max-width: 767px) {
   .l3_gradient-header {
@@ -4022,15 +4043,20 @@ h1.l3_h1-mobile {
 
 .l3_tarif_weeks {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-  padding: 0 5%;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+  margin: 3px 0 8px 0;
 }
 .l3_tarif_weeks span {
   font-family: "Nunito";
-  font-weight: 400;
-  font-size: 16px;
-  color: #333;
+  font-style: normal;
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 172.69%;
+  /* or 24px */
+  text-align: center;
+  letter-spacing: 0.0029em;
+  color: #000000;
 }
 @media screen and (max-width: 767px) {
   .l3_tarif_weeks span {
@@ -4041,69 +4067,41 @@ h1.l3_h1-mobile {
 .l3_tarif_gradient_container {
   position: relative;
   width: 100%;
-  height: 10px;
-  border-radius: 5px;
-  background-image: linear-gradient(to right, #E75330, #F08C37, #FFC700, #99C456, #5EC282);
-  margin: 10px 0 15px;
-  /* Removed 5th dot as per design assumption or adjusted spacing */
-  /* If 4 dots needed: */
-  /* 1 week, 2 weeks, 3 weeks, 4 weeks */
-  /* Adjusting positions to match text */
+  height: 8px;
+  background-image: linear-gradient(to right, #F24E1E, #F08C37, #FFC700, #99C456, #5EC282);
 }
 .l3_tarif_gradient_container span {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   position: absolute;
   border-radius: 50%;
-  background-color: #E75330;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border: 2px solid white;
+  background-color: yellow;
+  top: -44%;
 }
 .l3_tarif_gradient_container span:nth-child(1) {
-  left: 7%;
-  background-color: #E75330;
+  transform: translateX(-50%);
+  left: 0;
+  background-color: #F24E1E;
 }
 .l3_tarif_gradient_container span:nth-child(2) {
-  left: 35%;
+  transform: translateX(-50%);
+  left: 25%;
   background-color: #F08C37;
 }
 .l3_tarif_gradient_container span:nth-child(3) {
-  left: 63%;
-  background-color: #FDD835;
+  transform: translateX(-50%);
+  left: 50%;
+  background-color: #FFC700;
 }
 .l3_tarif_gradient_container span:nth-child(4) {
-  left: 91%;
-  background-color: #66BB6A;
-  transform: translate(-50%, -50%);
-}
-.l3_tarif_gradient_container span:nth-child(1) {
-  left: 5%;
-}
-.l3_tarif_gradient_container span:nth-child(2) {
-  left: 34%;
-}
-.l3_tarif_gradient_container span:nth-child(3) {
-  left: 63%;
-}
-.l3_tarif_gradient_container span:nth-child(4) {
-  left: 94%;
+  transform: translateX(-50%);
+  left: 75%;
+  background-color: #99C456;
 }
 .l3_tarif_gradient_container span:nth-child(5) {
-  display: none;
-}
-
-.l3_tarif_weeks + .l3_tarif_weeks {
-  /* Pricing row */
-  margin-top: 5px;
-}
-.l3_tarif_weeks + .l3_tarif_weeks span {
-  font-size: 20px;
-  font-weight: 500;
-  color: #000;
-}
-.l3_tarif_weeks + .l3_tarif_weeks span sup {
-  font-size: 12px;
+  transform: translateX(50%);
+  right: 0;
+  background-color: #5EC282;
 }
 
 .row__l3_main_calc_container {
@@ -4862,9 +4860,7 @@ h1.l3_h1-mobile {
   width: 100%;
   margin-bottom: 25px;
 }
-.kbform_reject .header_line .header-tabletable,
-.kbform_reject .header_line .header-table td,
-.kbform_reject .header_line .header-table th {
+.kbform_reject .header_line .header-tabletable, .kbform_reject .header_line .header-table td, .kbform_reject .header_line .header-table th {
   border: none;
 }
 .kbform_reject .header_line .header-table .name {
@@ -4957,9 +4953,7 @@ h1.l3_h1-mobile {
   width: 100%;
   margin-bottom: 25px;
 }
-.kbform_free .header_line .header-tabletable,
-.kbform_free .header_line .header-table td,
-.kbform_free .header_line .header-table th {
+.kbform_free .header_line .header-tabletable, .kbform_free .header_line .header-table td, .kbform_free .header_line .header-table th {
   border: none;
 }
 .kbform_free .header_line .header-table .name {
@@ -5206,11 +5200,7 @@ h1.l3_h1-mobile {
 .l3__tovar_karn_info_container .tov_container2 .more_btn img.rotate {
   transform: rotate(180deg);
 }
-.l3__tovar_karn_info_container .tov_container2 .k_size,
-.l3__tovar_karn_info_container .tov_container2 .k_tarif,
-.l3__tovar_karn_info_container .tov_container2 .k_collateral,
-.l3__tovar_karn_info_container .tov_container2 .k_address,
-.l3__tovar_karn_info_container .tov_container2 .k_delivery {
+.l3__tovar_karn_info_container .tov_container2 .k_size, .l3__tovar_karn_info_container .tov_container2 .k_tarif, .l3__tovar_karn_info_container .tov_container2 .k_collateral, .l3__tovar_karn_info_container .tov_container2 .k_address, .l3__tovar_karn_info_container .tov_container2 .k_delivery {
   position: relative;
   border-left-width: 4px;
   border-left-style: solid;
