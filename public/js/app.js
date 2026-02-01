@@ -2806,16 +2806,7 @@ function toggleNavLeftCats(e) {
   var parrent = e.target.closest('li');
   var target = parrent.querySelector('.cat-row');
   target.classList.toggle('show');
-} //tmp mobile phone
-// let mobButton = document.querySelector('[data-mob_phone="1"]');
-// mobButton.addEventListener('click', mobButtonClick);
-// let mobPhonesContainer = document.querySelector('.mob_phones_div');
-// mobPhonesContainer.querySelector('.btn-close').addEventListener('click', mobButtonClick);
-//
-// function mobButtonClick(e){
-//   e.preventDefault()
-//   mobPhonesContainer.classList.toggle('hide');
-// }
+}
 
 /***/ }),
 
@@ -20075,19 +20066,6 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
-/***/ "./resources/sass/bbnew.scss":
-/*!***********************************!*\
-  !*** ./resources/sass/bbnew.scss ***!
-  \***********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-// extracted by mini-css-extract-plugin
-
-
-/***/ }),
-
 /***/ "./node_modules/process/browser.js":
 /*!*****************************************!*\
   !*** ./node_modules/process/browser.js ***!
@@ -20404,7 +20382,6 @@ module.exports = JSON.parse('{"name":"axios","version":"0.21.4","description":"P
 /******/ 		// [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
 /******/ 		var installedChunks = {
 /******/ 			"/js/app": 0,
-/******/ 			"css/bbnew": 0,
 /******/ 			"css/app": 0
 /******/ 		};
 /******/ 		
@@ -20455,9 +20432,8 @@ module.exports = JSON.parse('{"name":"axios","version":"0.21.4","description":"P
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	__webpack_require__.O(undefined, ["css/bbnew","css/app"], () => (__webpack_require__("./resources/js/app.js")))
-/******/ 	__webpack_require__.O(undefined, ["css/bbnew","css/app"], () => (__webpack_require__("./resources/sass/app.scss")))
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["css/bbnew","css/app"], () => (__webpack_require__("./resources/sass/bbnew.scss")))
+/******/ 	__webpack_require__.O(undefined, ["css/app"], () => (__webpack_require__("./resources/js/app.js")))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["css/app"], () => (__webpack_require__("./resources/sass/app.scss")))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
