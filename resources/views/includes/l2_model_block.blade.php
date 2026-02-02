@@ -46,18 +46,52 @@
 
     <!-- New Pricing Section Layout -->
     <div class="l2-card_pricing-wrapper">
+      @php
+        $basePeriod = $l2->getTarifLinePeriodDaysNumber();
+      @endphp
+
       <div class="l2-card_point-labels">
-        <span>1 неделя</span>
-        <span>2 недели</span>
-        <span>3 недели</span>
-        <span>4 недели</span>
+        @if($basePeriod == 7)
+          {{-- Weekly tariff --}}
+          <span>1 неделя</span>
+          <span>2 недели</span>
+          <span>3 недели</span>
+          <span>4 недели</span>
+        @elseif($basePeriod == 30)
+          {{-- Monthly tariff --}}
+          <span>1 месяц</span>
+          <span>2 месяца</span>
+          <span>3 месяца</span>
+          <span>4 месяца</span>
+        @else
+          {{-- Daily tariff (fallback) --}}
+          <span>1 сутки</span>
+          <span>2 суток</span>
+          <span>3 суток</span>
+          <span>4 суток</span>
+        @endif
       </div>
 
       <div class="l2-card_point-prices">
-        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(7), 0, ',', ' ') }}<small>BYN</small></span>
-        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ') }}<small>BYN</small></span>
-        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(21), 0, ',', ' ') }}<small>BYN</small></span>
-        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}<small>BYN</small></span>
+        @if($basePeriod == 7)
+          {{-- Weekly prices --}}
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(7), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(21), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}<small>BYN</small></span>
+        @elseif($basePeriod == 30)
+          {{-- Monthly prices --}}
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(60), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(90), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(120), 0, ',', ' ') }}<small>BYN</small></span>
+        @else
+          {{-- Daily prices (fallback) --}}
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(1), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(2), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(3), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(4), 0, ',', ' ') }}<small>BYN</small></span>
+        @endif
       </div>
 
       <div class="l2-card_pricing-track">
@@ -71,8 +105,13 @@
           $integerPart = $parts[0];
           $decimalPart = $parts[1] ?? '00';
         @endphp
-        При аренде от 28 дней -- тариф <span class="tariff-price">{{ $integerPart }}<span
-            class="tariff-comma">,</span><sup class="tariff-decimal">{{ $decimalPart }}</sup> BYN/сутки</span>
+        @if($basePeriod == 30)
+          При аренде от 4-х месяцев -- тариф <span class="tariff-price">{{ $integerPart }}<span
+              class="tariff-comma">,</span><sup class="tariff-decimal">{{ $decimalPart }}</sup> BYN/сутки</span>
+        @else
+          При аренде от 28 дней -- тариф <span class="tariff-price">{{ $integerPart }}<span
+              class="tariff-comma">,</span><sup class="tariff-decimal">{{ $decimalPart }}</sup> BYN/сутки</span>
+        @endif
       </div>
     </div>
 
