@@ -365,6 +365,14 @@
       background-color: #D14030;
     }
   }
+
+  &.btn-request {
+    background-color: #0d6efd; // Blue
+
+    &:hover {
+      background-color: #0b5ed7; // Darker blue
+    }
+  }
 }
 
 // Mobile overrides if needed

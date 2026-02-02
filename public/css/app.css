@@ -2033,6 +2033,12 @@ a.button-more:hover {
 .l2-card_btn.btn-book:hover {
   background-color: #D14030;
 }
+.l2-card_btn.btn-request {
+  background-color: #0d6efd;
+}
+.l2-card_btn.btn-request:hover {
+  background-color: #0b5ed7;
+}
 
 @media screen and (max-width: 767px) {
   .l2-card_container {
