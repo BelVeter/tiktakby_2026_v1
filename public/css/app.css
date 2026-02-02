@@ -2038,10 +2038,10 @@ a.button-more:hover {
   background-color: #D14030;
 }
 .l2-card_btn.btn-request {
-  background-color: #0d6efd;
+  background-color: #0d6efd !important;
 }
 .l2-card_btn.btn-request:hover {
-  background-color: #0b5ed7;
+  background-color: #0b5ed7 !important;
 }
 
 @media screen and (max-width: 767px) {

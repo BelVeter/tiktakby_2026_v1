@@ -372,10 +372,10 @@
   }
 
   &.btn-request {
-    background-color: #0d6efd; // Blue
+    background-color: #0d6efd !important; // Blue
 
     &:hover {
-      background-color: #0b5ed7; // Darker blue
+      background-color: #0b5ed7 !important; // Darker blue
     }
   }
 }
