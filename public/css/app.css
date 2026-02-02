@@ -1959,7 +1959,6 @@ a.button-more:hover {
 }
 .l2-card_meta-info .meta-row .meta-label {
   width: 60px;
-  color: #999;
 }
 @media screen and (max-width: 767px) {
   .l2-card_meta-info .meta-row .meta-label {
@@ -2000,6 +1999,7 @@ a.button-more:hover {
 
 .l2-card_action-btn-container {
   width: 100%;
+  margin-bottom: 10px;
 }
 
 .l2-card_btn {

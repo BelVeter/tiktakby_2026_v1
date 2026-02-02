@@ -281,7 +281,7 @@
 
     .meta-label {
       width: 60px; // Fixed width for alignment
-      color: #999;
+      // Inherits font-size from parent meta-row
 
       @media screen and (max-width: 767px) {
         width: 80px; // More space on mobile
@@ -328,6 +328,7 @@
 // Buttons
 .l2-card_action-btn-container {
   width: 100%;
+  margin-bottom: 10px; // Add some breathing room below button
 }
 
 .l2-card_btn {
