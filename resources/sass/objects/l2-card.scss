@@ -265,17 +265,32 @@
   }
 }
 
-// Fix for layout grid - overriding l2.css restriction
+// Fix for layout grid - using CSS Grid for better responsive control
 .l2-cards-container {
-  display: flex !important;
-  flex-flow: row wrap !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr); // 3 cards per row by default
+  gap: 20px;
   width: 100% !important;
-  justify-content: flex-start;
   padding-top: 24px;
   padding-left: 20px;
+  padding-right: 20px;
+
+  // Tablets and larger (768px+): 3 cards per row
+  @media screen and (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  // Mobile (<768px): 1 card per row
+  @media screen and (max-width: 767px) {
+    grid-template-columns: 1fr;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 }
 
 .l2-card_container {
-  margin-right: 20px;
-  margin-bottom: 20px;
+  margin-right: 0; // Grid handles spacing
+  margin-bottom: 0; // Grid handles spacing
+  width: 100%; // Take full grid cell width
+  max-width: 100%; // Override previous max-width
 }

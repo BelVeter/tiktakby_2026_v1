@@ -15,12 +15,23 @@
       Оценочная стоимость: {{ number_format($l2->getEstimatedValue(), 0, ',', ' ') }} BYN
     </div>
 
+    @php
+      // Generate consistent random rating (4.5 or 5) based on product ID
+      $rating = (($l2->getModelId() % 2) == 0) ? 5 : 4.5;
+      $fullStars = floor($rating);
+      $hasHalfStar = ($rating - $fullStars) >= 0.5;
+    @endphp
+
     <div class="l2-card_rating">
-      <i class="fas fa-star"></i>
-      <i class="fas fa-star"></i>
-      <i class="fas fa-star"></i>
-      <i class="fas fa-star-half-alt"></i>
-      <i class="far fa-star"></i>
+      @for($i = 1; $i <= 5; $i++)
+        @if($i <= $fullStars)
+          <i class="fas fa-star"></i>
+        @elseif($i == $fullStars + 1 && $hasHalfStar)
+          <i class="fas fa-star-half-alt"></i>
+        @else
+          <i class="far fa-star"></i>
+        @endif
+      @endfor
     </div>
   </div>
 
