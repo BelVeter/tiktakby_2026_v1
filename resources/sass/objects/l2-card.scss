@@ -251,14 +251,14 @@
   .meta-row {
     display: flex;
     font-family: 'Nunito', sans-serif;
-    font-size: 12px; // Increased from 10px for better readability
+    font-size: 13px; // Increased to match estimated-cost line
     font-weight: 300; // Light
     color: #666;
     margin-bottom: 4px;
     align-items: center;
 
     @media screen and (max-width: 767px) {
-      font-size: 13px; // Larger on mobile
+      font-size: 13px; // Same on mobile
       margin-bottom: 6px;
     }
 
