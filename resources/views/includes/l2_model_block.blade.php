@@ -147,7 +147,7 @@
       </div>
       @if(!$availability['hasAvailability'])
         <div class="meta-row">
-          <span class="meta-value">Оставьте заявку - мы перезвоним!</span>
+          <span class="meta-value text-darker">Оставьте заявку - мы перезвоним!</span>
         </div>
       @endif
       @if($availability['hasAvailability'])

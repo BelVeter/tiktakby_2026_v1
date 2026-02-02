@@ -1932,13 +1932,13 @@ a.button-more:hover {
   font-size: 13px;
   font-weight: 300;
   color: #666;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   align-items: center;
 }
 @media screen and (max-width: 767px) {
   .l2-card_meta-info .meta-row {
     font-size: 13px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 }
 .l2-card_meta-info .meta-row.dual-location {
@@ -1970,6 +1970,10 @@ a.button-more:hover {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+}
+.l2-card_meta-info .meta-row .meta-value.text-darker {
+  color: #333;
+  font-weight: 500;
 }
 .l2-card_meta-info .meta-row .meta-value a {
   color: #666;

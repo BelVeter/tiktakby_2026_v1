@@ -254,12 +254,12 @@
     font-size: 13px; // Increased to match estimated-cost line
     font-weight: 300; // Light
     color: #666;
-    margin-bottom: 4px;
+    margin-bottom: 2px; // Compact spacing
     align-items: center;
 
     @media screen and (max-width: 767px) {
       font-size: 13px; // Same on mobile
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     // When product is available in both offices, use smaller font
@@ -293,6 +293,11 @@
       display: flex;
       align-items: center;
       flex-wrap: wrap;
+
+      &.text-darker {
+        color: #333;
+        font-weight: 500;
+      }
 
       a {
         color: #666;
