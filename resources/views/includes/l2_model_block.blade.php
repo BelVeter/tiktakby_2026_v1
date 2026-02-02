@@ -154,7 +154,7 @@
         <div class="meta-row">
           <span class="meta-label">Доставка:</span>
           <div class="meta-value">
-            возможна сегодня. <a href="#">Подробнее...</a>
+            сегодня. <a href="#">Подробнее...</a>
           </div>
         </div>
       @endif
