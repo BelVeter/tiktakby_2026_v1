@@ -165,7 +165,7 @@
       @if($availability['hasAvailability'])
         <div class="meta-row meta-row-delivery">
           <span class="meta-delivery-text">Доставка: сегодня</span>
-          <a href="#" class="meta-delivery-link">Подробнее...</a>
+          <a href="https://tiktak.by/ru/delivery" class="meta-delivery-link">Подробнее...</a>
         </div>
       @else
         <div class="meta-row meta-row-request">

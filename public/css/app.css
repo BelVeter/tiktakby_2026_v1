@@ -2003,7 +2003,7 @@ a.button-more:hover {
 .l2-card_meta-info .meta-row.meta-row-delivery {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
   font-size: 13px;
   font-weight: 400;
 }
