@@ -90,7 +90,7 @@
 .l2-card_img-container {
   display: block;
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px; // Reduced from 16px
   position: relative;
   height: 200px; // Fixed height for alignment
   display: flex;
@@ -244,87 +244,126 @@
   }
 }
 
-// Meta Info (Stock & Delivery)
+// Meta Info (Stock & Delivery) - 3 Line Structure
 .l2-card_meta-info {
   margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px; // Tight spacing between lines
 
   .meta-row {
-    display: flex;
     font-family: 'Nunito', sans-serif;
-    font-size: 13px; // Increased to match estimated-cost line
-    font-weight: 300; // Light
     color: #666;
-    margin-bottom: 2px; // Compact spacing
-    align-items: center;
 
     @media screen and (max-width: 767px) {
-      font-size: 13px; // Same on mobile
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
 
-    // When product is available in both offices, use smaller font
-    &.dual-location {
-      font-size: 10px; // Smaller to fit both locations in one line
-
-      @media screen and (max-width: 767px) {
-        font-size: 11px; // Slightly smaller on mobile too
-      }
-
-      .meta-label {
-        width: 55px; // Slightly narrower
+    // Line 1: Status message
+    &.meta-row-status {
+      .meta-status-text {
+        font-weight: 600; // Semibold
+        font-size: 13px;
+        color: #333;
+        line-height: 1.3;
 
         @media screen and (max-width: 767px) {
-          width: 70px;
+          font-size: 15px; // Larger on mobile for readability
         }
       }
     }
 
-    .meta-label {
-      width: 60px; // Fixed width for alignment
-      // Inherits font-size from parent meta-row
-
-      @media screen and (max-width: 767px) {
-        width: 80px; // More space on mobile
-      }
-    }
-
-    .meta-value {
-      flex: 1;
+    // Line 2: Addresses
+    &.meta-row-addresses {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
+      font-size: 13px;
+      font-weight: 400;
+      gap: 8px;
 
-      &.text-darker {
-        color: #333;
-        font-weight: 500;
+      @media screen and (max-width: 767px) {
+        font-size: 14px;
       }
 
-      a {
-        color: #666;
-        text-decoration: underline;
-        margin-left: 3px;
+      // Single address: left-aligned
+      &.single-location {
+        justify-content: flex-start;
+      }
+
+      // Two addresses: space between
+      &.dual-location {
+        justify-content: space-between;
+        font-size: 13px; // Updated to match single-location for consistency
+
+        @media screen and (max-width: 767px) {
+          font-size: 14px;
+        }
       }
 
       .location-item {
         display: flex;
         align-items: center;
         white-space: nowrap;
+        gap: 4px;
 
         svg {
-          margin-right: 2px;
-          width: 12px;
-          height: 12px;
+          width: 14px;
+          height: 14px;
+          flex-shrink: 0;
 
           @media screen and (max-width: 767px) {
-            width: 16px; // Larger on mobile
+            width: 16px;
             height: 16px;
           }
         }
       }
+    }
 
-      .separator {
-        margin: 0 4px;
-        color: #ccc;
+    // Line 2 alternative: Expected date
+    &.meta-row-date {
+      .meta-date-text {
+        font-size: 13px;
+        font-weight: 400;
+        color: #666;
+
+        @media screen and (max-width: 767px) {
+          font-size: 14px;
+        }
+      }
+    }
+
+    // Line 3: Delivery info (when available)
+    &.meta-row-delivery {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 400;
+
+      @media screen and (max-width: 767px) {
+        font-size: 14px;
+      }
+
+      .meta-delivery-text {
+        color: #666;
+      }
+
+      .meta-delivery-link {
+        color: #666;
+        text-decoration: underline;
+      }
+    }
+
+    // Line 3 alternative: Request message (when not available)
+    &.meta-row-request {
+      .meta-request-text {
+        font-size: 13px;
+        font-weight: 500;
+        color: #333;
+
+        @media screen and (max-width: 767px) {
+          font-size: 14px;
+        }
       }
     }
   }

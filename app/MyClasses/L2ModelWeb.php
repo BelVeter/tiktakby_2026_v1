@@ -447,33 +447,10 @@ class L2ModelWeb
       }
     }
 
-    // Determine the message
-    $message = 'Товар ожидается';
+    // Determine the message - always "Товар находится в прокате" for out-of-stock items
+    $message = 'Товар находится в прокате';
     if (count($offices) > 0) {
-      $message = 'Наличие:';
-    } else {
-      // No available products, check for earliest return date
-      $returnDate = tovar::getEarliestReturnDateForModelId($this->getModelId());
-      if ($returnDate) {
-        // Format date in Russian: "Товар ожидается 14 февраля"
-        $months = [
-          'января',
-          'февраля',
-          'марта',
-          'апреля',
-          'мая',
-          'июня',
-          'июля',
-          'августа',
-          'сентября',
-          'октября',
-          'ноября',
-          'декабря'
-        ];
-        $day = $returnDate->format('j');
-        $monthIndex = (int) $returnDate->format('n') - 1;
-        $message = 'Товар ожидается ' . $day . ' ' . $months[$monthIndex];
-      }
+      $message = 'Товар в наличии по адресу:';
     }
 
     return [

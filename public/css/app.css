@@ -1776,7 +1776,7 @@ a.button-more:hover {
 .l2-card_img-container {
   display: block;
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   position: relative;
   height: 200px;
   display: flex;
@@ -1925,80 +1925,109 @@ a.button-more:hover {
 
 .l2-card_meta-info {
   margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .l2-card_meta-info .meta-row {
-  display: flex;
   font-family: "Nunito", sans-serif;
-  font-size: 13px;
-  font-weight: 300;
   color: #666;
-  margin-bottom: 2px;
-  align-items: center;
 }
 @media screen and (max-width: 767px) {
   .l2-card_meta-info .meta-row {
-    font-size: 13px;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
 }
-.l2-card_meta-info .meta-row.dual-location {
-  font-size: 10px;
+.l2-card_meta-info .meta-row.meta-row-status .meta-status-text {
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.3;
 }
 @media screen and (max-width: 767px) {
-  .l2-card_meta-info .meta-row.dual-location {
-    font-size: 11px;
+  .l2-card_meta-info .meta-row.meta-row-status .meta-status-text {
+    font-size: 15px;
   }
 }
-.l2-card_meta-info .meta-row.dual-location .meta-label {
-  width: 55px;
-}
-@media screen and (max-width: 767px) {
-  .l2-card_meta-info .meta-row.dual-location .meta-label {
-    width: 70px;
-  }
-}
-.l2-card_meta-info .meta-row .meta-label {
-  width: 60px;
-}
-@media screen and (max-width: 767px) {
-  .l2-card_meta-info .meta-row .meta-label {
-    width: 80px;
-  }
-}
-.l2-card_meta-info .meta-row .meta-value {
-  flex: 1;
+.l2-card_meta-info .meta-row.meta-row-addresses {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 400;
+  gap: 8px;
 }
-.l2-card_meta-info .meta-row .meta-value.text-darker {
-  color: #333;
-  font-weight: 500;
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row.meta-row-addresses {
+    font-size: 14px;
+  }
 }
-.l2-card_meta-info .meta-row .meta-value a {
-  color: #666;
-  text-decoration: underline;
-  margin-left: 3px;
+.l2-card_meta-info .meta-row.meta-row-addresses.single-location {
+  justify-content: flex-start;
 }
-.l2-card_meta-info .meta-row .meta-value .location-item {
+.l2-card_meta-info .meta-row.meta-row-addresses.dual-location {
+  justify-content: space-between;
+  font-size: 13px;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row.meta-row-addresses.dual-location {
+    font-size: 14px;
+  }
+}
+.l2-card_meta-info .meta-row.meta-row-addresses .location-item {
   display: flex;
   align-items: center;
   white-space: nowrap;
+  gap: 4px;
 }
-.l2-card_meta-info .meta-row .meta-value .location-item svg {
-  margin-right: 2px;
-  width: 12px;
-  height: 12px;
+.l2-card_meta-info .meta-row.meta-row-addresses .location-item svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 @media screen and (max-width: 767px) {
-  .l2-card_meta-info .meta-row .meta-value .location-item svg {
+  .l2-card_meta-info .meta-row.meta-row-addresses .location-item svg {
     width: 16px;
     height: 16px;
   }
 }
-.l2-card_meta-info .meta-row .meta-value .separator {
-  margin: 0 4px;
-  color: #ccc;
+.l2-card_meta-info .meta-row.meta-row-date .meta-date-text {
+  font-size: 13px;
+  font-weight: 400;
+  color: #666;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row.meta-row-date .meta-date-text {
+    font-size: 14px;
+  }
+}
+.l2-card_meta-info .meta-row.meta-row-delivery {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 400;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row.meta-row-delivery {
+    font-size: 14px;
+  }
+}
+.l2-card_meta-info .meta-row.meta-row-delivery .meta-delivery-text {
+  color: #666;
+}
+.l2-card_meta-info .meta-row.meta-row-delivery .meta-delivery-link {
+  color: #666;
+  text-decoration: underline;
+}
+.l2-card_meta-info .meta-row.meta-row-request .meta-request-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row.meta-row-request .meta-request-text {
+    font-size: 14px;
+  }
 }
 
 .l2-card_action-btn-container {

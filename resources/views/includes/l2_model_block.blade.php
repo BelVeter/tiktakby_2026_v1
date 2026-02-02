@@ -120,42 +120,56 @@
         $availability = $l2->getAvailabilityInfo();
       @endphp
 
-      <div class="meta-row {{ count($availability['offices']) > 1 ? 'dual-location' : '' }}">
-        @if($availability['hasAvailability'])
-          <span class="meta-label">{{ $availability['message'] }}</span>
-          <div class="meta-value">
-            @foreach($availability['offices'] as $index => $office)
-              <span class="location-item">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M12 13.43C13.8943 13.43 15.43 11.8943 15.43 10C15.43 8.10571 13.8943 6.57 12 6.57C10.1057 6.57 8.57 8.10571 8.57 10C8.57 11.8943 10.1057 13.43 12 13.43Z"
-                    stroke="#4CAF50" stroke-width="1.5" />
-                  <path
-                    d="M3.62 8.49C5.59 -0.169998 18.42 -0.159997 20.38 8.5C21.53 13.58 18.37 17.88 15.6 20.54C13.59 22.48 10.41 22.48 8.39 20.54C5.63 17.88 2.47 13.57 3.62 8.49Z"
-                    stroke="#4CAF50" stroke-width="1.5" />
-                </svg>
-                {{ $office->getAddressShort() }}
-              </span>
-              @if($index < count($availability['offices']) - 1)
-                <span class="separator">|</span>
-              @endif
-            @endforeach
-          </div>
-        @else
-          <span class="meta-value">{{ $availability['message'] }}</span>
-        @endif
+      {{-- Line 1: Status message --}}
+      <div class="meta-row meta-row-status">
+        <span class="meta-status-text">{{ $availability['message'] }}</span>
       </div>
-      @if(!$availability['hasAvailability'])
-        <div class="meta-row">
-          <span class="meta-value text-darker">Оставьте заявку - мы перезвоним!</span>
-        </div>
-      @endif
+
+      {{-- Line 2: Addresses or expected date --}}
       @if($availability['hasAvailability'])
-        <div class="meta-row">
-          <span class="meta-label">Доставка:</span>
-          <div class="meta-value">
-            сегодня. <a href="#">Подробнее...</a>
+        <div
+          class="meta-row meta-row-addresses {{ count($availability['offices']) > 1 ? 'dual-location' : 'single-location' }}">
+          @foreach($availability['offices'] as $index => $office)
+            <span class="location-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 13.43C13.8943 13.43 15.43 11.8943 15.43 10C15.43 8.10571 13.8943 6.57 12 6.57C10.1057 6.57 8.57 8.10571 8.57 10C8.57 11.8943 10.1057 13.43 12 13.43Z"
+                  stroke="#4CAF50" stroke-width="1.5" />
+                <path
+                  d="M3.62 8.49C5.59 -0.169998 18.42 -0.159997 20.38 8.5C21.53 13.58 18.37 17.88 15.6 20.54C13.59 22.48 10.41 22.48 8.39 20.54C5.63 17.88 2.47 13.57 3.62 8.49Z"
+                  stroke="#4CAF50" stroke-width="1.5" />
+              </svg>
+              {{ $office->getAddressShort() }}
+            </span>
+          @endforeach
+        </div>
+      @else
+        {{-- Show expected return date --}}
+        @php
+          $returnDate = \bb\classes\tovar::getEarliestReturnDateForModelId($l2->getModelId());
+        @endphp
+        @if($returnDate)
+          @php
+            $months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+            $day = $returnDate->format('j');
+            $monthIndex = (int) $returnDate->format('n') - 1;
+            $expectedDate = 'Ожидается возврат ' . $day . ' ' . $months[$monthIndex];
+          @endphp
+          <div class="meta-row meta-row-date">
+            <span class="meta-date-text">{{ $expectedDate }}</span>
           </div>
+        @endif
+      @endif
+
+      {{-- Line 3: Additional info --}}
+      @if($availability['hasAvailability'])
+        <div class="meta-row meta-row-delivery">
+          <span class="meta-delivery-text">Доставка: сегодня</span>
+          <a href="#" class="meta-delivery-link">Подробнее...</a>
+        </div>
+      @else
+        <div class="meta-row meta-row-request">
+          <span class="meta-request-text">Оставьте заявку - мы сообщим о наличии!</span>
         </div>
       @endif
     </div>
