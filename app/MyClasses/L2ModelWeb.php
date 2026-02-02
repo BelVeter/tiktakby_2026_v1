@@ -430,6 +430,60 @@ class L2ModelWeb
   }
 
   /**
+   * Get availability information for product display
+   * @return array Array with keys: hasAvailability (bool), offices (Office[]), message (string)
+   */
+  public function getAvailabilityInfo()
+  {
+    $offices = [];
+
+    // Get office objects for each available office ID
+    if (is_array($this->_availableAtOfficesIds) && count($this->_availableAtOfficesIds) > 0) {
+      foreach ($this->_availableAtOfficesIds as $officeId) {
+        $office = \bb\models\Office::getOfficeByNumber($officeId);
+        if ($office) {
+          $offices[] = $office;
+        }
+      }
+    }
+
+    // Determine the message
+    $message = 'Товар ожидается';
+    if (count($offices) > 0) {
+      $message = 'В наличии:';
+    } else {
+      // No available products, check for earliest return date
+      $returnDate = tovar::getEarliestReturnDateForModelId($this->getModelId());
+      if ($returnDate) {
+        // Format date in Russian: "Товар ожидается 14 февраля"
+        $months = [
+          'января',
+          'февраля',
+          'марта',
+          'апреля',
+          'мая',
+          'июня',
+          'июля',
+          'августа',
+          'сентября',
+          'октября',
+          'ноября',
+          'декабря'
+        ];
+        $day = $returnDate->format('j');
+        $monthIndex = (int) $returnDate->format('n') - 1;
+        $message = 'Товар ожидается ' . $day . ' ' . $months[$monthIndex];
+      }
+    }
+
+    return [
+      'hasAvailability' => count($offices) > 0,
+      'offices' => $offices,
+      'message' => $message
+    ];
+  }
+
+  /**
    * @param $str
    * @param $pattern
    * @return array|mixed|string|string[]

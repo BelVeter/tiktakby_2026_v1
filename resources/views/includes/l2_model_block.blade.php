@@ -77,40 +77,48 @@
     </div>
 
     <div class="l2-card_meta-info">
+      @php
+        $availability = $l2->getAvailabilityInfo();
+      @endphp
+
       <div class="meta-row">
-        <span class="meta-label">В наличии:</span>
-        <div class="meta-value">
-          <span class="location-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M12 13.43C13.8943 13.43 15.43 11.8943 15.43 10C15.43 8.10571 13.8943 6.57 12 6.57C10.1057 6.57 8.57 8.10571 8.57 10C8.57 11.8943 10.1057 13.43 12 13.43Z"
-                stroke="#4CAF50" stroke-width="1.5" />
-              <path
-                d="M3.62 8.49C5.59 -0.169998 18.42 -0.159997 20.38 8.5C21.53 13.58 18.37 17.88 15.6 20.54C13.59 22.48 10.41 22.48 8.39 20.54C5.63 17.88 2.47 13.57 3.62 8.49Z"
-                stroke="#4CAF50" stroke-width="1.5" />
-            </svg>
-            Литературная, 22
-          </span>
-          <span class="separator">|</span>
-          <span class="location-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M12 13.43C13.8943 13.43 15.43 11.8943 15.43 10C15.43 8.10571 13.8943 6.57 12 6.57C10.1057 6.57 8.57 8.10571 8.57 10C8.57 11.8943 10.1057 13.43 12 13.43Z"
-                stroke="#4CAF50" stroke-width="1.5" />
-              <path
-                d="M3.62 8.49C5.59 -0.169998 18.42 -0.159997 20.38 8.5C21.53 13.58 18.37 17.88 15.6 20.54C13.59 22.48 10.41 22.48 8.39 20.54C5.63 17.88 2.47 13.57 3.62 8.49Z"
-                stroke="#4CAF50" stroke-width="1.5" />
-            </svg>
-            Ложинская, 5
-          </span>
-        </div>
+        @if($availability['hasAvailability'])
+          <span class="meta-label">{{ $availability['message'] }}</span>
+          <div class="meta-value">
+            @foreach($availability['offices'] as $index => $office)
+              <span class="location-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M12 13.43C13.8943 13.43 15.43 11.8943 15.43 10C15.43 8.10571 13.8943 6.57 12 6.57C10.1057 6.57 8.57 8.10571 8.57 10C8.57 11.8943 10.1057 13.43 12 13.43Z"
+                    stroke="#4CAF50" stroke-width="1.5" />
+                  <path
+                    d="M3.62 8.49C5.59 -0.169998 18.42 -0.159997 20.38 8.5C21.53 13.58 18.37 17.88 15.6 20.54C13.59 22.48 10.41 22.48 8.39 20.54C5.63 17.88 2.47 13.57 3.62 8.49Z"
+                    stroke="#4CAF50" stroke-width="1.5" />
+                </svg>
+                {{ $office->getAddressShort() }}
+              </span>
+              @if($index < count($availability['offices']) - 1)
+                <span class="separator">|</span>
+              @endif
+            @endforeach
+          </div>
+        @else
+          <span class="meta-value">Товар ожидается</span>
+        @endif
       </div>
-      <div class="meta-row">
-        <span class="meta-label">Доставка:</span>
-        <div class="meta-value">
-          возможна сегодня. <a href="#">Подробнее...</a>
+      @if(!$availability['hasAvailability'])
+        <div class="meta-row">
+          <span class="meta-value">Оставьте заявку - мы перезвоним!</span>
         </div>
-      </div>
+      @endif
+      @if($availability['hasAvailability'])
+        <div class="meta-row">
+          <span class="meta-label">Доставка:</span>
+          <div class="meta-value">
+            возможна сегодня. <a href="#">Подробнее...</a>
+          </div>
+        </div>
+      @endif
     </div>
 
     <div class="l2-card_action-btn-container">
