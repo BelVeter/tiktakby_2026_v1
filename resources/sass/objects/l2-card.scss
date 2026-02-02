@@ -206,11 +206,11 @@
   text-align: left;
   width: 100%;
   margin-top: 4px; // Slight gap from bar
-  margin-bottom: 20px; // More space before availability block
+  margin-bottom: 15px; // Balanced space before availability block
 
   @media screen and (max-width: 767px) {
     font-size: 13px; // Larger on mobile
-    margin-bottom: 24px; // Even more space on mobile
+    margin-bottom: 18px; // Balanced space on mobile
   }
 
   .tariff-price {
