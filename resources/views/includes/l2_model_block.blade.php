@@ -120,7 +120,7 @@
         $availability = $l2->getAvailabilityInfo();
       @endphp
 
-      <div class="meta-row">
+      <div class="meta-row {{ count($availability['offices']) > 1 ? 'dual-location' : '' }}">
         @if($availability['hasAvailability'])
           <span class="meta-label">{{ $availability['message'] }}</span>
           <div class="meta-value">

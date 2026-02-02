@@ -1929,7 +1929,7 @@ a.button-more:hover {
 .l2-card_meta-info .meta-row {
   display: flex;
   font-family: "Nunito", sans-serif;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 300;
   color: #666;
   margin-bottom: 4px;
@@ -1939,6 +1939,22 @@ a.button-more:hover {
   .l2-card_meta-info .meta-row {
     font-size: 13px;
     margin-bottom: 6px;
+  }
+}
+.l2-card_meta-info .meta-row.dual-location {
+  font-size: 10px;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row.dual-location {
+    font-size: 11px;
+  }
+}
+.l2-card_meta-info .meta-row.dual-location .meta-label {
+  width: 55px;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row.dual-location .meta-label {
+    width: 70px;
   }
 }
 .l2-card_meta-info .meta-row .meta-label {

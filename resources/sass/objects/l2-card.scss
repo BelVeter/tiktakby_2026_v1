@@ -251,7 +251,7 @@
   .meta-row {
     display: flex;
     font-family: 'Nunito', sans-serif;
-    font-size: 10px;
+    font-size: 12px; // Increased from 10px for better readability
     font-weight: 300; // Light
     color: #666;
     margin-bottom: 4px;
@@ -260,6 +260,23 @@
     @media screen and (max-width: 767px) {
       font-size: 13px; // Larger on mobile
       margin-bottom: 6px;
+    }
+
+    // When product is available in both offices, use smaller font
+    &.dual-location {
+      font-size: 10px; // Smaller to fit both locations in one line
+
+      @media screen and (max-width: 767px) {
+        font-size: 11px; // Slightly smaller on mobile too
+      }
+
+      .meta-label {
+        width: 55px; // Slightly narrower
+
+        @media screen and (max-width: 767px) {
+          width: 70px;
+        }
+      }
     }
 
     .meta-label {
