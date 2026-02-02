@@ -17,7 +17,7 @@
       </div>
 
       <div class="l2-card_estimated-cost">
-        Оценочная стоимость: {{ number_format($l2->getEstimatedValue(), 0, ',', ' ') }} BYN
+        Купить в магазинах: ~{{ number_format($l2->getEstimatedValue(), 0, ',', ' ') }} BYN
       </div>
 
       @php

@@ -1820,6 +1820,11 @@ a.button-more:hover {
   text-align: left;
   flex: 1;
 }
+@media screen and (max-width: 767px) {
+  .l2-card_point-labels span {
+    font-size: 14px;
+  }
+}
 
 .l2-card_point-prices {
   display: flex;
@@ -1835,6 +1840,11 @@ a.button-more:hover {
   text-align: left;
   flex: 1;
 }
+@media screen and (max-width: 767px) {
+  .l2-card_point-prices span {
+    font-size: 14px;
+  }
+}
 .l2-card_point-prices span small {
   font-size: 9px;
   color: #333;
@@ -1842,6 +1852,11 @@ a.button-more:hover {
   margin-left: 2px;
   font-weight: 400;
   text-transform: uppercase;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_point-prices span small {
+    font-size: 11px;
+  }
 }
 
 .l2-card_pricing-track {
@@ -1851,6 +1866,12 @@ a.button-more:hover {
   background: linear-gradient(90deg, #E05A33 0%, #F08C37 33%, #FFC700 66%, #5EC282 100%);
   margin-bottom: 8px;
   position: relative;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_pricing-track {
+    height: 6px;
+    margin-bottom: 10px;
+  }
 }
 .l2-card_pricing-track .track-line {
   width: 100%;
@@ -1866,10 +1887,20 @@ a.button-more:hover {
   width: 100%;
   margin-top: 4px;
 }
+@media screen and (max-width: 767px) {
+  .l2-card_tariff-info {
+    font-size: 13px;
+  }
+}
 .l2-card_tariff-info .tariff-price {
   font-weight: 600;
   font-size: 11px;
   color: #1C1B1B;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_tariff-info .tariff-price {
+    font-size: 13px;
+  }
 }
 .l2-card_tariff-info .tariff-price .tariff-comma {
   color: #B5B5B5;
@@ -1884,6 +1915,11 @@ a.button-more:hover {
   margin-left: 1px;
   line-height: 1;
 }
+@media screen and (max-width: 767px) {
+  .l2-card_tariff-info .tariff-price .tariff-decimal {
+    font-size: 10px;
+  }
+}
 
 .l2-card_meta-info {
   margin-bottom: 16px;
@@ -1897,9 +1933,20 @@ a.button-more:hover {
   margin-bottom: 4px;
   align-items: center;
 }
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+}
 .l2-card_meta-info .meta-row .meta-label {
   width: 60px;
   color: #999;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row .meta-label {
+    width: 80px;
+  }
 }
 .l2-card_meta-info .meta-row .meta-value {
   flex: 1;
@@ -1921,6 +1968,12 @@ a.button-more:hover {
   margin-right: 2px;
   width: 12px;
   height: 12px;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info .meta-row .meta-value .location-item svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 .l2-card_meta-info .meta-row .meta-value .separator {
   margin: 0 4px;

@@ -136,6 +136,10 @@
     color: #333;
     text-align: left; // All aligned left
     flex: 1;
+
+    @media screen and (max-width: 767px) {
+      font-size: 14px; // Larger on mobile
+    }
   }
 }
 
@@ -154,6 +158,10 @@
     text-align: left; // All aligned left
     flex: 1;
 
+    @media screen and (max-width: 767px) {
+      font-size: 14px; // Larger on mobile
+    }
+
     small {
       font-size: 9px; // Slightly readable
       color: #333;
@@ -161,6 +169,10 @@
       margin-left: 2px; // Literally 1-2 pixels
       font-weight: 400; // Regular for unit
       text-transform: uppercase;
+
+      @media screen and (max-width: 767px) {
+        font-size: 11px; // Larger on mobile
+      }
     }
   }
 }
@@ -173,6 +185,11 @@
   background: linear-gradient(90deg, #E05A33 0%, #F08C37 33%, #FFC700 66%, #5EC282 100%);
   margin-bottom: 8px;
   position: relative;
+
+  @media screen and (max-width: 767px) {
+    height: 6px; // Slightly thicker on mobile
+    margin-bottom: 10px;
+  }
 
   .track-line {
     width: 100%;
@@ -190,10 +207,18 @@
   width: 100%;
   margin-top: 4px; // Slight gap from bar
 
+  @media screen and (max-width: 767px) {
+    font-size: 13px; // Larger on mobile
+  }
+
   .tariff-price {
     font-weight: 600; // SemiBold
     font-size: 11px;
     color: #1C1B1B;
+
+    @media screen and (max-width: 767px) {
+      font-size: 13px; // Larger on mobile
+    }
 
     .tariff-comma {
       color: #B5B5B5; // Muted grey
@@ -209,6 +234,10 @@
       top: 1px; // Fine tune to align middle with top edge
       margin-left: 1px;
       line-height: 1;
+
+      @media screen and (max-width: 767px) {
+        font-size: 10px; // Larger on mobile
+      }
     }
   }
 }
@@ -226,9 +255,18 @@
     margin-bottom: 4px;
     align-items: center;
 
+    @media screen and (max-width: 767px) {
+      font-size: 13px; // Larger on mobile
+      margin-bottom: 6px;
+    }
+
     .meta-label {
       width: 60px; // Fixed width for alignment
       color: #999;
+
+      @media screen and (max-width: 767px) {
+        width: 80px; // More space on mobile
+      }
     }
 
     .meta-value {
@@ -252,6 +290,11 @@
           margin-right: 2px;
           width: 12px;
           height: 12px;
+
+          @media screen and (max-width: 767px) {
+            width: 16px; // Larger on mobile
+            height: 16px;
+          }
         }
       }
 
