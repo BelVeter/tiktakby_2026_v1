@@ -1834,7 +1834,7 @@ a.button-more:hover {
 }
 .l2-card_point-prices span {
   font-family: "Nunito", sans-serif;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 12px;
   color: #000;
   text-align: left;
@@ -1847,8 +1847,8 @@ a.button-more:hover {
 }
 .l2-card_point-prices span small {
   font-size: 9px;
-  color: #333;
-  vertical-align: baseline;
+  color: #666;
+  vertical-align: super;
   margin-left: 2px;
   font-weight: 400;
   text-transform: uppercase;
@@ -1886,10 +1886,12 @@ a.button-more:hover {
   text-align: left;
   width: 100%;
   margin-top: 4px;
+  margin-bottom: 20px;
 }
 @media screen and (max-width: 767px) {
   .l2-card_tariff-info {
     font-size: 13px;
+    margin-bottom: 24px;
   }
 }
 .l2-card_tariff-info .tariff-price {

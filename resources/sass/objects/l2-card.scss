@@ -152,7 +152,7 @@
 
   span {
     font-family: 'Nunito', sans-serif;
-    font-weight: 500; // Medium
+    font-weight: 700; // Bolder for price numbers
     font-size: 12px;
     color: #000; // Darker per bold/living impression
     text-align: left; // All aligned left
@@ -164,10 +164,10 @@
 
     small {
       font-size: 9px; // Slightly readable
-      color: #333;
-      vertical-align: baseline;
+      color: #666; // Lighter gray for BYN
+      vertical-align: super; // Slightly raised
       margin-left: 2px; // Literally 1-2 pixels
-      font-weight: 400; // Regular for unit
+      font-weight: 400; // Lighter for unit
       text-transform: uppercase;
 
       @media screen and (max-width: 767px) {
@@ -206,9 +206,11 @@
   text-align: left;
   width: 100%;
   margin-top: 4px; // Slight gap from bar
+  margin-bottom: 20px; // More space before availability block
 
   @media screen and (max-width: 767px) {
     font-size: 13px; // Larger on mobile
+    margin-bottom: 24px; // Even more space on mobile
   }
 
   .tariff-price {
