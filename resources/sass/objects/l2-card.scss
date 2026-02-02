@@ -114,19 +114,11 @@
 
   span {
     font-family: 'Nunito', sans-serif;
-    font-weight: 300; // Light
-    font-size: 11px;
+    font-weight: 500; // Medium
+    font-size: 12px;
     color: #333;
-    text-align: center;
+    text-align: left; // All aligned left
     flex: 1;
-
-    &:nth-child(1) {
-      text-align: left;
-    }
-
-    &:nth-child(4) {
-      text-align: right;
-    }
   }
 }
 
@@ -135,30 +127,23 @@
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: 6px; // Slightly more space
 
   span {
     font-family: 'Nunito', sans-serif;
-    font-weight: 300; // Light
-    font-size: 13px; // Slightly larger for emphasis
-    color: #333;
-    text-align: center;
+    font-weight: 500; // Medium
+    font-size: 12px;
+    color: #000; // Darker per bold/living impression
+    text-align: left; // All aligned left
     flex: 1;
 
-    // Align with labels
-    &:nth-child(1) {
-      text-align: left;
-    }
-
-    &:nth-child(4) {
-      text-align: right;
-    }
-
     small {
-      font-size: 8px;
-      color: #777;
-      vertical-align: super; // superscript
-      margin-left: 1px;
+      font-size: 9px; // Slightly readable
+      color: #333;
+      vertical-align: baseline;
+      margin-left: 2px; // Literally 1-2 pixels
+      font-weight: 400; // Regular for unit
+      text-transform: uppercase;
     }
   }
 }
@@ -181,15 +166,33 @@
 // 4. Tariff Info
 .l2-card_tariff-info {
   font-family: 'Nunito', sans-serif;
-  font-size: 10px; // Small text
-  color: #888;
-  font-weight: 300;
-  text-align: center;
+  font-size: 11px; // Updated per request
+  color: #1C1B1B; // Dark almost black
+  font-weight: 300; // Light
+  text-align: left;
   width: 100%;
+  margin-top: 4px; // Slight gap from bar
 
-  b {
-    font-weight: 700;
-    color: #555;
+  .tariff-price {
+    font-weight: 600; // SemiBold
+    font-size: 11px;
+    color: #1C1B1B;
+
+    .tariff-comma {
+      color: #B5B5B5; // Muted grey
+      margin-left: -1px; // Tighten
+      margin-right: -1px;
+    }
+
+    .tariff-decimal {
+      font-size: 8px; // Small
+      // vertical-align: top; // Old
+      vertical-align: text-top; // Aligns with top of font
+      position: relative;
+      top: 1px; // Fine tune to align middle with top edge
+      margin-left: 1px;
+      line-height: 1;
+    }
   }
 }
 
@@ -295,8 +298,8 @@
 
 // Fix for layout grid - using CSS Grid for better responsive control
 .l2-cards-container {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr); // 3 cards per row by default
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); // Fix for equal widths // 3 cards per row by default
   gap: 20px;
   width: 100% !important;
   padding-top: 24px;
@@ -305,7 +308,7 @@
 
   // Tablets and larger (768px+): 3 cards per row
   @media screen and (min-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   // Mobile (<768px): 1 card per row
@@ -321,6 +324,7 @@
   margin-bottom: 0; // Grid handles spacing
   width: 100%; // Take full grid cell width
   max-width: 100%; // Override previous max-width
+  min-width: 0; // Allow shrinking
 }
 
 // Carnival Specific Styles

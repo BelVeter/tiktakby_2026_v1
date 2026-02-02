@@ -1798,44 +1798,34 @@ a.button-more:hover {
 }
 .l2-card_point-labels span {
   font-family: "Nunito", sans-serif;
-  font-weight: 300;
-  font-size: 11px;
+  font-weight: 500;
+  font-size: 12px;
   color: #333;
-  text-align: center;
-  flex: 1;
-}
-.l2-card_point-labels span:nth-child(1) {
   text-align: left;
-}
-.l2-card_point-labels span:nth-child(4) {
-  text-align: right;
+  flex: 1;
 }
 
 .l2-card_point-prices {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .l2-card_point-prices span {
   font-family: "Nunito", sans-serif;
-  font-weight: 300;
-  font-size: 13px;
-  color: #333;
-  text-align: center;
+  font-weight: 500;
+  font-size: 12px;
+  color: #000;
+  text-align: left;
   flex: 1;
 }
-.l2-card_point-prices span:nth-child(1) {
-  text-align: left;
-}
-.l2-card_point-prices span:nth-child(4) {
-  text-align: right;
-}
 .l2-card_point-prices span small {
-  font-size: 8px;
-  color: #777;
-  vertical-align: super;
-  margin-left: 1px;
+  font-size: 9px;
+  color: #333;
+  vertical-align: baseline;
+  margin-left: 2px;
+  font-weight: 400;
+  text-transform: uppercase;
 }
 
 .l2-card_pricing-track {
@@ -1853,15 +1843,30 @@ a.button-more:hover {
 
 .l2-card_tariff-info {
   font-family: "Nunito", sans-serif;
-  font-size: 10px;
-  color: #888;
+  font-size: 11px;
+  color: #1C1B1B;
   font-weight: 300;
-  text-align: center;
+  text-align: left;
   width: 100%;
+  margin-top: 4px;
 }
-.l2-card_tariff-info b {
-  font-weight: 700;
-  color: #555;
+.l2-card_tariff-info .tariff-price {
+  font-weight: 600;
+  font-size: 11px;
+  color: #1C1B1B;
+}
+.l2-card_tariff-info .tariff-price .tariff-comma {
+  color: #B5B5B5;
+  margin-left: -1px;
+  margin-right: -1px;
+}
+.l2-card_tariff-info .tariff-price .tariff-decimal {
+  font-size: 8px;
+  vertical-align: text-top;
+  position: relative;
+  top: 1px;
+  margin-left: 1px;
+  line-height: 1;
 }
 
 .l2-card_meta-info {
@@ -1950,8 +1955,8 @@ a.button-more:hover {
   }
 }
 .l2-cards-container {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   width: 100% !important;
   padding-top: 24px;
@@ -1960,7 +1965,7 @@ a.button-more:hover {
 }
 @media screen and (min-width: 768px) {
   .l2-cards-container {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 @media screen and (max-width: 767px) {
@@ -1976,6 +1981,7 @@ a.button-more:hover {
   margin-bottom: 0;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
 }
 
 .karnaval-card {

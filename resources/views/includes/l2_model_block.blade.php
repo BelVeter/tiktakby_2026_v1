@@ -54,13 +54,10 @@
       </div>
 
       <div class="l2-card_point-prices">
-        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(7), 0, ',', ' ') }} <small>BYN</small></span>
-        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ') }}
-          <small>BYN</small></span>
-        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(21), 0, ',', ' ') }}
-          <small>BYN</small></span>
-        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}
-          <small>BYN</small></span>
+        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(7), 0, ',', ' ') }}<small>BYN</small></span>
+        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ') }}<small>BYN</small></span>
+        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(21), 0, ',', ' ') }}<small>BYN</small></span>
+        <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}<small>BYN</small></span>
       </div>
 
       <div class="l2-card_pricing-track">
@@ -68,7 +65,14 @@
       </div>
 
       <div class="l2-card_tariff-info">
-        При аренде от 28 дней -- тариф <b>{{ number_format($l2->getMinDayTarifValue(), 2, ',', ' ') }} BYN</b>/сутки
+        @php
+          $minTariff = $l2->getMinDayTarifValue();
+          $parts = explode('.', number_format($minTariff, 2, '.', ''));
+          $integerPart = $parts[0];
+          $decimalPart = $parts[1] ?? '00';
+        @endphp
+        При аренде от 28 дней -- тариф <span class="tariff-price">{{ $integerPart }}<span
+            class="tariff-comma">,</span><sup class="tariff-decimal">{{ $decimalPart }}</sup> BYN/сутки</span>
       </div>
     </div>
 
