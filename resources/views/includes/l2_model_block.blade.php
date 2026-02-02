@@ -59,15 +59,16 @@
       <div class="l2-card_node node-2"></div>
       <div class="l2-card_node node-3"></div>
       <div class="l2-card_node node-4"></div>
+      <div class="l2-card_node node-5"></div>
     </div>
 
     <div class="l2-card_point-prices">
       <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(7), 0, ',', ' ') }} <small>BYN</small></span>
-      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ') }}
+      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ')}}
         <small>BYN</small></span>
-      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(21), 0, ',', ' ') }}
+      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(21), 0, ',', ' ')}}
         <small>BYN</small></span>
-      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}
+      <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ')}}
         <small>BYN</small></span>
     </div>
   </div>

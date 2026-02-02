@@ -104,36 +104,37 @@
   width: 100%;
   margin-bottom: 20px;
   position: relative;
-  padding-top: 20px; // Space for labels
+  padding-top: 6.67px; // Reduced from 20px (divided by 3)
 }
 
-// Labels atop the bar
+// Labels between the nodes (not above them)
 .l2-card_point-labels {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 12px;
+  margin-bottom: 0px; // Reduced by additional 5px (no gap)
+  position: relative;
 
   span {
     font-family: 'Nunito', sans-serif;
+    font-weight: 300; // Light
     font-size: 11px;
     color: #333;
-    width: 30px; // Fixed width to center align text
+    line-height: 172.7%;
+    letter-spacing: 0.29%;
     text-align: center;
+    flex: 1; // Equal width for each label
 
-    // Compensate for flex space-between to align center of text with ends of bar
-    // First and last items need distinctive alignment if we want perfect edge matching
-    &:first-child {
-      text-align: left;
-      width: auto;
+    // Position labels between nodes
+    // Node 1 at 0%, Node 2 at 25%, Node 3 at 50%, Node 4 at 75%, Node 5 at 100%
+    // Label 1 between 0-25% (centered at 12.5%)
+    // Label 2 between 25-50% (centered at 37.5%)
+    // Label 3 between 50-75% (centered at 62.5%)
+    // Label 4 between 75-100% (centered at 87.5%)
+
+    &:nth-child(1) {
+      padding-left: 0;
     }
-
-    &:last-child {
-      text-align: right;
-      width: auto;
-    }
-
-    // Middle items centered
   }
 }
 
@@ -141,8 +142,14 @@
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  // Gradient: Red -> Orange -> Yellow -> Green
-  background: linear-gradient(90deg, #E85D47 0%, #F8A047 33%, #F8D847 66%, #6DC26D 100%);
+  // Gradient: Red -> Orange -> Yellow -> Light Green -> Green (5 colors for 5 points)
+  background: linear-gradient(90deg,
+      #E05A33 0%, // Red
+      #F08C37 25%, // Orange
+      #FFC700 50%, // Yellow  
+      #99C456 75%, // Light Green
+      #5EC282 100% // Green
+    );
   position: relative;
   margin-bottom: 8px;
 }
@@ -152,19 +159,25 @@
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 0px; // Symmetric with labels spacing (0px)
 
   span {
     font-family: 'Nunito', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
+    font-weight: 300; // Light
+    font-size: 12px;
+    line-height: 172.7%;
+    letter-spacing: 0.29%;
     color: #333;
-    width: auto;
+    text-align: center; // Centered like week labels
+    flex: 1; // Equal width for each price
 
     small {
-      font-size: 10px;
-      font-weight: 400;
-      color: #777;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 300; // Light for BYN
+      font-size: 8px; // Smaller size as requested
+      color: #333;
+      vertical-align: super; // Raise BYN up like superscript
+      margin-left: 1px; // Minimal spacing between number and BYN
     }
   }
 }
@@ -184,36 +197,41 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: white; // Inner core? Or solid color? Usually solid color with white border.
-  // border: 2px solid white; // Removed as per user request
+  background-color: white;
   border: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 
   transform: translateY(-50%); // Center vertically base style
   top: 50%; // Center relative to track height
-  position: absolute; // Ensure absolute positioning is explicit
+  position: absolute;
 
   &.node-1 {
-    background: #E85D47;
+    background: #E05A33; // Red
     left: 0;
     margin-left: -6px; // Center the 12px node on the start
   }
 
   &.node-2 {
-    background: #F8A047;
-    left: 33.333%;
-    transform: translateX(-50%) translateY(-50%) !important; // Override the general transform
+    background: #F08C37; // Orange
+    left: 25%;
+    transform: translateX(-50%) translateY(-50%) !important;
   }
 
   &.node-3 {
-    background: #F8D847;
-    left: 66.666%;
+    background: #FFC700; // Yellow
+    left: 50%;
     transform: translateX(-50%) translateY(-50%) !important;
   }
 
   &.node-4 {
-    background: #6DC26D;
-    right: 0; // Use right:0 instead of left:100% to ensure it hits edge
+    background: #99C456; // Light Green
+    left: 75%;
+    transform: translateX(-50%) translateY(-50%) !important;
+  }
+
+  &.node-5 {
+    background: #5EC282; // Green
+    right: 0;
     margin-right: -6px; // Center the 12px node on the end
     transform: translateY(-50%) !important;
   }
