@@ -36,8 +36,25 @@
   font-weight: 600;
   line-height: 1.2;
   color: #000;
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 44px; // Force 2 lines (18px * 1.2 * 2 ~ 43.2px)
   margin-bottom: 4px;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 60px; // Cover last 6 chars (approx 10px each)
+    height: 1.2em;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+    pointer-events: none;
+  }
 }
 
 .l2-card_wishlist {

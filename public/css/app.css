@@ -1726,8 +1726,24 @@ a.button-more:hover {
   font-weight: 600;
   line-height: 1.2;
   color: #000;
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 44px;
   margin-bottom: 4px;
+  position: relative;
+}
+.l2-card_header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 60px;
+  height: 1.2em;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgb(255, 255, 255));
+  pointer-events: none;
 }
 
 .l2-card_wishlist {
