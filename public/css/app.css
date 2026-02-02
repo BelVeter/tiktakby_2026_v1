@@ -1785,105 +1785,125 @@ a.button-more:hover {
   font-size: 20px;
 }
 
-.l2-card_pricing-bar {
+.l2-card_pricing-wrapper {
   width: 100%;
-  margin-bottom: 20px;
-  position: relative;
-  padding-top: 20px;
+  margin-bottom: 12px;
 }
 
 .l2-card_point-labels {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 .l2-card_point-labels span {
   font-family: "Nunito", sans-serif;
+  font-weight: 300;
   font-size: 11px;
   color: #333;
-  width: 30px;
   text-align: center;
+  flex: 1;
 }
-.l2-card_point-labels span:first-child {
+.l2-card_point-labels span:nth-child(1) {
   text-align: left;
-  width: auto;
 }
-.l2-card_point-labels span:last-child {
+.l2-card_point-labels span:nth-child(4) {
   text-align: right;
-  width: auto;
-}
-
-.l2-card_pricing-track {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #E85D47 0%, #F8A047 33%, #F8D847 66%, #6DC26D 100%);
-  position: relative;
-  margin-bottom: 8px;
 }
 
 .l2-card_point-prices {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-top: 4px;
+  margin-bottom: 4px;
 }
 .l2-card_point-prices span {
   font-family: "Nunito", sans-serif;
-  font-size: 14px;
-  font-weight: 600;
+  font-weight: 300;
+  font-size: 13px;
   color: #333;
-  width: auto;
+  text-align: center;
+  flex: 1;
+}
+.l2-card_point-prices span:nth-child(1) {
+  text-align: left;
+}
+.l2-card_point-prices span:nth-child(4) {
+  text-align: right;
 }
 .l2-card_point-prices span small {
-  font-size: 10px;
-  font-weight: 400;
+  font-size: 8px;
   color: #777;
+  vertical-align: super;
+  margin-left: 1px;
 }
 
-.l2-card_point-nodes {
-  position: absolute;
-  top: 3px;
-  left: 0;
+.l2-card_pricing-track {
   width: 100%;
-  height: 0;
-  display: flex;
-  justify-content: space-between;
-  pointer-events: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #E05A33 0%, #F08C37 33%, #FFC700 66%, #5EC282 100%);
+  margin-bottom: 8px;
+  position: relative;
+}
+.l2-card_pricing-track .track-line {
+  width: 100%;
+  height: 100%;
 }
 
-.l2-card_node {
+.l2-card_tariff-info {
+  font-family: "Nunito", sans-serif;
+  font-size: 10px;
+  color: #888;
+  font-weight: 300;
+  text-align: center;
+  width: 100%;
+}
+.l2-card_tariff-info b {
+  font-weight: 700;
+  color: #555;
+}
+
+.l2-card_meta-info {
+  margin-bottom: 16px;
+}
+.l2-card_meta-info .meta-row {
+  display: flex;
+  font-family: "Nunito", sans-serif;
+  font-size: 10px;
+  font-weight: 300;
+  color: #666;
+  margin-bottom: 4px;
+  align-items: center;
+}
+.l2-card_meta-info .meta-row .meta-label {
+  width: 60px;
+  color: #999;
+}
+.l2-card_meta-info .meta-row .meta-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.l2-card_meta-info .meta-row .meta-value a {
+  color: #666;
+  text-decoration: underline;
+  margin-left: 3px;
+}
+.l2-card_meta-info .meta-row .meta-value .location-item {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.l2-card_meta-info .meta-row .meta-value .location-item svg {
+  margin-right: 2px;
   width: 12px;
   height: 12px;
-  border-radius: 50%;
-  background-color: white;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  transform: translateY(-50%);
-  top: 50%;
-  position: absolute;
 }
-.l2-card_node.node-1 {
-  background: #E85D47;
-  left: 0;
-  margin-left: -6px;
-}
-.l2-card_node.node-2 {
-  background: #F8A047;
-  left: 33.333%;
-  transform: translateX(-50%) translateY(-50%) !important;
-}
-.l2-card_node.node-3 {
-  background: #F8D847;
-  left: 66.666%;
-  transform: translateX(-50%) translateY(-50%) !important;
-}
-.l2-card_node.node-4 {
-  background: #6DC26D;
-  right: 0;
-  margin-right: -6px;
-  transform: translateY(-50%) !important;
+.l2-card_meta-info .meta-row .meta-value .separator {
+  margin: 0 4px;
+  color: #ccc;
 }
 
 .l2-card_action-btn-container {
@@ -1891,23 +1911,27 @@ a.button-more:hover {
 }
 
 .l2-card_btn {
-  display: block;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  padding: 12px 0;
-  text-align: center;
-  background-color: #4A8AD3;
+  padding: 10px 0;
+  background-color: #5EC282;
   color: white;
-  font-family: "Gilroy", sans-serif;
-  font-weight: 700;
-  font-size: 14px;
+  font-family: "Nunito", sans-serif;
+  font-weight: 600;
+  font-size: 16px;
   text-transform: uppercase;
   border-radius: 6px;
   text-decoration: none;
   transition: background-color 0.2s;
   border: none;
 }
+.l2-card_btn .btn-icon {
+  margin-right: 8px;
+}
 .l2-card_btn:hover {
-  background-color: #3180d1;
+  background-color: #4CAF50;
   color: white;
   text-decoration: none;
 }
@@ -1951,6 +1975,87 @@ a.button-more:hover {
   margin-right: 0;
   margin-bottom: 0;
   width: 100%;
+  max-width: 100%;
+}
+
+.karnaval-card {
+  border: none;
+  box-shadow: none;
+}
+
+.karnaval-price {
+  color: #e35d5b !important;
+  font-weight: 600;
+}
+
+.l2karn-card_container {
+  width: 100%;
+  margin-bottom: 20px;
+  position: relative;
+  background: #fff;
+}
+
+.l2heart {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  z-index: 10;
+}
+
+.l2karn-card_img-a-container {
+  text-decoration: none;
+  display: block;
+  color: inherit;
+}
+.l2karn-card_img-a-container:hover {
+  text-decoration: none;
+  color: inherit;
+}
+
+.l2karn-card_img {
+  width: 100%;
+  height: 250px;
+  -o-object-fit: contain;
+     object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.l2karn-card_line-2 {
+  font-size: 16px;
+  color: #000;
+  margin-bottom: 5px;
+}
+.l2karn-card_line-2 span {
+  display: block;
+}
+
+.l2karn-card_line-3 {
+  margin-bottom: 5px;
+}
+.l2karn-card_line-3 .l2-col1 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #CB4F47 !important;
+  display: block;
+}
+
+.l2karn-card_line-4 {
+  display: flex;
+  align-items: center;
+  color: #696969;
+  font-size: 14px;
+  margin-top: 5px;
+}
+.l2karn-card_line-4 .name {
+  margin-right: 5px;
+}
+.l2karn-card_line-4 .l2-col2 {
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 100%;
 }
 

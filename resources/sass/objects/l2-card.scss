@@ -99,168 +99,178 @@
   }
 }
 
-// Pricing Bar Styles - Gradient & Positioning
-.l2-card_pricing-bar {
+// Pricing Wrapper
+.l2-card_pricing-wrapper {
   width: 100%;
-  margin-bottom: 20px;
-  position: relative;
-  padding-top: 6.67px; // Reduced from 20px (divided by 3)
+  margin-bottom: 12px;
 }
 
-// Labels between the nodes (not above them)
+// 1. Week Labels
 .l2-card_point-labels {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 0px; // Reduced by additional 5px (no gap)
-  position: relative;
+  margin-bottom: 4px;
 
   span {
     font-family: 'Nunito', sans-serif;
     font-weight: 300; // Light
     font-size: 11px;
     color: #333;
-    line-height: 172.7%;
-    letter-spacing: 0.29%;
     text-align: center;
-    flex: 1; // Equal width for each label
-
-    // Position labels between nodes
-    // Node 1 at 0%, Node 2 at 25%, Node 3 at 50%, Node 4 at 75%, Node 5 at 100%
-    // Label 1 between 0-25% (centered at 12.5%)
-    // Label 2 between 25-50% (centered at 37.5%)
-    // Label 3 between 50-75% (centered at 62.5%)
-    // Label 4 between 75-100% (centered at 87.5%)
+    flex: 1;
 
     &:nth-child(1) {
-      padding-left: 0;
+      text-align: left;
+    }
+
+    &:nth-child(4) {
+      text-align: right;
     }
   }
 }
 
-.l2-card_pricing-track {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  // Gradient: Red -> Orange -> Yellow -> Light Green -> Green (5 colors for 5 points)
-  background: linear-gradient(90deg,
-      #E05A33 0%, // Red
-      #F08C37 25%, // Orange
-      #FFC700 50%, // Yellow  
-      #99C456 75%, // Light Green
-      #5EC282 100% // Green
-    );
-  position: relative;
-  margin-bottom: 8px;
-}
-
-// Prices below the bar
+// 2. Prices
 .l2-card_point-prices {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-top: 0px; // Symmetric with labels spacing (0px)
+  margin-bottom: 4px;
 
   span {
     font-family: 'Nunito', sans-serif;
     font-weight: 300; // Light
-    font-size: 12px;
-    line-height: 172.7%;
-    letter-spacing: 0.29%;
+    font-size: 13px; // Slightly larger for emphasis
     color: #333;
-    text-align: center; // Centered like week labels
-    flex: 1; // Equal width for each price
+    text-align: center;
+    flex: 1;
+
+    // Align with labels
+    &:nth-child(1) {
+      text-align: left;
+    }
+
+    &:nth-child(4) {
+      text-align: right;
+    }
 
     small {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 300; // Light for BYN
-      font-size: 8px; // Smaller size as requested
-      color: #333;
-      vertical-align: super; // Raise BYN up like superscript
-      margin-left: 1px; // Minimal spacing between number and BYN
+      font-size: 8px;
+      color: #777;
+      vertical-align: super; // superscript
+      margin-left: 1px;
     }
   }
 }
 
-.l2-card_point-nodes {
-  position: absolute;
-  top: 3px; // Center vertically on 6px track (12px node -> -3px top offset)
-  left: 0;
+// 3. Gradient Track (Continuous Line)
+.l2-card_pricing-track {
   width: 100%;
-  height: 0;
-  display: flex;
-  justify-content: space-between;
-  pointer-events: none; // Allow clicks to pass through
-}
+  height: 4px; // Thinner
+  border-radius: 2px;
+  background: linear-gradient(90deg, #E05A33 0%, #F08C37 33%, #FFC700 66%, #5EC282 100%);
+  margin-bottom: 8px;
+  position: relative;
 
-.l2-card_node {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: white;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-
-  transform: translateY(-50%); // Center vertically base style
-  top: 50%; // Center relative to track height
-  position: absolute;
-
-  &.node-1 {
-    background: #E05A33; // Red
-    left: 0;
-    margin-left: -6px; // Center the 12px node on the start
-  }
-
-  &.node-2 {
-    background: #F08C37; // Orange
-    left: 25%;
-    transform: translateX(-50%) translateY(-50%) !important;
-  }
-
-  &.node-3 {
-    background: #FFC700; // Yellow
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%) !important;
-  }
-
-  &.node-4 {
-    background: #99C456; // Light Green
-    left: 75%;
-    transform: translateX(-50%) translateY(-50%) !important;
-  }
-
-  &.node-5 {
-    background: #5EC282; // Green
-    right: 0;
-    margin-right: -6px; // Center the 12px node on the end
-    transform: translateY(-50%) !important;
+  .track-line {
+    width: 100%;
+    height: 100%;
   }
 }
 
+// 4. Tariff Info
+.l2-card_tariff-info {
+  font-family: 'Nunito', sans-serif;
+  font-size: 10px; // Small text
+  color: #888;
+  font-weight: 300;
+  text-align: center;
+  width: 100%;
 
-// Button
+  b {
+    font-weight: 700;
+    color: #555;
+  }
+}
+
+// Meta Info (Stock & Delivery)
+.l2-card_meta-info {
+  margin-bottom: 16px;
+
+  .meta-row {
+    display: flex;
+    font-family: 'Nunito', sans-serif;
+    font-size: 10px;
+    font-weight: 300; // Light
+    color: #666;
+    margin-bottom: 4px;
+    align-items: center;
+
+    .meta-label {
+      width: 60px; // Fixed width for alignment
+      color: #999;
+    }
+
+    .meta-value {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+
+      a {
+        color: #666;
+        text-decoration: underline;
+        margin-left: 3px;
+      }
+
+      .location-item {
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+
+        svg {
+          margin-right: 2px;
+          width: 12px;
+          height: 12px;
+        }
+      }
+
+      .separator {
+        margin: 0 4px;
+        color: #ccc;
+      }
+    }
+  }
+}
+
+// Buttons
 .l2-card_action-btn-container {
   width: 100%;
 }
 
 .l2-card_btn {
-  display: block;
+  display: flex !important; // Flex for icon + text
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  padding: 12px 0;
-  text-align: center;
-  background-color: #4A8AD3; // Nice Blue
+  padding: 10px 0; // Slightly taller
+  background-color: #5EC282; // Green from mockup
   color: white;
-  font-family: 'Gilroy', sans-serif; // Or Nunito
-  font-weight: 700;
-  font-size: 14px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  font-size: 16px; // Larger text
   text-transform: uppercase;
   border-radius: 6px;
   text-decoration: none;
   transition: background-color 0.2s;
   border: none;
 
+  .btn-icon {
+    margin-right: 8px;
+  }
+
   &:hover {
-    background-color: #3180d1;
+    background-color: #4CAF50; // Darker green
     color: white;
     text-decoration: none;
   }
@@ -311,4 +321,91 @@
   margin-bottom: 0; // Grid handles spacing
   width: 100%; // Take full grid cell width
   max-width: 100%; // Override previous max-width
+}
+
+// Carnival Specific Styles
+.karnaval-card {
+  border: none;
+  box-shadow: none; // Match simple look if needed, or keep shadow
+}
+
+.karnaval-price {
+  color: #e35d5b !important; // Force Red color as per mockup
+  font-weight: 600;
+}
+
+// Production Carnival Card Restoration (Strict Match)
+.l2karn-card_container {
+  width: 100%;
+  margin-bottom: 20px;
+  position: relative;
+  background: #fff; // Ensure white bg
+}
+
+.l2heart {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px; // Estimated
+  height: 24px;
+  z-index: 10;
+}
+
+.l2karn-card_img-a-container {
+  text-decoration: none;
+  display: block;
+  color: inherit;
+
+  &:hover {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
+.l2karn-card_img {
+  width: 100%;
+  height: 250px; // Standard height
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.l2karn-card_line-2 {
+  font-size: 16px;
+  color: #000;
+  margin-bottom: 5px;
+
+  span {
+    display: block;
+  }
+}
+
+.l2karn-card_line-3 {
+  margin-bottom: 5px;
+
+  .l2-col1 {
+    font-size: 16px;
+    font-weight: 500;
+    color: #CB4F47 !important; // Production Red
+    display: block;
+  }
+}
+
+.l2karn-card_line-4 {
+  display: flex;
+  align-items: center;
+  color: #696969;
+  font-size: 14px;
+  margin-top: 5px;
+
+  .name {
+    margin-right: 5px;
+  }
+
+  .l2-col2 {
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
 }
