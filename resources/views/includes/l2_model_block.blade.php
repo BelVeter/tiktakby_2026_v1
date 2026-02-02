@@ -142,7 +142,7 @@
             @endforeach
           </div>
         @else
-          <span class="meta-value">Товар ожидается</span>
+          <span class="meta-value">{{ $availability['message'] }}</span>
         @endif
       </div>
       @if(!$availability['hasAvailability'])

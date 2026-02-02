@@ -806,19 +806,13 @@ class tovar
     $mysqli = Db::getInstance()->getConnection();
     $currentTime = time();
 
-    // Use CASE to select the appropriate date: planned_return_date if it's in the future, 
-    // otherwise return_date if it's in the future
-    $query = "SELECT MIN(
-                CASE 
-                  WHEN rent_deals_act.planned_return_date > $currentTime THEN rent_deals_act.planned_return_date
-                  WHEN rent_deals_act.return_date > $currentTime THEN rent_deals_act.return_date
-                  ELSE NULL
-                END
-              ) as earliest_return
+    // Use rent_deals_act.return_date as it reflects the expected return date for active deals (as seen in Admin Panel)
+    $query = "SELECT MIN(rent_deals_act.return_date) as earliest_return
               FROM rent_deals_act
               LEFT JOIN tovar_rent_items ON tovar_rent_items.item_inv_n = rent_deals_act.item_inv_n
               WHERE tovar_rent_items.model_id = '$model_id'
-                AND tovar_rent_items.status = 'rented_out'";
+                AND tovar_rent_items.status = 'rented_out'
+                AND rent_deals_act.return_date > $currentTime";
 
     $result = $mysqli->query($query);
     if (!$result) {
