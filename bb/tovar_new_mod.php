@@ -628,7 +628,7 @@ echo '
 			<select name="m_price_cur_new" id="m_price_cur_new">
 		    	<option value="USD" ' . sel_d($model_def['agr_price_cur'], 'USD') . ' >USD</option>
 		 	  	<option value="EUR" ' . sel_d($model_def['agr_price_cur'], 'EUR') . ' >EUR</option>
-		    	<option value="TBYR" ' . sel_d($model_def['agr_price_cur'], 'TBYR') . ' >тыс.бел.руб.</option>
+		    	<option value="TBYR" ' . sel_d($model_def['agr_price_cur'], 'TBYR') . ' >бел.руб.</option>
 		    </select>
 		</td>
 	</tr>
@@ -682,7 +682,7 @@ echo '
 	<tr>
 	<td>Для карнавала:</td>
 		<td>
-			Залог: <input type="number" step="any" min="0" name="collateral" style="width:70px;"  value="' . $model_def['collateral'] . '" />тыс. руб.;
+			Залог: <input type="number" step="any" min="0" name="collateral" style="width:70px;"  value="' . $model_def['collateral'] . '" /> руб.;
 			Новый год:
 			<select name="ny" style="width:50px;" >
 			    <option value="0">нет</option>
