@@ -4091,8 +4091,10 @@ h1.l3_h1-mobile {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .l3__slider__small_pics_container {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
   max-height: 500px;
 }
 
@@ -4163,8 +4165,10 @@ h1.l3_h1-mobile {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .l3__slider__big_pic_container {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .l3__slider__big_pic {
@@ -4247,7 +4251,7 @@ h1.l3_h1-mobile {
   font-size: 15px;
   line-height: 20px;
   color: #AEAEAE;
-  width: 200px;
+  width: auto;
 }
 @media screen and (max-width: 767px) {
   .row__dog_price span {
@@ -5112,7 +5116,9 @@ h1.l3_h1-mobile {
   width: 100%;
   margin-bottom: 25px;
 }
-.kbform_reject .header_line .header-tabletable, .kbform_reject .header_line .header-table td, .kbform_reject .header_line .header-table th {
+.kbform_reject .header_line .header-tabletable,
+.kbform_reject .header_line .header-table td,
+.kbform_reject .header_line .header-table th {
   border: none;
 }
 .kbform_reject .header_line .header-table .name {
@@ -5205,7 +5211,9 @@ h1.l3_h1-mobile {
   width: 100%;
   margin-bottom: 25px;
 }
-.kbform_free .header_line .header-tabletable, .kbform_free .header_line .header-table td, .kbform_free .header_line .header-table th {
+.kbform_free .header_line .header-tabletable,
+.kbform_free .header_line .header-table td,
+.kbform_free .header_line .header-table th {
   border: none;
 }
 .kbform_free .header_line .header-table .name {
@@ -5452,7 +5460,11 @@ h1.l3_h1-mobile {
 .l3__tovar_karn_info_container .tov_container2 .more_btn img.rotate {
   transform: rotate(180deg);
 }
-.l3__tovar_karn_info_container .tov_container2 .k_size, .l3__tovar_karn_info_container .tov_container2 .k_tarif, .l3__tovar_karn_info_container .tov_container2 .k_collateral, .l3__tovar_karn_info_container .tov_container2 .k_address, .l3__tovar_karn_info_container .tov_container2 .k_delivery {
+.l3__tovar_karn_info_container .tov_container2 .k_size,
+.l3__tovar_karn_info_container .tov_container2 .k_tarif,
+.l3__tovar_karn_info_container .tov_container2 .k_collateral,
+.l3__tovar_karn_info_container .tov_container2 .k_address,
+.l3__tovar_karn_info_container .tov_container2 .k_delivery {
   position: relative;
   border-left-width: 4px;
   border-left-style: solid;
