@@ -169,8 +169,8 @@ class L2ModelWeb
    */
   public function getEstimatedValue()
   {
-    if ($this->model && $this->model->agr_price > 0) {
-      return $this->model->agr_price;
+    if ($this->model && $this->model->getPriceNew() > 0) {
+      return $this->model->getPriceNew();
     }
     return 0;
   }

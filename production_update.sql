@@ -1,0 +1,1 @@
+ALTER TABLE `tovar_rent` ADD COLUMN `price_new` INT NOT NULL DEFAULT 0;
