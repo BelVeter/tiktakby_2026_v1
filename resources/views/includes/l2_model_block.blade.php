@@ -78,7 +78,7 @@
           <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(7), 0, ',', ' ') }}<small>BYN</small></span>
           <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(14), 0, ',', ' ') }}<small>BYN</small></span>
           <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(21), 0, ',', ' ') }}<small>BYN</small></span>
-          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}<small>BYN</small></span>
+          <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(28), 0, ',', ' ') }}<small>BYN</small></span>
         @elseif($basePeriod == 30)
           {{-- Monthly prices --}}
           <span>{{ number_format($l2->getTarifModel()->getAmmountForDaysPeriod(30), 0, ',', ' ') }}<small>BYN</small></span>
