@@ -200,7 +200,7 @@
 // 4. Tariff Info
 .l2-card_tariff-info {
   font-family: 'Nunito', sans-serif;
-  font-size: 14px; // Updated per request
+  font-size: 17px; // Updated per request (was 14px)
   color: #1C1B1B; // Dark almost black
   font-weight: 300; // Light
   text-align: left;
@@ -208,21 +208,22 @@
   margin-top: 4px; // Slight gap from bar
   margin-bottom: 8px; // Equalized and lifted (was 10px)
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start; // Aligned left per request
   align-items: center;
+  gap: 6px; // Small gap between condition and price
 
   @media screen and (max-width: 767px) {
-    font-size: 13px; // Larger on mobile
+    font-size: 15px; // Larger on mobile
     margin-bottom: 10px; // Equalized (was 12px)
   }
 
   .tariff-price {
     font-weight: 600; // SemiBold
-    font-size: 16px;
+    font-size: 19px; // Increased by ~20% from 16px
     color: #1C1B1B;
 
     @media screen and (max-width: 767px) {
-      font-size: 16px; // Larger on mobile
+      font-size: 19px; // Larger on mobile
     }
 
     .tariff-comma {
@@ -232,7 +233,7 @@
     }
 
     .tariff-decimal {
-      font-size: 11px; // Scaled up relative to 16px
+      font-size: 13px; // Scaled up relative to 19px (was 11px)
       // vertical-align: top; // Old
       vertical-align: text-top; // Aligns with top of font
       position: relative;
@@ -241,7 +242,7 @@
       line-height: 1;
 
       @media screen and (max-width: 767px) {
-        font-size: 10px; // Larger on mobile
+        font-size: 12px; // Larger on mobile
       }
     }
   }

@@ -1880,7 +1880,7 @@ a.button-more:hover {
 
 .l2-card_tariff-info {
   font-family: "Nunito", sans-serif;
-  font-size: 14px;
+  font-size: 17px;
   color: #1C1B1B;
   font-weight: 300;
   text-align: left;
@@ -1888,23 +1888,24 @@ a.button-more:hover {
   margin-top: 4px;
   margin-bottom: 8px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 6px;
 }
 @media screen and (max-width: 767px) {
   .l2-card_tariff-info {
-    font-size: 13px;
+    font-size: 15px;
     margin-bottom: 10px;
   }
 }
 .l2-card_tariff-info .tariff-price {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 19px;
   color: #1C1B1B;
 }
 @media screen and (max-width: 767px) {
   .l2-card_tariff-info .tariff-price {
-    font-size: 16px;
+    font-size: 19px;
   }
 }
 .l2-card_tariff-info .tariff-price .tariff-comma {
@@ -1913,7 +1914,7 @@ a.button-more:hover {
   margin-right: -1px;
 }
 .l2-card_tariff-info .tariff-price .tariff-decimal {
-  font-size: 11px;
+  font-size: 13px;
   vertical-align: text-top;
   position: relative;
   top: 1px;
@@ -1922,7 +1923,7 @@ a.button-more:hover {
 }
 @media screen and (max-width: 767px) {
   .l2-card_tariff-info .tariff-price .tariff-decimal {
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 
