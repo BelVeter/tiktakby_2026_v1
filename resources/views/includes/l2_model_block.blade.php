@@ -123,7 +123,9 @@
       {{-- Line 1: Header --}}
       @if($availability['hasAvailability'])
         <div class="meta-row meta-row-header">
-          <span class="meta-header-text">Товар в наличии по адресу:</span>
+          <span class="meta-header-text">
+            {{ count($availability['offices']) > 1 ? 'Товар в наличии по адресам:' : 'Товар в наличии по адресу:' }}
+          </span>
         </div>
 
         {{-- Line 2: Addresses --}}
@@ -151,6 +153,12 @@
 
         {{-- Line 3: Delivery & Details (Merged) --}}
         <div class="meta-row meta-row-delivery">
+          @php
+            $now = \Carbon\Carbon::now('Europe/Minsk');
+            $isWeekend = $now->isWeekend();
+            $cutoff = $isWeekend ? 13 : 17;
+            $deliveryText = $now->hour < $cutoff ? 'сегодня' : 'завтра';
+          @endphp
           <div class="delivery-info">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F82D7"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="delivery-icon">
@@ -158,7 +166,7 @@
               <path d="M13.8 12H3"></path>
               <path d="M20 4v16"></path>
             </svg>
-            <span class="meta-delivery-bold">Доставка:</span> <span>сегодня</span>
+            <span class="meta-delivery-bold">Доставка:</span> <span>{{ $deliveryText }}</span>
           </div>
           <a href="https://tiktak.by/ru/delivery" class="meta-delivery-link">Подробнее...</a>
         </div>
