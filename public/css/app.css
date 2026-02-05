@@ -1880,13 +1880,16 @@ a.button-more:hover {
 
 .l2-card_tariff-info {
   font-family: "Nunito", sans-serif;
-  font-size: 11px;
+  font-size: 14px;
   color: #1C1B1B;
   font-weight: 300;
   text-align: left;
   width: 100%;
   margin-top: 4px;
   margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 @media screen and (max-width: 767px) {
   .l2-card_tariff-info {

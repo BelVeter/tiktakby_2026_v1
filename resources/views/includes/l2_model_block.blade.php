@@ -106,10 +106,12 @@
           $decimalPart = $parts[1] ?? '00';
         @endphp
         @if($basePeriod == 30)
-          При аренде от 4-х мес – тариф <span class="tariff-price">{{ $integerPart }}<span class="tariff-comma">,</span><sup
+          <span>При аренде от 4-х мес</span>
+          <span class="tariff-price">{{ $integerPart }}<span class="tariff-comma">,</span><sup
               class="tariff-decimal">{{ $decimalPart }}</sup> BYN/сутки</span>
         @else
-          При аренде от 28 дней – тариф <span class="tariff-price">{{ $integerPart }}<span class="tariff-comma">,</span><sup
+          <span>При аренде от 28 дней</span>
+          <span class="tariff-price">{{ $integerPart }}<span class="tariff-comma">,</span><sup
               class="tariff-decimal">{{ $decimalPart }}</sup> BYN/сутки</span>
         @endif
       </div>

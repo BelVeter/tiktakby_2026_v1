@@ -200,13 +200,16 @@
 // 4. Tariff Info
 .l2-card_tariff-info {
   font-family: 'Nunito', sans-serif;
-  font-size: 11px; // Updated per request
+  font-size: 14px; // Updated per request
   color: #1C1B1B; // Dark almost black
   font-weight: 300; // Light
   text-align: left;
   width: 100%;
   margin-top: 4px; // Slight gap from bar
   margin-bottom: 8px; // Equalized and lifted (was 10px)
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
   @media screen and (max-width: 767px) {
     font-size: 13px; // Larger on mobile
