@@ -206,7 +206,7 @@
   text-align: left;
   width: 100%;
   margin-top: 4px; // Slight gap from bar
-  margin-bottom: 8px; // Equalized and lifted (was 10px)
+  margin-bottom: 16px; // Increased to match target screenshot (was 8px)
   display: flex;
   justify-content: flex-start; // Aligned left per request
   align-items: center;
@@ -214,7 +214,7 @@
 
   @media screen and (max-width: 767px) {
     font-size: 15px; // Larger on mobile
-    margin-bottom: 10px; // Equalized (was 12px)
+    margin-bottom: 14px; // Equalized (was 12px)
   }
 
   .tariff-price {
@@ -289,7 +289,7 @@
       justify-content: space-between;
       flex-wrap: wrap; // Allow wrapping if space is tight
       gap: 24px; // Fixed gap as requested (24px or 32px)
-      margin-top: -5px; // Further reduced as per request
+      margin-top: 0; // Reset to match target screenshot (was -5px)
 
       // Address item
       .location-item {
@@ -339,7 +339,7 @@
       align-items: center;
       justify-content: space-between; // Space between delivery info and link
       gap: 4px;
-      margin-top: 4px; // Increased by another ~20% (visually +2px)
+      margin-top: 8px; // Increased to match target spacing (was 4px)
       font-size: 16px;
       font-weight: 400;
       color: #666;

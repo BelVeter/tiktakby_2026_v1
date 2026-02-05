@@ -1886,7 +1886,7 @@ a.button-more:hover {
   text-align: left;
   width: 100%;
   margin-top: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
   display: flex;
   justify-content: flex-start;
   align-items: center;
@@ -1895,7 +1895,7 @@ a.button-more:hover {
 @media screen and (max-width: 767px) {
   .l2-card_tariff-info {
     font-size: 15px;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
   }
 }
 .l2-card_tariff-info .tariff-price {
@@ -1964,7 +1964,7 @@ a.button-more:hover {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 24px;
-  margin-top: -5px;
+  margin-top: 0;
 }
 .l2-card_meta-info .meta-row.meta-row-addresses .location-item {
   display: flex;
@@ -2008,7 +2008,7 @@ a.button-more:hover {
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  margin-top: 4px;
+  margin-top: 8px;
   font-size: 16px;
   font-weight: 400;
   color: #666;
