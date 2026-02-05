@@ -2004,7 +2004,7 @@ a.button-more:hover {
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  margin-top: -5px;
+  margin-top: 4px;
   font-size: 16px;
   font-weight: 400;
   color: #666;

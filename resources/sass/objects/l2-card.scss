@@ -335,7 +335,7 @@
       align-items: center;
       justify-content: space-between; // Space between delivery info and link
       gap: 4px;
-      margin-top: -5px; // Equalize spacing with addresses row
+      margin-top: 4px; // Increased by another ~20% (visually +2px)
       font-size: 16px;
       font-weight: 400;
       color: #666;
