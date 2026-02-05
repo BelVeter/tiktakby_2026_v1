@@ -259,16 +259,16 @@
       margin-bottom: 3px;
     }
 
-    // Line 1: Status message
-    &.meta-row-status {
-      .meta-status-text {
-        font-weight: 600; // Semibold
+    // Line 1: Header
+    &.meta-row-header {
+      .meta-header-text {
+        font-weight: 600;
         font-size: 13px;
         color: #333;
         line-height: 1.3;
 
         @media screen and (max-width: 767px) {
-          font-size: 15px; // Larger on mobile for readability
+          font-size: 15px; // Larger on mobile
         }
       }
     }
@@ -276,40 +276,32 @@
     // Line 2: Addresses
     &.meta-row-addresses {
       display: flex;
-      align-items: center;
-      font-size: 13px;
-      font-weight: 400;
-      gap: 8px;
+      flex-direction: row;
+      justify-content: space-between;
+      flex-wrap: wrap; // Allow wrapping if space is tight
+      gap: 24px; // Fixed gap as requested (24px or 32px)
+      margin-top: 4px;
 
-      @media screen and (max-width: 767px) {
-        font-size: 14px;
-      }
-
-      // Single address: left-aligned
-      &.single-location {
-        justify-content: flex-start;
-      }
-
-      // Two addresses: space between
-      &.dual-location {
-        justify-content: space-between;
-        font-size: 13px; // Updated to match single-location for consistency
-
-        @media screen and (max-width: 767px) {
-          font-size: 14px;
-        }
-      }
-
+      // Address item
       .location-item {
         display: flex;
         align-items: center;
+        /* Center icon relative to first line of text */
         white-space: nowrap;
-        gap: 4px;
+        /* Keep icon and text together */
+        font-size: 16px;
+        font-weight: 300; // Nunito Light
+        color: #666;
+
+        @media screen and (max-width: 767px) {
+          font-size: 16px;
+        }
 
         svg {
           width: 14px;
           height: 14px;
           flex-shrink: 0;
+          margin-right: 4px; // Small gap between icon and text
 
           @media screen and (max-width: 767px) {
             width: 16px;
@@ -332,24 +324,39 @@
       }
     }
 
-    // Line 3: Delivery info (when available)
+    // Line 3: Delivery info & Details (Merged)
     &.meta-row-delivery {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      font-size: 13px;
+      justify-content: space-between; // Space between delivery info and link
+      gap: 4px;
+      font-size: 16px;
       font-weight: 400;
+      color: #666;
 
       @media screen and (max-width: 767px) {
-        font-size: 14px;
+        font-size: 16px;
       }
 
-      .meta-delivery-text {
-        color: #666;
+      .delivery-info {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .delivery-icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      .meta-delivery-bold {
+        font-weight: 700;
+        color: #333;
       }
 
       .meta-delivery-link {
-        color: #666;
+        color: #666; // Or whatever link color is appropriate, maybe inherit
         text-decoration: underline;
       }
     }

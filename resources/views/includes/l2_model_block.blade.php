@@ -120,15 +120,14 @@
         $availability = $l2->getAvailabilityInfo();
       @endphp
 
-      {{-- Line 1: Status message --}}
-      <div class="meta-row meta-row-status">
-        <span class="meta-status-text">{{ $availability['message'] }}</span>
-      </div>
-
-      {{-- Line 2: Addresses or expected date --}}
+      {{-- Line 1: Header --}}
       @if($availability['hasAvailability'])
-        <div
-          class="meta-row meta-row-addresses {{ count($availability['offices']) > 1 ? 'dual-location' : 'single-location' }}">
+        <div class="meta-row meta-row-header">
+          <span class="meta-header-text">Товар в наличии по адресу:</span>
+        </div>
+
+        {{-- Line 2: Addresses --}}
+        <div class="meta-row meta-row-addresses">
           @foreach($availability['offices'] as $index => $office)
             <span class="location-item">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -143,6 +142,21 @@
             </span>
           @endforeach
         </div>
+
+        {{-- Line 3: Delivery & Details (Merged) --}}
+        <div class="meta-row meta-row-delivery">
+          <div class="delivery-info">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F82D7"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="delivery-icon">
+              <path d="M10 17l5-5-5-5"></path>
+              <path d="M13.8 12H3"></path>
+              <path d="M20 4v16"></path>
+            </svg>
+            <span class="meta-delivery-bold">Доставка:</span> <span>сегодня</span>
+          </div>
+          <a href="https://tiktak.by/ru/delivery" class="meta-delivery-link">Подробнее...</a>
+        </div>
+
       @else
         {{-- Show expected return date --}}
         @php
@@ -159,15 +173,7 @@
             <span class="meta-date-text">{{ $expectedDate }}</span>
           </div>
         @endif
-      @endif
 
-      {{-- Line 3: Additional info --}}
-      @if($availability['hasAvailability'])
-        <div class="meta-row meta-row-delivery">
-          <span class="meta-delivery-text">Доставка: сегодня</span>
-          <a href="https://tiktak.by/ru/delivery" class="meta-delivery-link">Подробнее...</a>
-        </div>
-      @else
         <div class="meta-row meta-row-request">
           <span class="meta-request-text">Оставьте заявку - мы сообщим о наличии!</span>
         </div>
