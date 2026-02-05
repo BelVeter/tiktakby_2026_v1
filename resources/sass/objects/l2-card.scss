@@ -251,10 +251,10 @@
 
 // Meta Info (Stock & Delivery) - 3 Line Structure
 .l2-card_meta-info {
-  margin-bottom: 12px; // Increased by ~40% from 8px to lower button
+  margin-bottom: 0; // Removed margin to handle spacing via button margin-top
 
   @media screen and (max-width: 767px) {
-    margin-bottom: 14px; // Increased by ~40% from 10px
+    margin-bottom: 14px; // Locked mobile value
   }
 
   display: flex;
@@ -365,6 +365,11 @@
         width: 20px;
         height: 20px;
         flex-shrink: 0;
+        display: none; // Hide on desktop per request
+
+        @media screen and (max-width: 767px) {
+          display: block; // Show on mobile
+        }
       }
 
       .meta-delivery-bold {
@@ -375,6 +380,11 @@
       .meta-delivery-link {
         color: #666; // Or whatever link color is appropriate, maybe inherit
         text-decoration: underline;
+        font-size: 90%; // Reduced by 10% on desktop
+
+        @media screen and (max-width: 767px) {
+          font-size: 100%; // Reset to original size on mobile
+        }
       }
     }
 
@@ -396,7 +406,13 @@
 // Buttons
 .l2-card_action-btn-container {
   width: 100%;
-  margin-bottom: 10px; // Reset from margin-top: auto
+  margin-top: 16px; // Equalize with bottom padding (16px)
+  margin-bottom: 0;
+
+  @media screen and (max-width: 767px) {
+    margin-top: 0;
+    margin-bottom: 10px; // Locked mobile value
+  }
 }
 
 .l2-card_btn {
