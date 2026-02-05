@@ -11,6 +11,7 @@
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
+  height: 100%; // Force equal height in flex/grid container
   position: relative;
   transition: transform 0.2s, box-shadow 0.2s;
 
@@ -200,7 +201,7 @@
 // 4. Tariff Info
 .l2-card_tariff-info {
   font-family: 'Nunito', sans-serif;
-  font-size: 17px; // Updated per request (was 14px)
+  font-size: 13px; // Increased by ~10% (was 12px)
   color: #1C1B1B; // Dark almost black
   font-weight: 300; // Light
   text-align: left;
@@ -208,9 +209,9 @@
   margin-top: 4px; // Slight gap from bar
   margin-bottom: 16px; // Increased to match target screenshot (was 8px)
   display: flex;
-  justify-content: flex-start; // Aligned left per request
+  justify-content: space-between; // Split alignment: text left, price right
   align-items: center;
-  gap: 6px; // Small gap between condition and price
+  gap: 4px; // Minimum gap if they get close
 
   @media screen and (max-width: 767px) {
     font-size: 15px; // Larger on mobile
@@ -219,7 +220,7 @@
 
   .tariff-price {
     font-weight: 600; // SemiBold
-    font-size: 19px; // Increased by ~20% from 16px
+    font-size: 15px; // Increased by ~10% (was 13px)
     color: #1C1B1B;
 
     @media screen and (max-width: 767px) {
@@ -233,7 +234,7 @@
     }
 
     .tariff-decimal {
-      font-size: 13px; // Scaled up relative to 19px (was 11px)
+      font-size: 10px; // Scaled (was 9px)
       // vertical-align: top; // Old
       vertical-align: text-top; // Aligns with top of font
       position: relative;
@@ -259,6 +260,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px; // Tight spacing between lines
+  flex-grow: 1; // Take up available space for equal height layout
 
   .meta-row {
     font-family: 'Nunito', sans-serif;
@@ -288,8 +290,13 @@
       flex-direction: row;
       justify-content: space-between;
       flex-wrap: wrap; // Allow wrapping if space is tight
-      gap: 24px; // Fixed gap as requested (24px or 32px)
+      row-gap: 4px; // Reduced desktop vertical gap
+      column-gap: 24px; // Maintain horizontal gap
       margin-top: 0; // Reset to match target screenshot (was -5px)
+
+      @media screen and (max-width: 767px) {
+        row-gap: 24px; // Lock mobile vertical gap to previous "huge" value if that's what was verified
+      }
 
       // Address item
       .location-item {
@@ -339,7 +346,7 @@
       align-items: center;
       justify-content: space-between; // Space between delivery info and link
       gap: 4px;
-      margin-top: 8px; // Increased to match target spacing (was 4px)
+      margin-top: auto; // Push to bottom of meta-info block (creates air above)
       font-size: 16px;
       font-weight: 400;
       color: #666;
@@ -389,7 +396,7 @@
 // Buttons
 .l2-card_action-btn-container {
   width: 100%;
-  margin-bottom: 10px; // Add some breathing room below button
+  margin-bottom: 10px; // Reset from margin-top: auto
 }
 
 .l2-card_btn {

@@ -110,7 +110,7 @@
           <span class="tariff-price">{{ $integerPart }}<span class="tariff-comma">,</span><sup
               class="tariff-decimal">{{ $decimalPart }}</sup> BYN/сутки</span>
         @else
-          <span>При аренде от 28 дней</span>
+          <span>При аренде от 28 дн.</span>
           <span class="tariff-price">{{ $integerPart }}<span class="tariff-comma">,</span><sup
               class="tariff-decimal">{{ $decimalPart }}</sup> BYN/сутки</span>
         @endif
