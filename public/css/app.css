@@ -1886,22 +1886,22 @@ a.button-more:hover {
   text-align: left;
   width: 100%;
   margin-top: 4px;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 @media screen and (max-width: 767px) {
   .l2-card_tariff-info {
     font-size: 13px;
-    margin-bottom: 18px;
+    margin-bottom: 10px;
   }
 }
 .l2-card_tariff-info .tariff-price {
   font-weight: 600;
-  font-size: 11px;
+  font-size: 16px;
   color: #1C1B1B;
 }
 @media screen and (max-width: 767px) {
   .l2-card_tariff-info .tariff-price {
-    font-size: 13px;
+    font-size: 16px;
   }
 }
 .l2-card_tariff-info .tariff-price .tariff-comma {
@@ -1910,7 +1910,7 @@ a.button-more:hover {
   margin-right: -1px;
 }
 .l2-card_tariff-info .tariff-price .tariff-decimal {
-  font-size: 8px;
+  font-size: 11px;
   vertical-align: text-top;
   position: relative;
   top: 1px;
@@ -1924,10 +1924,15 @@ a.button-more:hover {
 }
 
 .l2-card_meta-info {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+@media screen and (max-width: 767px) {
+  .l2-card_meta-info {
+    margin-bottom: 14px;
+  }
 }
 .l2-card_meta-info .meta-row {
   font-family: "Nunito", sans-serif;
@@ -1955,7 +1960,7 @@ a.button-more:hover {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 24px;
-  margin-top: 4px;
+  margin-top: -5px;
 }
 .l2-card_meta-info .meta-row.meta-row-addresses .location-item {
   display: flex;
@@ -1999,6 +2004,7 @@ a.button-more:hover {
   align-items: center;
   justify-content: space-between;
   gap: 4px;
+  margin-top: -5px;
   font-size: 16px;
   font-weight: 400;
   color: #666;

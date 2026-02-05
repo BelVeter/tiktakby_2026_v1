@@ -206,20 +206,20 @@
   text-align: left;
   width: 100%;
   margin-top: 4px; // Slight gap from bar
-  margin-bottom: 15px; // Balanced space before availability block
+  margin-bottom: 8px; // Equalized and lifted (was 10px)
 
   @media screen and (max-width: 767px) {
     font-size: 13px; // Larger on mobile
-    margin-bottom: 18px; // Balanced space on mobile
+    margin-bottom: 10px; // Equalized (was 12px)
   }
 
   .tariff-price {
     font-weight: 600; // SemiBold
-    font-size: 11px;
+    font-size: 16px;
     color: #1C1B1B;
 
     @media screen and (max-width: 767px) {
-      font-size: 13px; // Larger on mobile
+      font-size: 16px; // Larger on mobile
     }
 
     .tariff-comma {
@@ -229,7 +229,7 @@
     }
 
     .tariff-decimal {
-      font-size: 8px; // Small
+      font-size: 11px; // Scaled up relative to 16px
       // vertical-align: top; // Old
       vertical-align: text-top; // Aligns with top of font
       position: relative;
@@ -246,7 +246,12 @@
 
 // Meta Info (Stock & Delivery) - 3 Line Structure
 .l2-card_meta-info {
-  margin-bottom: 16px;
+  margin-bottom: 12px; // Increased by ~40% from 8px to lower button
+
+  @media screen and (max-width: 767px) {
+    margin-bottom: 14px; // Increased by ~40% from 10px
+  }
+
   display: flex;
   flex-direction: column;
   gap: 2px; // Tight spacing between lines
@@ -280,7 +285,7 @@
       justify-content: space-between;
       flex-wrap: wrap; // Allow wrapping if space is tight
       gap: 24px; // Fixed gap as requested (24px or 32px)
-      margin-top: 4px;
+      margin-top: -5px; // Further reduced as per request
 
       // Address item
       .location-item {
@@ -330,6 +335,7 @@
       align-items: center;
       justify-content: space-between; // Space between delivery info and link
       gap: 4px;
+      margin-top: -5px; // Equalize spacing with addresses row
       font-size: 16px;
       font-weight: 400;
       color: #666;

@@ -128,7 +128,13 @@
 
         {{-- Line 2: Addresses --}}
         <div class="meta-row meta-row-addresses">
-          @foreach($availability['offices'] as $index => $office)
+          @php
+            $sortedOffices = collect($availability['offices'])->sortBy(function ($office) {
+              // Return 0 for Literaturnaya (first), 1 for others
+              return (mb_stripos($office->getAddressShort(), 'Литературная') !== false) ? 0 : 1;
+            });
+          @endphp
+          @foreach($sortedOffices as $index => $office)
             <span class="location-item">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
