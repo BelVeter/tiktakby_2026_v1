@@ -14,13 +14,15 @@
         <div class="row">
             <div class="col-12">
                 <h1 class="about__h1">Сервис проката TikTak в Минске — история и стандарты работы</h1>
-                <p class="about__first-p strong">
+                <p class="about__first-p">
                     TikTak — это не просто склад вещей. Это сервис, который помогает жителям Минска экономить семейный
                     бюджет и пространство в квартире. Мы понимаем, как быстро растут дети и как нерационально покупать
                     дорогие вещи на 1-2 месяца.
                     <br><br>
-                    Наш прокат специализируется на предоставлении 
-                    <a href="/catalog" title="Перейти в каталог детских товаров" style="color: inherit; text-decoration: underline;">современных, безопасных и необходимых товаров</a>: от
+                    Наш прокат специализируется на предоставлении
+                    <a href="/catalog" title="Перейти в каталог детских товаров"
+                        style="color: inherit; text-decoration: underline;">современных, безопасных и необходимых
+                        товаров</a>: от
                     точнейших медицинских весов для новорожденных до тренажеров для реабилитации. Наша миссия — сделать
                     качественный быт и уход за здоровьем доступным каждому, без лишних трат на покупку.
                 </p>
@@ -65,9 +67,9 @@
         </div>
 
         <div class="row mt-5">
-            <div class="col-12 text-center mb-5">
+            <div class="col-12 mb-5">
                 <h2 class="about__h2">Люди, которые работают для вас</h2>
-                <p class="about__first-p" style="max-width: 800px; margin: 0 auto;">
+                <p class="about__first-p" style="max-width: 800px; margin-top: 30px;">
                     За каждым принятым звонком и доставленным заказом стоят реальные люди. Мы всегда готовы
                     проконсультировать, помочь с настройкой техники или выбором игрушки.
                 </p>
@@ -79,9 +81,8 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/public/images/team/ekaterina.jpg" 
-                             alt="Екатерина - директор сервиса проката TikTak Минск"
-                             loading="lazy" width="200" height="200"
+                        <img class="staff-img" src="/public/images/team/ekaterina.jpg"
+                            alt="Екатерина - директор сервиса проката TikTak Минск" loading="lazy" width="200" height="200"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -97,9 +98,8 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/public/images/team/julia.jpg" 
-                             alt="Юлия - старший консультант TikTak"
-                             loading="lazy" width="200" height="200"
+                        <img class="staff-img" src="/public/images/team/julia.jpg" alt="Юлия - старший консультант TikTak"
+                            loading="lazy" width="200" height="200"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -115,9 +115,8 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/public/images/team/kristina.jpg" 
-                             alt="Кристина - менеджер по работе с клиентами TikTak"
-                             loading="lazy" width="200" height="200"
+                        <img class="staff-img" src="/public/images/team/kristina.jpg"
+                            alt="Кристина - менеджер по работе с клиентами TikTak" loading="lazy" width="200" height="200"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -134,9 +133,8 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/public/images/team/anastasia.jpg" 
-                             alt="Анастасия - поддержка клиентов TikTak"
-                             loading="lazy" width="200" height="200"
+                        <img class="staff-img" src="/public/images/team/anastasia.jpg"
+                            alt="Анастасия - поддержка клиентов TikTak" loading="lazy" width="200" height="200"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -153,9 +151,9 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/public/images/team/driver-georgiy-delivery.jpg" 
-                             alt="Водитель-экспедитор Георгий доставляет детские товары TikTak по Минску"
-                             loading="lazy" width="200" height="200"
+                        <img class="staff-img" src="/public/images/team/driver-georgiy-delivery.jpg"
+                            alt="Водитель-экспедитор Георгий доставляет детские товары TikTak по Минску" loading="lazy"
+                            width="200" height="200"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -229,7 +227,9 @@
                         <div class="mb-4">
                             <h4 style="font-weight: bold; cursor: pointer;">Есть ли доставка за пределы МКАД и как она
                                 рассчитывается?</h4>
-                            <p>Да, мы <a href="/delivery" title="Условия доставки и оплаты" style="text-decoration: underline; color: inherit;">доставляем товары по Минскому району</a>. Стоимость рассчитывается просто: стандартный
+                            <p>Да, мы <a href="/delivery" title="Условия доставки и оплаты"
+                                    style="text-decoration: underline; color: inherit;">доставляем товары по Минскому
+                                    району</a>. Стоимость рассчитывается просто: стандартный
                                 тариф по городу + доплата за километраж от МКАД. Точную сумму оператор назовет при
                                 подтверждении заказа.</p>
                         </div>
@@ -314,112 +314,112 @@
     <script src="/public/js/about.js"></script>
 
     <script type="application/ld+json">
-            {
-              "@context": "https://schema.org",
-              "@type": "RentalBusiness",
-              "name": "TikTak",
-              "image": "https://tiktak.by/images/logo.png",
-              "@id": "https://tiktak.by",
-              "url": "https://tiktak.by",
-              "telephone": "+37529XXXXXXX",
-              "priceRange": "$$",
-              "address": {
-                "@type": "PostalAddress",
-                "streetAddress": "Улица, дом",
-                "addressLocality": "Минск",
-                "addressCountry": "BY"
-              },
-              "geo": {
-                "@type": "GeoCoordinates",
-                "latitude": 53.9006,
-                "longitude": 27.5590
-              }
-            }
-            </script>
+                    {
+                      "@context": "https://schema.org",
+                      "@type": "RentalBusiness",
+                      "name": "TikTak",
+                      "image": "https://tiktak.by/images/logo.png",
+                      "@id": "https://tiktak.by",
+                      "url": "https://tiktak.by",
+                      "telephone": "+37529XXXXXXX",
+                      "priceRange": "$$",
+                      "address": {
+                        "@type": "PostalAddress",
+                        "streetAddress": "Улица, дом",
+                        "addressLocality": "Минск",
+                        "addressCountry": "BY"
+                      },
+                      "geo": {
+                        "@type": "GeoCoordinates",
+                        "latitude": 53.9006,
+                        "longitude": 27.5590
+                      }
+                    }
+                    </script>
 
     <script type="application/ld+json">
-            {
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              "mainEntity": [{
-                "@type": "Question",
-                "name": "Как вы обрабатываете товары? Это безопасно для ребенка?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Безопасность — наш приоритет. Мы не просто протираем вещи, а проводим полноценную дезинфекцию в 3 этапа после каждого клиента: стирка гипоаллергенными средствами, обработка паром и кварцевание медицинскими лампами. Товар упаковывается в пленку. Вы получаете гарантированно чистую вещь."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Что нужно для оформления проката? Нужен ли залог?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Для заключения договора необходим только паспорт гражданина РБ (или вид на жительство). В большинстве случаев залог не требуется. Исключение могут составлять дорогостоящие товары или случаи, когда у клиента нет прописки в Минске/Минской области — этот момент менеджер уточнит индивидуально."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Как забронировать вещь и можно ли получить реальное фото товара?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Забронировать можно через сайт (корзину), по телефону или в мессенджерах. Если вы хотите убедиться в состоянии конкретной модели, напишите нам в Viber/Telegram — мы пришлем актуальное фото или видео товара, который поедет к вам."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Есть ли доставка за пределы МКАД и как она рассчитывается?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Да, мы доставляем товары по Минскому району. Стоимость рассчитывается просто: стандартный тариф по городу + доплата за километраж от МКАД. Точную сумму оператор назовет при подтверждении заказа."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Курьер сам заберет товар, когда срок аренды закончится?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "По умолчанию возврат осуществляется клиентом. Однако, если вам неудобно ехать к нам, вы можете заказать услугу вывоза товара курьером. Пожалуйста, сообщите об этом заранее (желательно за 1-2 дня до окончания срока), чтобы мы поставили это в график маршрутов. Услуга платная."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Можно ли заказать доставку/возврат к точному времени?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "У наших курьеров плотный график с интервалами доставки (обычно 3-4 часа). Мы всегда стараемся учитывать пожелания (например, до обеденного сна ребенка), но доставка ровно в 13:00 не всегда возможна из-за дорожной ситуации."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Вы напоминаете об окончании срока аренды?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Мы ценим ваше спокойствие. За сутки до окончания срока наша система автоматически отправляет SMS-напоминание. Вы точно не забудете продлить вещь или подготовить её к возврату."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Как продлить аренду, если вещь еще нужна?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Очень просто! Не нужно приезжать в офис. Просто позвоните нам или напишите в мессенджер. Мы продлим договор дистанционно, а оплату можно будет внести через ЕРИП."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Что делать, если товар сломался у нас дома?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Главное — не паниковать и не пытаться чинить самостоятельно. Сразу свяжитесь с нами. Если это естественный износ (сели батарейки, отклеилась наклейка) — это наши заботы. Если поломка механическая по неосторожности — мы найдем компромиссное решение (ремонт или компенсация запчасти) согласно договору."
-                }
-              }, {
-                "@type": "Question",
-                "name": "Нужно ли стирать текстиль (чехлы, костюмы) перед возвратом?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Нет, это делать не нужно. Мы в любом случае отправляем все текстильные элементы в профессиональную чистку, чтобы гарантировать стерильность следующему малышу. Сдавайте как есть!"
-                }
-              }, {
-                "@type": "Question",
-                "name": "Что делать, если товар не подошел или ребенок отказался в нем сидеть?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Мы рекомендуем внимательно выбирать модель (наши консультанты помогут!). Если вещь исправна, но просто не зашла ребенку, возможен досрочный возврат. Перерасчет средств производится согласно условиям договора (обычно пересчитывается по тарифу за фактический срок использования, но не менее минимального срока аренды)."
-                }
-              }]
-            }
-            </script>
+                    {
+                      "@context": "https://schema.org",
+                      "@type": "FAQPage",
+                      "mainEntity": [{
+                        "@type": "Question",
+                        "name": "Как вы обрабатываете товары? Это безопасно для ребенка?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Безопасность — наш приоритет. Мы не просто протираем вещи, а проводим полноценную дезинфекцию в 3 этапа после каждого клиента: стирка гипоаллергенными средствами, обработка паром и кварцевание медицинскими лампами. Товар упаковывается в пленку. Вы получаете гарантированно чистую вещь."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Что нужно для оформления проката? Нужен ли залог?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Для заключения договора необходим только паспорт гражданина РБ (или вид на жительство). В большинстве случаев залог не требуется. Исключение могут составлять дорогостоящие товары или случаи, когда у клиента нет прописки в Минске/Минской области — этот момент менеджер уточнит индивидуально."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Как забронировать вещь и можно ли получить реальное фото товара?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Забронировать можно через сайт (корзину), по телефону или в мессенджерах. Если вы хотите убедиться в состоянии конкретной модели, напишите нам в Viber/Telegram — мы пришлем актуальное фото или видео товара, который поедет к вам."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Есть ли доставка за пределы МКАД и как она рассчитывается?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Да, мы доставляем товары по Минскому району. Стоимость рассчитывается просто: стандартный тариф по городу + доплата за километраж от МКАД. Точную сумму оператор назовет при подтверждении заказа."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Курьер сам заберет товар, когда срок аренды закончится?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "По умолчанию возврат осуществляется клиентом. Однако, если вам неудобно ехать к нам, вы можете заказать услугу вывоза товара курьером. Пожалуйста, сообщите об этом заранее (желательно за 1-2 дня до окончания срока), чтобы мы поставили это в график маршрутов. Услуга платная."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Можно ли заказать доставку/возврат к точному времени?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "У наших курьеров плотный график с интервалами доставки (обычно 3-4 часа). Мы всегда стараемся учитывать пожелания (например, до обеденного сна ребенка), но доставка ровно в 13:00 не всегда возможна из-за дорожной ситуации."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Вы напоминаете об окончании срока аренды?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Мы ценим ваше спокойствие. За сутки до окончания срока наша система автоматически отправляет SMS-напоминание. Вы точно не забудете продлить вещь или подготовить её к возврату."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Как продлить аренду, если вещь еще нужна?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Очень просто! Не нужно приезжать в офис. Просто позвоните нам или напишите в мессенджер. Мы продлим договор дистанционно, а оплату можно будет внести через ЕРИП."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Что делать, если товар сломался у нас дома?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Главное — не паниковать и не пытаться чинить самостоятельно. Сразу свяжитесь с нами. Если это естественный износ (сели батарейки, отклеилась наклейка) — это наши заботы. Если поломка механическая по неосторожности — мы найдем компромиссное решение (ремонт или компенсация запчасти) согласно договору."
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Нужно ли стирать текстиль (чехлы, костюмы) перед возвратом?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Нет, это делать не нужно. Мы в любом случае отправляем все текстильные элементы в профессиональную чистку, чтобы гарантировать стерильность следующему малышу. Сдавайте как есть!"
+                        }
+                      }, {
+                        "@type": "Question",
+                        "name": "Что делать, если товар не подошел или ребенок отказался в нем сидеть?",
+                        "acceptedAnswer": {
+                          "@type": "Answer",
+                          "text": "Мы рекомендуем внимательно выбирать модель (наши консультанты помогут!). Если вещь исправна, но просто не зашла ребенку, возможен досрочный возврат. Перерасчет средств производится согласно условиям договора (обычно пересчитывается по тарифу за фактический срок использования, но не менее минимального срока аренды)."
+                        }
+                      }]
+                    }
+                    </script>
 
 @endsection
