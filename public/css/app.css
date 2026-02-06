@@ -6517,6 +6517,57 @@ h1.l3_h1-mobile {
   color: #000000;
 }
 
+@media screen and (max-width: 991px) {
+  .about__main-rent {
+    font-size: 40px;
+    line-height: 1.1;
+    margin-bottom: 30px;
+    word-wrap: break-word;
+  }
+  .about__main-rent .add-on {
+    font-size: 16px;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .about__cards-container {
+    flex-flow: column nowrap;
+    align-items: center;
+    gap: 30px;
+    margin-top: 30px;
+  }
+  .about__card-container {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .about__card-container .number {
+    font-size: 60px;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  .about__card-container .circle {
+    min-width: unset;
+    flex-basis: auto;
+    width: 100%;
+    padding-top: 0;
+    font-size: 20px;
+    line-height: 1.3;
+    background-position: center center;
+    background-size: 70px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80px;
+  }
+  .about__card-container .circle.second {
+    min-width: unset;
+  }
+}
 .img-slider {
   margin: 0 auto;
   padding: 0;

@@ -77,7 +77,7 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/path/to/photo_director.jpg" alt="Директор"
+                        <img class="staff-img" src="/public/images/team/ekaterina.jpg" alt="Екатерина"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -93,7 +93,7 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/path/to/photo_consultant1.jpg" alt="Консультант"
+                        <img class="staff-img" src="/public/images/team/julia.jpg" alt="Юлия"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -109,7 +109,7 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/path/to/photo_consultant2.jpg" alt="Консультант"
+                        <img class="staff-img" src="/public/images/team/kristina.jpg" alt="Кристина"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -126,7 +126,7 @@
             <div class="col-12 col-md-4 mb-5 d-flex justify-content-center">
                 <div class="about__person-container" style="position: relative; width: auto; height: auto;">
                     <div class="text-center mb-3">
-                        <img class="staff-img" src="/path/to/photo_consultant3.jpg" alt="Консультант"
+                        <img class="staff-img" src="/public/images/team/anastasia.jpg" alt="Анастасия"
                             style="position: relative; width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
                     </div>
                     <div class="staff-description"
@@ -159,23 +159,143 @@
         </div>
         <div class="row mt-5 mb-5">
             <div class="col-12">
-                <h2 class="about__h1">Частые вопросы</h2>
+                <h2 class="about__h1 mb-4">Частые вопросы</h2>
                 <div class="accordion" id="faqAccordion">
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="font-weight: bold;">— Насколько безопасно брать медицинские товары?</h4>
-                        <p>Абсолютно безопасно. Все части, контактирующие с телом, либо являются одноразовыми/сменными, либо
-                            проходят стерилизацию медицинского уровня в три этапа.</p>
+
+                    <!-- Блок 1 -->
+                    <div class="faq-group mb-5">
+                        <h3 class="d-flex align-items-center mb-4"
+                            style="font-size: 1.5rem; font-weight: bold; color: #4CAF50;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                class="feather feather-shield me-2" style="margin-right: 10px;">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                            Самое важное (Безопасность и Оформление)
+                        </h3>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Как вы обрабатываете товары? Это безопасно для
+                                ребенка?</h4>
+                            <p>Безопасность — наш приоритет. Мы не просто протираем вещи, а проводим полноценную дезинфекцию
+                                в 3 этапа после каждого клиента: стирка гипоаллергенными средствами, обработка паром и
+                                кварцевание медицинскими лампами. Товар упаковывается в пленку. Вы получаете гарантированно
+                                чистую вещь.</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Что нужно для оформления проката? Нужен ли
+                                залог?</h4>
+                            <p>Для заключения договора необходим только паспорт гражданина РБ (или вид на жительство). В
+                                большинстве случаев залог не требуется. Исключение могут составлять дорогостоящие товары или
+                                случаи, когда у клиента нет прописки в Минске/Минской области — этот момент менеджер уточнит
+                                индивидуально.</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Как забронировать вещь и можно ли получить
+                                реальное фото товара?</h4>
+                            <p>Забронировать можно через сайт (корзину), по телефону или в мессенджерах. Если вы хотите
+                                убедиться в состоянии конкретной модели, напишите нам в Viber/Telegram — мы пришлем
+                                актуальное фото или видео товара, который поедет к вам.</p>
+                        </div>
                     </div>
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="font-weight: bold;">— Как быстро вы доставляете по Минску?</h4>
-                        <p>При оформлении заказа до 14:00 доставка часто возможна в тот же день. Мы согласуем удобное время,
-                            чтобы не разбудить малыша.</p>
+
+                    <!-- Блок 2 -->
+                    <div class="faq-group mb-5">
+                        <h3 class="d-flex align-items-center mb-4"
+                            style="font-size: 1.5rem; font-weight: bold; color: #2196F3;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                class="feather feather-truck me-2" style="margin-right: 10px;">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                            Доставка и Возврат
+                        </h3>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Есть ли доставка за пределы МКАД и как она
+                                рассчитывается?</h4>
+                            <p>Да, мы доставляем товары по Минскому району. Стоимость рассчитывается просто: стандартный
+                                тариф по городу + доплата за километраж от МКАД. Точную сумму оператор назовет при
+                                подтверждении заказа.</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Курьер сам заберет товар, когда срок аренды
+                                закончится?</h4>
+                            <p>По умолчанию возврат осуществляется клиентом. Однако, если вам неудобно ехать к нам, вы
+                                можете заказать услугу вывоза товара курьером. Пожалуйста, сообщите об этом заранее
+                                (желательно за 1-2 дня до окончания срока), чтобы мы поставили это в график маршрутов.
+                                Услуга платная.</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Можно ли заказать доставку/возврат к точному
+                                времени?</h4>
+                            <p>У наших курьеров плотный график с интервалами доставки (обычно 3-4 часа). Мы всегда стараемся
+                                учитывать пожелания (например, "до обеденного сна ребенка"), но доставка "ровно в 13:00" не
+                                всегда возможна из-за дорожной ситуации.</p>
+                        </div>
                     </div>
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="font-weight: bold;">— Что делать, если вещь сломается?</h4>
-                        <p>Мелкие поломки из-за естественного износа мы берем на себя. Мы всегда стараемся найти
-                            компромиссное решение..</p>
+
+                    <!-- Блок 3 -->
+                    <div class="faq-group mb-5">
+                        <h3 class="d-flex align-items-center mb-4"
+                            style="font-size: 1.5rem; font-weight: bold; color: #FF9800;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                class="feather feather-settings me-2" style="margin-right: 10px;">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                </path>
+                            </svg>
+                            Использование (Продление, Поломки, Стирка)
+                        </h3>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Вы напоминаете об окончании срока аренды?</h4>
+                            <p>Мы ценим ваше спокойствие. За сутки до окончания срока наша система автоматически отправляет
+                                SMS-напоминание. Вы точно не забудете продлить вещь или подготовить её к возврату.</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Как продлить аренду, если вещь еще нужна?</h4>
+                            <p>Очень просто! Не нужно приезжать в офис. Просто позвоните нам или напишите в мессенджер. Мы
+                                продлим договор дистанционно, а оплату можно будет внести через ЕРИП.</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Что делать, если товар сломался у нас дома?</h4>
+                            <p>Главное — не паниковать и не пытаться чинить самостоятельно. Сразу свяжитесь с нами.</p>
+                            <p>Если это естественный износ (сели батарейки, отклеилась наклейка) — это наши заботы.</p>
+                            <p>Если поломка механическая по неосторожности — мы найдем компромиссное решение (ремонт или
+                                компенсация запчасти) согласно договору. Мы лояльны к клиентам и не наживаемся на
+                                форс-мажорах.</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Нужно ли стирать текстиль (чехлы, костюмы) перед
+                                возвратом?</h4>
+                            <p>Нет, это делать не нужно. Мы в любом случае отправляем все текстильные элементы в
+                                профессиональную чистку, чтобы гарантировать стерильность следующему малышу. Сдавайте как
+                                есть!</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 style="font-weight: bold; cursor: pointer;">Что делать, если товар не подошел или ребенок
+                                отказался в нем сидеть?</h4>
+                            <p>Мы рекомендуем внимательно выбирать модель (наши консультанты помогут!). Если вещь исправна,
+                                но просто "не зашла" ребенку, возможен досрочный возврат. Перерасчет средств производится
+                                согласно условиям договора (обычно пересчитывается по тарифу за фактический срок
+                                использования, но не менее минимального срока аренды).</p>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -185,49 +305,112 @@
     <script src="/public/js/about.js"></script>
 
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "RentalBusiness",
-      "name": "TikTak",
-      "image": "https://tiktak.by/images/logo.png",
-      "@id": "https://tiktak.by",
-      "url": "https://tiktak.by",
-      "telephone": "+37529XXXXXXX",
-      "priceRange": "$$",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Улица, дом",
-        "addressLocality": "Минск",
-        "addressCountry": "BY"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": 53.9006,
-        "longitude": 27.5590
-      }
-    }
-    </script>
+                {
+                  "@context": "https://schema.org",
+                  "@type": "RentalBusiness",
+                  "name": "TikTak",
+                  "image": "https://tiktak.by/images/logo.png",
+                  "@id": "https://tiktak.by",
+                  "url": "https://tiktak.by",
+                  "telephone": "+37529XXXXXXX",
+                  "priceRange": "$$",
+                  "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": "Улица, дом",
+                    "addressLocality": "Минск",
+                    "addressCountry": "BY"
+                  },
+                  "geo": {
+                    "@type": "GeoCoordinates",
+                    "latitude": 53.9006,
+                    "longitude": 27.5590
+                  }
+                }
+                </script>
 
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [{
-        "@type": "Question",
-        "name": "Насколько безопасно брать медицинские товары напрокат?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Абсолютно безопасно. Все части, контактирующие с телом, либо являются одноразовыми/сменными, либо проходят стерилизацию медицинского уровня."
-        }
-      }, {
-        "@type": "Question",
-        "name": "Как быстро вы доставляете по Минску?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "При оформлении заказа до 14:00 доставка часто возможна в тот же день."
-        }
-      }]
-    }
-    </script>
+                {
+                  "@context": "https://schema.org",
+                  "@type": "FAQPage",
+                  "mainEntity": [{
+                    "@type": "Question",
+                    "name": "Как вы обрабатываете товары? Это безопасно для ребенка?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Безопасность — наш приоритет. Мы не просто протираем вещи, а проводим полноценную дезинфекцию в 3 этапа после каждого клиента: стирка гипоаллергенными средствами, обработка паром и кварцевание медицинскими лампами. Товар упаковывается в пленку. Вы получаете гарантированно чистую вещь."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Что нужно для оформления проката? Нужен ли залог?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Для заключения договора необходим только паспорт гражданина РБ (или вид на жительство). В большинстве случаев залог не требуется. Исключение могут составлять дорогостоящие товары или случаи, когда у клиента нет прописки в Минске/Минской области — этот момент менеджер уточнит индивидуально."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Как забронировать вещь и можно ли получить реальное фото товара?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Забронировать можно через сайт (корзину), по телефону или в мессенджерах. Если вы хотите убедиться в состоянии конкретной модели, напишите нам в Viber/Telegram — мы пришлем актуальное фото или видео товара, который поедет к вам."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Есть ли доставка за пределы МКАД и как она рассчитывается?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Да, мы доставляем товары по Минскому району. Стоимость рассчитывается просто: стандартный тариф по городу + доплата за километраж от МКАД. Точную сумму оператор назовет при подтверждении заказа."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Курьер сам заберет товар, когда срок аренды закончится?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "По умолчанию возврат осуществляется клиентом. Однако, если вам неудобно ехать к нам, вы можете заказать услугу вывоза товара курьером. Пожалуйста, сообщите об этом заранее (желательно за 1-2 дня до окончания срока), чтобы мы поставили это в график маршрутов. Услуга платная."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Можно ли заказать доставку/возврат к точному времени?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "У наших курьеров плотный график с интервалами доставки (обычно 3-4 часа). Мы всегда стараемся учитывать пожелания (например, до обеденного сна ребенка), но доставка ровно в 13:00 не всегда возможна из-за дорожной ситуации."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Вы напоминаете об окончании срока аренды?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Мы ценим ваше спокойствие. За сутки до окончания срока наша система автоматически отправляет SMS-напоминание. Вы точно не забудете продлить вещь или подготовить её к возврату."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Как продлить аренду, если вещь еще нужна?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Очень просто! Не нужно приезжать в офис. Просто позвоните нам или напишите в мессенджер. Мы продлим договор дистанционно, а оплату можно будет внести через ЕРИП."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Что делать, если товар сломался у нас дома?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Главное — не паниковать и не пытаться чинить самостоятельно. Сразу свяжитесь с нами. Если это естественный износ (сели батарейки, отклеилась наклейка) — это наши заботы. Если поломка механическая по неосторожности — мы найдем компромиссное решение (ремонт или компенсация запчасти) согласно договору."
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Нужно ли стирать текстиль (чехлы, костюмы) перед возвратом?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Нет, это делать не нужно. Мы в любом случае отправляем все текстильные элементы в профессиональную чистку, чтобы гарантировать стерильность следующему малышу. Сдавайте как есть!"
+                    }
+                  }, {
+                    "@type": "Question",
+                    "name": "Что делать, если товар не подошел или ребенок отказался в нем сидеть?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Мы рекомендуем внимательно выбирать модель (наши консультанты помогут!). Если вещь исправна, но просто не зашла ребенку, возможен досрочный возврат. Перерасчет средств производится согласно условиям договора (обычно пересчитывается по тарифу за фактический срок использования, но не менее минимального срока аренды)."
+                    }
+                  }]
+                }
+                </script>
 
 @endsection
