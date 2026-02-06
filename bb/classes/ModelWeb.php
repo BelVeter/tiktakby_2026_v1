@@ -61,15 +61,16 @@ class ModelWeb
   /**
    * @param $lang
    */
-  public function __construct($model_id, $lang='')
+  public function __construct($model_id, $lang = '')
   {
-    if ($lang == '') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
     $this->lang = $lang;
     $this->model_id = $model_id;
-    $this->dopCatArray=[];
+    $this->dopCatArray = [];
 
     //default values
-    $this->l2_availability_show=1;
+    $this->l2_availability_show = 1;
   }
 
   /**
@@ -163,16 +164,18 @@ class ModelWeb
    * @param $dopCatPicUrl
    * @return bool
    */
-  public function addDopCat($catId, $dopCatPicUrl) {
-    $catId = $catId*1;
-    $this->dopCatArray[]=[$catId, $dopCatPicUrl];
+  public function addDopCat($catId, $dopCatPicUrl)
+  {
+    $catId = $catId * 1;
+    $this->dopCatArray[] = [$catId, $dopCatPicUrl];
     return true;
   }
 
   /**
    * @return bool
    */
-  public function saveDopCats(){
+  public function saveDopCats()
+  {
     $this->deleteDopCats();
     foreach ($this->dopCatArray as $arr) {
       $this->saveDopCat($arr[0], $arr[1]);
@@ -185,7 +188,8 @@ class ModelWeb
    * @param $dopPhotoUrl
    * @return bool|void
    */
-  private function saveDopCat($catId, $dopPhotoUrl){
+  private function saveDopCat($catId, $dopPhotoUrl)
+  {
     $mysqli = Db::getInstance()->getConnection();
     $query = "INSERT INTO multi_web SET model_id='$this->model_id', add_cat_id='$catId', l2_pic_add='$dopPhotoUrl'";
     $result = $mysqli->query($query);
@@ -198,20 +202,21 @@ class ModelWeb
   /**
    * @return bool|void
    */
-  public function loadLastProducerLogo(){
+  public function loadLastProducerLogo()
+  {
     $mysqli = Db::getInstance()->getConnection();
     $model = Model::getById($this->getModelId());
-    if($model) {
+    if ($model) {
       $model_ids = Model::getModelIdsArrayByProducer($model->getProducer());
 
-      if ($model_ids && count($model_ids)>0) {
-        $query = "SELECT logo FROM rent_model_web WHERE model_id IN (".implode(',', $model_ids).") ORDER BY model_id DESC";
+      if ($model_ids && count($model_ids) > 0) {
+        $query = "SELECT logo FROM rent_model_web WHERE model_id IN (" . implode(',', $model_ids) . ") ORDER BY model_id DESC";
         $result = $mysqli->query($query);
         if (!$result) {
           die('Сбой при доступе к БД MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
         }
         while ($row = $result->fetch_assoc()) {
-          if (substr($row['logo'], 0,1)=='/') {
+          if (substr($row['logo'], 0, 1) == '/') {
             $this->setLogoUrlAddress($row['logo']);
             return true;
           }
@@ -226,11 +231,12 @@ class ModelWeb
   /**
    * @return bool
    */
-  public function updateLogoUrlForAll(){
+  public function updateLogoUrlForAll()
+  {
     $mysqli = Db::getInstance()->getConnection();
     $model = Model::getById($this->getModelId());
     $modelIds = Model::getModelIdsArrayByProducer($model->getProducer(), 0);
-    $query = "UPDATE rent_model_web SET logo='$this->logo' WHERE model_id IN (".implode(',', $modelIds).")";
+    $query = "UPDATE rent_model_web SET logo='$this->logo' WHERE model_id IN (" . implode(',', $modelIds) . ")";
     //echo $query;
     $result = $mysqli->query($query);
     if (!$result) {
@@ -242,7 +248,8 @@ class ModelWeb
   /**
    * @return bool|void
    */
-  private function deleteDopCats(){
+  private function deleteDopCats()
+  {
     $mysqli = Db::getInstance()->getConnection();
     $query = "DELETE FROM multi_web WHERE model_id='$this->model_id'";
     $result = $mysqli->query($query);
@@ -259,23 +266,27 @@ class ModelWeb
    * @param $title
    * @return bool
    */
-  public function addPicture($src, $alt='', $title=''){
-    if(!is_array($this->dop_pics)) $this->dop_pics = [];
-    $this->dop_pics[]=new Picture($src, $alt, $title);
+  public function addPicture($src, $alt = '', $title = '')
+  {
+    if (!is_array($this->dop_pics))
+      $this->dop_pics = [];
+    $this->dop_pics[] = new Picture($src, $alt, $title);
     return true;
   }
 
   /**
    * @return false|void
    */
-  public function loadDopPictures(){
+  public function loadDopPictures()
+  {
     $mysqli = Db::getInstance()->getConnection();
     $query = "SELECT * FROM dop_photos WHERE model_id='$this->model_id'";
     $result = $mysqli->query($query);
     if (!$result) {
       die('Сбой при запросе доп фото в MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
-    if ($result->num_rows<1) return false;
+    if ($result->num_rows < 1)
+      return false;
     $rez = [];
     while ($row = $result->fetch_assoc()) {
       $rez[] = new Picture($row['src'], $row['alt'], $row['title']);
@@ -286,22 +297,28 @@ class ModelWeb
   /**
    * @return Picture[]
    */
-  public function getDopPictures(){
+  public function getDopPictures()
+  {
     return $this->dop_pics;
   }
 
-  public function getDopPicturesNum(){
-    if (is_array($this->dop_pics) && count($this->dop_pics)>0) return count($this->dop_pics);
-    else return 0;
+  public function getDopPicturesNum()
+  {
+    if (is_array($this->dop_pics) && count($this->dop_pics) > 0)
+      return count($this->dop_pics);
+    else
+      return 0;
   }
 
   /**
    * @param $src
    * @return void
    */
-  public static function deleteDopPictureBySrc($src){
+  public static function deleteDopPictureBySrc($src)
+  {
     $mysqli = Db::getInstance()->getConnection();
-    $query = "DELETE FROM dop_photos WHERE src='$src'";
+    $src_escaped = $mysqli->real_escape_string($src);
+    $query = "DELETE FROM dop_photos WHERE src='$src_escaped'";
     $result = $mysqli->query($query);
     if (!$result) {
       die('Сбой при удалении доп фото в MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -314,8 +331,9 @@ class ModelWeb
    * @param $title
    * @return void
    */
-  public function saveDopPicture($src, $alt='', $title=''){
-    self::saveDopPictureStatic($this->model_id, $src, $alt='', $title='');
+  public function saveDopPicture($src, $alt = '', $title = '')
+  {
+    self::saveDopPictureStatic($this->model_id, $src, $alt = '', $title = '');
   }
 
 
@@ -326,9 +344,13 @@ class ModelWeb
    * @param $title
    * @return void
    */
-  public static function saveDopPictureStatic($model_id, $src, $alt='', $title=''){
+  public static function saveDopPictureStatic($model_id, $src, $alt = '', $title = '')
+  {
     $mysqli = Db::getInstance()->getConnection();
-    $query = "INSERT INTO dop_photos SET model_id='$model_id', src='$src', alt='$alt', `title`='$title'";
+    $src_escaped = $mysqli->real_escape_string($src);
+    $alt_escaped = $mysqli->real_escape_string($alt);
+    $title_escaped = $mysqli->real_escape_string($title);
+    $query = "INSERT INTO dop_photos SET model_id='$model_id', src='$src_escaped', alt='$alt_escaped', `title`='$title_escaped'";
     $result = $mysqli->query($query);
     if (!$result) {
       die('Сбой при вставке доп фото в MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -383,7 +405,8 @@ class ModelWeb
    */
   public function getBreadcrumbsName($htmlSpecialChars = 1)
   {
-    if ($htmlSpecialChars) return htmlspecialchars($this->breadcrumbs_name);
+    if ($htmlSpecialChars)
+      return htmlspecialchars($this->breadcrumbs_name);
     return $this->breadcrumbs_name;
   }
 
@@ -473,7 +496,8 @@ class ModelWeb
    */
   public function getTitle($htmlSpecialChars = 0)
   {
-    if ($htmlSpecialChars) return htmlspecialchars($this->title);
+    if ($htmlSpecialChars)
+      return htmlspecialchars($this->title);
     return $this->title;
   }
 
@@ -508,7 +532,8 @@ class ModelWeb
    */
   public function getL2Name($htmlSpecialChars = 0)
   {
-    if ($htmlSpecialChars) return htmlspecialchars($this->l2_name);
+    if ($htmlSpecialChars)
+      return htmlspecialchars($this->l2_name);
     return $this->l2_name;
   }
 
@@ -541,7 +566,8 @@ class ModelWeb
    */
   public function getItemNameMain($htmlSpecialChars = 0)
   {
-    if ($htmlSpecialChars) return htmlspecialchars($this->item_name_main);
+    if ($htmlSpecialChars)
+      return htmlspecialchars($this->item_name_main);
     return $this->item_name_main;
   }
 
@@ -590,7 +616,8 @@ class ModelWeb
    */
   public function getMATitle($htmlSpecialChars = 1)
   {
-    if ($htmlSpecialChars) return htmlspecialchars($this->m_a_title);
+    if ($htmlSpecialChars)
+      return htmlspecialchars($this->m_a_title);
     return $this->m_a_title;
   }
 
@@ -660,8 +687,8 @@ class ModelWeb
 
     if ($this->getWebId() < 1) {
       $query = "INSERT INTO rent_model_web SET lang='$this->lang', model_id='$this->model_id', page_addr='$this->page_addr', `title`='" . addslashes($this->title) . "', `meta_description`='" . addslashes($this->meta_description) . "', breadcrumbs_name='" . addslashes($this->breadcrumbs_name) . "',
-                           l2_pic='$this->l2_pic', l2_name='" . addslashes($this->l2_name) . "', l2_alt='".addslashes($this->l2_alt)."', item_name_main='" .addslashes($this->item_name_main) . "',
-                           m_pic_big='$this->m_pic_big', m_pic_alt='".addslashes($this->m_pic_alt)."', m_a_title='".addslashes($this->m_a_title)."', logo='$this->logo', main_descr='".addslashes($this->main_descr)."',
+                           l2_pic='$this->l2_pic', l2_name='" . addslashes($this->l2_name) . "', l2_alt='" . addslashes($this->l2_alt) . "', item_name_main='" . addslashes($this->item_name_main) . "',
+                           m_pic_big='$this->m_pic_big', m_pic_alt='" . addslashes($this->m_pic_alt) . "', m_a_title='" . addslashes($this->m_a_title) . "', logo='$this->logo', main_descr='" . addslashes($this->main_descr) . "',
                            tarif_line_period='$this->tarif_line_period', tarif_base_days='$this->tarif_base_days', sort_n='$this->sort_num', keywords='$this->keywords', `status`='$this->status', l2_availability_show='$this->l2_availability_show'";
       $result = $mysqli->query($query);
       if (!$result) {
@@ -682,7 +709,8 @@ class ModelWeb
    * @param $newSortNum
    * @return bool|void
    */
-  public static function updateSortN($model_id, $newSortNum){
+  public static function updateSortN($model_id, $newSortNum)
+  {
     $mysqli = Db::getInstance()->getConnection();
     $query = "UPDATE rent_model_web SET sort_n='$newSortNum' WHERE model_id='$model_id'";
     $result = $mysqli->query($query);
@@ -697,13 +725,14 @@ class ModelWeb
    */
   public function update()
   {
-    if ($this->getWebId() < 1) throw new \Error('Update: id not set');
+    if ($this->getWebId() < 1)
+      throw new \Error('Update: id not set');
 
     $mysqli = Db::getInstance()->getConnection();
 
-    $query = "UPDATE rent_model_web SET lang='$this->lang', model_id='$this->model_id', page_addr='$this->page_addr', `title`='".addslashes($this->title)."', `meta_description`='" . addslashes($this->meta_description) . "', breadcrumbs_name='" . addslashes($this->breadcrumbs_name) . "',
-                           l2_pic='$this->l2_pic', l2_name='".addslashes($this->l2_name)."', l2_alt='".addslashes($this->l2_alt)."', item_name_main='" . addslashes($this->item_name_main) . "',
-                           m_pic_big='$this->m_pic_big', m_pic_alt='".addslashes($this->m_pic_alt)."', m_a_title='".addslashes($this->m_a_title)."', logo='$this->logo', main_descr='".addslashes($this->main_descr)."',
+    $query = "UPDATE rent_model_web SET lang='$this->lang', model_id='$this->model_id', page_addr='$this->page_addr', `title`='" . addslashes($this->title) . "', `meta_description`='" . addslashes($this->meta_description) . "', breadcrumbs_name='" . addslashes($this->breadcrumbs_name) . "',
+                           l2_pic='$this->l2_pic', l2_name='" . addslashes($this->l2_name) . "', l2_alt='" . addslashes($this->l2_alt) . "', item_name_main='" . addslashes($this->item_name_main) . "',
+                           m_pic_big='$this->m_pic_big', m_pic_alt='" . addslashes($this->m_pic_alt) . "', m_a_title='" . addslashes($this->m_a_title) . "', logo='$this->logo', main_descr='" . addslashes($this->main_descr) . "',
                            tarif_line_period='$this->tarif_line_period', tarif_base_days='$this->tarif_base_days', sort_n='$this->sort_num', keywords='$this->keywords', `status`='$this->status', l2_availability_show='$this->l2_availability_show'
                        WHERE web_id='$this->web_id'";
     $result = $mysqli->query($query);
@@ -719,7 +748,8 @@ class ModelWeb
   /**
    * @return bool|void
    */
-  private function updateCommon(){
+  private function updateCommon()
+  {
     $mysqli = Db::getInstance()->getConnection();
 
     $query = "UPDATE rent_model_web SET page_addr='$this->page_addr', l2_pic='$this->l2_pic', m_pic_big='$this->m_pic_big', logo='$this->logo', sort_n='$this->sort_num',
@@ -782,7 +812,8 @@ class ModelWeb
     $mw->setStatus($row['status']);
     $mw->setL2AvailabilityShow($row['l2_availability_show']);
 
-    if (isset($row['cat_id'])) $mw->setCatId($row['cat_id']);
+    if (isset($row['cat_id']))
+      $mw->setCatId($row['cat_id']);
 
     return $mw;
   }
@@ -802,8 +833,10 @@ class ModelWeb
       die('Сбой при проверке дубликата web адреса в MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
 
-    if ($result->num_rows > 0) return $result->fetch_assoc()['model_id'];
-    else return false;
+    if ($result->num_rows > 0)
+      return $result->fetch_assoc()['model_id'];
+    else
+      return false;
   }
 
 
@@ -812,7 +845,8 @@ class ModelWeb
    */
   public function getLogoUrlCorrect()
   {
-    if ($this->logo == '') return '';
+    if ($this->logo == '')
+      return '';
 
     if (strpos($this->logo, self::getPreUrlConstantNoFinalSlash()) === 0) {
       return $this->logo;
@@ -857,7 +891,7 @@ class ModelWeb
   {
     $str = $this->page_addr;
     $rez = $str;
-//        $dot=strripos($str, '.');
+    //        $dot=strripos($str, '.');
 //        $sl=strripos($str, '/');
 //
 //        if ($dot && $sl) {
@@ -914,19 +948,20 @@ class ModelWeb
    * @return ModelWeb|false|void
    * @throws \Exception
    */
-  public static function getByModelId($model_id, $lang = '', $loadDopPhotos=1)
+  public static function getByModelId($model_id, $lang = '', $loadDopPhotos = 1)
   {
 
-    if ($lang == '') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
 
-    if (isset(self::$_modelWebArray[$model_id.$lang])) {
+    if (isset(self::$_modelWebArray[$model_id . $lang])) {
       //Base::varDamp(self::$_modelWebArray[$model_id.$lang]);
-      $mw = self::$_modelWebArray[$model_id.$lang];
-      if($loadDopPhotos) $mw->loadDopPictures();
+      $mw = self::$_modelWebArray[$model_id . $lang];
+      if ($loadDopPhotos)
+        $mw->loadDopPictures();
 
       return $mw;
-    }
-    else {
+    } else {
       $mysqli = Db::getInstance()->getConnection();
 
       $query = "SELECT rent_model_web.*, tovar_rent.tovar_rent_cat_id as cat_id
@@ -939,16 +974,19 @@ class ModelWeb
         die('Сбой при загрузке веб модели MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
       }
 
-      if ($result->num_rows < 1) return false;
+      if ($result->num_rows < 1)
+        return false;
 
       $row = $result->fetch_assoc();
 
       $mw = self::getFromDbArray($row);
 
-      if($loadDopPhotos) $mw->loadDopPictures();
+      if ($loadDopPhotos)
+        $mw->loadDopPictures();
 
-      if(!is_array(self::$_modelWebArray)) self::$_modelWebArray=[];
-        self::$_modelWebArray[$mw->getModelId().$mw->getLang()] = $mw;
+      if (!is_array(self::$_modelWebArray))
+        self::$_modelWebArray = [];
+      self::$_modelWebArray[$mw->getModelId() . $mw->getLang()] = $mw;
 
       return $mw;
     }
@@ -962,11 +1000,13 @@ class ModelWeb
    */
   public static function getByModelIdLangSafe($model_id, $lang = '')
   {
-    if ($lang == '') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
 
     $mw = self::getByModelId($model_id, $lang);
 
-    if (!$mw) $mw = self::getByModelId($model_id, 'ru');
+    if (!$mw)
+      $mw = self::getByModelId($model_id, 'ru');
 
     return $mw;
   }
@@ -976,9 +1016,11 @@ class ModelWeb
    * @param $lang
    * @return ModelWeb|void|null
    */
-  public static function getByUrlNameLangSafe($url_name, $lang) {
+  public static function getByUrlNameLangSafe($url_name, $lang)
+  {
     $p = self::getByUrlName($url_name, $lang);
-    if(!$p) $p= self::getByUrlName($url_name, 'ru');
+    if (!$p)
+      $p = self::getByUrlName($url_name, 'ru');
 
     return $p;
   }
@@ -987,9 +1029,10 @@ class ModelWeb
    * @param $url_name
    * @return ModelWeb|void|null
    */
-  public static function getByUrlName($url_name, $lang='', $loadDopPhotos=1)
+  public static function getByUrlName($url_name, $lang = '', $loadDopPhotos = 1)
   {
-    if ($lang=='') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
 
     $mysqli = Db::getInstance()->getConnection();
 
@@ -1006,13 +1049,15 @@ class ModelWeb
       die('Сбой при вставке временной брони в MYSQL: ' . $q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
 
-    if ($result->num_rows < 1) return null;
+    if ($result->num_rows < 1)
+      return null;
 
     $row = $result->fetch_assoc();
 
     $mw = self::getFromDbArray($row);
 
-    if($loadDopPhotos) $mw->loadDopPictures();
+    if ($loadDopPhotos)
+      $mw->loadDopPictures();
 
     return $mw;
   }
@@ -1033,7 +1078,8 @@ class ModelWeb
       die('Сбой при вставке временной брони в MYSQL: ' . $q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
 
-    if ($result->num_rows < 1) return false;
+    if ($result->num_rows < 1)
+      return false;
 
     while ($row = $result->fetch_assoc()) {
       $rez[] = self::getFromDbArray($row);
@@ -1066,34 +1112,41 @@ class ModelWeb
       die('Сбой при обращении к базе данных: ' . $q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
 
-    if ($result->num_rows < 1) return false;
+    if ($result->num_rows < 1)
+      return false;
 
     while ($row = $result->fetch_assoc()) {
-      if ($row['model_id'] > 0) $rez[$row['model_id']] = $row['l2_pic_add'];
+      if ($row['model_id'] > 0)
+        $rez[$row['model_id']] = $row['l2_pic_add'];
     }
 
-    if (count($rez) < 1) return false;
+    if (count($rez) < 1)
+      return false;
 
     return $rez;
   }
 
   public function getUrlPageAddress($lang = '')
   {
-    if ($lang == '') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
 
     $model = Model::getById($this->model_id);
     if ($model) {
       $cat_id = $model->cat_id;
-    } else $cat_id = 0;
+    } else
+      $cat_id = 0;
 
     $cat = Category::getById($cat_id);
     if ($cat) {
       $sr = SubRazdel::getById($cat->getMainSubRazdelId());
-    } else $sr = false;
+    } else
+      $sr = false;
 
     if ($sr) {
       $r = Razdel::getById($sr->getMainRazdelId());
-    } else $r = false;
+    } else
+      $r = false;
 
 
     if ($cat && $sr && $r) {
@@ -1112,7 +1165,7 @@ class ModelWeb
     //SELECT * FROM rent_model_web WHERE MATCH(`title`, keywords, main_descr) AGAINST('автокресло')
     //CREATE FULLTEXT INDEX text_srch ON rent_model_web(title,keywords,main_descr)
 
-//        SELECT *,
+    //        SELECT *,
 //          MATCH(books.title) AGAINST('$q') as tscore,
 //          MATCH(authors.authorName) AGAINST('$q') as ascore,
 //          MATCH(chapters.content) AGAINST('$q') as cscore
@@ -1142,7 +1195,8 @@ class ModelWeb
       printf("Mysqli Errormessage: %s\n", $mysqli->error);
     }
 
-    if ($result->num_rows < 1) return [];
+    if ($result->num_rows < 1)
+      return [];
     while ($row = $result->fetch_assoc()) {
       $rez[] = $row['model_id'];
     }
@@ -1154,14 +1208,18 @@ class ModelWeb
   /**
    * @return array|void
    */
-  public function getAdditionalCategories(){
+  public function getAdditionalCategories()
+  {
     $mysqli = Db::getInstance()->getConnection();
 
-    $query_add = "SELECT * FROM multi_web WHERE model_id='".$this->getModelId()."' ORDER BY add_cat_id";
+    $query_add = "SELECT * FROM multi_web WHERE model_id='" . $this->getModelId() . "' ORDER BY add_cat_id";
     //echo $query_add;
     $result_add = $mysqli->query($query_add);
-    if (!$result_add) {die('Сбой при доступе к базе данных: '.$query_add.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
-    if ($result_add->num_rows<1) return [];
+    if (!$result_add) {
+      die('Сбой при доступе к базе данных: ' . $query_add . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    }
+    if ($result_add->num_rows < 1)
+      return [];
     $rez = [];
     while ($row = $result_add->fetch_assoc()) {
       $cat = Category::getById($row['add_cat_id']);
