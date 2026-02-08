@@ -1,219 +1,24 @@
-// Variables
-$primary-color: #007bff; // Example primary
-$secondary-color: #6c757d;
-$accent-color: #ff3333; // Red for hearts/close
-
-// General Header Styles
-.site-header {
-    background-color: #fff;
-    font-family: 'Nunito', sans-serif; // Assuming project font
-
-    a {
-        text-decoration: none;
-        transition: color 0.3s;
-    }
-}
-
-// 1. Top Bar
-.top-bar {
-    font-size: 0.85rem;
-
-    .top-links a {
-        &:hover {
-            color: $primary-color !important;
-        }
-    }
-
-    .dropdown-toggle::after {
-        display: none;
-    }
-
-    .socials a {
-        font-size: 1.1rem;
-
-        &:hover {
-            opacity: 0.8;
-        }
-    }
-}
-
-// 2. Main Header
-.main-header {
-    .navbar-brand img {
-        height: 48px;
-
-        @media (max-width: 991px) {
-            height: 40px;
-        }
-    }
-
-    .input-group {
-        max-width: 600px;
-
-        .form-control {
-            border-color: #ced4da;
-
-            &:focus {
-                box-shadow: none;
-                border-color: $primary-color;
-            }
-        }
-
-        .btn {
-            border-color: #ced4da;
-
-            &:hover {
-                background-color: #f8f9fa;
-            }
-        }
-    }
-
-    .action-icon {
-        color: #333;
-        position: relative;
-
-        &:hover {
-            color: $primary-color;
-        }
-
-        svg {
-            width: 22px;
-            height: 22px;
-        }
-
-        .badge {
-            font-size: 0.65rem;
-            padding: 0.25em 0.5em;
-        }
-    }
-
-    .menu1-open {
-        border: none;
-        background: none;
-    }
-}
-
-// 3. Nav Bar (Desktop)
-.nav-bar {
-    .nav-link {
-        font-size: 1rem;
-        padding: 0.5rem 1.5rem;
-        text-transform: uppercase;
-        color: #333;
-
-        &:hover {
-            color: $primary-color !important;
-        }
-    }
-}
-
-// Desktop Catalog Strip
-.desktop-catalog-strip {
-    height: 80px;
-    background-color: #80BDE7; // Matching one of the catalog colors or a general blue
-
-    .catalog-item {
-        transition: background-color 0.2s, opacity 0.2s;
-
-        &:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        img {
-            filter: brightness(0) invert(1);
-        }
-    }
-}
-
-
-// Mobile Specifics
-@media (max-width: 991px) {
-    .site-header {
-        .btn-link {
-            padding: 0.5rem;
-        }
-    }
-
-    // Legacy Menu Animation/Styles (if needed for JS compat)
-    .mobile-topmenu-container {
-        // ... (keep usage of existing classes if JS relies on them)
-    }
-}
-
-// Modals (Offices)
-#officesModal {
-    .office-top-container {
-        display: flex;
-        flex-wrap: wrap;
-        margin-bottom: 20px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid #eee;
-
-        .ofcol1 {
-            flex: 1;
-            min-width: 250px;
-            padding-right: 20px;
-
-            .office-address {
-                display: flex;
-                align-items: center;
-                font-size: 1.2rem;
-                font-weight: bold;
-                margin-bottom: 15px;
-                color: #333;
-
-                img {
-                    width: 24px;
-                    margin-right: 10px;
-                }
-            }
-
-            .sub-header {
-                display: block;
-                font-weight: bold;
-                margin-top: 10px;
-                margin-bottom: 5px;
-                color: #666;
-            }
-
-            .textline {
-                display: block;
-                margin-bottom: 3px;
-                color: #333;
-
-                &.phone {
-                    font-size: 1.1rem;
-                }
-            }
-        }
-
-        .ofcol2 {
-            flex: 1;
-            min-width: 250px;
-
-            iframe {
-                width: 100%;
-                height: 250px;
-                border-radius: 8px;
-            }
-        }
-    }
-}
-
-@media screen and (max-width: 1020px) {
-    flex-flow: row wrap;
-}
-
-@media screen and (max-width: 767px) {
-    align-items: center;
+.header-desktop{
+    margin: 15px 0 15px 0;
+    display: flex;
     flex-flow: row nowrap;
-    padding: 12px 0;
-    margin: 0 6px;
-}
+    justify-content: space-between;
+    max-width: 1200px;
+
+    @media screen and (max-width: 1020px) {
+        flex-flow: row wrap;
+    }
+
+    @media screen and (max-width: 767px) {
+        align-items: center;
+        flex-flow: row nowrap;
+        padding: 12px 0;
+        margin: 0 6px;
+    }
 
 }
 
-.header-logo-col {
+.header-logo-col{
     display: flex;
     flex-flow: column nowrap;
     justify-content: flex-start;
@@ -227,11 +32,11 @@ $accent-color: #ff3333; // Red for hearts/close
     }
 }
 
-.header__logo-a {
+.header__logo-a{
     position: relative;
     width: fit-content;
 
-    .prokat-text {
+    .prokat-text{
         position: absolute;
         top: 5px;
         right: 72px;
@@ -253,12 +58,10 @@ $accent-color: #ff3333; // Red for hearts/close
 .header-logo-img {
     //width: 227px;
     height: 70px;
-
     @media (max-width: 767px) {
         height: 40px;
     }
 }
-
 .header-logo-col h4 a {
     font-family: 'Gilroy';
     font-style: normal;
@@ -272,7 +75,7 @@ $accent-color: #ff3333; // Red for hearts/close
 
 .header-logo-col h4 {
     margin: 0;
-    padding: 0;
+    padding:0;
 }
 
 .header-col2 {
@@ -283,13 +86,12 @@ $accent-color: #ff3333; // Red for hearts/close
     @media screen and (max-width: 1000px) {
         order: 3;
     }
-
     @media screen and (max-width: 767px) {
         order: unset;
     }
 }
 
-.header-line1 {
+.header-line1{
     display: flex;
     flex-flow: row nowrap;
     justify-content: space-between;
@@ -321,7 +123,7 @@ $accent-color: #ff3333; // Red for hearts/close
 
         transition: 0.7s;
 
-        &.show {
+        &.show{
             left: 0;
         }
     }
@@ -338,7 +140,7 @@ $accent-color: #ff3333; // Red for hearts/close
     }
 }
 
-.header-line1 ul li:last-child {
+.header-line1 ul li:last-child{
     margin-left: 4%;
 }
 
@@ -356,13 +158,13 @@ $accent-color: #ff3333; // Red for hearts/close
         justify-content: space-between;
         padding: 10px 25px;
 
-        img {
+        img{
             margin-left: 30px;
         }
     }
 }
 
-.header-line1 ul li:first-child {
+.header-line1 ul li:first-child{
     @media screen and (max-width: 767px) {
         margin-top: 10px;
         border-top: none;
@@ -427,21 +229,20 @@ $accent-color: #ff3333; // Red for hearts/close
 }
 
 .header-line2 {
-    .messangers {
-        display: flex;
-        flex-flow: row nowrap;
-        justify-content: space-between;
+  .messangers{
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
 
-        min-width: 110px;
-
-        a img {
-            width: 30px;
-        }
+    min-width: 110px;
+    a img {
+      width: 30px;
     }
+  }
 }
 
 
-.phone-number-div {
+.phone-number-div{
     display: flex;
     flex-flow: column nowrap;
     min-width: 125px;
@@ -484,11 +285,9 @@ a.header-phone {
         justify-self: flex-end;
         order: 2;
     }
-
     @media screen and (max-width: 767px) {
         order: unset;
     }
-
     .office_geo-a {
         display: flex;
         flex-flow: row nowrap;
@@ -501,17 +300,16 @@ a.header-phone {
         color: #2A68A7;
         line-height: 162%;
 
-        .arrow {
+        .arrow{
             width: 14px;
             margin-left: 5px;
         }
 
-        .geo {
+        .geo{
             margin-right: 5px;
         }
     }
-
-    .office_geo-a:nth-child(1) {
+    .office_geo-a:nth-child(1){
         line-height: 216%;
     }
 }
@@ -553,16 +351,16 @@ a.header-phone {
     color: #000000;
 }
 
-.input-wrapper {
+.input-wrapper{
     position: relative;
     margin-top: 30px;
-    padding: 0;
+    padding:0;
     box-sizing: border-box;
 }
 
 .input-wrapper span {
     position: absolute;
-    top: 6px;
+    top:6px;
     left: 21px;
     font-family: 'Nunito';
     font-style: normal;
@@ -612,7 +410,6 @@ a.header-phone {
 .call-input1.not-empty {
     padding-top: 14px;
 }
-
 .call-textarea1.not-empty {
     padding-top: 20px;
 }
@@ -648,7 +445,7 @@ a.header-phone {
     flex-flow: row wrap;
     padding: 6px 22px 15px 22px;
     justify-content: space-around;
-    margin: 0 auto;
+    margin:  0 auto;
 
     background: #FFFFFF;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.12);
@@ -663,7 +460,7 @@ a.header-phone {
     max-width: 655px;
 }
 
-.office-top-container .off-photo {
+.office-top-container .off-photo{
     margin: 0 auto;
 }
 
@@ -693,13 +490,12 @@ a.header-phone {
     text-decoration: none;
 }
 
-.office-top-container .office-address img {
+.office-top-container .office-address img{
     align-self: center;
     width: 66px;
     height: 55px;
 }
-
-.office-top-container .office-address span {
+.office-top-container .office-address span{
     margin-top: 5px;
 }
 
@@ -731,7 +527,7 @@ a.header-phone {
     max-width: 440px;
 }
 
-.office-top-container .ofcol2 iframe {
+.office-top-container .ofcol2 iframe{
     width: 100%;
     height: 252px;
     border-radius: 5px;
