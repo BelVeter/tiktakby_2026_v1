@@ -78,8 +78,10 @@
                     </button>
 
                     {{-- Logo --}}
-                    <a href="/" class="navbar-brand me-4">
-                        <img src="/public/svg/logo-tiktak.svg" alt="TikTak" height="40">
+                    {{-- Logo --}}
+                    <a href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/" class="navbar-brand me-4">
+                        <img src="/public/svg/logo-tiktak.svg" alt="TikTak — сервис проката товаров в Минске"
+                            height="40">
                     </a>
                 </div>
 
