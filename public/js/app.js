@@ -2806,7 +2806,72 @@ function toggleNavLeftCats(e) {
   var parrent = e.target.closest('li');
   var target = parrent.querySelector('.cat-row');
   target.classList.toggle('show');
-}
+} // Favorites Logic
+// Favorites Logic
+// Favorites Logic
+
+
+document.addEventListener('click', function (e) {
+  var button = e.target.closest('.add-to-favorites');
+  if (!button) return;
+  e.preventDefault();
+  var productId = button.dataset.productId;
+
+  if (!productId) {
+    console.error('Missing product ID', button);
+    return;
+  } // Simple animation feedback immediately
+
+
+  button.style.transform = 'scale(1.2)';
+  setTimeout(function () {
+    return button.style.transform = 'scale(1)';
+  }, 200);
+  var csrfToken = document.querySelector('meta[name="csrf-token"]');
+
+  if (!csrfToken) {
+    console.error('CSRF token not found');
+    return;
+  }
+
+  fetch('/favorites/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+    },
+    body: JSON.stringify({
+      product_id: productId
+    })
+  }).then(function (response) {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    return response.json();
+  }).then(function (data) {
+    if (data.status === 'success') {
+      if (data.action === 'added') {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      } // Update all counters on the page (mobile/desktop if duplicated)
+
+
+      document.querySelectorAll('.favorites-count').forEach(function (el) {
+        el.innerText = data.count;
+
+        if (data.count > 0) {
+          el.style.display = 'flex';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+    }
+  })["catch"](function (error) {
+    console.error('Error:', error);
+  });
+});
 
 /***/ }),
 
