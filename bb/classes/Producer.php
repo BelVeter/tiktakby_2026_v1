@@ -34,9 +34,9 @@ class Producer
      */
     public function getUrl()
     {
-        //<img src="http://www.tiktak.by/images/logo_microlife.png" alt="rent of Microlife items">
-        $url = $this->url;
-        $url = str_replace('http://www.tiktak.by', '', $url);
+      //<img src="http://www.tiktak.by/images/logo_microlife.png" alt="rent of Microlife items">
+      $url = $this->url;
+      $url = str_replace('http://www.tiktak.by','',$url);
 
         return $url;
     }
@@ -44,8 +44,7 @@ class Producer
     /**
      * @return string
      */
-    public function getNameUrlEncoded()
-    {
+    public function getNameUrlEncoded(){
         return urlencode($this->getName());
     }
 
@@ -62,33 +61,31 @@ class Producer
     /**
      * @return Producer[]|false|void
      */
-    public static function getAllProducersTovExists()
-    {
-        return \Illuminate\Support\Facades\Cache::remember('all_producers_tov_exists', 1440, function () {
-            $rez = [];
+    public static function getAllProducersTovExists(){
+        if (is_array(self::$_prodicers)) return self::$_prodicers;
 
-            $mysqli = Db::getInstance()->getConnection();
-            $query = "SELECT tovar_rent.producer, MAX(rent_model_web.logo) as logo FROM `tovar_rent`
+        $rez = [];
+
+        $mysqli = Db::getInstance()->getConnection();
+        $query = "SELECT tovar_rent.producer, MAX(rent_model_web.logo) as logo FROM `tovar_rent`
                     LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id=tovar_rent.tovar_rent_id
                     LEFT JOIN rent_model_web ON rent_model_web.model_id =tovar_rent.tovar_rent_id
                     WHERE tovar_rent_items.item_id > 0 AND rent_model_web.logo != ''
                     GROUP BY tovar_rent.producer";
-            $result = $mysqli->query($query);
-            if (!$result) {
-                die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-            }
+        $result = $mysqli->query($query);
+        if (!$result) {die('Сбой при доступе к базе данных: '.$query.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);}
 
-            if ($result->num_rows < 1)
-                return false;
+        if ($result->num_rows < 1) return false;
 
-            while ($row = $result->fetch_assoc()) {
-                $rez[] = self::getFromDbArray($row);
-            }
+        while ($row = $result->fetch_assoc()) {
+            $rez[]=self::getFromDbArray($row);
+        }
 
-            self::$_prodicers = $rez;
+        self::$_prodicers=$rez;
 
-            return $rez;
-        });
+
+        return $rez;
+
     }
 
 
@@ -96,12 +93,11 @@ class Producer
      * @param $row
      * @return Producer
      */
-    private static function getFromDbArray($row)
-    {
+    private static function getFromDbArray($row){
         $pr = new self();
 
         $pr->setName($row['producer']);
-        //        $pr->setUrl(ModelWeb::getURLCorrectPathFor( $row['logo']));
+//        $pr->setUrl(ModelWeb::getURLCorrectPathFor( $row['logo']));
         $pr->setUrl($row['logo']);
 
         return $pr;

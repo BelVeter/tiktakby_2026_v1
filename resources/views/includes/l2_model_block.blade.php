@@ -11,9 +11,7 @@
         <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_header-link">
           <span class="l2-card_header">{!! $l2->getName() !!}</span>
         </a>
-        <div
-          class="l2-card_wishlist add-to-favorites {{ in_array($l2->getModelId(), session('favorites', [])) ? 'active' : '' }}"
-          data-product-id="{{$l2->getModelId()}}">
+        <div class="l2-card_wishlist">
           <i class="fas fa-heart"></i>
         </div>
       </div>
