@@ -156,16 +156,6 @@ Route::get(
 )->name('filter.age');
 
 
-Route::post(
-    '/favorites/toggle',
-    'App\Http\Controllers\FavoritesController@toggle'
-)->name('favorites.toggle');
-
-Route::get(
-    '/{lang}/favorites',
-    'App\Http\Controllers\FavoritesController@index'
-)->name('favorites.index');
-
 // Bioptron URL Alias & Redirect
 Route::redirect('/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk', '/ru/medical-prokat/bioptron', 301);
 
@@ -216,5 +206,5 @@ Route::get(
 )->name('l3page');
 
 Route::fallback(function () {
-    return response()->view('not_found', [], 404);
+    return response()->view('not_found');
 });

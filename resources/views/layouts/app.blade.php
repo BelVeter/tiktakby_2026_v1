@@ -1,15 +1,11 @@
 @php
-  $v = 190;
+  $v = 175;
 @endphp
 
 <!DOCTYPE html>
 <html lang="{{(request()->lang ? request()->lang : 'ru')}}">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-
   <!-- Global site tag (gtag.js) - Yandex webmaster -->
   <meta name="yandex-verification" content="61541709f8b93408" />
   <!-- Global site tag (gtag.js) - Google Analytics -->
