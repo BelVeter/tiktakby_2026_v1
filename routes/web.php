@@ -206,5 +206,5 @@ Route::get(
 )->name('l3page');
 
 Route::fallback(function () {
-    return response()->view('not_found');
+    return response()->view('not_found', [], 404);
 });
