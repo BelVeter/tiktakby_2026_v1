@@ -14,6 +14,23 @@ class FavoriteTovars
     private $active;//reserved
     private $type;//reserved
     private $change_time;
+    private $cachedUrl;
+
+    /**
+     * @return mixed
+     */
+    public function getCachedUrl()
+    {
+        return $this->cachedUrl;
+    }
+
+    /**
+     * @param mixed $cachedUrl
+     */
+    public function setCachedUrl($cachedUrl): void
+    {
+        $this->cachedUrl = $cachedUrl;
+    }
 
     /**
      * @return mixed
@@ -165,12 +182,14 @@ class FavoriteTovars
     /**
      * @return bool|void
      */
-    public function save(){
-        if ($this->getId()>0) $this->update();
+    public function save()
+    {
+        if ($this->getId() > 0)
+            $this->update();
         else {
             $mysqli = Db::getInstance()->getConnection();
 
-            $query = "INSERT INTO favorite_tovars SET model_id='$this->model_id', pic_url='$this->pic_url', pic_alt='$this->pic_alt', name_text='".addslashes($this->name_text)."', description='".addslashes($this->description)."', active='$this->active', `type`='$this->type'";
+            $query = "INSERT INTO favorite_tovars SET model_id='$this->model_id', pic_url='$this->pic_url', pic_alt='$this->pic_alt', name_text='" . addslashes($this->name_text) . "', description='" . addslashes($this->description) . "', active='$this->active', `type`='$this->type'";
             $result = $mysqli->query($query);
             if (!$result) {
                 die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -183,10 +202,11 @@ class FavoriteTovars
     /**
      * @return bool|void
      */
-    public function update(){
+    public function update()
+    {
         $mysqli = Db::getInstance()->getConnection();
 
-        $query = "UPDATE favorite_tovars SET id='$this->id', model_id='$this->model_id', pic_url='$this->pic_url', pic_alt='$this->pic_alt', name_text='".addslashes($this->name_text)."', description='".addslashes($this->description)."', active='$this->active', `type`='$this->type', change_time='$this->change_time' WHERE id='$this->id'";
+        $query = "UPDATE favorite_tovars SET id='$this->id', model_id='$this->model_id', pic_url='$this->pic_url', pic_alt='$this->pic_alt', name_text='" . addslashes($this->name_text) . "', description='" . addslashes($this->description) . "', active='$this->active', `type`='$this->type', change_time='$this->change_time' WHERE id='$this->id'";
         $result = $mysqli->query($query);
         if (!$result) {
             die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -198,7 +218,8 @@ class FavoriteTovars
     /**
      * @return bool
      */
-    public function delete(){
+    public function delete()
+    {
         self::deleteById($this->getId());
         return true;
     }
@@ -206,7 +227,8 @@ class FavoriteTovars
     /**
      * @return bool|void
      */
-    public static function deleteById($id){
+    public static function deleteById($id)
+    {
         $mysqli = Db::getInstance()->getConnection();
 
         $query = "DELETE FROM favorite_tovars WHERE id='$id'";
@@ -221,31 +243,39 @@ class FavoriteTovars
     /**
      * @return FavoriteTovars[]|false|void
      */
-    public static function getAll(){
-        $rez = [];
+    public static function getAll()
+    {
+        return \Illuminate\Support\Facades\Cache::remember('favorite_tovars_all', 1440, function () {
+            $rez = [];
 
-        $mysqli = Db::getInstance()->getConnection();
+            $mysqli = Db::getInstance()->getConnection();
 
-        $query = "SELECT * FROM favorite_tovars";
-        $result = $mysqli->query($query);
-        if (!$result) {
-            die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-        }
+            $query = "SELECT * FROM favorite_tovars";
+            $result = $mysqli->query($query);
+            if (!$result) {
+                die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+            }
 
-        if ($result->num_rows<1) return false;
+            if ($result->num_rows < 1)
+                return false;
 
-        while ($row = $result->fetch_assoc()) {
-            $rez[] = self::createFromDbArray($row);
-        }
+            while ($row = $result->fetch_assoc()) {
+                /** @var FavoriteTovars $ft */
+                $ft = self::createFromDbArray($row);
+                $ft->setCachedUrl($ft->getUrlL3Page());
+                $rez[] = $ft;
+            }
 
-        return $rez;
+            return $rez;
+        });
     }
 
     /**
      * @param $model_id
      * @return false|FavoriteTovars|void
      */
-    public static function getByModelId($model_id){
+    public static function getByModelId($model_id)
+    {
         $mysqli = Db::getInstance()->getConnection();
 
         $query = "SELECT * FROM favorite_tovars WHERE model_id='$model_id'";
@@ -254,7 +284,8 @@ class FavoriteTovars
             die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
         }
 
-        if ($result->num_rows<1) return false;
+        if ($result->num_rows < 1)
+            return false;
 
         return self::createFromDbArray($result->fetch_assoc());
     }
@@ -263,7 +294,8 @@ class FavoriteTovars
      * @param $id
      * @return false|FavoriteTovars|void
      */
-    public static function getBylId($id){
+    public static function getBylId($id)
+    {
         $mysqli = Db::getInstance()->getConnection();
 
         $query = "SELECT * FROM favorite_tovars WHERE id='$id'";
@@ -272,7 +304,8 @@ class FavoriteTovars
             die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
         }
 
-        if ($result->num_rows<1) return false;
+        if ($result->num_rows < 1)
+            return false;
 
         return self::createFromDbArray($result->fetch_assoc());
     }
@@ -281,7 +314,8 @@ class FavoriteTovars
      * @param $row
      * @return FavoriteTovars
      */
-    private static function createFromDbArray($row) {
+    private static function createFromDbArray($row)
+    {
         $ft = new self();
 
         $ft->setId($row['id']);
@@ -300,7 +334,8 @@ class FavoriteTovars
     /**
      * @return string
      */
-    public function getUrlL3Page(){
+    public function getUrlL3Page()
+    {
         if (!\bb\classes\ModelWeb::getByModelId($this->getModelId())) {
             return '';
         }
