@@ -60,6 +60,7 @@ docker-compose.override.yml
 *.webm
 *.webp
 public/public
+!/public/svg/*.svg
 
 # Uppercase extensions
 *.JPG
