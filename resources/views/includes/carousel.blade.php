@@ -1,7 +1,7 @@
 @php /** @var \App\MyClasses\MainPage $p */ @endphp
 <div class="img-slider">
     <div class="slide active">
-        <img src="/public/slider/25-karnaval.jpg" alt="" fetchpriority="high">
+        <img src="/public/slider/25-karnaval.webp" alt="" fetchpriority="high">
         <div class="info">
             <h3>КАРНАВАЛЬНЫЕ КОСТЮМЫ</h3>
             <h2>огромный выбор</h2>
@@ -12,7 +12,7 @@
 
 
     <div class="slide">
-        <img src="/public/slider/b12.jpg" alt="" loading="lazy">
+        <img src="/public/slider/b12.webp" alt="" loading="lazy">
         <div class="info">
             <h3>детские автокресла</h3>
             <h2>CYBEX CLOUD Q PLUS</h2>
@@ -33,7 +33,7 @@
     </div>--}}
 
     <div class="slide">
-        <img src="/public/slider/25-cybex.jpg" alt="коляска Cybex Priam прокат Минск" loading="lazy">
+        <img src="/public/slider/25-cybex.webp" alt="коляска Cybex Priam прокат Минск" loading="lazy">
         <div class="info">
             <h3>транспортные системы</h3>
             <h2>CYBEX PRIAM</h2>
@@ -46,7 +46,7 @@
 
 
     <div class="slide">
-        <img src="/public/slider/11.jpg" alt="" loading="lazy">
+        <img src="/public/slider/11.webp" alt="" loading="lazy">
         <div class="info">
             <h3>доказанная эффективность</h3>
             <h2>Bioptron MedAll</h2>
@@ -67,7 +67,7 @@
     </div>--}}
 
     <div class="slide">
-        <img src="/public/slider/sleep-bassinet.jpg" alt="">
+        <img src="/public/slider/sleep-bassinet.webp" alt="" loading="lazy">
         <div class="info">
             <h3>кроватки, колыбели</h3>
             <h2>4Moms MamaRoo</h2>
@@ -79,7 +79,7 @@
     </div>
 
     <div class="slide">
-        <img src="/public/slider/3.jpg" alt="">
+        <img src="/public/slider/3.webp" alt="" loading="lazy">
         <div class="info">
             <h3>транспортные системы</h3>
             <h2>Коляски детские</h2>
@@ -89,7 +89,7 @@
     </div>
 
     <div class="slide">
-        <img src="/public/slider/babybjorn-sl.jpg" alt="">
+        <img src="/public/slider/babybjorn-sl.webp" alt="" loading="lazy">
         <div class="info">
             <h3>шезлонг-балансир</h3>
             <h2>Babybjorn</h2>
