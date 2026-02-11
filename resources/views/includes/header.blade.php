@@ -310,6 +310,7 @@
 @php
   $an=\bb\classes\Announcement::getMessageByType('main');
 @endphp
+@if($an && $an->toShow())
 <div class="container-app">
     <div style="background-color: #E3F2FD; border-radius: 8px; padding: 15px; color: #1565C0; display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 10px; margin-bottom: 10px;">
         <div style="flex-shrink: 0;">
@@ -320,9 +321,10 @@
             </svg>
         </div>
         <div style="font-size: 16px; line-height: 1.5; text-align: left;">
-            С 1 марта офис <b>ул. Ложинская 5</b> закрывается. Выдача и возврат товаров по адресу <b>ул. Литературная 22</b>.
+            {!! $an->getMessage() !!}
         </div>
     </div>
 </div>
+@endif
 
 
