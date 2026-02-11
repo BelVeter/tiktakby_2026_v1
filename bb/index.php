@@ -8,18 +8,18 @@ use bb\models\User;
 
 session_start();
 
-ini_set("display_errors",1);
+ini_set("display_errors", 1);
 error_reporting(E_ALL);
 
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Db.php'); //
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Base.php'); //
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/models/Office.php'); //
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/models/User.php'); //
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/UserRole.php'); //
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/KassaSet.php'); //
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Permission.php'); //
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/models/Kassa.php'); //
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/models/LegalEntity.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Db.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Base.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/Office.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/UserRole.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/KassaSet.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/Kassa.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/LegalEntity.php'); //
 //require_once ($_SERVER['DOCUMENT_ROOT'].'/includes/zv_show.php'); //
 
 echo Base::PageStartAdvansed('Главная.');
@@ -34,7 +34,7 @@ echo '<link href="/bb/stile.css?v=3" rel="stylesheet" type="text/css" />
 
 ';
 
-echo Base::getBarCodeReaderScript('', array('target'=>'/bb/scanner_tovar.php'));
+echo Base::getBarCodeReaderScript('', array('target' => '/bb/scanner_tovar.php'));
 
 
 //Base::PostCheckVarDumpEcho();
@@ -42,32 +42,31 @@ echo Base::getBarCodeReaderScript('', array('target'=>'/bb/scanner_tovar.php'));
 Base::GetAllPostGlobal();
 
 if (isset($_POST['action'])) {
-    $action=Base::GetPost('action');
+    $action = Base::GetPost('action');
 
     switch ($action) {
         case 'Войти':
-            if ($user=User::LogIn($log, $pass)) {
+            if ($user = User::LogIn($log, $pass)) {
                 //var_dump($user);
                 $user->sessionRegister();
-            }
-            else {
+            } else {
                 echo '<div class="alert-warning text-center">Неверный пароль или имя пользователя.</div>';
             }
             break;
         case 'role_register':
-            $role_name=Base::GetPost('user_role');
-            $role=UserRole::getRoleByRoleName($role_name, User::getCurrentUser()->id_user);
+            $role_name = Base::GetPost('user_role');
+            $role = UserRole::getRoleByRoleName($role_name, User::getCurrentUser()->id_user);
             //var_dump($role);
             $role->sessionRegister();
             break;
         case 'office_register':
-                $office_num=Base::GetPost('office');
-                $office_type=Base::GetPost('office_type');
-                $of = Office::getOfficeByNumber($office_num, $office_type);
+            $office_num = Base::GetPost('office');
+            $office_type = Base::GetPost('office_type');
+            $of = Office::getOfficeByNumber($office_num, $office_type);
 
-                //Base::varDamp($of);
+            //Base::varDamp($of);
 
-                $of->sessionRegister();
+            $of->sessionRegister();
 
             break;
         case 'Выйти':
@@ -77,10 +76,10 @@ if (isset($_POST['action'])) {
 }
 
 if (!Base::isAllLoggedIn()) {
-$prev_step_passed=true;
-//login
+    $prev_step_passed = true;
+    //login
     if (!User::isLoggedIn()) {
-        $prev_step_passed=false;
+        $prev_step_passed = false;
         //потом убрать !!! и сделать правильный вылогин
         unset($_SESSION['office_s']);
         unset($_SESSION['role']);
@@ -89,17 +88,17 @@ $prev_step_passed=true;
         echo Base::getLoginForm();
     }
 
-//role chose
+    //role chose
     if ($prev_step_passed && !UserRole::isRoleChosen()) {//is role chosen
-        $prev_step_passed=false;
+        $prev_step_passed = false;
         //echo 'Role run.<br>';
         $roles = UserRole::getRolesForUser(User::getCurrentUser()->id_user);
         //Base::varDamp($roles);
         if (count($roles) == 1) {
             $roles[0]->sessionRegister();
-            $prev_step_passed=true;
+            $prev_step_passed = true;
         } else {
-//        echo 'roles num: '.count($roles).'<br>';
+            //        echo 'roles num: '.count($roles).'<br>';
 //        Base::varDamp($roles);
             echo '
             <form action="index.php" method="post">
@@ -125,7 +124,7 @@ $prev_step_passed=true;
 //Base::varDamp($_SESSION);
 //office chose
     if ($prev_step_passed && !Office::isOfficeChosen() && !UserRole::getCurrentRole()->isCurier()) {//is office chosen
-        $prev_step_passed=false;
+        $prev_step_passed = false;
         //echo 'Office run.<br>';
         if (!UserRole::getCurrentRole()->isCurier()) {//non curier
             if (User::getCurrentUser()->isIpRestricted()) {
@@ -150,17 +149,15 @@ $prev_step_passed=true;
                     <div class="col text-center h3"><form method="post" action="index.php" style="margin: 0;"><input type="submit" class="btn btn-danger btn-lg" name="action" value="Выйти" /></form></div>
                 </div>
                     ';
-            }
-            else{
+            } else {
                 echo 'Ошибка: нет офиса для выбора.';
             }
 
-        }
-        elseif (count($offices) == 1) {
+        } elseif (count($offices) == 1) {
             //echo 'off session register started';
             //Base::varDamp($offices);
             $offices[0]->sessionRegister();
-            $prev_step_passed=true;
+            $prev_step_passed = true;
         } else {//more than 1 office
             echo '
         <div class="alert-info text-center h1">Выберите офис:</div>
@@ -183,20 +180,20 @@ $prev_step_passed=true;
         }
     }//end of office check
 
-//LE chose
+    //LE chose
 //    if ($prev_step_passed && !LegalEntity::isLeChosen()){//chosing LE
 //
 //    }
 //KassaSet chose
 
     if ($prev_step_passed) {
-        $_SESSION['svoi']=8941;
+        $_SESSION['svoi'] = 8941;
     }
 
     if (!Base::isAllLoggedIn()) {//only if the whole steps are not passed. In other case after office successful login - we stop at white page until refresh.
         //echo '</div>';
         echo '<div class="row">
-                <div class="col"><p class="small">'.$_SERVER['REMOTE_ADDR'].'</p></div>
+                <div class="col"><p class="small">' . $_SERVER['REMOTE_ADDR'] . '</p></div>
               </div>';
 
         echo Base::PageEndHTML();
@@ -208,24 +205,25 @@ $prev_step_passed=true;
 //change of office for owners
 if (isset($_POST['office_change_to']) && User::getCurrentUser()->isOwner()) {
 
-    $office_num=Base::GetPost('office_change_to');
-    $office_type='office';
+    $office_num = Base::GetPost('office_change_to');
+    $office_type = 'office';
     $of = Office::getOfficeByNumber($office_num, $office_type);
 
     //Base::varDamp($of);
 
     $of->sessionRegister();
 
-   // $of_ch_n=Base::GetPost('office_change_to');
-   // Office::changeOfficeLoggeIn($of_ch_n);
+    // $of_ch_n=Base::GetPost('office_change_to');
+    // Office::changeOfficeLoggeIn($of_ch_n);
 }
 
 $role = UserRole::getCurrentRole();
 ?>
 
-<?php include_once ($_SERVER['DOCUMENT_ROOT'].'/bb/top_menu.php'); ?>
+<?php include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/top_menu.php'); ?>
 
-<a href="/bb/cur_viezdy.php" style="background-color: #00c400; font-size: 20px; padding: 15px;">Ссылка для курьеров. Тестовая версия.</a>
+<a href="/bb/cur_viezdy.php" style="background-color: #00c400; font-size: 20px; padding: 15px;">Ссылка для курьеров.
+    Тестовая версия.</a>
 <div class="container-menu">
     <a class="menu-link" href="/bb/dogovor_new.php">
         <img src="/bb/assets/images/png/menu-clients.png">
@@ -268,12 +266,12 @@ $role = UserRole::getCurrentRole();
         <span>Задачи</span>
     </a>
     <a class="menu-link" href="/bb/announcements.php">
-      <img src="/bb/assets/images/png/announcement.png" style="max-width: 50px">
-      <span>Объявление</span>
+        <img src="/bb/assets/images/png/announcement.png" style="max-width: 50px">
+        <span>Объявление</span>
     </a>
     <a class="menu-link" href="/bb/subscriptions.php">
-      <img src="/bb/assets/images/jpg/subscr.jpg" style="width: 50px;">
-      <span>Подписки</span>
+        <img src="/bb/assets/images/jpg/subscr.jpg" style="width: 50px;">
+        <span>Подписки</span>
     </a>
 
 </div>
@@ -313,9 +311,9 @@ $role = UserRole::getCurrentRole();
 -->
 <?php
 
-if (($_SESSION['level']>4 || $_SESSION['level']==3) && !$role->isCurier()) {
+if (($_SESSION['level'] > 4 || $_SESSION['level'] == 3) && !$role->isCurier()) {
 
-    echo'
+    echo '
  <div class="container-menu">
         <a class="menu-link" href="/bb/tovar_new.php">
             <img src="/bb/assets/images/png/menu-newtovar.png">
@@ -343,7 +341,7 @@ if (($_SESSION['level']>4 || $_SESSION['level']==3) && !$role->isCurier()) {
 
 if (User::getCurrentUser()->getId() == 26) {
 
-    echo'
+    echo '
  <div class="container-menu">
         <a class="menu-link" href="/bb/tovar_new.php">
             <img src="/bb/assets/images/png/menu-newtovar.png">
@@ -363,18 +361,18 @@ if (User::getCurrentUser()->getId() == 26) {
 
 echo '
 <div class="top_menu">
-    '.(User::getCurrentUser()->hasPermission(1) ? '
+    ' . (User::getCurrentUser()->hasPermission(1) ? '
     <a class="div_item" href="/bb/razdel_manage.php" style="background-color: mediumpurple; color: black;">Работа с меню</a>
     <a class="div_item" href="/bb/page_management.php" style="background-color: mediumpurple; color: black;">Страницы</a>
     <a class="div_item" href="/bb/favorite_tovars_management.php" style="background-color: mediumpurple; color: black;">Популярные товары</a>
-    ' : '').'
-    '.(User::getCurrentUser()->hasPermission(2) ? '<a class="div_item" href="/bb/bulk_actions.php" style="background-color: orange; color: black;">Массовые операции</a>' : '').'
+    ' : '') . '
+    ' . (User::getCurrentUser()->hasPermission(2) ? '<a class="div_item" href="/bb/bulk_actions.php" style="background-color: orange; color: black;">Массовые операции</a>' : '') . '
 </div>
 ';
 
-if (User::getCurrentUser()->isManagement()){
+if (User::getCurrentUser()->isManagement()) {
 
-echo '
+    echo '
     <div class="top_menu">
         <a class="div_item" href="/bb/tov_analytics.php">Анализ категорий.</a>
     </div>
@@ -385,7 +383,7 @@ echo '
 if (User::getCurrentUser()->hasPermission(3)) {
     echo '
     <div class="top_menu">
-	'.(($_SESSION['level']!=3) ? '<a class="div_item" href="/bb/tovar_new.php">Новый товар</a><a class="div_item" href="/bb/tovar_new_mod.php">Новая модель</a>' : '').'
+	' . (($_SESSION['level'] != 3) ? '<a class="div_item" href="/bb/tovar_new.php">Новый товар</a><a class="div_item" href="/bb/tovar_new_mod.php">Новая модель</a>' : '') . '
 	<a class="div_item" href="/bb/tovar_rent_all.php">Просмотр всех товаров</a>
 </div>
 <br /><br />
@@ -398,7 +396,7 @@ if (User::getCurrentUser()->hasPermission(3)) {
 	<a class="div_item" href="/bb/rent_tarifs.php">Работа с тарифами</a><a class="div_item" href="/bb/cl_check.php">Чистка клиентов</a><a class="div_item" href="/bb/staf_track.php">Входы-выходы</a>
 </div>
 <br /><br />
-'.(User::getCurrentUser()->hasPermission(3) ? '
+' . (User::getCurrentUser()->hasPermission(3) ? '
 <div class="top_menu">
 	<a class="div_item" href="/bb/reports.php">Сводный отчет.</a>
 	<a class="div_item" href="/bb/gr.php" style="background-color: #acf398">Сводный график.</a>
@@ -418,7 +416,16 @@ if (User::getCurrentUser()->hasPermission(3)) {
 	<a class="div_item" href="/bb/doh_rash_book_kr.php">Книга доходов и расходов2.</a>
 	<a class="div_item" href="/bb/zpl.php">Расчет з\пл.</a>
 	<a class="div_item" href="/bb/kch.php">Сохраненные остатки.</a>
-</div> <br />' : '').'';
+</div> <br />' : '') . '';
+}
+
+
+if (User::getCurrentUser()->isOwner()) {
+    echo '
+    <div class="top_menu">
+        <a class="div_item" href="/bb/orphan_models.php" style="background-color: darkred; color: white;">Очистка висячих моделей</a>
+        <a class="div_item" href="/bb/validate_images.php" style="background-color: #8b4513; color: white;">Валидация картинок</a>
+    </div>';
 }
 
 echo Base::PageEndHTML();
