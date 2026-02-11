@@ -1,4 +1,4 @@
-.header-desktop{
+.header-desktop {
     margin: 15px 0 15px 0;
     display: flex;
     flex-flow: row nowrap;
@@ -18,7 +18,7 @@
 
 }
 
-.header-logo-col{
+.header-logo-col {
     display: flex;
     flex-flow: column nowrap;
     justify-content: flex-start;
@@ -32,11 +32,11 @@
     }
 }
 
-.header__logo-a{
+.header__logo-a {
     position: relative;
     width: fit-content;
 
-    .prokat-text{
+    .prokat-text {
         position: absolute;
         top: 5px;
         right: 72px;
@@ -58,10 +58,12 @@
 .header-logo-img {
     //width: 227px;
     height: 70px;
+
     @media (max-width: 767px) {
         height: 40px;
     }
 }
+
 .header-logo-col h4 a {
     font-family: 'Gilroy';
     font-style: normal;
@@ -75,7 +77,7 @@
 
 .header-logo-col h4 {
     margin: 0;
-    padding:0;
+    padding: 0;
 }
 
 .header-col2 {
@@ -86,12 +88,13 @@
     @media screen and (max-width: 1000px) {
         order: 3;
     }
+
     @media screen and (max-width: 767px) {
         order: unset;
     }
 }
 
-.header-line1{
+.header-line1 {
     display: flex;
     flex-flow: row nowrap;
     justify-content: space-between;
@@ -123,7 +126,7 @@
 
         transition: 0.7s;
 
-        &.show{
+        &.show {
             left: 0;
         }
     }
@@ -140,7 +143,7 @@
     }
 }
 
-.header-line1 ul li:last-child{
+.header-line1 ul li:last-child {
     margin-left: 4%;
 }
 
@@ -158,13 +161,13 @@
         justify-content: space-between;
         padding: 10px 25px;
 
-        img{
+        img {
             margin-left: 30px;
         }
     }
 }
 
-.header-line1 ul li:first-child{
+.header-line1 ul li:first-child {
     @media screen and (max-width: 767px) {
         margin-top: 10px;
         border-top: none;
@@ -229,20 +232,21 @@
 }
 
 .header-line2 {
-  .messangers{
-    display: flex;
-    flex-flow: row nowrap;
-    justify-content: space-between;
+    .messangers {
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: space-between;
 
-    min-width: 110px;
-    a img {
-      width: 30px;
+        min-width: 110px;
+
+        a img {
+            width: 30px;
+        }
     }
-  }
 }
 
 
-.phone-number-div{
+.phone-number-div {
     display: flex;
     flex-flow: column nowrap;
     min-width: 125px;
@@ -285,9 +289,11 @@ a.header-phone {
         justify-self: flex-end;
         order: 2;
     }
+
     @media screen and (max-width: 767px) {
         order: unset;
     }
+
     .office_geo-a {
         display: flex;
         flex-flow: row nowrap;
@@ -300,16 +306,17 @@ a.header-phone {
         color: #2A68A7;
         line-height: 162%;
 
-        .arrow{
+        .arrow {
             width: 14px;
             margin-left: 5px;
         }
 
-        .geo{
+        .geo {
             margin-right: 5px;
         }
     }
-    .office_geo-a:nth-child(1){
+
+    .office_geo-a:nth-child(1) {
         line-height: 216%;
     }
 }
@@ -351,16 +358,16 @@ a.header-phone {
     color: #000000;
 }
 
-.input-wrapper{
+.input-wrapper {
     position: relative;
     margin-top: 30px;
-    padding:0;
+    padding: 0;
     box-sizing: border-box;
 }
 
 .input-wrapper span {
     position: absolute;
-    top:6px;
+    top: 6px;
     left: 21px;
     font-family: 'Nunito';
     font-style: normal;
@@ -410,6 +417,7 @@ a.header-phone {
 .call-input1.not-empty {
     padding-top: 14px;
 }
+
 .call-textarea1.not-empty {
     padding-top: 20px;
 }
@@ -445,7 +453,7 @@ a.header-phone {
     flex-flow: row wrap;
     padding: 6px 22px 15px 22px;
     justify-content: space-around;
-    margin:  0 auto;
+    margin: 0 auto;
 
     background: #FFFFFF;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.12);
@@ -460,7 +468,7 @@ a.header-phone {
     max-width: 655px;
 }
 
-.office-top-container .off-photo{
+.office-top-container .off-photo {
     margin: 0 auto;
 }
 
@@ -490,12 +498,13 @@ a.header-phone {
     text-decoration: none;
 }
 
-.office-top-container .office-address img{
+.office-top-container .office-address img {
     align-self: center;
     width: 66px;
     height: 55px;
 }
-.office-top-container .office-address span{
+
+.office-top-container .office-address span {
     margin-top: 5px;
 }
 
@@ -527,8 +536,230 @@ a.header-phone {
     max-width: 440px;
 }
 
-.office-top-container .ofcol2 iframe{
+.office-top-container .ofcol2 iframe {
     width: 100%;
     height: 252px;
     border-radius: 5px;
+}
+
+// Header Top Bar
+.top-header-full-width {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.top-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 40px;
+    font-family: 'Gilroy', sans-serif;
+}
+
+.top-bar-left {
+    display: flex;
+    gap: 20px;
+
+    a {
+        text-decoration: none;
+        color: #333;
+        font-size: 14px;
+        font-weight: 300;
+        transition: color 0.3s;
+
+        &:hover {
+            color: #3180d1;
+        }
+    }
+}
+
+.top-bar-center {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+
+    .top-phone {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        a {
+            color: #333;
+            font-family: 'Nunito', sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            text-decoration: none;
+        }
+
+        svg {
+            path {
+                stroke: #3180d1;
+            }
+        }
+    }
+
+
+}
+
+.top-bar-right {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+
+    a {
+        display: flex;
+        align-items: center;
+
+        svg {
+            transition: transform 0.3s;
+        }
+
+        &:hover svg {
+            transform: scale(1.1);
+        }
+    }
+}
+
+.top-bar-right .top-address {
+    display: flex;
+    align-items: center;
+
+    a {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        color: #333;
+        font-size: 14px;
+        font-weight: 300;
+
+        img {
+            height: 18px;
+        }
+
+        span {
+            margin-left: 12px;
+            margin-right: 5px;
+        }
+
+        .arrow-down {
+            height: 8px;
+            padding-top: 2px;
+        }
+
+        transition: color 0.3s;
+
+        &:hover {
+            color: #3180d1;
+        }
+    }
+}
+
+// New Main Header Block Styles
+.header-main-full-width {
+    background-color: #f8f9fa;
+    padding: 10px 0;
+}
+
+.header-main-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-logo-small {
+    display: block;
+
+    img {
+        height: 46px;
+        width: auto;
+    }
+}
+
+.header-search-small {
+    position: relative;
+    flex: 0 1 45%;
+    display: flex;
+    align-items: center;
+
+    input {
+        width: 100%;
+        height: 40px;
+        padding-left: 15px;
+        padding-right: 45px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+        background: #fff;
+        outline: none;
+        transition: border-color 0.3s;
+
+        font-family: 'Gilroy';
+        font-weight: 300;
+        font-size: 14px;
+        color: #2A68A7;
+
+        &::placeholder {
+            color: #2A68A7;
+            opacity: 0.7;
+        }
+
+        &:focus {
+            border-color: #3180d1;
+        }
+    }
+
+    button {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        padding: 5px;
+
+        img {
+            width: 20px;
+            height: 20px;
+        }
+    }
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+
+    .action-item {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        gap: 5px;
+        text-decoration: none;
+        color: #333;
+        transition: color 0.3s;
+
+        svg {
+            width: 24px;
+            height: 24px;
+            stroke: #3180D1; // Ensure default color matches requirements
+
+            path {
+                transition: stroke 0.3s;
+            }
+        }
+
+        span {
+            font-family: 'Nunito', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        &:hover {
+            color: #3180d1;
+
+            svg path {
+                stroke-width: 2;
+            }
+        }
+    }
 }
