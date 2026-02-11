@@ -82,24 +82,7 @@ function checkImage($path)
     if (empty($path))
         return ['status' => 'empty', 'msg' => 'Не указана'];
 
-    $preUrl = '/public/pics';
-
-    if (strpos($path, $preUrl) === 0) {
-        $full_disk_path = $_SERVER['DOCUMENT_ROOT'] . $path;
-    } else {
-        if (substr($path, 0, 1) == '/') {
-            $full_disk_path = $_SERVER['DOCUMENT_ROOT'] . $preUrl . $path; // /public/pics/filename.jpg
-        } else {
-            $full_disk_path = $_SERVER['DOCUMENT_ROOT'] . $preUrl . '/' . $path;
-        }
-
-        if (!file_exists($full_disk_path) && substr($path, 0, 1) == '/') {
-            $alt_path = $_SERVER['DOCUMENT_ROOT'] . $path;
-            if (file_exists($alt_path)) {
-                $full_disk_path = $alt_path;
-            }
-        }
-    }
+    $full_disk_path = $_SERVER['DOCUMENT_ROOT'] . $path;
 
     if (file_exists($full_disk_path)) {
         return ['status' => 'ok', 'msg' => 'OK', 'path' => $path];
@@ -117,13 +100,13 @@ while ($row = $result->fetch_assoc()) {
 
     // Проверка L2
     $l2_path = $row['l2_pic'];
-    $l2_url_corrected = \bb\classes\ModelWeb::getURLCorrectPathFor($l2_path);
-    $l2_res = checkImage($l2_url_corrected);
+    // $l2_url_corrected = \bb\classes\ModelWeb::getURLCorrectPathFor($l2_path);
+    $l2_res = checkImage($l2_path);
 
     // Проверка L3 Main
     $l3_path = $row['m_pic_big'];
-    $l3_url_corrected = \bb\classes\ModelWeb::getURLCorrectPathFor($l3_path);
-    $l3_res = checkImage($l3_url_corrected);
+    // $l3_url_corrected = \bb\classes\ModelWeb::getURLCorrectPathFor($l3_path);
+    $l3_res = checkImage($l3_path);
 
     // Проверка слайдера
     $model_dops = isset($dop_photos[$row['model_id']]) ? $dop_photos[$row['model_id']] : [];
