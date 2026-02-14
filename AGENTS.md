@@ -28,6 +28,7 @@
 | `SearchController` | Search, filtering by manufacturer and age |
 | `ZvonokController` | Callback requests, bookings, subscriptions |
 | `RedirectController` | All redirect routes (created for `route:cache` compatibility) |
+| `FavoritesController` | Favorites functionality (added by Kristina) |
 
 ### Middleware (`app/Http/Middleware/`)
 
@@ -114,3 +115,9 @@ Sequence:
 - **Do NOT use `php artisan serve`** — the site only works through Laragon's Apache at `http://localhost`
 - When changing CSS/JS — run `npm run prod` locally and commit `public/js`, `public/css`, `mix-manifest.json`
 - The `$v` version number in `app.blade.php` only needs incrementing for vendor files (bootstrap, popper)
+
+### Command Execution
+- **Safe to auto-run**: All `git` and `mysql` commands that are read-only or non-destructive (e.g., `git status`, `git log`, `git diff`, `mysql SHOW TABLES`, `mysql SELECT`) should be executed with `SafeToAutoRun: true`.
+- **Project commands**: Standard development commands (`npm`, `composer`, `php artisan`) should be auto-run for efficiency.
+- **Exceptions**: Only ask for confirmation for mass deletion of files or dropping of fundamental database tables.
+
