@@ -212,6 +212,42 @@
           </svg>
           ВЗЯТЬ НАПРОКАТ
         </a>
+
+        {{-- Add to Cart button --}}
+        @php
+          $cartTariffs = [];
+          $tarifModel = $l2->getTarifModel();
+          if ($tarifModel) {
+            foreach ($tarifModel->getTarifs() as $t) {
+              $daysNum = $t->getDaysCalculatedNumber();
+              if ($daysNum > 0) {
+                $dailyRate = round($t->getTotalAmount() / $daysNum, 2);
+                $cartTariffs[] = [$daysNum, $dailyRate];
+              }
+            }
+            usort($cartTariffs, function ($a, $b) {
+              return $a[0] - $b[0]; });
+          }
+        @endphp
+        <button type="button" class="l2-card_btn-cart" data-model-id="{{ $l2->getModelId() }}"
+          data-model-name="{{ strip_tags($l2->getName()) }}" data-model-pic="{{ $l2->getPicUrl() }}"
+          data-model-url="{{ $l2->getL3Url(request()->lang) }}" data-tariffs='@json($cartTariffs)' onclick="TiktakCart.addItem({
+                modelId: {{ $l2->getModelId() }},
+                name: this.getAttribute('data-model-name'),
+                picUrl: this.getAttribute('data-model-pic'),
+                l3Url: this.getAttribute('data-model-url'),
+                dateFrom: TiktakCart.todayStr(),
+                days: 14,
+                tariffs: JSON.parse(this.getAttribute('data-tariffs'))
+              })">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            class="btn-icon">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          В КОРЗИНУ
+        </button>
       @else
         <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_btn btn-request">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="btn-icon">
