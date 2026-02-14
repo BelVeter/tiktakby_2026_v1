@@ -495,16 +495,17 @@
 
 // L3 cart button style
 .action-button.cart-button {
-  background-color: transparent;
-  color: #4A90E2;
+  background-color: #4A90E2;
+  color: white;
   border: 2px solid #4A90E2;
   cursor: pointer;
   transition: all 0.2s ease;
   margin-top: 8px;
 
   &:hover {
-    background-color: #4A90E2;
+    background-color: #357ABD; // Darker blue
     color: white;
+    border-color: #357ABD;
   }
 }
 
