@@ -425,7 +425,6 @@ if (User::getCurrentUser()->isOwner()) {
     <div class="top_menu">
         <a class="div_item" href="/bb/orphan_models.php" style="background-color: darkred; color: white;">Очистка висячих моделей</a>
         <a class="div_item" href="/bb/validate_images.php" style="background-color: #8b4513; color: white;">Валидация картинок</a>
-        <a class="div_item" href="/bb/redirects.php" style="background-color: #0d6efd; color: white;">Перенаправления</a>
     </div>';
 }
 
