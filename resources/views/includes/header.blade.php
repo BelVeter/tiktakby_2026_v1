@@ -23,7 +23,7 @@
                         <path d="M16 9C16.7956 9 17.5587 9.31607 18.1213 9.87868C18.6839 10.4413 19 11.2044 19 12" stroke="#3180d1" style="stroke: #3180d1 !important;" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M13 6C14.5913 6 16.1174 6.63214 17.2426 7.75736C18.3679 8.88258 19 10.4087 19 12" stroke="#3180d1" style="stroke: #3180d1 !important;" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <a href="tel:+375447454040">+375 44 745 40 40</a>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#callbackModal" style="color: #333; text-decoration: none;">+375 44 745 40 40</a>
                 </div>
             </div>
             <div class="top-bar-right">
@@ -97,131 +97,262 @@
 
 <header>
     <div class="container-app">
-        <!-- mobile 1-t header line -->
-        <div class="row mobile-header-row d-md-none">
-            <div class="col mobile-header">
-                <button class="menu1-open"><span>{{$header->translate('Еще')}}</span><div class="more-sign"></div></button>
-                <span class="top-header-mobile">{{$header->translate('Сервис проката')}}</span>
-                <button class="lang-open">{{$topMenu->getLang()}} <img src="/public/svg/arrow_top_menu1.svg"></button>
-                <div class="lang-choice-container">
-                    @foreach($header->getLangHrefArrayForCurrentPage(request()->path()) as $arr)
-                        <a href="/{{$arr[1]}}/">{{strtoupper($arr[0])}}</a>
-                    @endforeach
-                </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fix for opening the mobile menu
+        var menuToggles = document.querySelectorAll('.menu1-open');
+        // Defined variables in outer scope for cross-access
+        var mobileMenu = document.querySelector('.mobile-topmenu-container');
+        var infoMenu = document.querySelector('.mobile-info-menu-container');
+
+        // Helper function for closing info menu (needs to be available)
+        function closeInfoMenu() {
+            if (infoMenu) {
+                infoMenu.classList.add('d-none');
+                infoMenu.style.display = 'none';
+            }
+        }
+
+        // Helper function for closing mobile menu (catalog)
+        function closeMobileMenu() {
+             if (mobileMenu) {
+                 mobileMenu.classList.add('d-none');
+                 mobileMenu.style.display = 'none';
+                 // Reset state when closing
+                 var catalogList = document.querySelector('ul[data-navlevel="razdel"]');
+                 if(catalogList) catalogList.classList.add('left'); 
+             }
+        }
+
+        if (mobileMenu && menuToggles.length > 0) {
+            function toggleMobileMenu(e) {
+                e.preventDefault();
+                e.stopPropagation(); 
+                
+                if (mobileMenu.classList.contains('d-none')) {
+                    // Close info menu if open
+                    closeInfoMenu();
+
+                    mobileMenu.classList.remove('d-none');
+                    mobileMenu.style.display = 'flex'; // backdrop is flex/block
+                    
+                    // NEW: Auto-open the catalog list and hide the intermediate row
+                    if(intermediateRow) intermediateRow.style.display = 'none';
+                    if(catalogList) {
+                        catalogList.classList.remove('left'); // Remove 'left' class which likely hides it
+                        catalogList.style.display = 'block'; // Ensure it's visible
+                    }
+
+                } else {
+                    closeMobileMenu();
+                }
+            }
+            
+            menuToggles.forEach(function(btn) {
+                btn.addEventListener('click', toggleMobileMenu);
+                btn.addEventListener('touchstart', toggleMobileMenu, {passive: false});
+            });
+            
+            // Close menu when clicking on the backdrop (mobileMenu container)
+            mobileMenu.addEventListener('click', function(e) {
+                if (e.target === mobileMenu) {
+                    closeMobileMenu();
+                }
+            });
+        }
+
+        // Info Menu Logic (Hamburger)
+        var infoMenuToggles = document.querySelectorAll('.info-menu-open');
+        // infoMenu variable already defined above
+
+        if (infoMenu && infoMenuToggles.length > 0) {
+             function toggleInfoMenu(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (infoMenu.classList.contains('d-none')) {
+                    // Close catalog menu if open
+                    closeMobileMenu();
+
+                    infoMenu.classList.remove('d-none');
+                    infoMenu.style.display = 'block';
+                } else {
+                    closeInfoMenu();
+                }
+            }
+            
+            infoMenuToggles.forEach(function(btn) {
+                btn.addEventListener('click', toggleInfoMenu);
+                btn.addEventListener('touchstart', toggleInfoMenu, {passive: false});
+            });
+
+            infoMenu.addEventListener('click', function(e) {
+                if (e.target === infoMenu) {
+                     closeInfoMenu();
+                }
+            });
+        }
+    });
+</script>
+<div class="mobile-header-new d-md-none" style="background: #fff; border-bottom: 1px solid #eee; position: relative;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; height: 60px;">
+        
+        <div style="display: flex; align-items: center;">
+            <div class="menu-trigger info-menu-open" style="cursor: pointer; margin-right: 20px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3180D1" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </div>
+            <a href="tel:+375447454040" style="display: flex; align-items: center; text-decoration: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3180D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </a>
         </div>
-        <!-- mobile & desktop header content-->
-        <div class="header-desktop d-md-none">
-            <div class="header-logo-col">
-                <a class="header__logo-a" href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
-                    <span class="prokat-text">прокат</span>
-                    <img class="header-logo-img" src="/public/svg/logo_main.svg" alt="Tiktak.lt logo">
+
+        <div class="logo-container" style="text-align: center;">
+            <a href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
+                <img src="/public/svg/logo_main.svg" alt="TikTak" style="height: 35px; width: auto;">
+            </a>
+        </div>
+
+        <div class="user-actions" style="display: flex; gap: 15px; flex: 0 0 auto; justify-content: flex-end;">
+            <a href="/login" style="color: #3180D1;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></a>
+            <a href="/favorites" style="color: #3180D1;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></a>
+            <a href="/cart" style="color: #3180D1; position: relative;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
                 </a>
+        </div>
+    </div>
 
-            </div>
-            <div class="header-col2">
-                <div class="header-line1">
-                    <form method="post" action="/zvonok" class="back-coll">
-                        @csrf
-                        <input type="hidden" name="action" value="back-coll">
-                        <img class="close-cross" src="/public/png/close_cross.png">
-                        <p>{{$header->translate('Для заказа обратного звонка заполните, пожалуйста, форму')}}</p>
-                        <div class="input-wrapper"><input data-targetinput="" class="call-input1" type="text" name="fio" placeholder="{{$header->translate('Ваше имя')}}"></div>
-                        <div class="input-wrapper"><input data-targetinput="" class="call-input1" type="text" name="phone" placeholder="{{$header->translate('Телефон')}}"></div>
-                        <div class="input-wrapper">
-                            <textarea data-targetinput="" class="call-textarea1" name="info" placeholder="{{$header->translate('Дополнительная информация')}}"></textarea>
-                        </div>
-                        <button>{{$header->translate('Отправить')}}</button>
-                    </form>
-                    <ul class="d-md-none">
-                        <li><a href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/about"><span>{{$header->translate('О компании')}}</span><img class="d-md-none" src="/public/svg/arrow_v_r.svg"></a></li>
-                        <li><a href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/conditions"><span>{{$header->translate('Условия проката')}}</span><img class="d-md-none" src="/public/svg/arrow_v_r.svg"></a></li>
-                        <li><a href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/delivery"><span>{{$header->translate('Доставка и оплата')}}</span><img class="d-md-none" src="/public/svg/arrow_v_r.svg"></a></li>
-                        <li><a href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/contacts"><span>{{$header->translate('Контакты')}}</span><img class="d-md-none" src="/public/svg/arrow_v_r.svg"></a></li>
-                        <li class=""><a data-callback href="#">{{$header->translate('Обратный звонок')}}</a></li>
-                    </ul>
-
-                </div>
-                <div class="header-line2 d-none d-md-flex">
-                    <form method="get" action="/{{(request()->lang ? request()->lang : 'ru')}}/search" class="head-srch">
-                        <input name="search" type="text" placeholder="{{$header->translate('Поиск')}}">
-                        <button class="top-srch-btn"><img src="/public/svg/lupa.svg"></button>
-                    </form>
-{{--                    <div class="messangers">--}}
-{{--                      <a href="https://t.me/TIKTAK_PROKAT" aria-label="Telegram" target="_blank">--}}
-{{--                        <img src="/public/svg/telagram-icon.svg" alt="Telegram">--}}
-{{--                      </a>--}}
-{{--                      <a href="viber://chat?number=+375297454040" aria-label="Viber">--}}
-{{--                        <img src="/public/svg/viber-icon.svg" alt="Viber">--}}
-{{--                      </a>--}}
-{{--                      <a href="https://www.instagram.com/prokat_tiktak.by?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" aria-label="Instagram" target="_blank">--}}
-{{--                        <img src="/public/svg/instagram-icon.svg" alt="Instagram">--}}
-{{--                      </a>--}}
-
-{{--                    </div>--}}
-{{--                    <div class="phone-number-div">--}}
-{{--                        <a class="header-phone" href="tel:+375447454040">+375 44 745 40 40</a>--}}
-{{--                        <span class="messangers-span visually-hidden"><span>A1</span><span>MTC</span><span>Life</span><span>Viber</span></span>--}}
-{{--                    </div>--}}
-
-                </div>
-            </div>
-            <div class="header-col3 d-none d-md-flex">
-{{--                <a class="office_geo-a" href="#" data-bs-toggle="modal" data-bs-target="#officesModal"><img class="geo" src="/public/svg/geo_logo.svg" alt="geo-logo"><span>Минск, наши салоны:</span></a>--}}
-{{--                <a class="office_geo-a" href="#" data-bs-toggle="modal" data-bs-target="#officesModal"><span>ул. Ложинская, 5</span><img class="arrow" src="/public/svg/arrow_down.svg" alt="Arrow down"></a>--}}
-{{--                <a class="office_geo-a" href="#" data-bs-toggle="modal" data-bs-target="#officesModal"><span>ул. Литературная, 22</span><img class="arrow" src="/public/svg/arrow_down.svg" alt="Arrow down"></a>--}}
-            </div>
-            <div class="header-col4">
-                <a class="google-map-pointer d-md-none" href="#" data-bs-toggle="modal" data-bs-target="#officesModal"><img src="/public/svg/map_pointer.svg?v=1"></a>
-                <a class="call-back-pointer d-md-none" data-callback="" href="#"><img src="/public/svg/mail_icon.svg?v=1"></a>
-                <a class="mobile-phone d-md-none" href="tel:+375447454040" data-mob_phone="1"><img src="/public/svg/phone_top.svg?v=1"></a>
-{{--              <div class="mob_phones_div hide">--}}
-{{--                <a class="header-phone" href="tel:+375297454040">+375 (29) 745 40 40</a>--}}
-{{--                <a class="header-phone" href="tel:+375297454040">+375 (29) 745 40 40</a>--}}
-{{--                <a class="header-phone" href="tel:+375297454040">+375 (29) 745 40 40</a>--}}
-{{--                <span class="btn btn-close"></span>--}}
-{{--              </div>--}}
-            </div>
+    <div style="display: flex; gap: 10px; padding: 10px 15px; background: #f8f9fa;">
+        
+        <div class="menu1-open" style="display: flex; align-items: center; background: #4A90E2; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-weight: 500; cursor: pointer;">
+            <svg style="margin-right: 8px;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            {{$header->translate('Каталог')}}
         </div>
 
-        <!-- mobile navigation -->
-        <nav class="row d-flex d-md-none mobile-topmenu-container">
-            <div class="col mobile-menu-line1">
-                <div class="col1">
-                    <div class="hamburger-lines2">
-                        <div class="line line1"></div>
-                        <div class="line line2"></div>
-                        <div class="line line3"></div>
-                    </div>
-                    <div class="cat-text">Каталог</div>
-                </div>
-                <form method="get" action="/{{request()->lang}}/search" class="col2">
-                    <input name="search" type="text" placeholder="{{$header->translate('Поиск')}}">
-                    <button type="submit" class="srch-btn"><img class="srch-icon" src="/public/svg/lupa2.svg" alt="search icon"></button>
-                </form>
-            </div>
-            <ul class="mobile-menu-list left" data-navlevel="razdel">
-                @foreach($topMenu->getRazdels() as $r)
-                    <li class="nav-item-mobile expand" data-razdelid="{{$r->getIdRazdel()}}"><img class="icon" src="{{$r->getUrlIcon2Razdel()}}"><span class="razdel-text">{{$r->getNameRazdelText()}}</span><img class="arrow" src="/public/svg/v_arrow_left.svg"></li>
-                @endforeach
-            </ul>
+        <form action="/{{(request()->lang ? request()->lang : 'ru')}}/search" method="get" style="flex-grow: 1; position: relative; margin-bottom: 0;">
+            <input type="text" name="search" placeholder="Я ищу..." style="width: 100%; height: 40px; padding-left: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
+            <button type="submit" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+        </form>
+    </div>
+
+
+    <!-- Moved Mobile Menu -->
+    <!-- Moved Mobile Menu (Catalog) -->
+    <nav class="row d-none mobile-topmenu-container" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); z-index: 1000; width: 100vw; margin: 0; height: calc(100vh - 100px); background: rgba(0,0,0,0.5); display: block;">
+         <div class="col mobile-menu-line1" style="display: none !important;">
+             <!-- Restore dummy elements to prevent JS error in app.js -->
+            <div class="col1"></div>
+            <div class="col2"></div>
+        </div>
+        <ul class="mobile-menu-list left" data-navlevel="razdel" style="background: #fff; max-height: 80vh; overflow-y: auto; margin: 0; padding: 0; list-style: none; display: block; position: absolute; top: 0 !important; left: 0 !important; width: 100%; border-radius: 0 0 16px 16px; clip-path: inset(0 0 0 0 round 0 0 16px 16px);">
             @foreach($topMenu->getRazdels() as $r)
-                @if(is_array($topMenu->getRazdels()) && count($topMenu->getRazdels())>0)
-                    <ul class="mobile-menu-list right" data-navlevel="subrazdel" data-razdelid="{{$r->getIdRazdel()}}">
-                        <li class="nav-item-mobile expand back" data-backto="razdel"><img class="arrow-back" src="/public/svg/v_arrow_left.svg"><span class="razdel-text">{{$r->getNameRazdelText()}}</span></li>
-                        @if(is_array($r->getSubRazdels()) && count($r->getSubRazdels())>0)
-                            @foreach($r->getSubRazdels() as $sr)
-                                <li class="nav-item-mobile link" data-subrazdelid="{{$sr->getIdSubRazdel()}}"><a href="{{$sr->getUrlForPage(request()->lang)}}"><img class="icon" src="{{$sr->getUrlSubRazdelIcon()}}"><span class="razdel-text">{{$sr->getNameSubRazdelText()}}</span><img class="arrow" src="/public/svg/v_arrow_left.svg"></a></li>
-                                {{--                        <li class="nav-item-mobile expand" data-subrazdelid="{{$sr->getIdSubRazdel()}}"><img class="icon" src="{{$sr->getUrlSubRazdelIcon()}}"><span class="razdel-text">{{$sr->getNameSubRazdelText()}}</span><img class="arrow" src="/public/svg/v_arrow_left.svg"></li>--}}
-                            @endforeach
-                        @endif
-                    </ul>
-                @endif
+                <li class="nav-item-mobile expand" data-razdelid="{{$r->getIdRazdel()}}"><img class="icon" src="{{$r->getUrlIcon2Razdel()}}"><span class="razdel-text">{{$r->getNameRazdelText()}}</span><img class="arrow" src="/public/svg/v_arrow_left.svg"></li>
             @endforeach
+        </ul>
+        @foreach($topMenu->getRazdels() as $r)
+            @if(is_array($topMenu->getRazdels()) && count($topMenu->getRazdels())>0)
+                <ul class="mobile-menu-list right" data-navlevel="subrazdel" data-razdelid="{{$r->getIdRazdel()}}" style="background: #fff; max-height: 80vh; overflow-y: auto; margin: 0; padding: 0; list-style: none; position: absolute; top: 0 !important; width: 100%; border-radius: 0 0 16px 16px; clip-path: inset(0 0 0 0 round 0 0 16px 16px);">
+                    <li class="nav-item-mobile expand back" data-backto="razdel"><img class="arrow-back" src="/public/svg/v_arrow_left.svg"><span class="razdel-text">{{$r->getNameRazdelText()}}</span></li>
+                    @if(is_array($r->getSubRazdels()) && count($r->getSubRazdels())>0)
+                        @foreach($r->getSubRazdels() as $sr)
+                            <li class="nav-item-mobile link" data-subrazdelid="{{$sr->getIdSubRazdel()}}"><a href="{{$sr->getUrlForPage(request()->lang)}}"><img class="icon" src="{{$sr->getUrlSubRazdelIcon()}}"><span class="razdel-text">{{$sr->getNameSubRazdelText()}}</span><img class="arrow" src="/public/svg/v_arrow_left.svg"></a></li>
+                            {{--                        <li class="nav-item-mobile expand" data-subrazdelid="{{$sr->getIdSubRazdel()}}"><img class="icon" src="{{$sr->getUrlSubRazdelIcon()}}"><span class="razdel-text">{{$sr->getNameSubRazdelText()}}</span><img class="arrow" src="/public/svg/v_arrow_left.svg"></li>--}}
+                        @endforeach
+                    @endif
+                </ul>
+            @endif
+        @endforeach
+    </nav>
 
+    <!-- Info Menu (Hamburger) -->
+    <nav class="row d-none mobile-info-menu-container" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); z-index: 1000; width: 100vw; margin: 0; height: calc(100vh - 100px); background: rgba(0,0,0,0.5); display: block;">
+        <ul class="mobile-menu-list" style="background: #fff; margin: 0; padding: 0; list-style: none; display: block; position: absolute; top: 0 !important; left: 0 !important; width: 100%; border-radius: 0 0 16px 16px; clip-path: inset(0 0 0 0 round 0 0 16px 16px);">
+            <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#officesModal" style="display: flex; align-items: center; padding: 15px; text-decoration: none; color: #333; font-size: 16px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3180D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    Адреса наших салонов
+                </a>
+            </li>
+            <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">
+                <a href="/{{(request()->lang ? request()->lang : 'ru')}}/about" style="display: flex; align-items: center; padding: 15px; text-decoration: none; color: #333; font-size: 16px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3180D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    О компании
+                </a>
+            </li>
+            <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">
+                <a href="/{{(request()->lang ? request()->lang : 'ru')}}/conditions" style="display: flex; align-items: center; padding: 15px; text-decoration: none; color: #333; font-size: 16px;">
+                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3180D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Условия проката
+                </a>
+            </li>
+             <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">
+                <a href="/{{(request()->lang ? request()->lang : 'ru')}}/delivery" style="display: flex; align-items: center; padding: 15px; text-decoration: none; color: #333; font-size: 16px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3180D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px;"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                    Доставка и оплата
+                </a>
+            </li>
+             <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">
+                <a href="/{{(request()->lang ? request()->lang : 'ru')}}/contacts" style="display: flex; align-items: center; padding: 15px; text-decoration: none; color: #333; font-size: 16px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3180D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    Контакты
+                </a>
+            </li>
+             <li class="nav-item-mobile">
+                <a href="#" class="callback-trigger" data-bs-toggle="modal" data-bs-target="#callbackModal" style="display: flex; align-items: center; padding: 15px; text-decoration: none; color: #333; font-size: 16px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3180D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px;"><path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94m-1 7.98v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    Заказать обратный звонок
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
 
+    <!-- Callback Modal -->
+    <div class="modal fade" id="callbackModal" tabindex="-1" aria-labelledby="callbackModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="callbackModalLabel">Заказать обратный звонок</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="/zvonok" class="back-coll-modal">
+                        @csrf
+                        <div class="input-wrapper">
+                            <input data-targetinput="" class="call-input1" type="text" name="fio" placeholder="{{$header->translate('Ваше имя')}}" style="width: 100%; margin-bottom: 15px;">
+                        </div>
+                        <div class="input-wrapper">
+                            <input data-targetinput="" class="call-input1" type="text" name="phone" placeholder="{{$header->translate('Телефон')}}" style="width: 100%; margin-bottom: 15px;">
+                        </div>
+                        <div class="input-wrapper">
+                            <textarea data-targetinput="" class="call-textarea1" name="info" placeholder="{{$header->translate('Дополнительная информация')}}" style="width: 100%; margin-bottom: 15px;"></textarea>
+                        </div>
+                        <button type="submit" style="width: 100%; padding: 10px; border-radius: 25px; background: #fff; border: 1px solid #275991; color: #275991;">{{$header->translate('Отправить')}}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        </nav>
+        <!-- Hidden Call Back Form (Preserved) -->
+        <div class="d-none">
+             <form method="post" action="/zvonok" class="back-coll">
+                @csrf
+                <input type="hidden" name="action" value="back-coll">
+                <img class="close-cross" src="/public/png/close_cross.png">
+                <p>{{$header->translate('Для заказа обратного звонка заполните, пожалуйста, форму')}}</p>
+                <div class="input-wrapper"><input data-targetinput="" class="call-input1" type="text" name="fio" placeholder="{{$header->translate('Ваше имя')}}"></div>
+                <div class="input-wrapper"><input data-targetinput="" class="call-input1" type="text" name="phone" placeholder="{{$header->translate('Телефон')}}"></div>
+                <div class="input-wrapper">
+                    <textarea data-targetinput="" class="call-textarea1" name="info" placeholder="{{$header->translate('Дополнительная информация')}}"></textarea>
+                </div>
+                <button>{{$header->translate('Отправить')}}</button>
+            </form>
+        </div>
+
+        <!-- mobile navigation (MOVED UP) -->
     </div>
 
     <!-- Modal -->
@@ -247,7 +378,7 @@
                             <span class="textline">сб, вс: 10.00-15.00</span>
                         </div>
                         <div class="ofcol2">
-                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d37576.53071565148!2d27.49688255176978!3d53.940037097398736!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbcf987119c2ed%3A0x38a520fb62e6031d!2sTIKTAK%20SALON%20PROKATA%20DETSKIH%20TOVAROV%20UP%20TODDLER%20FAN!5e0!3m2!1sen!2spl!4v1648465519790!5m2!1sen!2spl" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d37576.53071565148!2d27.49688255176978!3d53.940037097398736!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbcf987119c2ed%3A0x38a520fb62e6031d!2sTIKTAK%20SALON%20PROKATA%20DETSKIH%20TOVAROV%20UP%20TODDLER%20FAN!5e0!3m2!1sen!2spl!4v1648465519790!5m2!1sen!2spl" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                         </div>
                     </div>
                     <div class="office-top-container off-2">
@@ -265,7 +396,7 @@
                             <span class="textline">сб, вс: выходной</span>
                         </div>
                         <div class="ofcol2">
-                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2348.1549247760463!2d27.685609051599968!3d53.94675598001161!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbc9357a6cbe07%3A0xc6249534647e615d!2z0J_RgNC-0LrQsNGCINC00LXRgtGB0LrQuNGFINGC0L7QstCw0YDQvtCyIFRpa1Rhay4g0KHQsNC70L7QvSDihJYyLg!5e0!3m2!1sen!2spl!4v1648465657389!5m2!1sen!2spl" height="450" style="width: 100% border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2348.1549247760463!2d27.685609051599968!3d53.94675598001161!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbc9357a6cbe07%3A0xc6249534647e615d!2z0J_RgNC-0LrQsNGCINC00LXRgtGB0LrQuNGFINGC0L7QstCw0YDQvtCyIFRpa1Rhay4g0KHQsNC70L7QvSDihJYyLg!5e0!3m2!1sen!2spl!4v1648465657389!5m2!1sen!2spl" height="450" style="width: 100%; border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                         </div>
                     </div>
                 </div>
