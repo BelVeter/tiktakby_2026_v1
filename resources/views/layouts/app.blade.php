@@ -277,6 +277,195 @@
         });
       })();
     </script>
+
+    {{-- Cart Manager (localStorage-based) --}}
+    <script>
+      (function () {
+        var STORAGE_KEY = 'tiktak_cart';
+        var MAX_ITEMS = 10;
+
+        function getCartData() {
+          try {
+            var data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            if (!data.items || !Array.isArray(data.items)) data.items = [];
+            return data;
+          } catch (e) {
+            return { items: [] };
+          }
+        }
+
+        function saveCartData(data) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function getItems() {
+          return getCartData().items;
+        }
+
+        function saveItems(items) {
+          saveCartData({ items: items });
+          updateBadges();
+        }
+
+        function getCount() {
+          return getItems().length;
+        }
+
+        function hasItems() {
+          return getCount() > 0;
+        }
+
+        /**
+         * Add item to cart
+         * @param {Object} item { modelId, name, picUrl, l3Url, dateFrom, days, tariffs }
+         * @returns {boolean}
+         */
+        function addItem(item) {
+          var data = getCartData();
+
+          // Check if already in cart
+          for (var i = 0; i < data.items.length; i++) {
+            if (data.items[i].modelId == item.modelId) {
+              showToast('Этот товар уже добавлен в корзину', 'warning');
+              return false;
+            }
+          }
+
+          // Check max items
+          if (data.items.length >= MAX_ITEMS) {
+            showToast('В корзине может быть не более ' + MAX_ITEMS + ' товаров', 'warning');
+            return false;
+          }
+
+          item.addedAt = Date.now();
+          data.items.push(item);
+          saveCartData(data);
+          updateBadges();
+          showToast('Товар добавлен в корзину!', 'success');
+          return true;
+        }
+
+        function removeByIndex(index) {
+          var data = getCartData();
+          if (index >= 0 && index < data.items.length) {
+            data.items.splice(index, 1);
+            saveCartData(data);
+            updateBadges();
+          }
+        }
+
+        function removeByModelId(modelId) {
+          var data = getCartData();
+          data.items = data.items.filter(function (item) {
+            return item.modelId != modelId;
+          });
+          saveCartData(data);
+          updateBadges();
+        }
+
+        function clear() {
+          saveCartData({ items: [] });
+          updateBadges();
+        }
+
+        /**
+         * Calculate price from tariffs array
+         * @param {Array} tariffs [[daysThreshold, dailyRate], ...]
+         * @param {number} days
+         * @returns {number}
+         */
+        function calculatePrice(tariffs, days) {
+          if (!tariffs || tariffs.length === 0 || days < 1) return 0;
+
+          // Sort ascending
+          var sorted = tariffs.slice().sort(function (a, b) { return a[0] - b[0]; });
+
+          var dailyRate = sorted[0][1];
+          for (var i = 0; i < sorted.length; i++) {
+            if (days >= sorted[i][0]) dailyRate = sorted[i][1];
+          }
+
+          var amount = Math.round(days * dailyRate * 100) / 100;
+
+          // Ceiling check: don't exceed next tier total
+          var sortedDesc = sorted.slice().sort(function (a, b) { return b[0] - a[0]; });
+          var currentTierDays = sorted[0][0];
+          for (var i = 0; i < sorted.length; i++) {
+            if (days >= sorted[i][0]) currentTierDays = sorted[i][0];
+          }
+
+          for (var i = 0; i < sortedDesc.length; i++) {
+            if (sortedDesc[i][0] > currentTierDays) {
+              var ceilingAmount = sortedDesc[i][0] * sortedDesc[i][1];
+              if (amount > ceilingAmount) amount = ceilingAmount;
+            }
+          }
+
+          return Math.round(amount * 100) / 100;
+        }
+
+        function updateBadges() {
+          var count = getCount();
+          var badges = document.querySelectorAll('.cart-badge');
+          badges.forEach(function (badge) {
+            if (count > 0) {
+              badge.textContent = count;
+              badge.style.display = 'inline-block';
+            } else {
+              badge.style.display = 'none';
+            }
+          });
+        }
+
+        function showToast(message, type) {
+          type = type || 'success';
+          // Remove existing toast
+          var existing = document.querySelector('.cart-toast');
+          if (existing) existing.remove();
+
+          var toast = document.createElement('div');
+          toast.className = 'cart-toast ' + type;
+          toast.textContent = message;
+          document.body.appendChild(toast);
+
+          // Trigger animation
+          setTimeout(function () { toast.classList.add('show'); }, 10);
+
+          // Auto-hide
+          setTimeout(function () {
+            toast.classList.remove('show');
+            setTimeout(function () { toast.remove(); }, 300);
+          }, 3000);
+        }
+
+        function todayStr() {
+          var d = new Date();
+          return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+        }
+
+        // Expose globally
+        window.TiktakCart = {
+          getItems: getItems,
+          saveItems: saveItems,
+          getCount: getCount,
+          hasItems: hasItems,
+          addItem: addItem,
+          removeByIndex: removeByIndex,
+          removeByModelId: removeByModelId,
+          clear: clear,
+          calculatePrice: calculatePrice,
+          updateBadges: updateBadges,
+          showToast: showToast,
+          todayStr: todayStr,
+        };
+
+        // Init on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function () {
+          updateBadges();
+        });
+      })();
+    </script>
+
     <script src="/public{{ mix('/js/app.js') }}"></script>
   </div> {{-- end of general wrapper--}}
 </body>
