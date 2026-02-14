@@ -1,7 +1,11 @@
 @php /** @var \App\MyClasses\L2ModelWeb $l2 */ @endphp
 
 <div class="l2karn-card_container">
-  <img class="l2heart" src="/public/png/l2heart.png" alt="favorite">
+  <div class="l2-card_wishlist l2heart" data-model-id="{{ $l2->getModelId() }}"
+    data-model-name="{{ strip_tags($l2->getNameNoBr(29)) }}" data-model-pic="{{ $l2->getPicUrl(request()->lang) }}"
+    data-model-url="{{ $l2->getL3Url(request()->lang) }}">
+    <i class="fas fa-heart"></i>
+  </div>
   <a href="{{$l2->getL3Url(request()->lang)}}" class="l2karn-card_img-a-container">
     <img src="{{ $l2->getPicUrl(request()->lang) }}" class="l2karn-card_img" alt="{{$l2->getPicAltText()}}">
     <div class="l2karn-card_line-2">

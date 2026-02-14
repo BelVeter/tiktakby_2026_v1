@@ -11,7 +11,9 @@
         <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_header-link">
           <span class="l2-card_header">{!! $l2->getName() !!}</span>
         </a>
-        <div class="l2-card_wishlist">
+        <div class="l2-card_wishlist" data-model-id="{{ $l2->getModelId() }}"
+          data-model-name="{{ strip_tags($l2->getName()) }}" data-model-pic="{{ $l2->getPicUrl() }}"
+          data-model-url="{{ $l2->getL3Url(request()->lang) }}">
           <i class="fas fa-heart"></i>
         </div>
       </div>
