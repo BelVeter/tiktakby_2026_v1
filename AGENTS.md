@@ -135,3 +135,36 @@ The project uses two distinct methods for database interaction due to its hybrid
 - **Project commands**: Standard development commands (`npm`, `composer`, `php artisan`) should be auto-run for efficiency.
 - **Exceptions**: Only ask for confirmation for mass deletion of files or dropping of fundamental database tables.
 
+
+## Authentication & Security
+
+The project runs two parallel systems (Laravel and Legacy PHP), each with its own session management.
+
+1.  **Legacy Admin (`/bb/`)**:
+    -   Uses native PHP sessions (`session_start()`).
+    -   User login sets the `tt_is_logged_in` cookie (valid for 30 days).
+    -   Verification: `\bb\models\User::isLoggedIn()` (works ONLY within legacy scripts).
+
+2.  **Laravel App (`/`)**:
+    -   Uses Laravel's session driver (file/cookie).
+    -   **Does NOT share sessions** with the legacy admin panel.
+    -   `\bb\models\User::isLoggedIn()` returns `false` in Laravel controllers/views because it cannot access the legacy PHP session.
+
+### How to Check Admin Status in Laravel
+
+To determine if a user is an administrator (logged into `/bb/`) from within a Laravel Blade template or Controller, **DO NOT use `User::isLoggedIn()`**. Instead, check for the authentication cookie:
+
+```php
+// In Blade Templates
+@if(isset($_COOKIE['tt_is_logged_in']))
+    {{-- Admin-only content --}}
+@endif
+
+// In PHP/Controllers
+if (isset($_COOKIE['tt_is_logged_in'])) {
+    // Admin logic
+}
+```
+
+This cookie serves as the bridge between the two systems for "is logged in" checks on the frontend. for deep security, backend scripts in `/bb/` must still use `\bb\Base::loginCheck()`.
+
