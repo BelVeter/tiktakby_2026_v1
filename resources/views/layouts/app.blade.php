@@ -462,6 +462,23 @@
         // Init on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function () {
           updateBadges();
+
+          // L2 Add to Cart Listener
+          document.body.addEventListener('click', function (e) {
+            var btn = e.target.closest('.add-to-cart-l2');
+            if (btn) {
+              e.preventDefault();
+              TiktakCart.addItem({
+                modelId: parseInt(btn.getAttribute('data-model-id')),
+                name: btn.getAttribute('data-model-name'),
+                picUrl: btn.getAttribute('data-pic-url'),
+                l3Url: btn.getAttribute('data-l3-url'),
+                dateFrom: TiktakCart.todayStr(),
+                days: 14,
+                tariffs: JSON.parse(btn.getAttribute('data-tariffs'))
+              });
+            }
+          });
         });
       })();
     </script>
