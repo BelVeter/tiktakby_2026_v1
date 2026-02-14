@@ -33,6 +33,7 @@ docker-compose.override.yml
 /php-cs-fixer.php
 /.php_cs.cache
 /dimanay.php
+/bb/debug_model.php
 
 # Testing specific
 /tests/_output/
