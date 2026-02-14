@@ -274,13 +274,40 @@ if ($result) {
     }
 
     /* Дерево результатов живого поиска */
+    .ls-wrap {
+        position: relative;
+    }
+
     .ls-input {
         width: 100%;
-        padding: 7px 12px;
+        padding: 7px 12px 7px 32px;
         border: 1px solid #ced4da;
         border-radius: 6px;
         font-size: 14px;
-        background: #fff url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23999" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>') no-repeat 97% center / 16px;
+        background: #fff url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23999" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>') no-repeat 10px center / 16px;
+    }
+
+    .ls-clear {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 24px;
+        height: 24px;
+        border: none;
+        background: none;
+        font-size: 20px;
+        color: #999;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        padding-bottom: 3px;
+    }
+
+    .ls-clear:hover {
+        color: #dc3545;
     }
 
     .ls-hint {
@@ -407,8 +434,16 @@ if ($result) {
         color: #0d6efd;
     }
 
-    .selected-url a { font-size: 13px; font-weight: 600; color: #0d6efd; text-decoration: underline; }
-    .selected-url a:hover { color: #0a58ca; }
+    .selected-url a {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0d6efd;
+        text-decoration: underline;
+    }
+
+    .selected-url a:hover {
+        color: #0a58ca;
+    }
 
     .field-error {
         color: #dc3545;
@@ -503,8 +538,11 @@ if ($result) {
                             placeholder="/new-page или https://...">
                     </div>
                     <div class="target-search" id="add-search">
-                        <input type="text" class="ls-input" id="add-ls-input"
-                            placeholder="Поиск по названию страницы..." autocomplete="off">
+                        <div class="ls-wrap">
+                            <input type="text" class="ls-input" id="add-ls-input"
+                                placeholder="Поиск по названию страницы..." autocomplete="off">
+                            <button type="button" class="ls-clear" onclick="clearLiveSearch('add')">×</button>
+                        </div>
                         <div class="ls-hint">Минимум 2 символа. Поиск по разделам, подразделам, категориям и моделям.
                         </div>
                         <div class="ls-tree" id="add-ls-tree"></div>
@@ -551,116 +589,119 @@ if ($result) {
             </thead>
             <tbody>
                 <?php if (empty($redirects)): ?>
-                        <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Пока нет перенаправлений.</td>
-                        </tr>
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">Пока нет перенаправлений.</td>
+                    </tr>
                 <?php else: ?>
-                        <?php foreach ($redirects as $r): ?>
-                                <tr class="<?= $r['is_active'] ? '' : 'table-secondary' ?>">
-                                    <td><?= $r['id'] ?></td>
-                                    <td class="source-url"><?= htmlspecialchars($r['source_url']) ?></td>
-                                    <td class="target-url"><?= htmlspecialchars($r['target_url']) ?></td>
-                                    <td><span class="status-code status-<?= $r['status_code'] ?>"><?= $r['status_code'] ?></span></td>
-                                    <td><span
-                                            class="badge <?= $r['is_active'] ? 'badge-active' : 'badge-inactive' ?>"><?= $r['is_active'] ? 'Вкл' : 'Выкл' ?></span>
-                                    </td>
-                                    <td><span
-                                            class="badge bg-<?= $r['hit_count'] > 0 ? 'primary' : 'secondary' ?>"><?= intval($r['hit_count']) ?></span>
-                                    </td>
-                                    <td><small><?= $r['last_hit_at'] ? date('d.m.y H:i', strtotime($r['last_hit_at'])) : '—' ?></small>
-                                    </td>
-                                    <td><small><?= htmlspecialchars($r['comment'] ?: '—') ?></small></td>
-                                    <td>
-                                        <div class="btn-actions">
-                                            <button type="button" class="btn btn-sm btn-outline-primary" title="Редактировать"
-                                                onclick="toggleEdit(<?= $r['id'] ?>)">✏️</button>
-                                            <form method="post" style="margin:0"><input type="hidden" name="action"
-                                                    value="toggle"><input type="hidden" name="id" value="<?= $r['id'] ?>">
-                                                <button type="submit"
-                                                    class="btn btn-sm btn-outline-<?= $r['is_active'] ? 'warning' : 'success' ?>"
-                                                    title="<?= $r['is_active'] ? 'Выкл' : 'Вкл' ?>"><?= $r['is_active'] ? '⏸️' : '▶️' ?></button>
-                                            </form>
-                                            <?php if ($r['hit_count'] > 0): ?>
-                                                    <form method="post" style="margin:0" onsubmit="return confirm('Сбросить?')"><input
-                                                            type="hidden" name="action" value="reset_hits"><input type="hidden" name="id"
-                                                            value="<?= $r['id'] ?>">
-                                                        <button type="submit" class="btn btn-sm btn-outline-info" title="Сбросить">🔄</button>
-                                                    </form>
-                                            <?php endif; ?>
-                                            <form method="post" style="margin:0" onsubmit="return confirm('Удалить?')"><input
-                                                    type="hidden" name="action" value="delete"><input type="hidden" name="id"
-                                                    value="<?= $r['id'] ?>">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">🗑️</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <!-- Строка редактирования -->
-                                <tr class="edit-row" id="edit-<?= $r['id'] ?>">
-                                    <td colspan="9">
-                                        <form method="post" class="ef">
-                                            <input type="hidden" name="action" value="update">
-                                            <input type="hidden" name="id" value="<?= $r['id'] ?>">
-                                            <div class="fg"><label>Откуда</label>
-                                                <input type="text" class="form-control form-control-sm" name="source_url"
-                                                    value="<?= htmlspecialchars($r['source_url']) ?>" style="width:200px" required>
-                                                <div class="field-error" id="e<?= $r['id'] ?>-source-error"></div>
-                                            </div>
-                                            <div class="fg" style="min-width:320px">
-                                                <label>Куда</label>
-                                                <div class="target-mode-btns">
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary active"
-                                                        onclick="setTargetMode('manual','e<?= $r['id'] ?>',this)">✍️ Вручную</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                        onclick="setTargetMode('search','e<?= $r['id'] ?>',this)">🔍 Поиск</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                        onclick="setTargetMode('select','e<?= $r['id'] ?>',this)">📋 Структура</button>
-                                                </div>
-                                                <div class="selected-url" id="e<?= $r['id'] ?>-selected-url">✅ <a href="#" target="_blank"></a></div>
-                                                <div class="target-manual" id="e<?= $r['id'] ?>-manual">
-                                                    <input type="text" class="form-control form-control-sm" name="target_url"
-                                                        id="e<?= $r['id'] ?>-target-url"
-                                                        value="<?= htmlspecialchars($r['target_url']) ?>" style="width:300px">
-                                                </div>
-                                                <div class="target-search" id="e<?= $r['id'] ?>-search">
-                                                    <input type="text" class="ls-input" id="e<?= $r['id'] ?>-ls-input"
-                                                        placeholder="Поиск по названию..." autocomplete="off" style="width:300px">
-                                                    <div class="ls-tree" id="e<?= $r['id'] ?>-ls-tree"></div>
-                                                </div>
-                                                <div class="target-select" id="e<?= $r['id'] ?>-select">
-                                                    <div id="e<?= $r['id'] ?>-cascade"></div>
-                                                </div>
-                                                <div class="field-error" id="e<?= $r['id'] ?>-target-error">⚠️ Укажите целевой URL</div>
-                                            </div>
-                                            <div class="fg"><label>Код</label>
-                                                <select class="form-select form-select-sm" name="status_code" style="width:80px">
-                                                    <option value="301" <?= $r['status_code'] == 301 ? 'selected' : '' ?>>301</option>
-                                                    <option value="302" <?= $r['status_code'] == 302 ? 'selected' : '' ?>>302</option>
-                                                    <option value="307" <?= $r['status_code'] == 307 ? 'selected' : '' ?>>307</option>
-                                                    <option value="308" <?= $r['status_code'] == 308 ? 'selected' : '' ?>>308</option>
-                                                </select>
-                                            </div>
-                                            <div class="fg"><label>Комм.</label>
-                                                <input type="text" class="form-control form-control-sm" name="comment"
-                                                    value="<?= htmlspecialchars($r['comment'] ?? '') ?>" style="width:130px">
-                                            </div>
-                                            <div class="fg"><label>&nbsp;</label>
-                                                <div style="display:flex;gap:4px">
-                                                    <button type="submit" class="btn btn-sm btn-success">💾</button>
-                                                    <button type="button" class="btn btn-sm btn-secondary"
-                                                        onclick="toggleEdit(<?= $r['id'] ?>)">✕</button>
-                                                </div>
-                                            </div>
+                    <?php foreach ($redirects as $r): ?>
+                        <tr class="<?= $r['is_active'] ? '' : 'table-secondary' ?>">
+                            <td><?= $r['id'] ?></td>
+                            <td class="source-url"><?= htmlspecialchars($r['source_url']) ?></td>
+                            <td class="target-url"><?= htmlspecialchars($r['target_url']) ?></td>
+                            <td><span class="status-code status-<?= $r['status_code'] ?>"><?= $r['status_code'] ?></span></td>
+                            <td><span
+                                    class="badge <?= $r['is_active'] ? 'badge-active' : 'badge-inactive' ?>"><?= $r['is_active'] ? 'Вкл' : 'Выкл' ?></span>
+                            </td>
+                            <td><span
+                                    class="badge bg-<?= $r['hit_count'] > 0 ? 'primary' : 'secondary' ?>"><?= intval($r['hit_count']) ?></span>
+                            </td>
+                            <td><small><?= $r['last_hit_at'] ? date('d.m.y H:i', strtotime($r['last_hit_at'])) : '—' ?></small>
+                            </td>
+                            <td><small><?= htmlspecialchars($r['comment'] ?: '—') ?></small></td>
+                            <td>
+                                <div class="btn-actions">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" title="Редактировать"
+                                        onclick="toggleEdit(<?= $r['id'] ?>)">✏️</button>
+                                    <form method="post" style="margin:0"><input type="hidden" name="action"
+                                            value="toggle"><input type="hidden" name="id" value="<?= $r['id'] ?>">
+                                        <button type="submit"
+                                            class="btn btn-sm btn-outline-<?= $r['is_active'] ? 'warning' : 'success' ?>"
+                                            title="<?= $r['is_active'] ? 'Выкл' : 'Вкл' ?>"><?= $r['is_active'] ? '⏸️' : '▶️' ?></button>
+                                    </form>
+                                    <?php if ($r['hit_count'] > 0): ?>
+                                        <form method="post" style="margin:0" onsubmit="return confirm('Сбросить?')"><input
+                                                type="hidden" name="action" value="reset_hits"><input type="hidden" name="id"
+                                                value="<?= $r['id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-info" title="Сбросить">🔄</button>
                                         </form>
-                                    </td>
-                                </tr>
-                        <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-    <small class="text-muted"><strong>Подсказка:</strong> 301 — постоянный (SEO), 302 — временный. Исходный URL
-        начинается с <code>/</code>.</small>
+                                    <?php endif; ?>
+                                    <form method="post" style="margin:0" onsubmit="return confirm('Удалить?')"><input
+                                            type="hidden" name="action" value="delete"><input type="hidden" name="id"
+                                            value="<?= $r['id'] ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">🗑️</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Строка редактирования -->
+                        <tr class="edit-row" id="edit-<?= $r['id'] ?>">
+                            <td colspan="9">
+                                <form method="post" class="ef">
+                                    <input type="hidden" name="action" value="update">
+                                    <input type="hidden" name="id" value="<?= $r['id'] ?>">
+                                    <div class="fg"><label>Откуда</label>
+                                        <input type="text" class="form-control form-control-sm" name="source_url"
+                                            value="<?= htmlspecialchars($r['source_url']) ?>" style="width:200px" required>
+                                        <div class="field-error" id="e<?= $r['id'] ?>-source-error"></div>
+                                    </div>
+                                    <div class="fg" style="min-width:320px">
+                                        <label>Куда</label>
+                                        <div class="target-mode-btns">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary active"
+                                                onclick="setTargetMode('manual','e<?= $r['id'] ?>',this)">✍️ Вручную</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="setTargetMode('search','e<?= $r['id'] ?>',this)">🔍 Поиск</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="setTargetMode('select','e<?= $r['id'] ?>',this)">📋 Структура</button>
+                                        </div>
+                                        <div class="selected-url" id="e<?= $r['id'] ?>-selected-url">✅ <a href="#"
+                                                target="_blank"></a></div>
+                                        <div class="target-manual" id="e<?= $r['id'] ?>-manual">
+                                            <input type="text" class="form-control form-control-sm" name="target_url"
+                                                id="e<?= $r['id'] ?>-target-url"
+                                                value="<?= htmlspecialchars($r['target_url']) ?>" style="width:300px">
+                                        </div>
+                                        <div class="ls-wrap">
+                                            <input type="text" class="ls-input" id="e<?= $r['id'] ?>-ls-input"
+                                                placeholder="Поиск по названию..." autocomplete="off" style="width:300px">
+                                            <button type="button" class="ls-clear"
+                                                onclick="clearLiveSearch('e<?= $r['id'] ?>')">×</button>
+                                        </div>
+                                        <div class="ls-tree" id="e<?= $r['id'] ?>-ls-tree"></div>
+                                    </div>
+                                    <div class="target-select" id="e<?= $r['id'] ?>-select">
+                                        <div id="e<?= $r['id'] ?>-cascade"></div>
+                                    </div>
+                                    <div class="field-error" id="e<?= $r['id'] ?>-target-error">⚠️ Укажите целевой URL</div>
+            </div>
+            <div class="fg"><label>Код</label>
+                <select class="form-select form-select-sm" name="status_code" style="width:80px">
+                    <option value="301" <?= $r['status_code'] == 301 ? 'selected' : '' ?>>301</option>
+                    <option value="302" <?= $r['status_code'] == 302 ? 'selected' : '' ?>>302</option>
+                    <option value="307" <?= $r['status_code'] == 307 ? 'selected' : '' ?>>307</option>
+                    <option value="308" <?= $r['status_code'] == 308 ? 'selected' : '' ?>>308</option>
+                </select>
+            </div>
+            <div class="fg"><label>Комм.</label>
+                <input type="text" class="form-control form-control-sm" name="comment"
+                    value="<?= htmlspecialchars($r['comment'] ?? '') ?>" style="width:130px">
+            </div>
+            <div class="fg"><label>&nbsp;</label>
+                <div style="display:flex;gap:4px">
+                    <button type="submit" class="btn btn-sm btn-success">💾</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleEdit(<?= $r['id'] ?>)">✕</button>
+                </div>
+            </div>
+            </form>
+            </td>
+            </tr>
+        <?php endforeach; ?>
+    <?php endif; ?>
+    </tbody>
+    </table>
+</div>
+<small class="text-muted"><strong>Подсказка:</strong> 301 — постоянный (SEO), 302 — временный. Исходный URL
+    начинается с <code>/</code>.</small>
 </div>
 
 <script>
@@ -992,6 +1033,18 @@ if ($result) {
         return d.innerHTML;
     }
 
+    function clearLiveSearch(prefix) {
+        const input = document.getElementById(prefix + '-ls-input');
+        const tree = document.getElementById(prefix + '-ls-tree');
+        if (input) {
+            input.value = '';
+            input.focus();
+            const btn = input.nextElementSibling;
+            if (btn && btn.classList.contains('ls-clear')) btn.style.display = 'none';
+        }
+        if (tree) tree.innerHTML = '';
+    }
+
     // === Живой поиск ===
     function initLiveSearch(prefix) {
         const input = document.getElementById(prefix + '-ls-input');
@@ -1001,6 +1054,12 @@ if ($result) {
 
         let timer = null;
         input.addEventListener('input', () => {
+            const btn = input.nextElementSibling;
+            if (btn && btn.classList.contains('ls-clear')) {
+                btn.style.display = input.value ? 'block' : 'none';
+            }
+
+            clearTimeout(timer);
             clearTimeout(timer);
             const q = input.value.trim();
             if (q.length < 2) { tree.innerHTML = ''; return; }
