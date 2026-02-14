@@ -470,8 +470,8 @@
   align-items: center;
   width: 100%;
   padding: 8px 0;
-  background-color: transparent;
-  color: #4A90E2;
+  background-color: #4A90E2;
+  color: white;
   font-family: 'Nunito', sans-serif;
   font-weight: 600;
   font-size: 14px;
@@ -487,8 +487,9 @@
   }
 
   &:hover {
-    background-color: #4A90E2;
+    background-color: #357ABD; // Darker blue
     color: white;
+    border-color: #357ABD;
   }
 }
 
