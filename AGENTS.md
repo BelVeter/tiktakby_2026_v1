@@ -88,6 +88,19 @@ Sequence:
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
 
+## Data Access Strategy
+
+The project uses two distinct methods for database interaction due to its hybrid nature:
+
+1.  **Laravel (`app/`)**:
+    - Uses standard **Eloquent ORM** and **Query Builder**.
+    - Configuration in `.env` and `config/database.php`.
+
+2.  **Legacy/Admin (`bb/`)**:
+    - Uses `bb/Db.php` — a custom Singleton wrapper for `mysqli`.
+    - **Usage**: `$mysqli = \bb\Db::getInstance()->getConnection();`
+    - **Context**: When modifying files in `bb/`, use this existing `Db` class. Do not attempt to use Laravel's Eloquent in `bb/` files unless you are sure Laravel is bootstrapped (which is not guaranteed in all `bb/` scripts).
+
 ## Known Specifics
 
 1. **CSS/JS versioning**: `app.css` and `app.js` use `{{ mix() }}` in Blade — Laravel Mix auto-appends a content hash on `npm run prod`. Vendor files (bootstrap, popper) use manual `?v={{$v}}` in `app.blade.php`
