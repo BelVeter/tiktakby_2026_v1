@@ -14,25 +14,29 @@ class CheckRedirects
      */
     public function handle(Request $request, Closure $next)
     {
-        // Получаем текущий URI (без query string)
-        $path = '/' . ltrim($request->path(), '/');
+        try {
+            // Получаем текущий URI (без query string)
+            $path = '/' . ltrim($request->path(), '/');
 
-        // Ищем активное перенаправление
-        $redirect = DB::table('redirects')
-            ->where('source_url', $path)
-            ->where('is_active', 1)
-            ->first();
+            // Ищем активное перенаправление
+            $redirect = DB::table('redirects')
+                ->where('source_url', $path)
+                ->where('is_active', 1)
+                ->first();
 
-        if ($redirect) {
-            // Обновляем статистику
-            DB::table('redirects')
-                ->where('id', $redirect->id)
-                ->update([
-                    'hit_count' => DB::raw('hit_count + 1'),
-                    'last_hit_at' => now(),
-                ]);
+            if ($redirect) {
+                // Обновляем статистику
+                DB::table('redirects')
+                    ->where('id', $redirect->id)
+                    ->update([
+                        'hit_count' => DB::raw('hit_count + 1'),
+                        'last_hit_at' => now(),
+                    ]);
 
-            return redirect($redirect->target_url, $redirect->status_code);
+                return redirect($redirect->target_url, $redirect->status_code);
+            }
+        } catch (\Exception $e) {
+            // Table may not exist in dev environment — skip silently
         }
 
         return $next($request);

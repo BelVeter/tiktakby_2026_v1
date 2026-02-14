@@ -29,6 +29,7 @@
 | `ZvonokController` | Callback requests, bookings, subscriptions |
 | `RedirectController` | All redirect routes (created for `route:cache` compatibility) |
 | `FavoritesController` | Favorites functionality (added by Kristina) |
+| `CartController` | Shopping cart: display cart page, tariff retrieval, availability check, checkout with booking creation |
 
 ### Middleware (`app/Http/Middleware/`)
 
