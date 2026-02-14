@@ -1,5 +1,5 @@
 @php
-  $v = 177;
+  $v = 178;
 @endphp
 
 <!DOCTYPE html>
@@ -46,7 +46,7 @@
     integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">--}}
   <link href="/public/css/bootstrap.min.css?v={{$v}}" rel="stylesheet" crossorigin="anonymous">
 
-  <link rel="stylesheet" href="/public/css/app.css?v={{$v}}">
+  <link rel="stylesheet" href="/public{{ mix('/css/app.css') }}">
 
   <meta charset="UTF-8" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -82,7 +82,6 @@
   </noscript>
   @yield('style')
   @yield('canonical')
-
 
   <link rel="icon" href="/tiktak.ico" type="image/x-icon">
   <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="32x32">
@@ -136,6 +135,7 @@
       integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF"
       crossorigin="anonymous"></script>--}}
     <script src="/public/js/bootstrap.min.js?v={{$v}}" crossorigin="anonymous"></script>
+
 
     <script src="/public/js/app.js?v={{$v}}"></script>
 
@@ -277,6 +277,7 @@
         });
       })();
     </script>
+    <script src="/public{{ mix('/js/app.js') }}"></script>
   </div> {{-- end of general wrapper--}}
 </body>
 
