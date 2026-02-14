@@ -89,6 +89,19 @@ Sequence:
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
 
+## Data Access Strategy
+
+The project uses two distinct methods for database interaction due to its hybrid nature:
+
+1.  **Laravel (`app/`)**:
+    - Uses standard **Eloquent ORM** and **Query Builder**.
+    - Configuration in `.env` and `config/database.php`.
+
+2.  **Legacy/Admin (`bb/`)**:
+    - Uses `bb/Db.php` — a custom Singleton wrapper for `mysqli`.
+    - **Usage**: `$mysqli = \bb\Db::getInstance()->getConnection();`
+    - **Context**: When modifying files in `bb/`, use this existing `Db` class. Do not attempt to use Laravel's Eloquent in `bb/` files unless you are sure Laravel is bootstrapped (which is not guaranteed in all `bb/` scripts).
+
 ## Known Specifics
 
 1. **CSS/JS versioning**: `app.css` and `app.js` use `{{ mix() }}` in Blade — Laravel Mix auto-appends a content hash on `npm run prod`. Vendor files (bootstrap, popper) use manual `?v={{$v}}` in `app.blade.php`
@@ -121,4 +134,37 @@ Sequence:
 - **Safe to auto-run**: All `git` and `mysql` commands that are read-only or non-destructive (e.g., `git status`, `git log`, `git diff`, `mysql SHOW TABLES`, `mysql SELECT`) should be executed with `SafeToAutoRun: true`.
 - **Project commands**: Standard development commands (`npm`, `composer`, `php artisan`) should be auto-run for efficiency.
 - **Exceptions**: Only ask for confirmation for mass deletion of files or dropping of fundamental database tables.
+
+
+## Authentication & Security
+
+The project runs two parallel systems (Laravel and Legacy PHP), each with its own session management.
+
+1.  **Legacy Admin (`/bb/`)**:
+    -   Uses native PHP sessions (`session_start()`).
+    -   User login sets the `tt_is_logged_in` cookie (valid for 30 days).
+    -   Verification: `\bb\models\User::isLoggedIn()` (works ONLY within legacy scripts).
+
+2.  **Laravel App (`/`)**:
+    -   Uses Laravel's session driver (file/cookie).
+    -   **Does NOT share sessions** with the legacy admin panel.
+    -   `\bb\models\User::isLoggedIn()` returns `false` in Laravel controllers/views because it cannot access the legacy PHP session.
+
+### How to Check Admin Status in Laravel
+
+To determine if a user is an administrator (logged into `/bb/`) from within a Laravel Blade template or Controller, **DO NOT use `User::isLoggedIn()`**. Instead, check for the authentication cookie:
+
+```php
+// In Blade Templates
+@if(isset($_COOKIE['tt_is_logged_in']))
+    {{-- Admin-only content --}}
+@endif
+
+// In PHP/Controllers
+if (isset($_COOKIE['tt_is_logged_in'])) {
+    // Admin logic
+}
+```
+
+This cookie serves as the bridge between the two systems for "is logged in" checks on the frontend. for deep security, backend scripts in `/bb/` must still use `\bb\Base::loginCheck()`.
 

@@ -365,8 +365,7 @@
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{$p->translate('Отмена')}}</button>
           @else
             <div class="zayavka-btn-container">
-              <button type="button" id="zayavka-submit-btn"
-                class="zayavka-submit-btn">{{$p->translate('Заказать')}}</button>
+              <button type="button" id="zayavka-submit-btn" class="zayavka-submit-btn">{{$p->translate('Заказать')}}</button>
             </div>
           @endif
         </div>

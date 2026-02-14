@@ -238,14 +238,14 @@
         <button type="button" class="l2-card_btn-cart" data-model-id="{{ $l2->getModelId() }}"
           data-model-name="{{ strip_tags($l2->getName()) }}" data-model-pic="{{ $l2->getPicUrl() }}"
           data-model-url="{{ $l2->getL3Url(request()->lang) }}" data-tariffs='@json($cartTariffs)' onclick="TiktakCart.addItem({
-                    modelId: {{ $l2->getModelId() }},
-                    name: this.getAttribute('data-model-name'),
-                    picUrl: this.getAttribute('data-model-pic'),
-                    l3Url: this.getAttribute('data-model-url'),
-                    dateFrom: TiktakCart.todayStr(),
-                    days: 14,
-                    tariffs: JSON.parse(this.getAttribute('data-tariffs'))
-                  })">
+                        modelId: {{ $l2->getModelId() }},
+                        name: this.getAttribute('data-model-name'),
+                        picUrl: this.getAttribute('data-model-pic'),
+                        l3Url: this.getAttribute('data-model-url'),
+                        dateFrom: TiktakCart.todayStr(),
+                        days: 14,
+                        tariffs: JSON.parse(this.getAttribute('data-tariffs'))
+                      })">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             class="btn-icon">
             <circle cx="9" cy="21" r="1"></circle>
