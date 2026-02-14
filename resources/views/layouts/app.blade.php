@@ -278,6 +278,55 @@
       })();
     </script>
     <script src="/public{{ mix('/js/app.js') }}"></script>
+
+    @if(isset($_COOKIE['tt_is_logged_in']))
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          // Check for the cookie on the client side
+          if (document.cookie.indexOf('tt_is_logged_in=1') === -1) {
+            return;
+          }
+
+          console.log('Admin shortcut listener active (Shift+Alt+E)');
+
+          document.addEventListener('keydown', function (event) {
+            if (event.shiftKey && event.altKey && (event.code === 'KeyE')) {
+              let editEl = document.querySelector('[data-bb-edit-url]');
+              if (editEl) {
+                let editUrl = editEl.getAttribute('data-bb-edit-url');
+                let method = editEl.getAttribute('data-bb-edit-method') || 'GET';
+
+                if (method.toUpperCase() === 'POST') {
+                  let params = JSON.parse(editEl.getAttribute('data-bb-edit-params') || '{}');
+                  let form = document.createElement('form');
+                  form.method = 'POST';
+                  form.action = editUrl;
+                  form.target = '_blank';
+
+                  for (let key in params) {
+                    if (params.hasOwnProperty(key)) {
+                      let input = document.createElement('input');
+                      input.type = 'hidden';
+                      input.name = key;
+                      input.value = params[key];
+                      form.appendChild(input);
+                    }
+                  }
+
+                  document.body.appendChild(form);
+                  form.submit();
+                  document.body.removeChild(form);
+                } else {
+                  if (editUrl) window.open(editUrl, '_blank');
+                }
+              } else {
+                console.log('Edit URL element not found');
+              }
+            }
+          });
+        });
+      </script>
+    @endif
   </div> {{-- end of general wrapper--}}
 </body>
 

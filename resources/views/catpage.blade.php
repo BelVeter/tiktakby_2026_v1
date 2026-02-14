@@ -75,7 +75,8 @@
               @include('includes.breadcrumbs', ['b' => $p->getBreadCrumbsArray()])
             </div>
             <div class="col-3 ml-auto l2-results-count">РЕЗУЛЬТАТЫ:
-              {{ $p->getStartListingNumber() }}-{{ $p->getEndListingNumber()   }} ИЗ {{$p->getTotalModelsNum()}}</div>
+              {{ $p->getStartListingNumber() }}-{{ $p->getEndListingNumber()   }} ИЗ {{$p->getTotalModelsNum()}}
+            </div>
           </div>
         </div>
 
@@ -205,4 +206,18 @@
     </div> <!-- end of container app -->
   </div><!-- end of gradient -->
   <script type="module" src="/public/js/l2.js?v=2 "></script>
+
+  @if(isset($_COOKIE['tt_is_logged_in']))
+    @if($p->getLevelCode() == 'razdel')
+      <div data-bb-edit-url="/bb/page_management.php" data-bb-edit-method="POST"
+        data-bb-edit-params='@json(["level_code" => "razdel", "url_key" => $p->_razdel->getUrlRazdelName()])'></div>
+    @elseif($p->getLevelCode() == 'subrazdel' && $p->_subRazdel)
+      <div data-bb-edit-url="/bb/page_management.php" data-bb-edit-method="POST"
+        data-bb-edit-params='@json(["level_code" => "subrazdel", "url_key" => $p->_subRazdel->getUrlSubRazdelName()])'></div>
+    @elseif($p->getLevelCode() == 'category' && $p->_category)
+      <div data-bb-edit-url="/bb/page_management.php" data-bb-edit-method="POST"
+        data-bb-edit-params='@json(["level_code" => "category", "url_key" => $p->_category->getCatUrlKey()])'></div>
+    @endif
+  @endif
+
 @endsection
