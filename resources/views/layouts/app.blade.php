@@ -46,7 +46,7 @@
     integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">--}}
   <link href="/public/css/bootstrap.min.css?v={{$v}}" rel="stylesheet" crossorigin="anonymous">
 
-  <link rel="stylesheet" href="/public/css/app.css?v={{$v}}">
+  <link rel="stylesheet" href="{{ mix('/css/app.css') }}">
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -136,7 +136,7 @@
       crossorigin="anonymous"></script>--}}
     <script src="/public/js/bootstrap.min.js?v={{$v}}" crossorigin="anonymous"></script>
 
-    <script src="/public/js/app.js?v={{$v}}"></script>
+    <script src="{{ mix('/js/app.js') }}"></script>
   </div> {{-- end of general wrapper--}}
 </body>
 
