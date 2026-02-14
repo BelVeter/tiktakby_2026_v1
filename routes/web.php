@@ -56,6 +56,9 @@ Route::post(
     'App\Http\Controllers\ZvonokController@addSubscription'
 );
 
+Route::get('/favorites', 'App\Http\Controllers\FavoritesController@index');
+Route::post('/favorites/cards', 'App\Http\Controllers\FavoritesController@getCards');
+
 Route::get(
     '/{lang}/',
     'App\Http\Controllers\MainController@showPage'

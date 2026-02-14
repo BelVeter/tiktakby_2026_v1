@@ -49,6 +49,7 @@
   <link rel="stylesheet" href="/public/css/app.css?v={{$v}}">
 
   <meta charset="UTF-8" />
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="@yield('meta-description')">
 
@@ -137,6 +138,145 @@
     <script src="/public/js/bootstrap.min.js?v={{$v}}" crossorigin="anonymous"></script>
 
     <script src="/public/js/app.js?v={{$v}}"></script>
+
+    {{-- Favorites Manager (localStorage-based, session-scope) --}}
+    <style>
+      .l2-card_wishlist[data-model-id] {
+        position: relative;
+      }
+
+      .l2-card_wishlist.active[data-model-id]::after {
+        content: 'Убрать из избранного';
+        position: absolute;
+        bottom: calc(100% + 6px);
+        right: 0;
+        background: #333;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 400;
+        padding: 4px 10px;
+        border-radius: 4px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        z-index: 100;
+        font-family: 'Nunito', sans-serif;
+      }
+
+      .l2-card_wishlist.active[data-model-id]:hover::after {
+        opacity: 1;
+      }
+    </style>
+    <script>
+      (function () {
+        var STORAGE_KEY = 'tiktak_favorites';
+
+        function getFavorites() {
+          try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+          } catch (e) {
+            return {};
+          }
+        }
+
+        function saveFavorites(favs) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(favs));
+        }
+
+        function updateBadges() {
+          var favs = getFavorites();
+          var count = Object.keys(favs).length;
+          var badges = document.querySelectorAll('.favorites-badge');
+          badges.forEach(function (badge) {
+            if (count > 0) {
+              badge.textContent = count;
+              badge.style.display = 'inline-block';
+            } else {
+              badge.style.display = 'none';
+            }
+          });
+        }
+
+        function toggleFavorite(el) {
+          var modelId = el.getAttribute('data-model-id');
+          if (!modelId) return;
+
+          var favs = getFavorites();
+
+          if (favs[modelId]) {
+            // Remove from favorites
+            delete favs[modelId];
+            el.classList.remove('active');
+          } else {
+            // Add to favorites
+            favs[modelId] = {
+              name: el.getAttribute('data-model-name') || '',
+              pic: el.getAttribute('data-model-pic') || '',
+              url: el.getAttribute('data-model-url') || ''
+            };
+            el.classList.add('active');
+          }
+
+          saveFavorites(favs);
+          updateBadges();
+
+          // If on favorites page, remove the card when un-favorited
+          if (window.location.pathname === '/favorites') {
+            if (!favs[modelId]) {
+              var card = el.closest('.l2-card_container');
+              if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(function () {
+                  card.remove();
+                  // Show empty state if no more favorites
+                  var gridEl = document.getElementById('favorites-grid');
+                  if (gridEl && gridEl.querySelectorAll('.l2-card_container').length === 0) {
+                    var emptyEl = document.getElementById('favorites-empty');
+                    if (emptyEl) emptyEl.style.display = 'block';
+                    gridEl.style.display = 'none';
+                  }
+                }, 300);
+              }
+            }
+          }
+        }
+
+        function initHearts() {
+          var favs = getFavorites();
+          var hearts = document.querySelectorAll('.l2-card_wishlist[data-model-id]');
+          hearts.forEach(function (heart) {
+            if (heart.getAttribute('data-fav-bound') === '1') return;
+            heart.setAttribute('data-fav-bound', '1');
+
+            var modelId = heart.getAttribute('data-model-id');
+            // Restore active state
+            if (favs[modelId]) {
+              heart.classList.add('active');
+            }
+            heart.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleFavorite(heart);
+            });
+          });
+        }
+
+        // Expose for favorites page
+        window.TiktakFavorites = {
+          initHearts: initHearts,
+          updateBadges: updateBadges
+        };
+
+        // Init on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function () {
+          initHearts();
+          updateBadges();
+        });
+      })();
+    </script>
   </div> {{-- end of general wrapper--}}
 </body>
 
