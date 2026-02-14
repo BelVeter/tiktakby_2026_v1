@@ -3181,7 +3181,7 @@ if ($cl_onh_num > 0) {
 		echo '
 				<tr>
 					<td ' . $fr_col . '>' . $cl_onh['item_inv_n'] . '</td>
-					<td>' . $cat['dog_name'] . ' ' . $model['producer'] . ', модель: ' . $model['model'] . $color . '</td>
+					<td>' . ($model['model_addr'] != '' ? $model['model_addr'] : $cat['dog_name']) . ' ' . $model['producer'] . ', модель: ' . $model['model'] . $color . '</td>
 					<td>' . date("d.m.Y", $cl_onh['start_date']) . '</td>
 					<td ';
 
