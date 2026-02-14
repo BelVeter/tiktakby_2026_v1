@@ -60,13 +60,17 @@
 
 .l2-card_wishlist {
   color: #C1D9F3; // Light blue as in screenshot
-  font-size: 20px;
+  font-size: 23px;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color 0.2s, transform 0.2s;
 
-  &:hover,
+  &:hover {
+    color: #E57373;
+    transform: scale(1.15);
+  }
+
   &.active {
-    color: #3180d1;
+    color: #E53935; // Warm red for favorited state
   }
 }
 

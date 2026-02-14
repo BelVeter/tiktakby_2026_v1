@@ -11,32 +11,19 @@
 |
 */
 
-//Route::get('/',
-//    'App\Http\Controllers\MainController@showPage'
-//);
-
-Route::get('/', function () {
-    return redirect('/ru', 301);
-});
-Route::get('/lt', function () {
-    return redirect('/ru', 301);
-});
-Route::get('/en', function () {
-    return redirect('/ru', 301);
-});
+// --- Корневые редиректы ---
+Route::get('/', 'App\Http\Controllers\RedirectController@rootToRu');
+Route::get('/lt', 'App\Http\Controllers\RedirectController@ltToRu');
+Route::get('/en', 'App\Http\Controllers\RedirectController@enToRu');
 
 
-
-
-
-Route::get('/ru/prokat-detskih-tovarov/karnavalnye-kostyumy', function () {
-    return redirect('/ru/prokat-detskih-tovarovkarnavalnye-kostyumy', 301);
-});
-
+// --- Карнавальные костюмы: цепочка редиректов ---
+Route::get('/ru/prokat-detskih-tovarov/karnavalnye-kostyumy', 'App\Http\Controllers\RedirectController@karnavalRedirect');
 Route::redirect('/ru/prokat-detskih-tovarovkarnavalnye-kostyumy', '/ru/karnavalnye-kostyumy', 301);
 Route::redirect('/ru/prokat-detskih-tovarovkarnavalnye-kostyumy/{any}', '/ru/karnavalnye-kostyumy/{any}', 301)->where('any', '.*');
 
 
+// --- Звонки / подписки ---
 Route::post(
     '/zvonok/bron',
     'App\Http\Controllers\ZvonokController@bron'
@@ -56,27 +43,23 @@ Route::post(
     'App\Http\Controllers\ZvonokController@addSubscription'
 );
 
+Route::get('/favorites', 'App\Http\Controllers\FavoritesController@index');
+Route::post('/favorites/cards', 'App\Http\Controllers\FavoritesController@getCards');
+
+// --- Главная страница ---
 Route::get(
     '/{lang}/',
     'App\Http\Controllers\MainController@showPage'
 );
 
-Route::get('/test/', function () {
-    //$menu=\App\MyClasses\CatMenuItem::getAllMenu();
-    //dd($menu);
-    return view('home2');
-});
+// --- Тестовая страница ---
+Route::get('/test/', 'App\Http\Controllers\RedirectController@testPage');
 
 
+// --- Редиректы /en, /lt → /ru для статических страниц ---
 
-
-
-Route::get('/en/about', function () {
-    return redirect('/ru/about', 301);
-});
-Route::get('/lt/about', function () {
-    return redirect('/ru/about', 301);
-});
+Route::get('/en/about', 'App\Http\Controllers\RedirectController@enAboutToRu');
+Route::get('/lt/about', 'App\Http\Controllers\RedirectController@ltAboutToRu');
 
 Route::get(
     '/{lang}/about',
@@ -85,13 +68,8 @@ Route::get(
 
 
 
-
-Route::get('/en/conditions', function () {
-    return redirect('/ru/conditions', 301);
-});
-Route::get('/lt/conditions', function () {
-    return redirect('/ru/conditions', 301);
-});
+Route::get('/en/conditions', 'App\Http\Controllers\RedirectController@enConditionsToRu');
+Route::get('/lt/conditions', 'App\Http\Controllers\RedirectController@ltConditionsToRu');
 Route::get(
     '/{lang}/conditions',
     'App\Http\Controllers\AboutController@showConditionsPage'
@@ -99,12 +77,8 @@ Route::get(
 
 
 
-Route::get('/en/delivery', function () {
-    return redirect('/ru/delivery', 301);
-});
-Route::get('/lt/delivery', function () {
-    return redirect('/ru/delivery', 301);
-});
+Route::get('/en/delivery', 'App\Http\Controllers\RedirectController@enDeliveryToRu');
+Route::get('/lt/delivery', 'App\Http\Controllers\RedirectController@ltDeliveryToRu');
 Route::get(
     '/{lang}/delivery',
     'App\Http\Controllers\AboutController@showDeliveryPage'
@@ -112,12 +86,8 @@ Route::get(
 
 
 
-Route::get('/en/contacts', function () {
-    return redirect('/ru/contacts', 301);
-});
-Route::get('/lt/contacts', function () {
-    return redirect('/ru/contacts', 301);
-});
+Route::get('/en/contacts', 'App\Http\Controllers\RedirectController@enContactsToRu');
+Route::get('/lt/contacts', 'App\Http\Controllers\RedirectController@ltContactsToRu');
 
 Route::get(
     '/{lang}/contacts',
@@ -126,12 +96,8 @@ Route::get(
 
 
 
-Route::get('/en/policy', function () {
-    return redirect('/ru/policy', 301);
-});
-Route::get('/lt/policy', function () {
-    return redirect('/ru/policy', 301);
-});
+Route::get('/en/policy', 'App\Http\Controllers\RedirectController@enPolicyToRu');
+Route::get('/lt/policy', 'App\Http\Controllers\RedirectController@ltPolicyToRu');
 
 Route::get(
     '/{lang}/policy',
@@ -139,6 +105,7 @@ Route::get(
 );
 
 
+// --- Поиск и фильтры ---
 Route::get(
     '/{lang}/search',
     'App\Http\Controllers\SearchController@search'
@@ -156,26 +123,17 @@ Route::get(
 )->name('filter.age');
 
 
-// Bioptron URL Alias & Redirect
+// --- Bioptron ---
 Route::redirect('/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk', '/ru/medical-prokat/bioptron', 301);
-
-Route::get('/ru/medical-prokat/bioptron', function (\Illuminate\Http\Request $req) {
-    return app()->make('App\Http\Controllers\CatController')->categoryMainPage('ru', 'medical-prokat', 'bioptron-prokat-minsk', 'prokat-bioptron-minsk', $req);
-});
+Route::get('/ru/medical-prokat/bioptron', 'App\Http\Controllers\RedirectController@bioptronAlias');
 
 
 
+// --- Каталог ---
 Route::get(
     '/ru/prokat/{cat}',
     'App\Http\Controllers\CatController@CatMainPage'
 )->name('cat-main-page');
-
-//Route::post('/ru/prokat/{cat}/{model}', 'L3Controller@l3Order');
-
-//Route::get(
-//    '/ru/prokat/{cat}/{model}',
-//    'L3Controller@l3ShowPage'
-//)->name('l3page');
 
 
 Route::get(
@@ -194,17 +152,14 @@ Route::get(
 )->name('categoryPage');
 
 Route::post(
-    //'/ru/prokat/{cat}/{model}',
     '/{lang}/{razdel}/{subrazdel}/{category}/{model}',
     'App\Http\Controllers\L3Controller@l3Order2'
 );
 
 Route::get(
-    //'/ru/prokat/{cat}/{model}',
     '/{lang}/{razdel}/{subrazdel}/{category}/{model}',
     'App\Http\Controllers\L3Controller@l3ShowPage2'
 )->name('l3page');
 
-Route::fallback(function () {
-    return response()->view('not_found', [], 404);
-});
+// --- Fallback (404) ---
+Route::fallback('App\Http\Controllers\RedirectController@notFound');
