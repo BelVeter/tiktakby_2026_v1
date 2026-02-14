@@ -82,7 +82,7 @@
       <button class="action-button bron-button" data-actionbtn="order" data-bs-toggle="modal" data-bs-target="#orderModal"
         onclick="return l3CheckCartBeforeOrder(this);">{{$p->translate('Забронировать')}}</button>
     @else
-      <button class="action-button bron-button" data-actionbtn="order" data-bs-toggle="modal"
+      <button class="action-button bron-button w-100" data-actionbtn="order" data-bs-toggle="modal"
         data-bs-target="#orderModal">{{$p->translate('Оставить заявку')}}</button>
     @endif
 
@@ -304,8 +304,7 @@
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{$p->translate('Отмена')}}</button>
           @else
             <div class="zayavka-btn-container">
-              <button type="button" id="zayavka-submit-btn"
-                class="zayavka-submit-btn">{{$p->translate('Заказать')}}</button>
+              <button type="button" id="zayavka-submit-btn" class="zayavka-submit-btn">{{$p->translate('Заказать')}}</button>
             </div>
           @endif
         </div>

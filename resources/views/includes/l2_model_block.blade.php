@@ -200,7 +200,25 @@
 
     <div class="l2-card_action-btn-container">
       @if($availability['hasAvailability'])
-        <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_btn btn-rent">
+        @php
+          $cartTariffs = [];
+          $tarifModel = $l2->getTarifModel();
+          if ($tarifModel) {
+            foreach ($tarifModel->getTarifs() as $t) {
+              $daysNum = $t->getDaysCalculatedNumber();
+              if ($daysNum > 0) {
+                $dailyRate = round($t->getTotalAmount() / $daysNum, 2);
+                $cartTariffs[] = [$daysNum, $dailyRate];
+              }
+            }
+            usort($cartTariffs, function ($a, $b) {
+              return $a[0] - $b[0];
+            });
+          }
+        @endphp
+        <button type="button" class="l2-card_btn btn-rent add-to-cart-l2" data-model-id="{{ $l2->getModelId() }}"
+          data-model-name="{{ strip_tags($l2->getName()) }}" data-pic-url="{{ $l2->getPicUrl() }}"
+          data-l3-url="{{ $l2->getL3Url(request()->lang) }}" data-tariffs='@json($cartTariffs)'>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="btn-icon">
             <path
               d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z"
