@@ -122,6 +122,7 @@
     </div>
   </section>
 
+  {{-- Admin shortcut --}}
   @if(isset($_COOKIE['tt_is_logged_in']))
     <div data-bb-edit-url="/bb/model_web.php" data-bb-edit-method="POST"
       data-bb-edit-params='@json(["model_id" => $p->getModelId()])'></div>

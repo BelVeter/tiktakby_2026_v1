@@ -9,7 +9,7 @@
 - **Local environment**: Laragon on Windows, project at `d:\sites\tiktakby_2026_v1`
 - **Git**: GitHub, repo `BelVeter/tiktakby_2026_v1`
 - **Branching**: `main` = production, feature branches (e.g. `dima2`). Branch protection on `main` — merges only via PRs
-- **Deploy**: `Deploy.php` (triggered via URL with secret key). Does `git reset --hard origin/main`, `composer install`, `migrate`, config/route/view caching
+- **Deploy**: `Deploy.php` (triggered via URL with secret key). Does `git reset --hard origin/main`, `composer install`, `migrate`, config/route/view caching. **NOTE**: `git clean` is DISABLED to protect user-uploaded images in `/bb/`.
 
 ## Local Development
 
@@ -76,6 +76,7 @@ Sequence:
 6. `php artisan config:cache`
 7. `php artisan route:cache` ← **works because closures were replaced with controllers**
 8. `php artisan view:cache`
+9. **NOTE**: `git clean` is intentionally disabled to prevent deletion of unversioned images in /bb/.
 
 ## Database (main tables)
 
