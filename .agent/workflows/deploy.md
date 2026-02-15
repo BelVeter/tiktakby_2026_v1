@@ -15,11 +15,14 @@ Follow these steps to ensure a safe and successful deployment to production.
 
 
 1.  **Check for Uncommitted Changes**:
-    -   Ensure your working directory is clean before fetching.
-    -   `git status --porcelain` (should be empty).
-    -   **If not empty**:
-        -   **STOP**. You have uncommitted changes.
-        -   **Action**: Commit your changes (`git add . && git commit -m "..."`) or stash them (`git stash`).
+    -   Run `git status --porcelain`.
+    -   **If output is NOT empty**:
+        -   **STOP**. Do NOT proceed automatically.
+        -   **Agent Action**: List the uncommitted files to the user. Ask: "There are uncommitted changes. Should I commit them (provide a commit message), stash them, or stop?"
+        -   **User Decision**:
+            -   **Commit**: Provide message → Agent commits.
+            -   **Stash**: Agent runs `git stash`.
+            -   **Stop**: Workflow ends.
         -   **Warning**: If you proceed without committing, these changes will NOT be deployed.
 
 2.  **Fetch latest state**:
