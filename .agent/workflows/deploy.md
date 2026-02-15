@@ -1,4 +1,5 @@
 ---
+// turbo-all
 description: Safe deployment workflow with conflict checking, asset verification, and production safety checks.
 ---
 
@@ -12,11 +13,20 @@ Follow these steps to ensure a safe and successful deployment to production.
 **Goal**: Simulate the merge locally to ensure your PR will be clean and conflict-free.
 *Since deployment happens via PR, you must ensure your code is compatible with `main` **BEFORE** you push.*
 
-1.  **Fetch latest state**:
+
+1.  **Check for Uncommitted Changes**:
+    -   Ensure your working directory is clean before fetching.
+    -   `git status --porcelain` (should be empty).
+    -   **If not empty**:
+        -   **STOP**. You have uncommitted changes.
+        -   **Action**: Commit your changes (`git add . && git commit -m "..."`) or stash them (`git stash`).
+        -   **Warning**: If you proceed without committing, these changes will NOT be deployed.
+
+2.  **Fetch latest state**:
     ```bash
     git fetch origin
     ```
-2.  **Merge `origin/main` into current branch**:
+3.  **Merge `origin/main` into current branch**:
     ```bash
     git merge origin/main
     ```
