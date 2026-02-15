@@ -49,9 +49,15 @@ Follow these steps to ensure a safe and successful deployment to production.
 3.  **Merge & Deploy**:
     -   Once merged, instructing the user to trigger the deployment.
     -   **URL**: `https://tiktak.by/Deploy.php?key=<SECRET>` (or run `php Deploy.php` if on CLI, though usually triggered via web).
-4.  **Post-Deploy Check**:
-    -   Visit the site to verify critical functionality.
-    -   Check `bb/redirects.php` or other admin pages if modified.
+4.  **Post-Deploy Verification (Smoke Test)**:
+    -   **Critical**: Visit the home page and a few inner pages to ensure no 500 errors.
+    -   **Feature Check**: Verify specifically the functionality you just added or modified.
+    -   **Assets**: Ctrl+F5 to clear browser cache and ensure styles/scripts are loaded correctly (not 404).
+
+## 4. Conflict Prevention Tips
+-   **Pull Often**: Before starting new work, always run `git checkout main && git pull && git checkout -b feature/new-task` to start fresh.
+-   **Communicate**: If touching `routes/web.php` or `webpack.mix.js`, check if others are working on them.
+-   **Resolve Locally**: Never push a branch that has conflicts with `main`. Resolve them locally first.
 
 ---
 **Agent Note**: If any step fails, stop and ask the user for guidance. Never force-push or skip verification steps without explicit approval.
