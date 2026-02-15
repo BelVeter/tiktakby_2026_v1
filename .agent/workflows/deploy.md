@@ -47,12 +47,11 @@ Follow these steps to ensure a safe and successful deployment to production.
 2.  **Merge**:
     -   Merge the PR into `main`.
     -   *Now the code is on the remote server's git, but not live yet.*
-3.  **User Action: Deploy**:
-    -   Trigger the deployment script: `https://tiktak.by/Deploy.php?key=<SECRET>`.
-    -   *Agent Note: Do not run this automatically unless explicitly authorized.*
-    -   This pulls the latest `main` (which now has your changes) to the production folder.
+3.  **Automated Deploy**:
+    -   **GitHub Webhook** automatically triggers `https://tiktak.by/Deploy.php` after the merge.
+    -   *No manual action required.*
 4.  **Confirm**:
-    -   Check the output of `Deploy.php` (it usually returns "OK" or a log).
+    -   Wait a moment for the webhook to finish.
 4.  **Post-Deploy Verification (Smoke Test)**:
     -   **Critical**: Visit the home page and a few inner pages to ensure no 500 errors.
     -   **Feature Check**: Verify specifically the functionality you just added or modified.
