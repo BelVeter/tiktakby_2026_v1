@@ -78,13 +78,7 @@
 
 
   <div class="row__action-buttons">
-    @if($p->model->hasFreeItems())
-      <button class="action-button bron-button" data-actionbtn="order" data-bs-toggle="modal" data-bs-target="#orderModal"
-        onclick="return l3CheckCartBeforeOrder(this);">{{$p->translate('Забронировать')}}</button>
-    @else
-      <button class="action-button bron-button w-100" data-actionbtn="order" data-bs-toggle="modal"
-        data-bs-target="#orderModal">{{$p->translate('Оставить заявку')}}</button>
-    @endif
+
 
     {{-- Add to Cart button --}}
     @php
@@ -103,30 +97,84 @@
         });
       }
     @endphp
-    <button type="button" class="action-button cart-button" id="l3-add-to-cart-btn"
-      data-model-id="{{ $p->getModelId() }}" data-model-name="{{ strip_tags($p->getL3MainName()) }}"
-      data-model-pic="{{ $p->getMainSmallPicUrl() }}" data-model-url="{{ url()->current() }}"
-      data-tariffs='@json($l3CartTariffs)'>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        style="vertical-align:middle; margin-right:6px;">
-        <circle cx="9" cy="21" r="1"></circle>
-        <circle cx="20" cy="21" r="1"></circle>
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-      </svg>
-      {{$p->translate('В корзину')}}
-    </button>
+    <div id="l3-cart-actions-container">
+      {{-- Initial State: Add to Cart --}}
+      <button type="button" class="action-button cart-button" id="l3-add-to-cart-btn"
+        data-model-id="{{ $p->getModelId() }}" data-model-name="{{ strip_tags($p->getL3MainName()) }}"
+        data-model-pic="{{ $p->getMainSmallPicUrl() }}" data-model-url="{{ url()->current() }}"
+        data-tariffs='@json($l3CartTariffs)'>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          style="vertical-align:middle;">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        {{$p->translate('В корзину')}}
+      </button>
+
+      {{-- Success State: Go to Cart + Remove --}}
+      <div id="l3-in-cart-controls" style="display: none;">
+        <a href="/cart" class="action-button btn-go-to-cart"
+          style="flex-grow: 1; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            style="vertical-align:middle;">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+          {{$p->translate('Перейти в корзину')}}
+        </a>
+        <button type="button" class="action-button btn-remove-from-cart" id="l3-remove-from-cart-btn"
+          style="display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var l3CartBtn = document.getElementById('l3-add-to-cart-btn');
+      var l3RemoveBtn = document.getElementById('l3-remove-from-cart-btn');
+      var cartControls = document.getElementById('l3-in-cart-controls');
+
+      // Function to check cart state and update UI
+      function updateL3CartUI() {
+        if (!l3CartBtn) return;
+        var modelId = l3CartBtn.getAttribute('data-model-id');
+        var isInCart = false;
+
+        if (typeof TiktakCart !== 'undefined') {
+          var items = TiktakCart.getItems();
+          for (var i = 0; i < items.length; i++) {
+            if (items[i].modelId == modelId) {
+              isInCart = true;
+              break;
+            }
+          }
+        }
+
+        if (isInCart) {
+          l3CartBtn.style.display = 'none';
+          cartControls.style.display = 'flex';
+        } else {
+          l3CartBtn.style.display = 'flex';
+          cartControls.style.display = 'none';
+        }
+      }
+
+      // Initial check
+      updateL3CartUI();
+
       if (l3CartBtn) {
         l3CartBtn.addEventListener('click', function () {
           var dateFrom = document.querySelector('.l3_date_from');
           var daysInput = document.querySelector('.l3_days_input');
           var btn = this;
 
-          TiktakCart.addItem({
+          var success = TiktakCart.addItem({
             modelId: parseInt(btn.getAttribute('data-model-id')),
             name: btn.getAttribute('data-model-name'),
             picUrl: btn.getAttribute('data-model-pic'),
@@ -135,6 +183,19 @@
             days: daysInput ? parseInt(daysInput.value) || 14 : 14,
             tariffs: JSON.parse(btn.getAttribute('data-tariffs'))
           });
+
+          if (success) {
+            updateL3CartUI();
+          }
+        });
+      }
+
+      if (l3RemoveBtn) {
+        l3RemoveBtn.addEventListener('click', function () {
+          var modelId = l3CartBtn.getAttribute('data-model-id');
+          TiktakCart.removeByModelId(modelId);
+          TiktakCart.showToast('Товар удален из корзины', 'warning'); // Using warning style for removal
+          updateL3CartUI();
         });
       }
     });
