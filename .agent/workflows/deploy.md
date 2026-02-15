@@ -66,3 +66,4 @@ Follow these steps to ensure a safe and successful deployment to production.
 
 ---
 **Agent Note**: If any step fails, stop and ask the user for guidance. Never force-push or skip verification steps without explicit approval.
+**Final Report**: Upon completion, please provide a summary of the verification results in Russian.
