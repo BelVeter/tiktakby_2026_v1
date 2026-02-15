@@ -7,7 +7,8 @@ description: Safe deployment workflow with conflict checking, asset verification
 Follow these steps to ensure a safe and successful deployment to production.
 
 ## 1. Context Synchronization & Conflict Check
-**Goal**: Ensure your feature branch is up-to-date with production (`main`) and free of conflicts.
+**Goal**: Simulate the merge locally to ensure your PR will be clean and conflict-free.
+*Since deployment happens via PR, you must ensure your code is compatible with `main` **BEFORE** you push.*
 
 1.  **Fetch latest state**:
     ```bash
@@ -36,19 +37,21 @@ Follow these steps to ensure a safe and successful deployment to production.
 3.  **Check `AGENTS.md`**:
     -   If architecture changed (new controllers, middleware, tables), ensure `AGENTS.md` was updated.
 
-## 3. Deployment Triggers
-**Goal**: Push changes and trigger the deploy script.
+## 3. Deployment Triggers (The "Go Live" Moment)
+**Goal**: Push your verified code, merge it, and tell the server to pull.
 
-1.  **Push changes**:
-    ```bash
-    git push origin <current-branch>
-    ```
-2.  **Pull Request**:
-    -   Instruct the user to create a Pull Request (PR) from `<current-branch>` to `main` on GitHub.
-    -   Remind them to check the "File changed" tab for any surprises.
-3.  **Merge & Deploy**:
-    -   Once merged, instructing the user to trigger the deployment.
-    -   **URL**: `https://tiktak.by/Deploy.php?key=<SECRET>` (or run `php Deploy.php` if on CLI, though usually triggered via web).
+1.  **Push & PR**:
+    -   Push your local branch: `git push origin <current-branch>`.
+    -   Create a Pull Request to `main` on GitHub.
+    -   **Wait** for checks (if any) and peer review.
+2.  **Merge**:
+    -   Merge the PR into `main`.
+    -   *Now the code is on the remote server's git, but not live yet.*
+3.  **Deploy**:
+    -   Trigger the deployment script: `https://tiktak.by/Deploy.php?key=<SECRET>`.
+    -   This pulls the latest `main` (which now has your changes) to the production folder.
+4.  **Confirm**:
+    -   Check the output of `Deploy.php` (it usually returns "OK" or a log).
 4.  **Post-Deploy Verification (Smoke Test)**:
     -   **Critical**: Visit the home page and a few inner pages to ensure no 500 errors.
     -   **Feature Check**: Verify specifically the functionality you just added or modified.
