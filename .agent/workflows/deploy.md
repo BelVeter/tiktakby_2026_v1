@@ -47,8 +47,9 @@ Follow these steps to ensure a safe and successful deployment to production.
 2.  **Merge**:
     -   Merge the PR into `main`.
     -   *Now the code is on the remote server's git, but not live yet.*
-3.  **Deploy**:
+3.  **User Action: Deploy**:
     -   Trigger the deployment script: `https://tiktak.by/Deploy.php?key=<SECRET>`.
+    -   *Agent Note: Do not run this automatically unless explicitly authorized.*
     -   This pulls the latest `main` (which now has your changes) to the production folder.
 4.  **Confirm**:
     -   Check the output of `Deploy.php` (it usually returns "OK" or a log).
