@@ -53,13 +53,14 @@ class L3Page
   public function __construct($lang = '')
   {
 
-    if ($lang=='') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
 
-    $this->lang=$lang;
+    $this->lang = $lang;
     $this->breadcrumbs = [];
     $this->favoriteTovarsModels = [];
 
-    switch ($lang){
+    switch ($lang) {
       case 'en':
         $this->breadcrumbs['Rental service'] = '/en/';
         break;
@@ -137,8 +138,10 @@ class L3Page
    */
   public function hasMessages()
   {
-    if (is_array($this->messages) && count($this->messages) > 0) return true;
-    else return false;
+    if (is_array($this->messages) && count($this->messages) > 0)
+      return true;
+    else
+      return false;
   }
 
   /**
@@ -165,7 +168,8 @@ class L3Page
   /**
    * @return mixed
    */
-  public function getMetaDescription(){
+  public function getMetaDescription()
+  {
     return $this->modelWeb->getMetaDescription();
   }
 
@@ -218,8 +222,10 @@ class L3Page
    */
   public function isKarnaval()
   {
-    if ($this->modelWeb->isKarnaval()) return true;
-    else return false;
+    if ($this->modelWeb->isKarnaval())
+      return true;
+    else
+      return false;
   }
 
   public function getModelPrice()
@@ -282,7 +288,8 @@ class L3Page
    */
   public static function getPageByUrlName($urlName, $lang = '', $razdelUrlCode, $currentSubRazdelUrlCode)
   {
-    if ($lang == '') $lang = 'ru';
+    if ($lang == '')
+      $lang = 'ru';
 
     $p = new self($lang);
     $p->lang = $lang;
@@ -291,7 +298,13 @@ class L3Page
     $p->tariffs = TariffModel::getTarifModelForModelId($p->modelWeb->model_id);
     $p->model = Model::getById($p->modelWeb->model_id);
 
-    $favModelIds = Model::getModelIdsArrayForFavoriteTovSlider($p->model, $razdelUrlCode, $currentSubRazdelUrlCode, 16);
+    // Caching the recommendation list for 60 minutes
+    // Key depends on model, razdel, and subrazdel (since context matters)
+    $cacheKey = 'rec_view_ids_m' . $p->modelWeb->model_id . '_r' . $razdelUrlCode . '_s' . $currentSubRazdelUrlCode;
+
+    $favModelIds = \Illuminate\Support\Facades\Cache::remember($cacheKey, 3600, function () use ($p, $razdelUrlCode, $currentSubRazdelUrlCode) {
+      return Model::getModelIdsArrayForFavoriteTovSlider($p->model, $razdelUrlCode, $currentSubRazdelUrlCode, 16);
+    });
 
     //dd($favModelIds);
 
@@ -310,7 +323,8 @@ class L3Page
   /**
    * @return mixed
    */
-  public function getCollateralAmmount(){
+  public function getCollateralAmmount()
+  {
     return $this->model->getCollateral();
   }
 
@@ -341,8 +355,7 @@ class L3Page
   {
     if ($this->modelWeb->getBreadcrumbsName() != '') {
       $this->addBreadCrumbs($this->modelWeb->getBreadcrumbsName(), '');
-    }
-    else{
+    } else {
       $this->addBreadCrumbs($this->getL3MainName(), '');
     }
     return $this->breadcrumbs;
@@ -416,10 +429,12 @@ class L3Page
   /**
    * @return int
    */
-  public function getTarifLinePeriodDaysNumber(){
-    if ($this->isKarnaval()) return 1;
+  public function getTarifLinePeriodDaysNumber()
+  {
+    if ($this->isKarnaval())
+      return 1;
     else {
-      switch ($this->modelWeb->getTarifLinePeriod()){
+      switch ($this->modelWeb->getTarifLinePeriod()) {
         case 'day':
           return 1;
           break;
@@ -439,12 +454,14 @@ class L3Page
   /**
    * @return int|mixed
    */
-  public function getBaseDaysForPlusMinus(){
-    if ($this->modelWeb->getTarifBaseDays()<1) {
-      if ($this->isKarnaval()) return 1;
-      else return 3;
-    }
-    else {
+  public function getBaseDaysForPlusMinus()
+  {
+    if ($this->modelWeb->getTarifBaseDays() < 1) {
+      if ($this->isKarnaval())
+        return 1;
+      else
+        return 3;
+    } else {
       return $this->modelWeb->getTarifBaseDays();
     }
   }
@@ -452,20 +469,26 @@ class L3Page
   /**
    * @return int|mixed
    */
-  public function getBaseDaysNumForTarifCalc(){
-    if ($this->isKarnaval()) return 1;
-    if ($this->modelWeb->getTarifBaseDays()<1) return 3;
-    else return $this->modelWeb->getTarifBaseDays();
+  public function getBaseDaysNumForTarifCalc()
+  {
+    if ($this->isKarnaval())
+      return 1;
+    if ($this->modelWeb->getTarifBaseDays() < 1)
+      return 3;
+    else
+      return $this->modelWeb->getTarifBaseDays();
   }
 
-  public function translate($textRU){
-    if ($this->lang=='ru' || $this->lang=='') return $textRU;
+  public function translate($textRU)
+  {
+    if ($this->lang == 'ru' || $this->lang == '')
+      return $textRU;
 
     $this->lang == 'lt' ? $langIndex = 0 : $langIndex = 1; //lt = 0, en = 1
-    $translatedText='';
+    $translatedText = '';
 
-    if (isset(self::$_translations[$textRU])){
-      $translatedText=self::$_translations[$textRU][$langIndex];
+    if (isset(self::$_translations[$textRU])) {
+      $translatedText = self::$_translations[$textRU][$langIndex];
     }
 
     return $translatedText;
@@ -476,15 +499,17 @@ class L3Page
    * @param $pattern
    * @return array|mixed|string|string[]
    */
-  public function translateStringInside($str, $pattern){
-    if ($this->lang=='ru' || $this->lang=='') return $str;
+  public function translateStringInside($str, $pattern)
+  {
+    if ($this->lang == 'ru' || $this->lang == '')
+      return $str;
 
     $this->lang == 'lt' ? $langIndex = 0 : $langIndex = 1; //lt = 0, en = 1
 
     $translatedPattern = '';
 
-    if (isset(self::$_translations[$pattern])){
-      $translatedPattern=self::$_translations[$pattern][$langIndex];
+    if (isset(self::$_translations[$pattern])) {
+      $translatedPattern = self::$_translations[$pattern][$langIndex];
     }
     $rez = str_replace($pattern, $translatedPattern, $str);
 
