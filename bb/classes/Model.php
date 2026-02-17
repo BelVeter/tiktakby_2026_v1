@@ -433,6 +433,11 @@ class Model
       $srch = '';
     }
 
+    // Changes:
+    // 1. Removed exclusion of current sub-razdel (allows alternatives from same category)
+    // 2. Added exclusion of current model ID
+    // 3. Added status='to_rent' check (Availability)
+    // 4. Added LIMIT 60 (Performance)
     $query = "SELECT tovar_rent.tovar_rent_id as model_id, razdel.url_razdel_name, sub_razdel.url_sub_razdel_name, COUNT(tovar_rent_items.item_id) as tov_count
 
                     FROM `tovar_rent`
@@ -442,10 +447,16 @@ class Model
                     LEFT JOIN sub_razdel ON sub_razdel.id_sub_razdel = tovar_rent_cat.main_sub_razdel_id
                     LEFT JOIN razdel ON sub_razdel.main_razdel_id = razdel.id_razdel
 
-                    WHERE tovar_rent_items.item_id>0 AND razdel.url_razdel_name='$razdelUrlCode' AND sub_razdel.url_sub_razdel_name!='$currentSubRazdelUrlCode'$srch
+                    WHERE tovar_rent_items.item_id>0 
+                      AND razdel.url_razdel_name='$razdelUrlCode' 
+                      AND tovar_rent.tovar_rent_id != '{$model->model_id}'
+                      AND tovar_rent_items.status = 'to_rent'
+                      $srch
 
                     GROUP BY tovar_rent.tovar_rent_id
-                    ORDER BY RAND()";
+                    ORDER BY RAND()
+                    LIMIT 60";
+
     $result = $mysqli->query($query);
     if (!$result) {
       printf("Query:" . $query . " Mysqli Errormessage: %s\n", $mysqli->error);
