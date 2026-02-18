@@ -14,10 +14,13 @@
     RewriteEngine On
     RewriteCond %{HTTP:X-Forwarded-Proto} =http
     RewriteRule .* https://%{HTTP:Host}%{REQUEST_URI} [L,R=permanent]
-    
+
     RewriteEngine On
 
     RewriteRule ^(bb) - [L]
+
+    # Serve static image files directly — never route to Laravel
+    RewriteRule \.(avif|webp|jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$ - [L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -34,15 +37,7 @@
 
     RewriteRule ^ index.php [L]
 
-    #RemoveHandler .html .htm 
-
-#AddType application/x-httpd-php .php .htm .html .phtml
-#AddHandler php-cgi .php .htm .html .phtml
-
-Options +ExecCGI
-AddHandler application/x-httpd-lsphp .html .htm 
-
-
+    #RemoveHandler .html .htm
 
     <IfModule mod_mime.c>
         AddType image/avif .avif
@@ -51,9 +46,16 @@ AddHandler application/x-httpd-lsphp .html .htm
 
 </IfModule>
 
+#AddType application/x-httpd-php .php .htm .html .phtml
+#AddHandler php-cgi .php .htm .html .phtml
+
+Options +ExecCGI
+AddHandler application/x-httpd-lsphp .html .htm
+
 <Files 403.shtml>
 order allow,deny
 allow from all
 </Files>
 
 deny from 95.217.141.56
+
