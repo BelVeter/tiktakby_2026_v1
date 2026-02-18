@@ -58,4 +58,3 @@ allow from all
 </Files>
 
 deny from 95.217.141.56
-

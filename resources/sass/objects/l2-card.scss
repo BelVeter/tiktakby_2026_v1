@@ -463,6 +463,92 @@
   }
 }
 
+// Cart button (outlined style)
+.l2-card_btn-cart {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+  background-color: #4A90E2;
+  color: white;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  border-radius: 6px;
+  border: 2px solid #4A90E2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+
+  .btn-icon {
+    margin-right: 6px;
+  }
+
+  &:hover {
+    background-color: #357ABD; // Darker blue
+    color: white;
+    border-color: #357ABD;
+  }
+}
+
+// L3 cart button style
+.action-button.cart-button {
+  background-color: #4A90E2;
+  color: white;
+  border: 2px solid #4A90E2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+
+  &:hover {
+    background-color: #357ABD; // Darker blue
+    color: white;
+    border-color: #357ABD;
+  }
+}
+
+// Cart toast notifications
+.cart-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  z-index: 99999;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+  max-width: 90vw;
+  text-align: center;
+
+  &.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  &.success {
+    background: #4CAF50;
+    color: #fff;
+  }
+
+  &.warning {
+    background: #FF9800;
+    color: #fff;
+  }
+
+  &.error {
+    background: #E53935;
+    color: #fff;
+  }
+}
+
 // Mobile overrides if needed
 @media screen and (max-width: 767px) {
   .l2-card_container {

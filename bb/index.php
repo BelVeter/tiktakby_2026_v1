@@ -22,21 +22,6 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/Kassa.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/LegalEntity.php'); //
 //require_once ($_SERVER['DOCUMENT_ROOT'].'/includes/zv_show.php'); //
 
-echo Base::PageStartAdvansed('Главная.');
-
-echo '<link href="/bb/stile.css?v=3" rel="stylesheet" type="text/css" />
-      <link rel="stylesheet" href="/bb/assets/styles/cur_style.css?v=1">
-
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-
-';
-
-echo Base::getBarCodeReaderScript('', array('target' => '/bb/scanner_tovar.php'));
-
-
 //Base::PostCheckVarDumpEcho();
 
 Base::GetAllPostGlobal();
@@ -49,6 +34,7 @@ if (isset($_POST['action'])) {
             if ($user = User::LogIn($log, $pass)) {
                 //var_dump($user);
                 $user->sessionRegister();
+                setcookie('tt_is_logged_in', '1', time() + 86400 * 30, '/');
             } else {
                 echo '<div class="alert-warning text-center">Неверный пароль или имя пользователя.</div>';
             }
@@ -74,6 +60,20 @@ if (isset($_POST['action'])) {
             break;
     }
 }
+
+echo Base::PageStartAdvansed('Главная.');
+
+echo '<link href="/bb/stile.css?v=3" rel="stylesheet" type="text/css" />
+      <link rel="stylesheet" href="/bb/assets/styles/cur_style.css?v=1">
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+
+';
+
+echo Base::getBarCodeReaderScript('', array('target' => '/bb/scanner_tovar.php'));
 
 if (!Base::isAllLoggedIn()) {
     $prev_step_passed = true;

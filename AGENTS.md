@@ -9,7 +9,7 @@
 - **Local environment**: Laragon on Windows, project at `d:\sites\tiktakby_2026_v1`
 - **Git**: GitHub, repo `BelVeter/tiktakby_2026_v1`
 - **Branching**: `main` = production, feature branches (e.g. `dima2`). Branch protection on `main` — merges only via PRs
-- **Deploy**: `Deploy.php` (triggered via URL with secret key). Does `git reset --hard origin/main`, `composer install`, `migrate`, config/route/view caching
+- **Deploy**: `Deploy.php` (triggered via URL with secret key). Does `git reset --hard origin/main`, `composer install`, `migrate`, config/route/view caching. **NOTE**: `git clean` is DISABLED to protect user-uploaded images in `/bb/`.
 
 ## Local Development
 
@@ -29,6 +29,7 @@
 | `ZvonokController` | Callback requests, bookings, subscriptions |
 | `RedirectController` | All redirect routes (created for `route:cache` compatibility) |
 | `FavoritesController` | Favorites functionality (added by Kristina) |
+| `CartController` | Shopping cart: display cart page, tariff retrieval, availability check, checkout with booking creation |
 
 ### Middleware (`app/Http/Middleware/`)
 
@@ -49,6 +50,7 @@ Business logic classes:
 
 Separate PHP admin panel (not Laravel-based), accessible at `/bb/`. Key files:
 - `bb/index.php` — dashboard with links to all sections
+- `bb/bb_nav.php` — shared navigation component (admin header)
 - `bb/redirects.php` — redirect management
 - `bb/redirects_api.php` — API for cascading URL selection (by site structure)
 - Order, client, product, and rental management
@@ -75,6 +77,7 @@ Sequence:
 6. `php artisan config:cache`
 7. `php artisan route:cache` ← **works because closures were replaced with controllers**
 8. `php artisan view:cache`
+9. **NOTE**: `git clean` is intentionally disabled to prevent deletion of unversioned images in /bb/.
 
 ## Database (main tables)
 
@@ -87,6 +90,19 @@ Sequence:
 | Content | `pages`, `video_links`, `dop_photos` |
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
+
+## Data Access Strategy
+
+The project uses two distinct methods for database interaction due to its hybrid nature:
+
+1.  **Laravel (`app/`)**:
+    - Uses standard **Eloquent ORM** and **Query Builder**.
+    - Configuration in `.env` and `config/database.php`.
+
+2.  **Legacy/Admin (`bb/`)**:
+    - Uses `bb/Db.php` — a custom Singleton wrapper for `mysqli`.
+    - **Usage**: `$mysqli = \bb\Db::getInstance()->getConnection();`
+    - **Context**: When modifying files in `bb/`, use this existing `Db` class. Do not attempt to use Laravel's Eloquent in `bb/` files unless you are sure Laravel is bootstrapped (which is not guaranteed in all `bb/` scripts).
 
 ## Known Specifics
 
@@ -120,4 +136,37 @@ Sequence:
 - **Safe to auto-run**: All `git` and `mysql` commands that are read-only or non-destructive (e.g., `git status`, `git log`, `git diff`, `mysql SHOW TABLES`, `mysql SELECT`) should be executed with `SafeToAutoRun: true`.
 - **Project commands**: Standard development commands (`npm`, `composer`, `php artisan`) should be auto-run for efficiency.
 - **Exceptions**: Only ask for confirmation for mass deletion of files or dropping of fundamental database tables.
+
+
+## Authentication & Security
+
+The project runs two parallel systems (Laravel and Legacy PHP), each with its own session management.
+
+1.  **Legacy Admin (`/bb/`)**:
+    -   Uses native PHP sessions (`session_start()`).
+    -   User login sets the `tt_is_logged_in` cookie (valid for 30 days).
+    -   Verification: `\bb\models\User::isLoggedIn()` (works ONLY within legacy scripts).
+
+2.  **Laravel App (`/`)**:
+    -   Uses Laravel's session driver (file/cookie).
+    -   **Does NOT share sessions** with the legacy admin panel.
+    -   `\bb\models\User::isLoggedIn()` returns `false` in Laravel controllers/views because it cannot access the legacy PHP session.
+
+### How to Check Admin Status in Laravel
+
+To determine if a user is an administrator (logged into `/bb/`) from within a Laravel Blade template or Controller, **DO NOT use `User::isLoggedIn()`**. Instead, check for the authentication cookie:
+
+```php
+// In Blade Templates
+@if(isset($_COOKIE['tt_is_logged_in']))
+    {{-- Admin-only content --}}
+@endif
+
+// In PHP/Controllers
+if (isset($_COOKIE['tt_is_logged_in'])) {
+    // Admin logic
+}
+```
+
+This cookie serves as the bridge between the two systems for "is logged in" checks on the frontend. for deep security, backend scripts in `/bb/` must still use `\bb\Base::loginCheck()`.
 

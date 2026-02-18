@@ -102,6 +102,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 
 </style>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
+<link href="/bb/dogovor_new_style.css" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>База. Новый договор</title>
 ';
@@ -1160,6 +1161,40 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 			}
 		}
 
+		function checkSearchFields() {
+			var container = document.getElementById('client_search_fields');
+			if (!container) return;
+
+			var inputs = container.querySelectorAll('input[type="text"]');
+			var isFilled = false;
+			for (var i = 0; i < inputs.length; i++) {
+				if (inputs[i].value && inputs[i].value.trim() !== "") {
+					isFilled = true;
+					break;
+				}
+			}
+
+			if (isFilled) {
+				container.classList.add('is-filled');
+			} else {
+				container.classList.remove('is-filled');
+			}
+		}
+
+		// Attach listeners when DOM is ready
+		document.addEventListener("DOMContentLoaded", function (event) {
+			var container = document.getElementById('client_search_fields');
+			if (container) {
+				var inputs = container.querySelectorAll('input[type="text"]');
+				for (var i = 0; i < inputs.length; i++) {
+					inputs[i].addEventListener('input', checkSearchFields);
+					inputs[i].addEventListener('change', checkSearchFields);
+				}
+				// Initial check
+				checkSearchFields();
+			}
+		});
+
 		function ret_st() {
 
 			if (document.getElementById('return_status').value == "ok") {
@@ -1411,17 +1446,9 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
   </form>
 </div>
 
-<div class="top_menu">
-	<a class="div_item" href="/bb/index.php">На главную</a>
-	<a class="div_item" href="/bb/cur_page2.php">Страница курьера</a>
-	<a class="div_item" href="/bb/rda.php">Все сделки</a>
-	<a class="div_item" href="/bb/cur_page2.php">Страница курьера</a>
-	<a class="div_item" href="/bb/dogovor_new.php">Новый договор / сделка</a>
-	<a class="div_item" href="/bb/rent_orders.php">Брони</a><br />
-		<form method="post" action="/bb/kr_baza_new.php" style="display:inline-block;">
-			<input type="hidden" name="cat_id" value="2" /><input type="submit" value="КАРНАВАЛЫ" style="width:100px; height:35px; background-color:green; color:white" />
-		</form>
-</div>
+';
+	include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
+	echo '
 <div class="row zv-row">
     <div class="col alert-danger h2 text-center" id="zv_div"></div>
 </div>
@@ -2440,7 +2467,13 @@ if (isset($_POST['action'])) {
 			$s_client_id == NULL ? $ss_client_id = '' : $ss_client_id = ' AND client_id=\'' . $s_client_id . '\'';
 			$s_ph == NULL ? $ss_ph = '' : $ss_ph = ' AND (phone_1 LIKE \'%' . $s_ph . '%\' OR phone_2 LIKE \'%' . $s_ph . '%\')';
 
-			$query_cl = "SELECT * FROM clients WHERE family LIKE '$ss_family'" . $ss_name . $ss_otch . $ss_str . $ss_dom . $ss_kv . $ss_pas_n . $ss_client_id . $ss_ph . ' LIMIT 100';
+			$query_cl = "SELECT c.*, COUNT(r.deal_id) as act_num 
+                         FROM clients c 
+                         LEFT JOIN rent_deals_act r ON c.client_id=r.client_id 
+                         WHERE c.family LIKE '$ss_family'" . $ss_name . $ss_otch . $ss_str . $ss_dom . $ss_kv . $ss_pas_n . $ss_client_id . $ss_ph . "
+                         GROUP BY c.client_id
+                         ORDER BY act_num DESC, c.family
+                         LIMIT 100";
 			//echo $query_cl;
 			$result_cl = $mysqli->query($query_cl);
 			if (!$result_cl) {
@@ -2907,19 +2940,54 @@ echo $messaga;
 
 if (!$client_id > 0) {  // форма поиска клиентов
 
+	// Check if we have data to determine if the form is "filled"
+	$is_filled_class = ($s_family || $s_name || $s_otch || $s_ph || $s_str || $s_dom || $s_kv || $s_client_id || $s_pas_n) ? 'is-filled' : '';
+
 	echo '
 <div class="find_cl" id="client_find_div">
 <span class="div_header"> Найти клиента: </span>
 <form name="poisk" method="post" action="dogovor_new.php">
-	№ клиента: <input type="text" name="s_client_id" size="10" value="' . $s_client_id . '" />
-	№ паспорта: <input type="text" name="s_pas_n" size="10" value="' . $s_pas_n . '" /> <br />
-	Фамилия:<input type="text" name="s_family" size="20" value="' . $s_family . '" />
-	+ Имя: <input type="text" name="s_name" size="10" value="' . $s_name . '" />
-	+ Отчество:<input type="text" name="s_otch" size="10" value="' . $s_otch . '"/>
-	+ улица:<input type="text" name="s_str" size="30" value="' . $s_str . '" />
-	+ дом:<input type="text" name="s_dom" value="' . $s_dom . '" />
-	+ квартира:<input type="text" name="s_kv" value="' . $s_kv . '" />
-	+ телефон:<input type="text" name="s_ph" value="' . $s_ph . '" /></br>
+	<div class="search-fields ' . $is_filled_class . '" id="client_search_fields">
+		<div class="search-item">
+			<label>Фамилия:</label>
+			<input type="text" name="s_family" placeholder="Фамилия" value="' . $s_family . '" />
+		</div>
+		<div class="search-item">
+			<label>Имя:</label>
+			<input type="text" name="s_name" placeholder="Имя" value="' . $s_name . '" />
+		</div>
+		<div class="search-item">
+			<label>Отчество:</label>
+			<input type="text" name="s_otch" placeholder="Отчество" value="' . $s_otch . '"/>
+		</div>
+		<div class="search-item">
+			<label>Телефон:</label>
+			<input type="text" name="s_ph" placeholder="Телефон" value="' . $s_ph . '" />
+		</div>
+
+		<div class="search-item">
+			<label>Улица:</label>
+			<input type="text" name="s_str" placeholder="Улица" value="' . $s_str . '" />
+		</div>
+		<div class="search-item">
+			<label>Дом:</label>
+			<input type="text" name="s_dom" placeholder="Дом" value="' . $s_dom . '" />
+		</div>
+		<div class="search-item">
+			<label>Кв.:</label>
+			<input type="text" name="s_kv" placeholder="Кв." value="' . $s_kv . '" />
+		</div>
+
+		<div class="search-item">
+			<label>№ клиента:</label>
+			<input type="text" name="s_client_id" placeholder="№ клиента" value="' . $s_client_id . '" />
+		</div>
+		<div class="search-item">
+			<label>№ паспорта:</label>
+			<input type="text" name="s_pas_n" placeholder="№ паспорта" value="' . $s_pas_n . '" />
+		</div>
+	</div>
+</div>
 	<input type="submit" name="action" value="найти" /> <input type="button" value="Завести нового клиента" id="" onclick="cl_displ (); return false;" />
 	<input type="hidden" name="item_inv_n" id="inv_n_in_find" value="" />
 </form>
@@ -2947,17 +3015,12 @@ if (isset($client_search)) {
 </tr>';
 
 	while ($client_list = $result_cl->fetch_assoc()) {
-		$cl_deals_q = "SELECT * FROM rent_deals_act WHERE client_id='" . $client_list['client_id'] . "'";
-		$cl_deals_result = $mysqli->query($cl_deals_q);
-		if (!$cl_deals_result) {
-			die('Сбой при доступе к базе данных: ' . $cl_deals_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-		}
-		$cl_act_deals_num = $cl_deals_result->num_rows;
+		$cl_act_deals_num = $client_list['act_num'];
 
 
 		echo '
 	<form name="client_s_' . $client_list['client_id'] . '" method="post" action="dogovor_new.php" >
-	<tr ' . ($cl_act_deals_num > 0 ? 'style="background-color:#0F6;"' : '') . '>
+	<tr ' . ($cl_act_deals_num > 0 ? 'style="background-color:#7CFC00;"' : '') . '>
 		<td>' . $client_list['client_id'] . ' <input type="hidden" name="client_id" value="' . $client_list['client_id'] . '" /> </td>
     	<td>' . $client_list['family'] . ' ' . $client_list['name'] . ' ' . $client_list['otch'] . ' ' . ($cl_act_deals_num > 0 ? '[' . $cl_act_deals_num . ']' : '') . ' </td>
     	<td>' . $client_list['str'] . ' ' . $client_list['dom'] . '-' . $client_list['kv'] . ',' . $client_list['city'] . '</td>
@@ -3181,7 +3244,7 @@ if ($cl_onh_num > 0) {
 		echo '
 				<tr>
 					<td ' . $fr_col . '>' . $cl_onh['item_inv_n'] . '</td>
-					<td>' . $cat['dog_name'] . ' ' . $model['producer'] . ', модель: ' . $model['model'] . $color . '</td>
+					<td>' . ($model['model_addr'] != '' ? $model['model_addr'] : $cat['dog_name']) . ' ' . $model['producer'] . ', модель: ' . $model['model'] . $color . '</td>
 					<td>' . date("d.m.Y", $cl_onh['start_date']) . '</td>
 					<td ';
 

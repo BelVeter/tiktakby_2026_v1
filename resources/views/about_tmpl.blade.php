@@ -16,4 +16,8 @@
   </div>
 
 
+  @if(isset($_COOKIE['tt_is_logged_in']))
+    <div data-bb-edit-url="/bb/page_management.php" data-bb-edit-method="POST"
+      data-bb-edit-params='@json(["level_code" => "main", "url_key" => $p->getUrlKey()])'></div>
+  @endif
 @endsection

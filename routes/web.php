@@ -46,6 +46,12 @@ Route::post(
 Route::get('/favorites', 'App\Http\Controllers\FavoritesController@index');
 Route::post('/favorites/cards', 'App\Http\Controllers\FavoritesController@getCards');
 
+// --- Корзина ---
+Route::get('/cart', 'App\Http\Controllers\CartController@index');
+Route::post('/cart/checkout', 'App\Http\Controllers\CartController@checkout');
+Route::post('/cart/tariffs', 'App\Http\Controllers\CartController@getTariffs');
+Route::post('/cart/check-availability', 'App\Http\Controllers\CartController@checkAvailability');
+
 // --- Главная страница ---
 Route::get(
     '/{lang}/',
