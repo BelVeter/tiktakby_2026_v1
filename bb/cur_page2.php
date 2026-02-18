@@ -1117,17 +1117,18 @@ if ($period_no_start == 0) {
 SpeedTrack::meashure();
 echo '<table class="courier-table">
 		<tr>
-			<th scope="col" style="width:70px;"><label><input type="radio" name="sort_order" value="date" form="cur_show_form" ' . ($sort_order == 'date' ? 'checked' : '') . ' onchange="this.form.submit();">с/дата выезда</label></th>
-			<th scope="col" style="width:160px;"><label><input type="radio" name="sort_order" value="fio" form="cur_show_form" ' . ($sort_order == 'fio' ? 'checked' : '') . ' onchange="this.form.submit();">клиент/телефон</label></th>
-			<th scope="col" style="width:120px;"><label><input type="radio" name="sort_order" value="address" form="cur_show_form" ' . ($sort_order == 'address' ? 'checked' : '') . ' onchange="this.form.submit();">адрес</label></th>
-			<th scope="col" style="width:160px;">товар</th>
-			<th scope="col" style="width:100px;">операция</th>
-			<th scope="col" style="width:50px;">к оплате</th>
-			<th scope="col" style="width:50px;">оплачено</th>
-			<th scope="col" style="width:50px;">курьер<br />' . $curs_select . '</th>
-			<th scope="col" style="width:10px;">информация</th>
-			<th scope="col" style="width:50px;">принял</th>
-			<th scope="col">действия</th>
+						<th scope="col" style="width:70px;"><label><input type="radio" name="sort_order" value="date" form="cur_show_form" ' . ($sort_order == 'date' ? 'checked' : '') . ' onchange="this.form.submit();"><span class="sort-label">Дата выезда</span></label></th>
+			<th scope="col" style="width:160px;"><label><input type="radio" name="sort_order" value="fio" form="cur_show_form" ' . ($sort_order == 'fio' ? 'checked' : '') . ' onchange="this.form.submit();"><span class="sort-label">Клиент/телефон</span></label></th>
+			<th scope="col" style="width:120px;"><label><input type="radio" name="sort_order" value="address" form="cur_show_form" ' . ($sort_order == 'address' ? 'checked' : '') . ' onchange="this.form.submit();"><span class="sort-label">Адрес</span></label></th>
+			<th scope="col" style="width:60px;">Фото</th>
+			<th scope="col">Товар</th>
+			<th scope="col" style="width:100px;">Операция</th>
+			<th scope="col" style="width:50px;">К оплате</th>
+			<!-- <th scope="col" style="width:50px;">Оплачено</th>
+			<th scope="col" style="width:50px;">Курьер<br />' . $curs_select . '</th> -->
+			<th scope="col" style="width:10px;">Информация</th>
+			<th scope="col" style="width:50px;">Принял</th>
+			<th scope="col" style="width:120px;">Действия</th>
 		</tr>';
 
 
@@ -1158,21 +1159,34 @@ foreach ($dls as $dl) {
 		echo 'class="status-ok"';
 	}
 
+	$l2_pic_output = '';
+	if ($dl->l2_pic != '') {
+		$l2_pic_output = '<img src="' . $dl->l2_pic . '" style="max-width: 50px; max-height: 50px;" />';
+	}
+
+	$op_print = $dl->operation_print();
+	$op_print = str_replace(' курьером', '', $op_print);
+	$op_print = str_replace('курьером', '', $op_print); // safety net for spacing
+
 	echo '>
 			<td>' . ($dl->type_sub_deal == 'extention' ? date("d.m.Y", $dl->acc_date_sub_deal) : date("d.m.Y", $dl->from_sub_deal)) . ($_SESSION['user_id'] == 3 ? '<br />dl_id:' . $dl->id_deal . '<br>sub_dl_id' . $dl->id_sub_deal : '') . '</td>
 			<td>' . $dl->getFIO() . '<br /><a href="tel:+375' . $dl->phone_1 . '">' . phone_print($dl->phone_1) . '</a><br /><a href="tel:+375' . $dl->phone_2 . '">' . phone_print($dl->phone_2) . '</a></td>
 			<td><a href="' . $dl->getAddrGoogleUrl() . '" target=_blank">' . $dl->getClientAddressLiving() . '</a></td>
+			<td>' . $l2_pic_output . '</td>
 			<td> <strong>№' . inv_print($dl->inv_n_item) . '[' . $dl->place_sub_deal . ']' . '</strong><br />' . $dl->getItemModelText() . '</td>
-			<td>' . $dl->operation_print() . '</td>
+			<td>' . $op_print . '</td>
 			<td style="text-align:right">' . number_format($dl->r_to_pay_sub, 2, ',', ' ') . ' <br /><span class="deliv_num"> ' . number_format($dl->delivery_to_pay_sub, 2, ',', ' ') . '</span></td>
-			<td style="text-align:right">' . $dl->PrintPayment('no') . '</td>
-			<td>' . \bb\User::GetUserName($dl->courier_id) . '</td>
+			<!-- <td style="text-align:right">' . $dl->PrintPayment('no') . '</td>
+			<td>' . \bb\User::GetUserName($dl->courier_id) . '</td> -->
 			<td>' . $dl->info_sub_deal . '</td>
 			<td>' . \bb\User::GetUserName($dl->cr_who_sub_deal) . '<br />' . date("d.m", $dl->cr_time_sub) . '<br /><i>' . date("(H:i)", $dl->cr_time_sub) . '</i></td>
 			<td ' . ($_SESSION['level'] == -1 ? 'style="display:none;"' : '') . '> <div style="position:relative;" id="post_div_' . $dl->id_sub_deal . '"></div>
+				<div class="action-group">
 				<input type="hidden" name="one_sub_dl_id" id="one_sub_dl_id_old_' . $dl->id_sub_deal . '" value="' . $one_sub_dl_id . '" />';
 	if ($dl->status_sub_prev == 'for_cur') {
-		echo '<input type="button" value="оформить (выезд)" onclick="chose_item(\'viezd\', \'' . $dl->id_sub_deal . '\');" style="display:inline-block" />';
+		echo '<button type="button" class="action-icon-btn" title="Оформить выезд" onclick="chose_item(\'viezd\', \'' . $dl->id_sub_deal . '\');">
+				<svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+			  </button>';
 	}
 
 	if ($dl->status_sub_deal == 'act') {
@@ -1180,27 +1194,27 @@ foreach ($dls as $dl) {
 		echo '
 				<form name="main" method="post" action="dogovor_new.php" style="display:inline-block">
 					<input type="hidden" name="active_deal_id" value="' . $dl->id_deal . '" />
-					<input type="submit" name="action" id="action_print" value="распечатать договор" />
+					<button type="submit" name="action" id="action_print" class="action-icon-btn" title="Распечатать договор">
+						<svg viewBox="0 0 24 24"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v5H8v-5h8zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/><circle cx="18" cy="11.5" r="1"/></svg>
+					</button>
 				</form>
 
-				<form method="post" action="dogovor_new.php">
+				<form method="post" action="dogovor_new.php" style="display:inline-block">
 					<input type="hidden" name="item_inv_n" value="' . $dl->inv_n_item . '" />
 					<input type="hidden" name="client_id" value="' . $dl->id_client . '" />
-					<input type="submit" value="к договору" />
+					<button type="submit" class="action-icon-btn" title="К договору">
+						<svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+					</button>
 				</form>';
 	} else {
 		echo '
-					<form method="post" action="deals_arch.php">
+					<form method="post" action="deals_arch.php" style="display:inline-block">
 					<input type="hidden" name="deal_id" value="' . $dl->id_deal . '" />
 					<input type="submit" name="action" value="в архив" />
 					</form>';
 	}
 
-
-
-
-
-	echo '
+	echo '</div>
 					</td>
 
 		</tr>
