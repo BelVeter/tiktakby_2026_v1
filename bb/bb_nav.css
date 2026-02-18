@@ -75,9 +75,64 @@
     display: inline-block;
 }
 
-/* Home icon SVG fallback */
 .bb-icon-nav__home-icon {
     width: 24px;
     height: 24px;
     flex-shrink: 0;
+}
+
+/* Dropdown (Архив) */
+.bb-icon-nav__dropdown {
+    position: relative;
+}
+
+.bb-icon-nav__dropdown-toggle {
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.bb-icon-nav__caret {
+    margin-left: 2px;
+    transition: transform 0.2s;
+}
+
+.bb-icon-nav__dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #dde1e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: 180px;
+    z-index: 1100;
+    padding: 4px 0;
+}
+
+.bb-icon-nav__dropdown:hover .bb-icon-nav__dropdown-menu,
+.bb-icon-nav__dropdown.open .bb-icon-nav__dropdown-menu {
+    display: block;
+}
+
+.bb-icon-nav__dropdown:hover .bb-icon-nav__caret {
+    transform: rotate(180deg);
+}
+
+.bb-icon-nav__dropdown-item {
+    display: block;
+    padding: 8px 14px;
+    color: #3a4a5c;
+    text-decoration: none;
+    font-size: 13px;
+    font-family: 'Roboto', Arial, sans-serif;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.bb-icon-nav__dropdown-item:hover {
+    background: #f0f4f8;
+    color: #1565a0;
+    text-decoration: none;
 }
