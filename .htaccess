@@ -43,6 +43,12 @@ Options +ExecCGI
 AddHandler application/x-httpd-lsphp .html .htm 
 
 
+
+    <IfModule mod_mime.c>
+        AddType image/avif .avif
+        AddType image/webp .webp
+    </IfModule>
+
 </IfModule>
 
 <Files 403.shtml>
