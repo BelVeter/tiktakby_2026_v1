@@ -487,7 +487,7 @@ img[src="w.gif"] {
     margin-top: 8px;
 }
 
-/* --- Search fields flex layout --- */
+/* --- Search fields layout --- */
 .search-fields {
     display: flex;
     flex-wrap: wrap;
@@ -496,8 +496,55 @@ img[src="w.gif"] {
     margin: 12px 0;
 }
 
+.search-item {
+    display: inline-block;
+}
+
+.search-item label {
+    display: none;
+    /* Hidden by default */
+}
+
 .search-fields input[type="text"] {
     flex: 0 0 auto;
+    width: auto;
+}
+
+/* --- Vertical Layout (Conditional) - Compact Grid --- */
+.search-fields.is-filled {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px 20px;
+    /* row-gap column-gap */
+    max-width: 100%;
+    align-items: start;
+}
+
+.search-fields.is-filled .search-item {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    /* Reduced label width */
+    gap: 10px;
+    align-items: center;
+}
+
+.search-fields.is-filled .search-item label {
+    display: block;
+    font-weight: bold;
+    text-align: right;
+    color: var(--text-secondary, #333);
+    white-space: nowrap;
+}
+
+.search-fields.is-filled input[type="text"] {
+    width: 100%;
+    flex: none;
+}
+
+/* Specific width overrides for short fields (only in horizontal mode) */
+.search-fields:not(.is-filled) input[name="s_dom"],
+.search-fields:not(.is-filled) input[name="s_kv"] {
+    width: 60px !important;
 }
 
 .search-fields input[type="text"]::placeholder {
