@@ -108,6 +108,7 @@
       @yield('content')
     </main>
 
+    @include('includes.request_modal')
     @include('includes.footer')
 
 

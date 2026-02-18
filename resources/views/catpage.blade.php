@@ -5,7 +5,7 @@
 @section('page-title', $p->getTitle())
 @section('meta-description', $p->getMetaDescription())
 @section('style')
-  <link rel="stylesheet" href="/public/css/pages/l2.css?v=3">
+  <link rel="stylesheet" href="/public/css/pages/l2.css?v=4">
 @endsection
 @if($url = $p->getCanonicalUrlBy())
   @section('canonical')
