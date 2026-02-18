@@ -50,6 +50,7 @@ Business logic classes:
 
 Separate PHP admin panel (not Laravel-based), accessible at `/bb/`. Key files:
 - `bb/index.php` — dashboard with links to all sections
+- `bb/bb_nav.php` — shared navigation component (admin header)
 - `bb/redirects.php` — redirect management
 - `bb/redirects_api.php` — API for cascading URL selection (by site structure)
 - Order, client, product, and rental management
