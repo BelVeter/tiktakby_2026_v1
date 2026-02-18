@@ -98,39 +98,51 @@
       }
     @endphp
     <div id="l3-cart-actions-container">
-      {{-- Initial State: Add to Cart --}}
-      <button type="button" class="action-button cart-button" id="l3-add-to-cart-btn"
-        data-model-id="{{ $p->getModelId() }}" data-model-name="{{ strip_tags($p->getL3MainName()) }}"
-        data-model-pic="{{ $p->getMainSmallPicUrl() }}" data-model-url="{{ url()->current() }}"
-        data-tariffs='@json($l3CartTariffs)'>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          style="vertical-align:middle;">
-          <circle cx="9" cy="21" r="1"></circle>
-          <circle cx="20" cy="21" r="1"></circle>
-          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-        </svg>
-        {{$p->translate('В корзину')}}
-      </button>
-
-      {{-- Success State: Go to Cart + Remove --}}
-      <div id="l3-in-cart-controls" style="display: none;">
-        <a href="/cart" class="action-button btn-go-to-cart"
-          style="flex-grow: 1; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+      @if($p->model->hasFreeItems())
+        {{-- Initial State: Add to Cart --}}
+        <button type="button" class="action-button cart-button" id="l3-add-to-cart-btn"
+          data-model-id="{{ $p->getModelId() }}" data-model-name="{{ strip_tags($p->getL3MainName()) }}"
+          data-model-pic="{{ $p->getMainSmallPicUrl() }}" data-model-url="{{ url()->current() }}"
+          data-tariffs='@json($l3CartTariffs)'>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             style="vertical-align:middle;">
-            <path d="M5 12h14M12 5l7 7-7 7" />
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
           </svg>
-          {{$p->translate('Перейти в корзину')}}
-        </a>
-        <button type="button" class="action-button btn-remove-from-cart" id="l3-remove-from-cart-btn"
-          style="display: flex; align-items: center; justify-content: center;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
+          {{$p->translate('В корзину')}}
         </button>
-      </div>
+
+        {{-- Success State: Go to Cart + Remove --}}
+        <div id="l3-in-cart-controls" style="display: none;">
+          <a href="/cart" class="action-button btn-go-to-cart"
+            style="flex-grow: 1; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              style="vertical-align:middle;">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+            {{$p->translate('Перейти в корзину')}}
+          </a>
+          <button type="button" class="action-button btn-remove-from-cart" id="l3-remove-from-cart-btn"
+            style="display: flex; align-items: center; justify-content: center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      @else
+        {{-- Request Button for Out of Stock --}}
+        <button type="button" class="l2-card_btn btn-request" data-bs-toggle="modal" data-bs-target="#orderModal">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="btn-icon">
+            <path
+              d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z"
+              fill="currentColor" />
+          </svg>
+          ОСТАВИТЬ ЗАЯВКУ
+        </button>
+      @endif
     </div>
   </div>
 
@@ -365,7 +377,8 @@
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{$p->translate('Отмена')}}</button>
           @else
             <div class="zayavka-btn-container">
-              <button type="button" id="zayavka-submit-btn" class="zayavka-submit-btn">{{$p->translate('Заказать')}}</button>
+              <button type="button" id="zayavka-submit-btn"
+                class="zayavka-submit-btn">{{$p->translate('Заказать')}}</button>
             </div>
           @endif
         </div>
