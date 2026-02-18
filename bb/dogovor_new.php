@@ -102,6 +102,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 
 </style>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
+<link href="/bb/dogovor_new_style.css" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>База. Новый договор</title>
 ';
@@ -2911,15 +2912,17 @@ if (!$client_id > 0) {  // форма поиска клиентов
 <div class="find_cl" id="client_find_div">
 <span class="div_header"> Найти клиента: </span>
 <form name="poisk" method="post" action="dogovor_new.php">
-	№ клиента: <input type="text" name="s_client_id" size="10" value="' . $s_client_id . '" />
-	№ паспорта: <input type="text" name="s_pas_n" size="10" value="' . $s_pas_n . '" /> <br />
-	Фамилия:<input type="text" name="s_family" size="20" value="' . $s_family . '" />
-	+ Имя: <input type="text" name="s_name" size="10" value="' . $s_name . '" />
-	+ Отчество:<input type="text" name="s_otch" size="10" value="' . $s_otch . '"/>
-	+ улица:<input type="text" name="s_str" size="30" value="' . $s_str . '" />
-	+ дом:<input type="text" name="s_dom" value="' . $s_dom . '" />
-	+ квартира:<input type="text" name="s_kv" value="' . $s_kv . '" />
-	+ телефон:<input type="text" name="s_ph" value="' . $s_ph . '" /></br>
+<div class="search-fields">
+	<input type="text" name="s_client_id" size="10" placeholder="№ клиента" value="' . $s_client_id . '" />
+	<input type="text" name="s_pas_n" size="10" placeholder="№ паспорта" value="' . $s_pas_n . '" />
+	<input type="text" name="s_family" size="20" placeholder="Фамилия" value="' . $s_family . '" />
+	<input type="text" name="s_name" size="10" placeholder="Имя" value="' . $s_name . '" />
+	<input type="text" name="s_otch" size="10" placeholder="Отчество" value="' . $s_otch . '"/>
+	<input type="text" name="s_str" size="30" placeholder="Улица" value="' . $s_str . '" />
+	<input type="text" name="s_dom" placeholder="Дом" value="' . $s_dom . '" />
+	<input type="text" name="s_kv" placeholder="Квартира" value="' . $s_kv . '" />
+	<input type="text" name="s_ph" placeholder="Телефон" value="' . $s_ph . '" />
+</div>
 	<input type="submit" name="action" value="найти" /> <input type="button" value="Завести нового клиента" id="" onclick="cl_displ (); return false;" />
 	<input type="hidden" name="item_inv_n" id="inv_n_in_find" value="" />
 </form>
