@@ -88,47 +88,14 @@ body {
 }
 
 .courier-table th {
-    background-color: rgba(248, 249, 250, 0.5);
-    /* Ultra light/transparent */
+    background-color: #f1f3f5;
     color: var(--text-muted);
-    font-weight: 700;
-    /* Lighter weight */
-    text-transform: none;
-    /* No caps */
+    font-weight: 600;
+    text-transform: uppercase;
     font-size: 12px;
     padding: 12px 10px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--border-light);
     text-align: left;
-}
-
-/* Sorting Header Styles */
-.courier-table th label {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.courier-table th input[type="radio"] {
-    display: none;
-    /* Hide the circle */
-}
-
-.courier-table th input[type="radio"]:checked+.sort-label {
-    color: inherit;
-    /* Match other headers */
-    font-weight: 700;
-    /* Bold to indicate active */
-    text-decoration: none;
-}
-
-.sort-label {
-    transition: color 0.2s;
-}
-
-.sort-label:hover {
-    color: var(--text-main);
-    /* Make slightly darker on hover */
 }
 
 .courier-table td {
@@ -215,36 +182,4 @@ body {
 
 .font-bold {
     font-weight: bold;
-}
-
-/* Icon Actions */
-.action-icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 4px;
-    transition: background 0.2s;
-    color: #666;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.action-icon-btn:hover {
-    background-color: #eef2f6;
-    color: #4CAF50;
-    /* Green highlight */
-}
-
-.action-icon-btn svg {
-    width: 20px;
-    height: 20px;
-    fill: currentColor;
-}
-
-.action-group {
-    display: flex;
-    gap: 10px;
-    align-items: center;
 }
