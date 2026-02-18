@@ -1,0 +1,185 @@
+/* Courier Page Redesign Styles */
+:root {
+    --bg-page: #f8f9fa;
+    --bg-card: #ffffff;
+    --text-main: #333333;
+    --text-muted: #666666;
+    --border-light: #e9ecef;
+    --primary-soft: #e3f2fd;
+    /* Light airy blue */
+    --primary-accent: #2196f3;
+    --success-soft: #e8f5e9;
+    --warning-soft: #fff3e0;
+    --danger-soft: #ffebee;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+body {
+    background-color: var(--bg-page);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-main);
+    margin: 0;
+    padding-bottom: 40px;
+}
+
+/* Container for the main content to center and pad it */
+.courier-container {
+    max-width: 1400px;
+    margin: 0;
+    padding: 20px 16px;
+}
+
+/* Filter Section */
+.courier-filters {
+    background: var(--bg-card);
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.courier-filters input[type="text"],
+.courier-filters input[type="date"],
+.courier-filters select {
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 14px;
+    color: var(--text-main);
+    background-color: #fff;
+}
+
+.courier-filters input[type="button"],
+.courier-filters input[type="submit"],
+.courier-filters button,
+.courier-filters .btn {
+    background-color: var(--bg-card);
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.courier-filters input[type="submit"]:hover,
+.courier-filters button:hover {
+    background-color: var(--primary-soft);
+    border-color: var(--primary-accent);
+    color: var(--primary-accent);
+}
+
+/* Main Table styling */
+.courier-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg-card);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 20px;
+    font-size: 13px;
+}
+
+.courier-table th {
+    background-color: #f1f3f5;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border-light);
+    text-align: left;
+}
+
+.courier-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+    color: var(--text-main);
+}
+
+.courier-table tr:last-child td {
+    border-bottom: none;
+}
+
+.courier-table tr:hover td {
+    background-color: #fafafa;
+}
+
+/* Column specific widths/styles */
+.col-actions {
+    width: 200px;
+}
+
+.action-btn {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px 0;
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 12px;
+    color: var(--text-main);
+}
+
+.action-btn:hover {
+    background: var(--primary-soft);
+    color: var(--primary-accent);
+    border-color: var(--primary-soft);
+}
+
+/* Status colors/badges */
+.status-problem {
+    background-color: var(--danger-soft) !important;
+}
+
+.status-ok {
+    background-color: var(--success-soft) !important;
+}
+
+.row-highlight {
+    background-color: var(--warning-soft) !important;
+}
+
+/* Make links subtle */
+.courier-table a {
+    color: var(--primary-accent);
+    text-decoration: none;
+}
+
+.courier-table a:hover {
+    text-decoration: underline;
+}
+
+/* Adjustments for the specific legacy layout */
+.courier-table input[type="text"] {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px;
+    width: 90%;
+}
+
+.text-right {
+    text-align: right !important;
+}
+
+.text-left {
+    text-align: left !important;
+}
+
+.font-italic {
+    font-style: italic;
+}
+
+.font-bold {
+    font-weight: bold;
+}

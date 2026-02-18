@@ -1412,17 +1412,9 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
   </form>
 </div>
 
-<div class="top_menu">
-	<a class="div_item" href="/bb/index.php">На главную</a>
-	<a class="div_item" href="/bb/cur_page2.php">Страница курьера</a>
-	<a class="div_item" href="/bb/rda.php">Все сделки</a>
-	<a class="div_item" href="/bb/cur_page2.php">Страница курьера</a>
-	<a class="div_item" href="/bb/dogovor_new.php">Новый договор / сделка</a>
-	<a class="div_item" href="/bb/rent_orders.php">Брони</a><br />
-		<form method="post" action="/bb/kr_baza_new.php" style="display:inline-block;">
-			<input type="hidden" name="cat_id" value="2" /><input type="submit" value="КАРНАВАЛЫ" style="width:100px; height:35px; background-color:green; color:white" />
-		</form>
-</div>
+';
+	include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
+	echo '
 <div class="row zv-row">
     <div class="col alert-danger h2 text-center" id="zv_div"></div>
 </div>
