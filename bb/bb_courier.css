@@ -82,7 +82,7 @@ body {
     background: var(--bg-card);
     border-radius: 8px;
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
+    overflow: visible;
     margin-bottom: 20px;
     font-size: 13px;
 }
