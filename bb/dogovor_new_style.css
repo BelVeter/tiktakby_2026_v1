@@ -1,0 +1,543 @@
+/* ============================================
+   dogovor_new.php — Redesigned styles
+   Мягкая, воздушная палитра для рабочего интерфейса
+   ============================================ */
+
+/* --- Google Font --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* --- Глобальные переменные --- */
+:root {
+    --bg-page: #f0f2f5;
+    --bg-card: #ffffff;
+    --bg-nav: #ffffff;
+    --bg-input: #f8f9fb;
+    --border-light: #e2e6ec;
+    --border-input: #d0d5dd;
+    --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06), 0 2px 12px rgba(0, 0, 0, 0.04);
+    --shadow-btn: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --text-primary: #1a2332;
+    --text-secondary: #5a6577;
+    --text-muted: #8895a7;
+    --accent: #4a90d9;
+    --accent-hover: #3a7bc8;
+    --accent-light: #e8f0fb;
+    --success: #34a853;
+    --success-light: #e6f4ea;
+    --warning-bg: #fff4e5;
+    --warning-text: #b35c00;
+    --danger-soft: #dc3545;
+    --danger-bg: #fdf0f0;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --transition: 0.2s ease;
+}
+
+/* --- Body --- */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+    background: var(--bg-page) !important;
+    color: var(--text-primary) !important;
+    margin: 0;
+    padding: 12px 20px 40px !important;
+    font-size: 13.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- Верхняя навигация --- */
+.top_menu {
+    background: var(--bg-nav);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    box-shadow: var(--shadow-card);
+}
+
+.div_item {
+    background-color: var(--accent-light) !important;
+    color: var(--accent) !important;
+    padding: 7px 16px !important;
+    font-size: 14px !important;
+    font-weight: 500;
+    border-radius: var(--radius-sm) !important;
+    text-decoration: none !important;
+    transition: all var(--transition);
+    border: 1px solid transparent;
+    display: inline-block;
+    margin-right: 0 !important;
+}
+
+.div_item:hover {
+    background-color: var(--accent) !important;
+    color: #ffffff !important;
+    border-color: var(--accent);
+    box-shadow: var(--shadow-btn);
+}
+
+/* --- Блок пользователя --- */
+.user {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.user strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.user input[type="submit"] {
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: all var(--transition);
+}
+
+.user input[type="submit"]:hover {
+    background: var(--border-light);
+    color: var(--text-primary);
+}
+
+/* --- Основные контейнеры (find_cl) --- */
+.find_cl {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 20px 24px !important;
+    margin: 12px 0 !important;
+    box-shadow: var(--shadow-card) !important;
+    transition: box-shadow var(--transition);
+}
+
+.find_cl:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* --- Заголовки в контейнерах --- */
+.div_header {
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    letter-spacing: -0.01em;
+}
+
+/* --- Поля ввода и select --- */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+textarea,
+select {
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-size: 13.5px !important;
+    padding: 6px 10px !important;
+    border: 1px solid var(--border-input) !important;
+    border-radius: var(--radius-sm) !important;
+    background-color: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.12) !important;
+    background-color: #fff !important;
+}
+
+textarea {
+    border-radius: var(--radius-sm) !important;
+    resize: vertical;
+}
+
+/* --- Кнопки --- */
+input[type="submit"],
+input[type="button"] {
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500;
+    padding: 7px 16px !important;
+    border: 1px solid var(--border-input) !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    cursor: pointer;
+    transition: all var(--transition);
+    box-shadow: var(--shadow-btn);
+}
+
+input[type="submit"]:hover,
+input[type="button"]:hover {
+    background: var(--bg-page) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    box-shadow: 0 2px 6px rgba(74, 144, 217, 0.15);
+}
+
+input[type="submit"]:active,
+input[type="button"]:active {
+    transform: translateY(1px);
+    box-shadow: none;
+}
+
+/* Кнопка КАРНАВАЛЫ — мягкий зелёный стиль */
+input[type="submit"][value="КАРНАВАЛЫ"] {
+    background: var(--success) !important;
+    color: white !important;
+    border-color: var(--success) !important;
+    font-weight: 600;
+    border-radius: var(--radius-sm) !important;
+}
+
+input[type="submit"][value="КАРНАВАЛЫ"]:hover {
+    background: #2d9249 !important;
+    border-color: #2d9249 !important;
+    color: white !important;
+}
+
+/* --- Таблицы --- */
+table {
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+table[border="1"],
+table.main_table,
+table.all_table,
+table.krb_table,
+table.rent_all_table,
+#hist_table {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    width: 100%;
+}
+
+table[border="1"] td,
+table[border="1"] th,
+table.main_table td,
+table.main_table th,
+table.all_table td,
+table.all_table th,
+#hist_table td,
+#hist_table th {
+    border: 1px solid var(--border-light) !important;
+    border-color: var(--border-light) !important;
+    padding: 8px 10px !important;
+    vertical-align: middle;
+    font-size: 13px;
+}
+
+table[border="1"] th,
+table.main_table th,
+table.all_table th,
+#hist_table th {
+    background-color: #f5f7fa !important;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: none;
+    font-size: 12.5px;
+    letter-spacing: 0.02em;
+}
+
+table[border="1"] tr:nth-child(even) td {
+    background-color: #fafbfc;
+}
+
+table[border="1"] tr:hover td {
+    background-color: var(--accent-light);
+}
+
+/* Архивная таблица истории (голубая) */
+#hist_table {
+    background-color: var(--accent-light) !important;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+#hist_table td,
+#hist_table th {
+    background-color: transparent !important;
+}
+
+#hist_table tr:nth-child(even) td {
+    background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* --- Секция Radio-toolbar (выбор способа оплаты и т.п.) --- */
+.radio-toolbar label {
+    background-color: var(--accent-light) !important;
+    color: var(--accent) !important;
+    padding: 8px 14px !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-size: 13.5px !important;
+    font-weight: 500;
+    border-radius: var(--radius-sm) !important;
+    border: 1px solid transparent;
+    transition: all var(--transition);
+}
+
+.radio-toolbar label:hover {
+    background-color: var(--accent) !important;
+    color: #fff !important;
+}
+
+.radio-toolbar input[type="radio"]:checked+label {
+    background-color: var(--accent) !important;
+    color: #ffffff !important;
+    border-color: var(--accent-hover);
+    box-shadow: 0 1px 4px rgba(74, 144, 217, 0.25);
+}
+
+/* --- Info button (красная) --- */
+.cl_info_button {
+    background-color: var(--danger-soft) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 8px 14px !important;
+    font-size: 14px !important;
+    font-weight: 600;
+    color: white !important;
+    box-shadow: var(--shadow-btn);
+    transition: all var(--transition);
+}
+
+.cl_info_button:hover {
+    background-color: #c82333 !important;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+}
+
+/* --- Доп. информация (warning текст) --- */
+/* Текст "НЕ ВЫДАВАТЬ!!!" и т.п. */
+textarea[style*="color"] {
+    color: var(--warning-text) !important;
+}
+
+/* --- Ссылки --- */
+a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+
+a:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+/* nav ссылки — не подчёркивать */
+.div_item:hover {
+    text-decoration: none !important;
+}
+
+/* --- Статусные строки: зелёная для клиентов с товарами --- */
+tr[style*="background-color:#0F6"] td,
+tr[style*="background-color: #0F6"] td {
+    background-color: var(--success-light) !important;
+}
+
+/* --- Предупреждение о бронировании --- */
+div[style*="background-color:yellow"][style*="font-size:36px"] {
+    background-color: var(--warning-bg) !important;
+    color: var(--warning-text) !important;
+    font-size: 20px !important;
+    padding: 16px !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid #f0c36d;
+}
+
+/* --- Alert row (звонки) — невидимы по умолчанию --- */
+.zv-row {
+    display: none !important;
+}
+
+/* Когда JS заполняет контент, показываем через скрипт-хук.
+   Но как CSS-fallback: если есть ссылка внутри — значит контент есть */
+.zv-row:has(a) {
+    display: flex !important;
+}
+
+.alert-danger {
+    background-color: var(--danger-bg) !important;
+    color: var(--danger-soft) !important;
+    border: 1px solid #f5c6cb !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 12px !important;
+}
+
+/* --- Item hist popup --- */
+.item_hist {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 20px !important;
+}
+
+/* --- Bron history --- */
+.bron_hist_unit span {
+    color: var(--accent) !important;
+}
+
+/* --- Tarif popup --- */
+.tar_div {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+/* --- Checkbox wrapper (status divs) --- */
+.ch_div_st {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-md) !important;
+    padding: 16px !important;
+}
+
+/* --- Bold/strong labels --- */
+strong {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* --- Scrollbars --- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-page);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c4c9d2;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0a7b4;
+}
+
+/* --- hr/separator --- */
+hr {
+    border: none;
+    border-top: 1px solid var(--border-light);
+    margin: 16px 0;
+}
+
+/* --- Tooltip/dop info --- */
+.kb_dop_info {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 10px !important;
+    opacity: 1 !important;
+}
+
+/* --- Misc spacing and polish --- */
+br+br {
+    display: block;
+    content: "";
+    margin-top: 4px;
+}
+
+form {
+    margin: 0;
+}
+
+/* loading spinner area */
+img[src="w.gif"] {
+    opacity: 0.6;
+}
+
+/* --- Адаптивность для контейнеров --- */
+#client_find_div,
+#client_info_div,
+#deal_area {
+    max-width: 1100px;
+}
+
+/* -- Arch hist div -- */
+#arch_hist_div {
+    margin-top: 10px;
+}
+
+/* -- Detail history div -- */
+#a_hist_div {
+    margin-top: 8px;
+}
+
+/* --- Search fields flex layout --- */
+.search-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin: 12px 0;
+}
+
+.search-fields input[type="text"] {
+    flex: 0 0 auto;
+}
+
+.search-fields input[type="text"]::placeholder {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* --- Inline-color overrides for status cells --- */
+/* Доставка (was: blue) */
+td[style*="background-color:blue"],
+td[style*="background-color: blue"] {
+    background-color: #d0e4f7 !important;
+    color: #2a5a8a !important;
+}
+
+/* Просрочен (was: red) */
+td[style*="background-color:red"],
+td[style*="background-color: red"] {
+    background-color: #fde2e2 !important;
+    color: #a83232 !important;
+}
+
+/* Возврат сегодня (was: yellow) */
+td[style*="background-color:yellow"],
+td[style*="background-color: yellow"] {
+    background-color: #fff7db !important;
+    color: #8a6d1b !important;
+}
+
+/* Офис-1 (was: green) */
+td[style*="background-color:green"],
+td[style*="background-color: green"] {
+    background-color: #ddf3e4 !important;
+    color: #276738 !important;
+}
+
+/* Офис-2 (was: orange) */
+td[style*="background-color:orange"],
+td[style*="background-color: orange"] {
+    background-color: #fde8d0 !important;
+    color: #8a5a2a !important;
+}
