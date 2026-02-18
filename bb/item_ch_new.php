@@ -203,9 +203,10 @@ if ($action_type == 'arch_hist') {// обязательно здесь, т.к. �
 
 		$tov->model_color == '0' ? ($color = '') : ($color = ', цвет: ' . $tov->model_color . ': ' . $tov->item_color); // если цвет отсутствует - то ничего не выводим, иначе выводим цвет
 
+		$contractName = ($model['model_addr'] != '') ? $model['model_addr'] : $cat['dog_name'];
 		$item_output .= '
 			<tr>
-				<td><strong>№' . inv_print($dl_def['item_inv_n']) . '</strong> ' . addslashes($tov->getContractName()) . ' ' . addslashes($tov->producer) . ', модель: ' . addslashes($tov->model_name) . $color . '</td>
+				<td><strong>№' . inv_print($dl_def['item_inv_n']) . '</strong> ' . addslashes($contractName) . ' ' . addslashes($tov->producer) . ', модель: ' . addslashes($tov->model_name) . $color . '</td>
 				<td>' . date("d.m.Y", $dl_def['start_date']) . '</td>
 				<td>' . date("d.m.Y", $dl_def['return_date']) . '</td>
 				<td>' . number_format($dl_def['r_to_pay'], 2, ',', ' ') . '</td>
