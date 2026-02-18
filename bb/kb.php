@@ -112,19 +112,9 @@ echo '
 <div class="user"><form name="выход" method="post" action="index.php">Вы зашли как: <strong> ' . $_SESSION['user_fio'] . '</strong> <input type="submit" name="exit" value="Выйти" /></form> </div>
 
 
-<div class="top_menu">
-	<a class="div_item" href="/bb/index.php">На главную</a>
-	<a class="div_item" href="/bb/kb_arch.php">Удаленные брони</a>
-	<a class="div_item" href="/bb/kb_lines.php"><strong>Карнавальная таблица</strong></a>
-	<a class="div_item" href="/bb/karn_free.php"><strong>Свободные по дате</strong></a>
-	<a class="div_item" href="/bb/rda.php">Все сделки</a>
-	<a class="div_item" href="/bb/dogovor_new.php">Новый договор</a><br />
-	<a class="div_item" href="/bb/kb_zayavki.php" style="background-color: purple; color: wheat;">Карнавальные заявки</a><br />
-		<form method="post" action="/bb/kr_baza_new.php" style="display:inline-block;">
-			<input type="hidden" name="cat_id" value="2" /><input type="submit" value="КАРНАВАЛЫ" style="width:100px; height:35px; background-color:green; color:white" />
-		</form>
-</div>
-
+';
+include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
+echo '
 <div class="row zv-row">
     <div class="col alert-danger h2 text-center" id="zv_div"></div>
 </div>
