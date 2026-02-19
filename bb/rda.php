@@ -57,6 +57,7 @@ echo '
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ' . Base::getBarCodeReaderScript() . '
 <title>Сделки. NEW.</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400&display=swap" rel="stylesheet">
 </head>
 <body>
 ';
@@ -242,6 +243,30 @@ use bb\classes\Collateral;
         vertical-align: middle;
         border: 1px solid transparent;
     }
+
+    .btn-pale-blue {
+        padding: 5px 15px;
+        /* Slightly adjusted padding for readability */
+        text-decoration: none;
+        margin-left: 30px;
+        cursor: pointer;
+        font-size: 1rem;
+        /* Adjusted for Nunito */
+        line-height: normal;
+        border-radius: 5px;
+        /* Slightly more rounded */
+        color: #000;
+        /* Dark text for pale blue background */
+        background-color: #e3f2fd;
+        /* Pale blue */
+        border-color: #e3f2fd;
+        display: inline-block;
+        font-weight: 400;
+        text-align: center;
+        vertical-align: middle;
+        border: 1px solid transparent;
+        font-family: 'Nunito', sans-serif;
+    }
 </style>
 
 
@@ -286,9 +311,19 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
 <?php if (\bb\models\User::getCurrentUser()->isOwner() && $iDate): ?>
     <div style="background-color: #d5ddf9;">Сумма выручки по банку (только поступления, оффис: '<?= $place ?>):
         <strong><?php echo number_format(\bb\classes\Payment::getSumForDate($iDate, 'bank', $place), 2, ',', ' ') ?></strong>
-        руб. </div>
+        руб.
+    </div>
 <?php endif; ?>
 <?= $kassa->PrintKassaTable() ?>
+<div style="float: left; margin-top: 10px;">
+    <form action="/bb/doh-rash.php" method="post">
+        <input type="hidden" name="i_from_date" value="<?= $i_date ?>">
+        <input type="hidden" name="i_to_date" value="<?= $i_date ?>">
+        <input type="hidden" name="item_place" value="<?= $place ?>">
+        <input type="submit" value="Расходы" class="btn-pale-blue" style="margin-left: 0;">
+    </form>
+</div>
+
 <!--
     <table border="1" cellspacing="0" style="background-color: lightblue; position: absolute; left: 400px;">
         <tr>
@@ -323,7 +358,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
         </th>
         <th style="width:250px; position: relative;">Товар <div
                 style="position: absolute; top: 0; right: 0; font-weight: normal; font-size: 12px;">
-                <?php echo number_format($total_money, 2, ',', ' ') ?></div>
+                <?php echo number_format($total_money, 2, ',', ' ') ?>
+            </div>
         </th>
         <th style="width:90px;"><span title="факт период по договору (было оплачено по)">Даты сделки</span></th>
         <th style="width:50px;">к опл.<br /></th>
