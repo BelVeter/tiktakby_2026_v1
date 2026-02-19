@@ -228,6 +228,13 @@
             }
         }
 
+        @media (max-width: 767px) {
+            main {
+                background-color: #F4F7FB;
+                /* Light blue-grey background */
+            }
+        }
+
         .cart-page__title {
             font-family: 'Nunito', sans-serif;
             font-size: 24px;
