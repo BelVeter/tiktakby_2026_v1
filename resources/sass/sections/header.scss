@@ -32,6 +32,109 @@
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 20px;
+    }
+
+    .logo-icon-svg {
+        height: 30px;
+    }
+
+    .header-logo-composite {
+        gap: 5px;
+    }
+}
+
+// Mobile Header Top Row
+.mobile-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    height: 56px;
+}
+
+.mobile-top-left {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.mobile-logo-center {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: center;
+    padding: 0 10px;
+
+    .header-logo-composite {
+        justify-content: center;
+    }
+}
+
+.mobile-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+
+    a {
+        display: flex;
+        align-items: center;
+    }
+}
+
 .header__logo-a {
     position: relative;
     width: fit-content;
@@ -55,6 +158,7 @@
     }
 }
 
+
 .header-logo-img {
     //width: 227px;
     height: 70px;
@@ -63,6 +167,7 @@
         height: 40px;
     }
 }
+
 
 .header-logo-col h4 a {
     font-family: 'Gilroy';
@@ -93,6 +198,7 @@
         order: unset;
     }
 }
+
 
 .header-line1 {
     display: flex;
@@ -132,6 +238,7 @@
     }
 }
 
+
 .header-line1 ul li {
     margin: 0;
     width: max-content;
@@ -142,6 +249,7 @@
         width: auto;
     }
 }
+
 
 .header-line1 ul li:last-child {
     margin-left: 4%;
@@ -167,12 +275,14 @@
     }
 }
 
+
 .header-line1 ul li:first-child {
     @media screen and (max-width: 767px) {
         margin-top: 10px;
         border-top: none;
     }
 }
+
 
 .header-line2 {
     display: flex;
@@ -244,6 +354,7 @@
         }
     }
 }
+
 
 
 .phone-number-div {
@@ -320,6 +431,7 @@ a.header-phone {
         line-height: 216%;
     }
 }
+
 
 //back coll modal
 .back-coll {
@@ -442,6 +554,7 @@ a.header-phone {
         flex-flow: row nowrap;
     }
 }
+
 
 
 
@@ -573,6 +686,7 @@ a.header-phone {
     }
 }
 
+
 .top-bar-center {
     display: flex;
     align-items: center;
@@ -620,6 +734,7 @@ a.header-phone {
     }
 }
 
+
 .top-bar-right .top-address {
     display: flex;
     align-items: center;
@@ -654,6 +769,7 @@ a.header-phone {
     }
 }
 
+
 // New Main Header Block Styles
 .header-main-full-width {
     background-color: #f8f9fa;
@@ -674,6 +790,7 @@ a.header-phone {
         width: auto;
     }
 }
+
 
 .header-search-small {
     position: relative;
@@ -724,6 +841,7 @@ a.header-phone {
     }
 }
 
+
 .header-actions {
     display: flex;
     align-items: center;
@@ -762,4 +880,7 @@ a.header-phone {
             }
         }
     }
-}@import "header_mobile_new";
+}
+
+
+@import "header_mobile_new";
