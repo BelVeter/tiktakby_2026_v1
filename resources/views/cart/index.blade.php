@@ -218,6 +218,22 @@
 
     <style>
         /* ===== Cart Page Styles (Mobile-First) ===== */
+        
+
+
+        @media (max-width: 767px) {
+            main {
+                background-color: #F4F7FB;
+                /* Light blue-grey background */
+            }
+        }
+
+        @media (max-width: 767px) {
+            main {
+                background-color: #F4F7FB;
+                /* Light blue-grey background */
+            }
+        }
 
         .cart-page__title {
             font-family: 'Nunito', sans-serif;
@@ -319,6 +335,10 @@
             color: #333;
             text-decoration: none;
             line-height: 1.3;
+            padding-right: 36px;
+            /* Space for the remove button */
+            display: block;
+            /* Ensure padding works correctly */
         }
 
         .cart-mobile-card__name:hover {
@@ -327,14 +347,23 @@
 
         .cart-mobile-card__remove {
             position: absolute;
-            top: 12px;
-            right: 12px;
+            top: 10px;
+            right: 10px;
             background: none;
             border: none;
+            width: 32px;
+            /* Keep touch target size */
+            height: 32px;
+            /* Keep touch target size */
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            color: #ccc;
-            padding: 4px;
-            transition: color 0.2s;
+            color: #92bae3;
+            /* Paler blue */
+            padding: 0;
+            transition: all 0.2s;
+            z-index: 10;
         }
 
         .cart-mobile-card__remove:hover {
@@ -439,6 +468,8 @@
             font-family: 'Nunito', sans-serif;
             font-size: 12px;
             color: #999;
+            margin-left: 8px;
+            /* Add space between total and rate */
         }
 
         /* ===== Desktop Table ===== */
@@ -946,7 +977,7 @@
                     card.setAttribute('data-model-id', item.modelId);
                     card.innerHTML =
                         '<button class="cart-mobile-card__remove cart-remove-item" data-index="' + index + '">' +
-                        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' +
+                        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>' +
                         '</button>' +
                         '<div class="cart-mobile-card__top">' +
                         '<a href="' + item.l3Url + '"><img src="' + item.picUrl + '" class="cart-mobile-card__img" alt=""></a>' +

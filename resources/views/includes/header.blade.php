@@ -81,8 +81,13 @@
 
     <div class="header-main-full-width d-none d-md-block">
         <div class="container-app header-main-block">
-            <a class="header-logo-small" href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
-                <img src="/public/svg/logo_main.svg" alt="Tiktak.lt logo">
+            <a class="header-logo-composite" href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
+                <span class="logo-text-tiktak"><span class="c-blue">Tik</span><span class="c-dark">T</span><span
+                        class="c-blue">a</span><span class="c-dark">k</span></span>
+                <img src="/public/png/logo_icon.png"
+                    alt="Прокат детских товаров, автокресел, колясок, биоптрона и других бытовых товаров"
+                    class="logo-icon-svg">
+                <span class="logo-text-rental">прокат</span>
             </a>
 
             <form method="get" action="/{{(request()->lang ? request()->lang : 'ru')}}/search"
@@ -92,7 +97,7 @@
             </form>
 
             <div class="header-actions">
-                <a href="/login" class="action-item">
+                <a href="#" class="action-item" data-bs-toggle="modal" data-bs-target="#profileComingSoonModal">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path
                             d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
@@ -239,11 +244,10 @@
             <div class="mobile-header-new d-md-none"
                 style="background: #fff; border-bottom: 1px solid #eee; position: relative;">
 
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; height: 60px;">
+                <div class="mobile-top-row">
 
-                    <div style="display: flex; align-items: center;">
-                        <div class="menu-trigger info-menu-open" style="cursor: pointer; margin-right: 20px;">
+                    <div class="mobile-top-left">
+                        <div class="menu-trigger info-menu-open" style="cursor: pointer;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3180D1"
                                 stroke-width="2" stroke-linecap="round">
                                 <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -251,8 +255,9 @@
                                 <line x1="3" y1="18" x2="21" y2="18"></line>
                             </svg>
                         </div>
-                        <a href="tel:+375447454040" style="display: flex; align-items: center; text-decoration: none;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3180D1"
+                        <a href="tel:+375447454040"
+                            style="display: flex; align-items: center; text-decoration: none; margin-left: 15px;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3180D1"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path
                                     d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
@@ -261,28 +266,39 @@
                         </a>
                     </div>
 
-                    <div class="logo-container" style="text-align: center;">
-                        <a href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
-                            <img src="/public/svg/logo_main.svg" alt="TikTak" style="height: 35px; width: auto;">
+                    <div class="mobile-logo-center">
+                        <a class="header-logo-composite"
+                            href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
+                            <span class="logo-text-tiktak"><span class="c-blue">Tik</span><span
+                                    class="c-dark">T</span><span class="c-blue">a</span><span
+                                    class="c-dark">k</span></span>
+                            <img src="/public/png/logo_icon.png"
+                                alt="Прокат детских товаров, автокресел, колясок, биоптрона и других бытовых товаров"
+                                class="logo-icon-svg">
+                            <span class="logo-text-rental">прокат</span>
                         </a>
                     </div>
 
-                    <div class="user-actions"
+                    <div class="mobile-top-actions"
                         style="display: flex; gap: 15px; flex: 0 0 auto; justify-content: flex-end;">
-                        <a href="/login" style="color: #3180D1;"><svg width="24" height="24" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#profileComingSoonModal"
+                            style="color: #3180D1;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="12" cy="7" r="4"></circle>
                             </svg></a>
-                        <a href="/favorites" style="color: #3180D1; position: relative;"><svg width="24" height="24"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <a href="/favorites" style="color: #3180D1; position: relative;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
                                 <path
                                     d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
                                 </path>
-                            </svg><span class="favorites-badge" id="favorites-badge-mobile"
-                                style="display:none; position:absolute; top:-6px; right:-6px; background:#E53935; color:#fff; font-size:11px; font-weight:700; border-radius:50%; min-width:18px; height:18px; line-height:18px; text-align:center; padding:0 4px;"></span></a>
+                            </svg>
+                            <span class="favorites-badge" id="favorites-badge-mobile"
+                                style="display:none; position:absolute; top:-6px; right:-6px; background:#E53935; color:#fff; font-size:11px; font-weight:700; border-radius:50%; min-width:18px; height:18px; line-height:18px; text-align:center; padding:0 4px;"></span>
+                        </a>
                         <a href="/cart" style="color: #3180D1; position: relative;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <circle cx="9" cy="21" r="1"></circle>
                                 <circle cx="20" cy="21" r="1"></circle>
@@ -607,6 +623,48 @@
                 @endforeach
             </ul>
         </nav>
+        <!-- Profile Coming Soon Modal -->
+        <div class="modal fade" id="profileComingSoonModal" tabindex="-1" aria-labelledby="profileComingSoonModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content"
+                    style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    <div class="modal-header" style="border-bottom: none; padding: 20px 20px 0;">
+                        <h5 class="modal-title" id="profileComingSoonModalLabel" style="font-weight: 700; color: #333;">
+                            Личный кабинет</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center" style="padding: 20px 30px 30px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">🚀</div>
+                        <h4 style="color: #3180D1; font-weight: 700; margin-bottom: 15px;">Скоро открытие!</h4>
+                        <p style="color: #666; font-size: 16px; margin-bottom: 25px;">Мы готовим для вас удобный личный
+                            кабинет, где вы сможете:</p>
+
+                        <div
+                            style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <span style="margin-right: 10px; font-size: 18px;">📄</span>
+                                <span style="color: #333; font-weight: 500;">Видеть историю заказов</span>
+                            </div>
+                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <span style="margin-right: 10px; font-size: 18px;">⏱️</span>
+                                <span style="color: #333; font-weight: 500;">Продлевать аренду в один клик</span>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <span style="margin-right: 10px; font-size: 18px;">💳</span>
+                                <span style="color: #333; font-weight: 500;">Быстро оплачивать заказы</span>
+                            </div>
+                        </div>
+
+                        <p style="color: #888; font-size: 14px; margin-bottom: 0;">Следите за обновлениями!</p>
+                    </div>
+                    <div class="modal-footer" style="border-top: none; justify-content: center; padding-bottom: 30px;">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
+                            style="background: #3180D1; border: none; padding: 10px 40px; border-radius: 25px; font-weight: 600;">Понятно</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </header>
     @php
         $an = \bb\classes\Announcement::getMessageByType('main');
