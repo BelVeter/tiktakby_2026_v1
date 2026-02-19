@@ -33,11 +33,35 @@
 // Change this before deploying!
 define('SECRET_KEY', 'tiktak_migrate_2026_SECRET');
 
-// DB Credentials
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'tiktakby_2026_v1');
+// --------------- DB credentials from .env ------------------
+// Reads DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+// from the project .env — works on both local and production without edits.
+$_env_file = __DIR__ . '/.env';
+if (!file_exists($_env_file)) {
+    die("ERROR: .env file not found at {$_env_file}" . PHP_EOL);
+}
+$_env = [];
+foreach (file($_env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $_line) {
+    $_line = trim($_line);
+    if ($_line === '' || $_line[0] === '#')
+        continue;  // skip comments
+    if (strpos($_line, '=') === false)
+        continue;
+    [$_k, $_v] = explode('=', $_line, 2);
+    $_env[trim($_k)] = trim($_v, " \t\n\r\0\x0B\"'");
+}
+
+define('DB_HOST', $_env['DB_HOST'] ?? '127.0.0.1');
+define('DB_PORT', (int) ($_env['DB_PORT'] ?? 3306));
+define('DB_USER', $_env['DB_USERNAME'] ?? '');
+define('DB_PASS', $_env['DB_PASSWORD'] ?? '');
+define('DB_NAME', $_env['DB_DATABASE'] ?? '');
+unset($_env, $_env_file, $_line, $_k, $_v);
+
+if (DB_NAME === '') {
+    die("ERROR: DB_DATABASE not found in .env" . PHP_EOL);
+}
+// -----------------------------------------------------------
 
 // Project root (auto-detected based on this script's location)
 define('PROJECT_ROOT', rtrim(str_replace('\\', '/', __DIR__), '/'));
@@ -82,13 +106,15 @@ $IS_LIVE = ($mode === 'live');
 // SETUP AND HELPERS
 // ============================================================
 
-// Ensure archive directory exists
-if ($IS_LIVE && !is_dir(ARCHIVE_DIR)) {
+// Ensure archive directory exists for both dry-run (log) and live modes
+if (!is_dir(ARCHIVE_DIR)) {
     mkdir(ARCHIVE_DIR, 0755, true);
 }
 
 /**
  * Write a line to the log file and output it.
+ * Logs are ALWAYS appended — never overwritten — for full idempotency.
+ * Both dry-run and live runs are logged so you can track all executions.
  */
 function log_action(string $message, bool $is_live): void
 {
@@ -96,13 +122,8 @@ function log_action(string $message, bool $is_live): void
     $line = '[' . date('Y-m-d H:i:s') . "] {$prefix}{$message}";
     echo $line . PHP_EOL;
 
-    if ($is_live) {
-        // Ensure log directory exists before first write
-        if (!is_dir(ARCHIVE_DIR)) {
-            mkdir(ARCHIVE_DIR, 0755, true);
-        }
-        file_put_contents(LOG_FILE, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
-    }
+    // Always append to log (dry-run runs are also recorded for auditability)
+    file_put_contents(LOG_FILE, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
 }
 
 /**
@@ -193,24 +214,35 @@ function safe_move_dir(string $source_dir, string $dest_dir, bool $is_live): voi
 // ============================================================
 // DB CONNECTION
 // ============================================================
-$mysqli = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+$mysqli = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
 if ($mysqli->connect_error) {
     die("DB Connection Error: " . $mysqli->connect_error . PHP_EOL);
 }
 $mysqli->set_charset('utf8mb4');
 
 // ============================================================
-// OUTPUT HEADER
+// OUTPUT HEADER + SESSION LOG MARKER
 // ============================================================
 if (!$is_cli) {
     header('Content-Type: text/plain; charset=utf-8');
 }
+
+$session_header = PHP_EOL
+    . str_repeat('#', 70) . PHP_EOL
+    . '# SESSION START: ' . date('Y-m-d H:i:s') . PHP_EOL
+    . '# Mode: ' . strtoupper($mode) . PHP_EOL
+    . '# Project Root: ' . PROJECT_ROOT . PHP_EOL
+    . str_repeat('#', 70);
+
+// Write session header to the log file (always appended)
+file_put_contents(LOG_FILE, $session_header . PHP_EOL, FILE_APPEND | LOCK_EX);
 
 echo str_repeat('=', 70) . PHP_EOL;
 echo "TikTak.by — Legacy Data Migration Script" . PHP_EOL;
 echo "Mode: " . strtoupper($mode) . PHP_EOL;
 echo "Time: " . date('Y-m-d H:i:s') . PHP_EOL;
 echo "Project Root: " . PROJECT_ROOT . PHP_EOL;
+echo "Log file: " . LOG_FILE . PHP_EOL;
 echo str_repeat('=', 70) . PHP_EOL . PHP_EOL;
 
 // ============================================================
@@ -531,15 +563,26 @@ foreach ($legacy_files as $file) {
 echo PHP_EOL . "Phase 2: {$archived_items} items processed for archival." . PHP_EOL;
 
 // ============================================================
-// SUMMARY
+// SUMMARY + SESSION LOG FOOTER
 // ============================================================
+$summary_line = $IS_LIVE
+    ? "DONE: dop_photos={$dop_updated} updated/{$dop_skipped} skipped; tovar_list={$tovar_updated} updated/{$tovar_skipped} skipped; archived={$archived_items}"
+    : "DRY-RUN ONLY — no changes made.";
+
+$session_footer = str_repeat('#', 70) . PHP_EOL
+    . '# SESSION END:   ' . date('Y-m-d H:i:s') . PHP_EOL
+    . '# Result: ' . $summary_line . PHP_EOL
+    . str_repeat('#', 70) . PHP_EOL;
+
+file_put_contents(LOG_FILE, $session_footer, FILE_APPEND | LOCK_EX);
+
 echo PHP_EOL . str_repeat('=', 70) . PHP_EOL;
 echo "MIGRATION COMPLETE" . PHP_EOL;
 echo "Mode: " . strtoupper($mode) . PHP_EOL;
-if ($IS_LIVE) {
-    echo "Log written to: " . LOG_FILE . PHP_EOL;
-} else {
-    echo "*** DRY-RUN ONLY — No files were moved, no DB records changed. ***" . PHP_EOL;
+echo $summary_line . PHP_EOL;
+echo "Log file: " . LOG_FILE . PHP_EOL;
+if (!$IS_LIVE) {
+    echo PHP_EOL . "*** DRY-RUN ONLY — No files were moved, no DB records changed. ***" . PHP_EOL;
     echo "*** Re-run with --live (CLI) or ?mode=live&key=SECRET (browser) to apply. ***" . PHP_EOL;
 }
 echo str_repeat('=', 70) . PHP_EOL;
