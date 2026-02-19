@@ -81,8 +81,11 @@
 
     <div class="header-main-full-width d-none d-md-block">
         <div class="container-app header-main-block">
-            <a class="header-logo-small" href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
-                <img src="/public/svg/logo_main.svg" alt="Tiktak.lt logo">
+            <a class="header-logo-composite" href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
+                <span class="logo-text-tiktak"><span class="c-blue">Tik</span><span class="c-dark">T</span><span
+                        class="c-blue">a</span><span class="c-dark">k</span></span>
+                <img src="/public/png/logo_icon.png" alt="TikTak" class="logo-icon-svg">
+                <span class="logo-text-rental">прокат</span>
             </a>
 
             <form method="get" action="/{{(request()->lang ? request()->lang : 'ru')}}/search"
@@ -262,8 +265,13 @@
                     </div>
 
                     <div class="logo-container" style="text-align: center;">
-                        <a href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
-                            <img src="/public/svg/logo_main.svg" alt="TikTak" style="height: 35px; width: auto;">
+                        <a class="header-logo-composite" href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/"
+                            style="justify-content: center;">
+                            <span class="logo-text-tiktak"><span class="c-blue">Tik</span><span
+                                    class="c-dark">T</span><span class="c-blue">a</span><span
+                                    class="c-dark">k</span></span>
+                            <img src="/public/png/logo_icon.png" alt="TikTak" class="logo-icon-svg">
+                            <span class="logo-text-rental">прокат</span>
                         </a>
                     </div>
 

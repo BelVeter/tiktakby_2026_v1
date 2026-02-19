@@ -32,6 +32,67 @@
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
 .header__logo-a {
     position: relative;
     width: fit-content;
@@ -55,12 +116,134 @@
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
 .header-logo-img {
     //width: 227px;
     height: 70px;
 
     @media (max-width: 767px) {
         height: 40px;
+    }
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
     }
 }
 
@@ -91,6 +274,67 @@
 
     @media screen and (max-width: 767px) {
         order: unset;
+    }
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
     }
 }
 
@@ -132,6 +376,67 @@
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
 .header-line1 ul li {
     margin: 0;
     width: max-content;
@@ -140,6 +445,67 @@
         margin: 0px 0px;
         border-top: 0.2px solid #D0DFE3;
         width: auto;
+    }
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
     }
 }
 
@@ -167,10 +533,132 @@
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
 .header-line1 ul li:first-child {
     @media screen and (max-width: 767px) {
         margin-top: 10px;
         border-top: none;
+    }
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
     }
 }
 
@@ -242,6 +730,67 @@
         a img {
             width: 30px;
         }
+    }
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
     }
 }
 
@@ -318,6 +867,67 @@ a.header-phone {
 
     .office_geo-a:nth-child(1) {
         line-height: 216%;
+    }
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
     }
 }
 
@@ -440,6 +1050,67 @@ a.header-phone {
     @media screen and (max-width: 767px) {
         display: flex;
         flex-flow: row nowrap;
+    }
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
     }
 }
 
@@ -573,6 +1244,67 @@ a.header-phone {
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
 .top-bar-center {
     display: flex;
     align-items: center;
@@ -620,6 +1352,67 @@ a.header-phone {
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
 .top-bar-right .top-address {
     display: flex;
     align-items: center;
@@ -654,6 +1447,67 @@ a.header-phone {
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
 // New Main Header Block Styles
 .header-main-full-width {
     background-color: #f8f9fa;
@@ -672,6 +1526,67 @@ a.header-phone {
     img {
         height: 46px;
         width: auto;
+    }
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
     }
 }
 
@@ -724,6 +1639,67 @@ a.header-phone {
     }
 }
 
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
 .header-actions {
     display: flex;
     align-items: center;
@@ -762,4 +1738,67 @@ a.header-phone {
             }
         }
     }
-}@import "header_mobile_new";
+}
+
+// New Logo Styles
+.header-logo-composite {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Adjust spacing as needed */
+    text-decoration: none;
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.logo-text-tiktak {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    /* Bold */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    letter-spacing: -0.02em;
+
+    .c-blue {
+        color: #0077C5;
+    }
+
+    .c-dark {
+        color: #002778;
+    }
+}
+
+.logo-text-rental {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    /* Regular */
+    font-size: 34px;
+    /* Adjusted to match visual hierarchy */
+    line-height: 1;
+    color: #0077C5;
+}
+
+.logo-icon-svg {
+    height: 52px;
+    /* Adjust based on text size */
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 767px) {
+
+    .logo-text-tiktak,
+    .logo-text-rental {
+        font-size: 24px;
+    }
+
+    .logo-icon-svg {
+        height: 38px;
+    }
+}
+
+@import "header_mobile_new";
