@@ -392,7 +392,8 @@ if (isset($_POST['form_check'])) {
               data-noempty="" aria-describedby="m_pic_big_feedback" name="m_pic_new_name" type="text"
               data-controll="url" placeholder="новое имя файла">
             <div class="invalid-feedback" id="m_pic_big_feedback"></div>
-            <input class="form-control" type="file" accept="image/*,.webp" name="m_pic_big" id="m_pic_big">
+            <input class="form-control" type="file" accept=".jpg,.jpeg,.png,.gif,.svg,.webp" name="m_pic_big"
+              id="m_pic_big">
           </div>
         </div>
         <div class="row photo-row">
@@ -406,7 +407,7 @@ if (isset($_POST['form_check'])) {
               data-noempty="" aria-describedby="l2_pic_feedback" name="l2_pic_new_name" type="text" data-controll="url"
               placeholder="новое имя файла">
             <div class="invalid-feedback" id="l2_pic_feedback"></div>
-            <input class="form-control" type="file" accept="image/*,.webp" name="l2_pic" id="l2_pic">
+            <input class="form-control" type="file" accept=".jpg,.jpeg,.png,.gif,.svg,.webp" name="l2_pic" id="l2_pic">
           </div>
         </div>
         <div class="row photo-row">
@@ -419,7 +420,8 @@ if (isset($_POST['form_check'])) {
               data-noempty="" aria-describedby="logo_pic_feedback" name="logo_pic_new_name" type="text"
               data-controll="url" placeholder="новое имя файла">
             <div class="invalid-feedback" id="logo_pic_feedback"></div>
-            <input class="form-control" type="file" accept="image/*,.webp" name="logo_pic" id="logo_pic">
+            <input class="form-control" type="file" accept=".jpg,.jpeg,.png,.gif,.svg,.webp" name="logo_pic"
+              id="logo_pic">
           </div>
         </div>
         <div class="row photo-row alert-dark">
@@ -446,7 +448,8 @@ if (isset($_POST['form_check'])) {
               data-noempty="" aria-describedby="dop_pic_feedback" name="dop_pic_new_name" type="text"
               data-controll="url" placeholder="новое имя файла">
             <div class="invalid-feedback" id="dop_pic_feedback"></div>
-            <input class="form-control" type="file" accept="image/*,.webp" name="dop_pic" id="dop_pic">
+            <input class="form-control" type="file" accept=".jpg,.jpeg,.png,.gif,.svg,.webp" name="dop_pic"
+              id="dop_pic">
           </div>
         </div>
         <div class="row photo-row">
