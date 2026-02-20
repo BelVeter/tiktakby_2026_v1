@@ -38,6 +38,11 @@
     display: none;
 }
 
+/* Slider Wrapper */
+.slider-wrapper {
+    margin-top: 24px;
+}
+
 /* Desktop Navigation Arrows */
 .slider-nav-arrows {
     display: none;
@@ -55,6 +60,10 @@
         /* Move positional context to a wrapper if we want arrows outside, 
            but since .img-slider is the scrolling container, we position arrows absolute to it */
         /* Let's adjust padding if needed */
+    }
+
+    .img-slider .slide {
+        flex: 0 0 calc(90% - 12px);
     }
 
     .slider-nav-arrows {
@@ -95,11 +104,11 @@
     }
 
     .slider-arrow.prev {
-        left: 3%;
+        left: -24px;
     }
 
     .slider-arrow.next {
-        right: 3%;
+        right: -24px;
     }
 
     .slider-pagination {
