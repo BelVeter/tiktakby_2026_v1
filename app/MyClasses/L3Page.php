@@ -295,6 +295,12 @@ class L3Page
     $p->lang = $lang;
 
     $p->modelWeb = ModelWeb::getByUrlNameLangSafe($urlName, $lang);
+
+    // Если модель не найдена (устаревший URL, бот, ошибочный запрос) — 404
+    if (!$p->modelWeb) {
+      abort(404);
+    }
+
     $p->tariffs = TariffModel::getTarifModelForModelId($p->modelWeb->model_id);
     $p->model = Model::getById($p->modelWeb->model_id);
 
