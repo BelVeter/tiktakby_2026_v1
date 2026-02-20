@@ -62,11 +62,12 @@ echo '
 <div class="user"><form name="выход" method="post" action="index.php">Вы зашли как: <strong> '.$_SESSION['user_fio'].'</strong> <input type="submit" name="exit" value="Выйти" /></form> </div>
 <div id="zv_div"></div>
 
-<div class="top_menu">
-	<a class="div_item" href="/bb/index.php">На главную</a>
-	<a class="div_item" href="/bb/rent_orders.php">Брони</a>
-	<a class="div_item" href="/bb/obrabotka.php">Обработка</a>
-</div><br />
+';
+
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
+
+echo '
+<br />
 ';
 require_once ($_SERVER['DOCUMENT_ROOT'].'/includes/zv_show.php'); // включаем подключение к звонкам
 
