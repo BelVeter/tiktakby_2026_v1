@@ -4,7 +4,7 @@
  *
  * PURPOSE:
  *   Phase 1: Migrate image paths in `dop_photos` and `tovar_list` DB tables
- *            from legacy root-relative paths to standard /public/storage/images/ paths.
+ *            from legacy root-relative paths to /public/rent/images/ paths.
  *            Physical image files are moved accordingly.
  *   Phase 2: Archive all legacy root-level folders/files (not part of Laravel)
  *            by moving them to a `/to_delete/` directory, preserving their structure.
@@ -67,10 +67,10 @@ if (DB_NAME === '') {
 define('PROJECT_ROOT', rtrim(str_replace('\\', '/', __DIR__), '/'));
 
 // Destination for migrated images (web-accessible path)
-define('IMAGE_DEST_WEB', '/public/storage/images');
+define('IMAGE_DEST_WEB', '/public/rent/images');
 
 // Physical path for migrated images
-define('IMAGE_DEST_PATH', PROJECT_ROOT . '/public/storage/images');
+define('IMAGE_DEST_PATH', PROJECT_ROOT . '/public/rent/images');
 
 // Archive directory for deprecated legacy files
 define('ARCHIVE_DIR', PROJECT_ROOT . '/to_delete');
@@ -390,11 +390,16 @@ while ($row = $tovar_result->fetch_assoc()) {
         $dest_web = IMAGE_DEST_WEB . '/' . $category . '/' . $filename;
         $dest_physical = IMAGE_DEST_PATH . '/' . $category . '/' . $filename;
 
-        safe_move_file($source_physical, $dest_physical, $IS_LIVE);
-
-        log_action("DB_UPDATE: tovar_list, ID={$tovar_id}, col={$col} | '{$filename}' -> '{$dest_web}'", $IS_LIVE);
-        $updates[$col] = $dest_web;
-        $tovar_updated++;
+        // Only update the DB path if the physical file was actually moved (or would be in dry-run)
+        $moved = safe_move_file($source_physical, $dest_physical, $IS_LIVE);
+        if ($moved) {
+            log_action("DB_UPDATE: tovar_list, ID={$tovar_id}, col={$col} | '{$filename}' -> '{$dest_web}'", $IS_LIVE);
+            $updates[$col] = $dest_web;
+            $tovar_updated++;
+        } else {
+            log_action("SKIP DB_UPDATE: tovar_list, ID={$tovar_id}, col={$col} — file not moved, DB path unchanged", $IS_LIVE);
+            $tovar_skipped++;
+        }
     }
 
     if (!empty($updates) && $IS_LIVE) {
@@ -514,7 +519,7 @@ $legacy_files = [
     'production_update.sql',
     'update_prices.sql',
     'update_prices_byn.sql',
-    'sitemap.xml',
+    // sitemap.xml intentionally excluded — served live by the site
     // Google/Yandex verification files
     'google524a38840591e81d.html',
     'google6f726f9664274105.html',
