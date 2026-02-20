@@ -51,8 +51,6 @@ echo '
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
 <style>
-
-<style>
 .zayavk_btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin: 4px; border: none; border-radius: 4px; cursor: pointer; color: #fff; transition: opacity 0.2s; vertical-align: middle; }
 .zayavk_btn:hover { opacity: 0.8; }
 .zayavk_btn * { pointer-events: none; }
