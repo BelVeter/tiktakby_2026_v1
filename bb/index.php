@@ -249,6 +249,10 @@ $role = UserRole::getCurrentRole();
         <img src="/bb/assets/images/png/menu-broni.png">
         <span>Брони</span>
     </a>
+    <a class="menu-link" href="/bb/rent_zayavk.php">
+        <img src="/bb/assets/images/png/tasks.png">
+        <span>Заявки</span>
+    </a>
     <a class="menu-link" href="/bb/kb.php">
         <img src="/bb/assets/images/png/menu-karnaval.png">
         <span>Карнавал</span>

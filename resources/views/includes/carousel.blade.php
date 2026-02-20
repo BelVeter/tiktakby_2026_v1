@@ -1,114 +1,173 @@
 @php /** @var \App\MyClasses\MainPage $p */ @endphp
-<div class="img-slider">
-    <div class="slide active">
-        <img src="/public/slider/25-karnaval.webp" alt="" fetchpriority="high">
-        <div class="info">
-            <h3>КАРНАВАЛЬНЫЕ КОСТЮМЫ</h3>
-            <h2>огромный выбор</h2>
-            <p>для детей и взрослых</p>
-        </div>
-        <a class="slider-to-rent" href="/ru/prokat-sports/winter">Взять напрокат</a>
+<div class="slider-wrapper" style="position: relative;">
+    <div class="img-slider">
+        <a class="slide" href="https://tiktak.by/ru/prokat-sports/winter">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/sanki-tubingi-mob.webp">
+                <img src="/public/slider/sanki-tubingi-desk.webp" alt="Санки и тюбинги" fetchpriority="high">
+            </picture>
+        </a>
+
+        <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/toys-for-rent">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/igrushki-mob.webp">
+                <img src="/public/slider/igrushki-desk.webp" alt="Игрушки напрокат">
+            </picture>
+        </a>
+
+        <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/koliaski-mob.webp">
+                <img src="/public/slider/koliaski-desk.webp" alt="Прокат детских колясок">
+            </picture>
+        </a>
+
+        <a class="slide" href="/ru/prokat-detskih-tovarov/autokresla/autokresla-lulki/CybexCloudQ_Plus">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/b12-mob.webp">
+                <img src="/public/slider/b12-desk.webp" alt="CYBEX CLOUD Q PLUS" loading="lazy">
+            </picture>
+        </a>
+
+        <a class="slide" href="/ru/prokat-detskih-tovarov/kolyaski-detskie/koliaski-prokat-minsk/CybexPriamLuxCarrycot">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/25-cybex-mob.webp">
+                <img src="/public/slider/25-cybex-desk.webp" alt="коляска Cybex Priam прокат Минск" loading="lazy">
+            </picture>
+        </a>
+
+        <a class="slide" href="ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/11-mob.webp">
+                <img src="/public/slider/11-desk.webp" alt="Bioptron MedAll" loading="lazy">
+            </picture>
+        </a>
+
+        <a class="slide" href="/ru/prokat-detskih-tovarov/prokat-detskih-krovatok/kolybeli/4momsmamaroosleep_bassinet">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/sleep-bassinet-mob.webp">
+                <img src="/public/slider/sleep-bassinet-desk.webp" alt="4Moms MamaRoo" loading="lazy">
+            </picture>
+        </a>
+
+        <a class="slide" href="/ru/prokat-detskih-tovarov/kolyaski-detskie">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/3-mob.webp">
+                <img src="/public/slider/3-desk.webp" alt="Коляски детские" loading="lazy">
+            </picture>
+        </a>
+
+        <a class="slide" href="/ru/prokat-detskih-tovarov/detskaya-komnata/shezlongi/babybjorn_babysitter_balance">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/babybjorn-sl-mob.webp">
+                <img src="/public/slider/babybjorn-sl-desk.webp" alt="Babybjorn Babysitter Balance" loading="lazy">
+            </picture>
+        </a>
     </div>
 
-
-    <div class="slide">
-        <img src="/public/slider/b12.webp" alt="" loading="lazy">
-        <div class="info">
-            <h3>детские автокресла</h3>
-            <h2>CYBEX CLOUD Q PLUS</h2>
-            <p>безопасность и комфорт</p>
-        </div>
-        <a class="slider-to-rent" href="/ru/prokat-detskih-tovarov/autokresla/autokresla-lulki/CybexCloudQ_Plus">Взять
-            напрокат</a>
+    {{-- Desktop Navigation (Hidden on mobile via CSS) --}}
+    <div class="slider-nav-arrows">
+        <button class="slider-arrow prev" aria-label="Предыдущий слайд">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+        <button class="slider-arrow next" aria-label="Следующий слайд">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
     </div>
 
-    {{--<div class="slide">
-        <img src="/public/slider/25-gorki-batuty.jpg" alt="">
-        <div class="info">
-            <h3>маленьким непоседам</h3>
-            <h2>ГОРКИ, БАТУТЫ</h2>
-            <p>спортивные комплексы</p>
-        </div>
-        <a class="slider-to-rent" href="/ru/prokat-detskih-tovarov/toys-for-rent/batuty-gorki-prokat">Взять напрокат</a>
-    </div>--}}
-
-    <div class="slide">
-        <img src="/public/slider/25-cybex.webp" alt="коляска Cybex Priam прокат Минск" loading="lazy">
-        <div class="info">
-            <h3>транспортные системы</h3>
-            <h2>CYBEX PRIAM</h2>
-            <p>новые стандарты качества</p>
-        </div>
-        <a class="slider-to-rent"
-            href="/ru/prokat-detskih-tovarov/kolyaski-detskie/koliaski-prokat-minsk/CybexPriamLuxCarrycot">Взять
-            напрокат</a>
+    <div class="slider-pagination">
+        {{-- Dots will be generated by JS based on slide count --}}
     </div>
-
-
-    <div class="slide">
-        <img src="/public/slider/11.webp" alt="" loading="lazy">
-        <div class="info">
-            <h3>доказанная эффективность</h3>
-            <h2>Bioptron MedAll</h2>
-            <p>свет, который лечит</p>
-        </div>
-        <a class="slider-to-rent" href="ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk">Взять
-            напрокат</a>
-    </div>
-
-    {{--<div class="slide">
-        <img src="/public/slider/7.jpg" alt="">
-        <div class="info">
-            <h3>техника для уборки</h3>
-            <h2>Kärcher Puzzi 10/1</h2>
-            <p>моющий пылесос</p>
-        </div>
-        <a class="slider-to-rent" href="/ru/prokat-uborka">Взять напрокат</a>
-    </div>--}}
-
-    <div class="slide">
-        <img src="/public/slider/sleep-bassinet.webp" alt="" loading="lazy">
-        <div class="info">
-            <h3>кроватки, колыбели</h3>
-            <h2>4Moms MamaRoo</h2>
-            <p>Sleep Bassinet</p>
-        </div>
-        <a class="slider-to-rent"
-            href="/ru/prokat-detskih-tovarov/prokat-detskih-krovatok/kolybeli/4momsmamaroosleep_bassinet">Взять
-            напрокат</a>
-    </div>
-
-    <div class="slide">
-        <img src="/public/slider/3.webp" alt="" loading="lazy">
-        <div class="info">
-            <h3>транспортные системы</h3>
-            <h2>Коляски детские</h2>
-            <p>для новорожденных<br>прогулочные</p>
-        </div>
-        <a class="slider-to-rent" href="/ru/prokat-detskih-tovarov/kolyaski-detskie">Взять напрокат</a>
-    </div>
-
-    <div class="slide">
-        <img src="/public/slider/babybjorn-sl.webp" alt="" loading="lazy">
-        <div class="info">
-            <h3>шезлонг-балансир</h3>
-            <h2>Babybjorn</h2>
-            <p> Babysitter Balance</p>
-        </div>
-        <a class="slider-to-rent"
-            href="/ru/prokat-detskih-tovarov/detskaya-komnata/shezlongi/babybjorn_babysitter_balance">Взять напрокат</a>
-    </div>
-
-    <div class="navigation">
-        <div class="btnkr active"></div>
-        <div class="btnkr"></div>
-        <div class="btnkr"></div>
-        <div class="btnkr"></div>
-        <div class="btnkr"></div>
-        <div class="btnkr"></div>
-        <div class="btnkr"></div>
-        <div class="btnkr"></div>
-        <div class="btnkr"></div>
-    </div>
-    <script src="/public/js/slider.js"></script>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const wrapper = document.querySelector('.slider-wrapper');
+        const slider = wrapper ? wrapper.querySelector('.img-slider') : document.querySelector('.img-slider');
+        const slides = slider.querySelectorAll('.slide');
+        const paginationContainer = wrapper ? wrapper.querySelector('.slider-pagination') : document.querySelector('.slider-pagination');
+        const prevBtn = wrapper ? wrapper.querySelector('.slider-arrow.prev') : document.querySelector('.slider-arrow.prev');
+        const nextBtn = wrapper ? wrapper.querySelector('.slider-arrow.next') : document.querySelector('.slider-arrow.next');
+
+        if (!slider || slides.length === 0) return;
+
+        // Create pagination dots
+        slides.forEach((_, index) => {
+            const dot = document.createElement('div');
+            dot.classList.add('slider-dot');
+            if (index === 0) dot.classList.add('active');
+
+            dot.addEventListener('click', () => {
+                const slideWidth = slides[0].offsetWidth + 12; // width + gap
+                slider.scrollTo({
+                    left: slideWidth * index,
+                    behavior: 'smooth'
+                });
+            });
+
+            paginationContainer.appendChild(dot);
+        });
+
+        const dots = paginationContainer.querySelectorAll('.slider-dot');
+
+        // Update active dot on scroll
+        let isScrolling;
+        slider.addEventListener('scroll', () => {
+            window.clearTimeout(isScrolling);
+            isScrolling = setTimeout(() => {
+                const slideWidth = slides[0].offsetWidth + 12; // width + gap
+                const currentIndex = Math.round(slider.scrollLeft / slideWidth);
+
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentIndex);
+                });
+            }, 50);
+        });
+
+        // Arrow clicks
+        prevBtn.addEventListener('click', () => {
+            const slideWidth = slides[0].offsetWidth + 12;
+            slider.scrollBy({ left: -slideWidth, behavior: 'smooth' });
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const slideWidth = slides[0].offsetWidth + 12;
+            if (Math.ceil(slider.scrollLeft + slider.clientWidth) >= slider.scrollWidth) {
+       slider.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                slider.scrollBy({ left: slideWidth, behavior: 'smooth' });
+            }
+        });
+
+        // Auto-slide functionality (7 seconds)
+        let autoSlideInterval;
+
+        const startAutoSlide = () => {
+            autoSlideInterval = setInterval(() => {
+                const slideWidth = slides[0].offsetWidth + 12;
+                if (Math.ceil(slider.scrollLeft + slider.clientWidth) >= slider.scrollWidth) {
+                    slider.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    slider.scrollBy({ left: slideWidth, behavior: 'smooth' });
+                }
+            }, 7000);
+        };
+
+        const stopAutoSlide = () => clearInterval(autoSlideInterval);
+
+        startAutoSlide();
+
+        if (wrapper) {
+            wrapper.addEventListener('mouseenter', stopAutoSlide);
+            wrapper.addEventListener('mouseleave', startAutoSlide);
+            wrapper.addEventListener('touchstart', stopAutoSlide, { passive: true });
+            wrapper.addEventListener('touchend', startAutoSlide, { passive: true });
+        }
+    });
+</script>

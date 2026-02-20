@@ -21,7 +21,8 @@ $_bb_home_svg = '<svg class="bb-icon-nav__home-icon" viewBox="0 0 24 24" fill="n
 $_bb_nav_items = [
     ['label' => 'На главную', 'href' => '/bb/index.php', 'icon' => $_bb_home_svg, 'page' => 'index.php'],
     ['label' => 'Товары', 'href' => '/bb/kr_baza_new.php', 'icon' => '<img src="/public/img/topmenu/1_mm.png">', 'page' => 'kr_baza_new.php'],
-    ['label' => 'Брони', 'href' => '/bb/rent_orders.php', 'icon' => '<img src="/bb/assets/images/png/menu-broni.png">', 'page' => 'rent_orders.php', 'badge' => true],
+    ['label' => 'Брони', 'href' => '/bb/rent_orders.php', 'icon' => '<img src="/bb/assets/images/png/menu-broni.png">', 'page' => 'rent_orders.php', 'badge' => 'bron'],
+    ['label' => 'Заявки', 'href' => '/bb/rent_zayavk.php', 'icon' => '<img src="/bb/assets/images/png/tasks.png">', 'page' => 'rent_zayavk.php', 'badge' => 'zayavki'],
     ['label' => 'Сделки', 'href' => '/bb/rda.php', 'icon' => '<img src="/bb/assets/images/png/menu-deals.png">', 'page' => 'rda.php'],
     ['label' => 'Новый договор', 'href' => '/bb/dogovor_new.php', 'icon' => '<img src="/bb/assets/images/png/menu-clients.png">', 'page' => 'dogovor_new.php'],
     ['label' => 'Курьер', 'href' => '/bb/cur_page2.php', 'icon' => '<img src="/bb/assets/images/png/menu-cur.png">', 'page' => 'cur_page2.php'],
@@ -66,7 +67,7 @@ $_bb_nav_items = [
                 <?= $item['icon'] ?>
                 <?= $item['label'] ?>
                 <?php if (!empty($item['badge'])): ?>
-                    <span class="bb-icon-nav__badge" id="bb-nav-badge"></span>
+                    <span class="bb-icon-nav__badge" id="bb-nav-badge-<?= $item['badge'] ?>"></span>
                 <?php endif; ?>
             </a>
         <?php endif; ?>
@@ -79,13 +80,24 @@ $_bb_nav_items = [
             fetch('/bb/bb_nav_badge.php')
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    var badge = document.getElementById('bb-nav-badge');
-                    if (!badge) return;
-                    if (data.count > 0) {
-                        badge.textContent = data.count;
-                        badge.classList.add('bb-icon-nav__badge--visible');
-                    } else {
-                        badge.classList.remove('bb-icon-nav__badge--visible');
+                    var badgeBron = document.getElementById('bb-nav-badge-bron');
+                    if (badgeBron) {
+                        if (data.count_bron > 0) {
+                            badgeBron.textContent = data.count_bron;
+                            badgeBron.classList.add('bb-icon-nav__badge--visible');
+                        } else {
+                            badgeBron.classList.remove('bb-icon-nav__badge--visible');
+                        }
+                    }
+
+                    var badgeZayavk = document.getElementById('bb-nav-badge-zayavki');
+                    if (badgeZayavk) {
+                        if (data.count_zayavk > 0) {
+                            badgeZayavk.textContent = data.count_zayavk;
+                            badgeZayavk.classList.add('bb-icon-nav__badge--visible');
+                        } else {
+                            badgeZayavk.classList.remove('bb-icon-nav__badge--visible');
+                        }
                     }
                 })
                 .catch(function () { });
