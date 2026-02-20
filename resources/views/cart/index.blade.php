@@ -218,9 +218,11 @@
 
     <style>
         /* ===== Cart Page Styles (Mobile-First) ===== */
-        
+
         main {
-            background-color: #F4F7FB; /* Light blue-grey background */
+            background-color: #F4F7FB;
+            /* Light blue-grey background */
+
         }
 
         .cart-page__title {
