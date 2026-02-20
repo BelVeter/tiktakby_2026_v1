@@ -53,7 +53,7 @@ echo '
 <style>
 
 <style>
-.zayavk_btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin: 2px; border: none; border-radius: 4px; cursor: pointer; color: #fff; transition: opacity 0.2s; vertical-align: middle; }
+.zayavk_btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin: 4px; border: none; border-radius: 4px; cursor: pointer; color: #fff; transition: opacity 0.2s; vertical-align: middle; }
 .zayavk_btn:hover { opacity: 0.8; }
 .z_btn_phone { background-color: #0084ff; }
 .z_btn_cancel { background-color: #6c757d; }
@@ -322,7 +322,7 @@ echo '
 
 <table border="1" cellspacing="0">
   <tr>
-      <!--<th style="width:81px; text-align:center;">Дата/№</th>-->
+      <th style="width:80px; text-align:center;">Фото</th>
 	  <th style="width:350px; text-align:center;">Товар</th>
       <th style="width:350px; text-align:center;">коментари<br>сортировать по дате заявки <button type="button" data-sort="start" class="sort-btn" value="новые наверх">новые наверх</button></th>
 	  <th style="width:81px; text-align:center;">дата действия<br><button type="button" data-sort="finish" class="sort-btn" value="новые наверх">новые наверх</button></th>
@@ -342,6 +342,7 @@ $svg_phone_off = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
 while ($ord = $result_or->fetch_assoc()) {
 	$br_line = new \bb\classes\bron();
 	$br_line->br_line($ord);
+	$br_line->web_load();
 
 	//поиск свободных товаров
 	$query_f = "SELECT item_inv_n, item_place FROM tovar_rent_items WHERE model_id='$br_line->model_id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<'" . time() . "'))";
@@ -365,7 +366,7 @@ while ($ord = $result_or->fetch_assoc()) {
 
 	echo '
 	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '">
-		<!--<td>' . date("d.m.y", $br_line->order_date) . '<br /><i>(' . date("H:i", $br_line->cr_time) . ')</i><br /> №' . $br_line->order_id . ' </td>-->
+		<td style="text-align: center;"><img src="' . $br_line->small_pic . '" style="max-height: 80px; width: auto;" /></td>
 		<td ' . ($it_free_num > 0 ? 'style="background-color:#acf398;"' : '') . '>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" <br />
 		' . (User::getCurrentUser()->isAdmin() ? 'br_id:' . $br_line->order_id : '') . '
 			<div id="free_inv_n_' . $br_line->order_id . '" style="display:none;">
@@ -421,8 +422,8 @@ while ($ord = $result_or->fetch_assoc()) {
 
 				<button type="button" name="action" class="zayavk_btn z_btn_save" title="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
 				<button type="submit" name="action" class="zayavk_btn z_btn_save" title="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
-				<button type="submit" name="action" class="zayavk_btn z_btn_del" title="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
       	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" title="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return obnov(\'' . $br_line->order_id . '\');">' . $svg_phone_off . '</button>
+				<button type="submit" name="action" class="zayavk_btn z_btn_del" title="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
 			</div>
 			</form>
 		</td>
