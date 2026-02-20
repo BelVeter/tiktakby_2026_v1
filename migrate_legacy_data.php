@@ -246,6 +246,155 @@ echo "Log file: " . LOG_FILE . PHP_EOL;
 echo str_repeat('=', 70) . PHP_EOL . PHP_EOL;
 
 // ============================================================
+// PHASE 0: SCAN CODE FOR HARDCODED LEGACY IMAGE REFERENCES
+// ============================================================
+// This phase is READ-ONLY — it never moves files or changes the DB.
+// It scans PHP, Blade, CSS, JS, and XML files in live code directories
+// for any hardcoded paths pointing to legacy root-level image folders.
+// Output: to_delete/hardcoded_refs_report.txt
+// Purpose: produce a report of code lines that need manual fixing AFTER
+//          the migration, so that the image addresses in code match the
+//          new /public/rent/images/... convention used in the database.
+// ============================================================
+echo PHP_EOL . str_repeat('-', 60) . PHP_EOL;
+echo "PHASE 0: Scanning code for hardcoded legacy image references" . PHP_EOL;
+echo str_repeat('-', 60) . PHP_EOL;
+
+// Regex matching any src="...", url(...), or bare string containing a
+// legacy category folder immediately followed by / or /img/
+$LEGACY_CATEGORIES = [
+    'avtokresla',
+    'batuty',
+    'bigs',
+    'compleksy',
+    'fancybox',
+    'fonts',
+    'gorki',
+    'hodunki',
+    'igrushki',
+    'images',
+    'includes',
+    'jstr',
+    'js',
+    'kacheli',
+    'kacheli_napol',
+    'karnaval',
+    'kolyaski',
+    'kolybeli',
+    'kovriki',
+    'lakatory',
+    'manezhi',
+    'media',
+    'nochniki',
+    'odezhda_dlia_photosessii',
+    'player',
+    'portfolio',
+    'prokat',
+    'prygunki',
+    'shezlongi',
+    'slingi',
+    'stoliki',
+    'stul',
+    'svg',
+    'tcpdf',
+    'tmp',
+    'to_copy',
+    'toys',
+    'transport',
+    'uvlazhniteli',
+    'velo',
+    'vesy',
+    'video',
+    'webstat',
+    'Templates',
+];
+$cat_pattern = '(' . implode('|', $LEGACY_CATEGORIES) . ')';
+// Match paths like /shezlongi/... or shezlongi/img/... or "../avtokresla/...
+$HARDCODE_REGEX = '#["\'/](\.\./)?' . $cat_pattern . '/[^"\'>\s]+\.(jpe?g|png|gif|webp|svg|avif)#i';
+
+// Directories and file extensions to scan
+$scan_dirs = ['bb', 'resources', 'app', 'public/css', 'public/js'];
+$scan_exts = ['php', 'blade.php', 'css', 'js']; // xml/html excluded: auto-generated feeds & legacy pages already being archived
+
+// Subdirectories to skip inside scan targets (generated/vendor/cache)
+$skip_scan_dirs = ['vendor', 'node_modules', 'storage', '.git', 'to_delete'];
+
+$REPORT_FILE = ARCHIVE_DIR . '/hardcoded_refs_report.txt';
+$report_lines = [];
+$hardcode_count = 0;
+
+function scan_dir_for_refs(string $dir, array $exts, array $skip_dirs, string $regex, array &$report, int &$count): void
+{
+    if (!is_dir($dir))
+        return;
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::LEAVES_ONLY
+    );
+    foreach ($it as $file) {
+        // Skip excluded subdirectories
+        $path = str_replace('\\', '/', $file->getPathname());
+        foreach ($skip_dirs as $sd) {
+            if (strpos($path, "/{$sd}/") !== false)
+                continue 2;
+        }
+        // Check extension (handle double extension .blade.php)
+        $fname = $file->getFilename();
+        $matched_ext = false;
+        foreach ($exts as $ext) {
+            if (substr($fname, -strlen($ext) - 1) === '.' . $ext || $fname === $ext) {
+                $matched_ext = true;
+                break;
+            }
+        }
+        if (!$matched_ext)
+            continue;
+
+        $lines = @file($path, FILE_IGNORE_NEW_LINES);
+        if ($lines === false)
+            continue;
+
+        foreach ($lines as $ln => $line) {
+            if (preg_match($regex, $line)) {
+                $entry = "{$path}:{$ln}: " . trim($line);
+                $report[] = $entry;
+                $count++;
+                echo "  FOUND: {$path} [line " . ($ln + 1) . "]" . PHP_EOL;
+            }
+        }
+    }
+}
+
+foreach ($scan_dirs as $sd) {
+    scan_dir_for_refs(
+        PROJECT_ROOT . '/' . $sd,
+        $scan_exts,
+        $skip_scan_dirs,
+        $HARDCODE_REGEX,
+        $report_lines,
+        $hardcode_count
+    );
+}
+
+// Write the report file (always, even in dry-run — it's read-only)
+$report_header = str_repeat('#', 70) . PHP_EOL
+    . "# HARDCODED LEGACY IMAGE REFERENCE REPORT" . PHP_EOL
+    . "# Generated: " . date('Y-m-d H:i:s') . PHP_EOL
+    . "# " . PHP_EOL
+    . "# These lines in your CODE contain hardcoded paths to legacy" . PHP_EOL
+    . "# image folders that will be archived or moved by this script." . PHP_EOL
+    . "# They must be updated MANUALLY in the code after migration." . PHP_EOL
+    . "# Target format: /public/rent/images/{category}/{filename}" . PHP_EOL
+    . "#" . PHP_EOL
+    . "# Format: filepath:line_number: matched_line_content" . PHP_EOL
+    . str_repeat('#', 70) . PHP_EOL . PHP_EOL;
+
+file_put_contents($REPORT_FILE, $report_header . implode(PHP_EOL, $report_lines) . PHP_EOL, LOCK_EX);
+
+echo PHP_EOL . "Phase 0: {$hardcode_count} hardcoded legacy image reference(s) found." . PHP_EOL;
+echo "Report saved to: {$REPORT_FILE}" . PHP_EOL;
+
+// ============================================================
 // PHASE 1: MIGRATE dop_photos IMAGE PATHS
 // ============================================================
 echo PHP_EOL . str_repeat('-', 60) . PHP_EOL;
@@ -253,6 +402,7 @@ echo "PHASE 1A: Migrating dop_photos image paths" . PHP_EOL;
 echo str_repeat('-', 60) . PHP_EOL;
 
 $result = $mysqli->query("SELECT dop_id, model_id, src FROM dop_photos ORDER BY dop_id");
+
 $dop_updated = 0;
 $dop_skipped = 0;
 
