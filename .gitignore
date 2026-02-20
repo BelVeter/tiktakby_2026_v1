@@ -73,6 +73,9 @@ public/public
 
 Deploy.php
 
+# Legacy cleanup archive (not tracked — mirrors deleted legacy files for safety)
+/to_delete/
+
 # Exceptions for BB folder (allow images/video in bb)
 !/bb/**/*.jpg
 !/bb/**/*.jpeg
