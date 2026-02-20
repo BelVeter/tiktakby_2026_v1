@@ -57,11 +57,11 @@ class MainPage
     }
 
     //main,razdel,subrazdel,category
-    if ($this->getLevelCode() == 'razdel')
+    if ($this->getLevelCode() == 'razdel' && is_object($this->_razdel))
       return $this->_razdel->getUrlForPage('ru');
-    elseif ($this->getLevelCode() == 'subrazdel')
+    elseif ($this->getLevelCode() == 'subrazdel' && is_object($this->_subRazdel))
       return $this->_subRazdel->getUrlForPage('ru');
-    elseif ($this->getLevelCode() == 'category')
+    elseif ($this->getLevelCode() == 'category' && is_object($this->_category))
       return $this->_category->getUrlForPage('ru');
     else
       return false;
