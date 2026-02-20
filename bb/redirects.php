@@ -1,4 +1,3 @@
-Y
 <?php
 session_start();
 ini_set("display_errors", 1);
@@ -73,8 +72,46 @@ if (isset($_POST['action'])) {
     }
 }
 
-// --- Получение данных ---
-$result = $mysqli->query("SELECT * FROM redirects ORDER BY id DESC");
+// --- Получение данных (Пагинация + Сортировка) ---
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$limit = 50;
+$offset = ($page - 1) * $limit;
+
+// Сортировка
+// --- Вспомогательная функция для ссылок сортировки ---
+function sortLink($key, $label, $currentSort, $currentDir)
+{
+    $newDir = ($currentSort === $key && $currentDir === 'DESC') ? 'asc' : 'desc';
+    $arrow = '';
+    if ($currentSort === $key) {
+        $arrow = ($currentDir === 'DESC') ? ' ▼' : ' ▲';
+    }
+    $url = "?page=1&sort=$key&dir=$newDir";
+    return "<a href=\"$url\" class=\"sort-link\">$label<span class=\"sort-arrow\">$arrow</span></a>";
+}
+
+$sortMap = [
+    'id' => 'id',
+    'source' => 'source_url',
+    'target' => 'target_url',
+    'code' => 'status_code',
+    'status' => 'is_active',
+    'hits' => 'hit_count',
+    'last' => 'last_hit_at',
+    'comment' => 'comment'
+];
+$sortKey = $_GET['sort'] ?? 'id';
+$sortCol = $sortMap[$sortKey] ?? 'id';
+$dir = isset($_GET['dir']) && strtolower($_GET['dir']) === 'asc' ? 'ASC' : 'DESC';
+
+// Общее количество
+$totalRes = $mysqli->query("SELECT COUNT(*) as cnt FROM redirects");
+$totalRows = $totalRes ? $totalRes->fetch_assoc()['cnt'] : 0;
+$totalPages = ceil($totalRows / $limit);
+
+// Данные
+$sql = "SELECT * FROM redirects ORDER BY $sortCol $dir LIMIT $limit OFFSET $offset";
+$result = $mysqli->query($sql);
 $redirects = [];
 if ($result) {
     while ($row = $result->fetch_assoc())
@@ -84,11 +121,225 @@ if ($result) {
 
 <link rel="stylesheet" href="/bb/assets/styles/cur_style.css?v=1">
 <style>
+    .sort-link {
+        color: #fff;
+        text-decoration: none;
+        display: block;
+        position: relative;
+    }
+
+    .sort-link:hover {
+        color: #ddd;
+    }
+
+    .sort-arrow {
+        font-size: 10px;
+        margin-left: 5px;
+        opacity: 0.7;
+    }
+
     .rc {
         max-width: 1600px;
         margin: 20px auto;
         padding: 0 15px;
     }
+
+    /* Сворачиваемая форма */
+    .add-toggle {
+        cursor: pointer;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: #e9ecef;
+        border-radius: 6px;
+        font-weight: 600;
+        color: #495057;
+        border: 1px solid #ced4da;
+        transition: all .2s;
+        margin-bottom: 15px;
+    }
+
+    .add-toggle:hover {
+        background: #dee2e6;
+    }
+
+    .add-toggle .arrow {
+        transition: transform .2s;
+        display: inline-block;
+    }
+
+    .add-toggle.open .arrow {
+        transform: rotate(90deg);
+    }
+
+    .add-form-wrap {
+        display: none;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .add-form-wrap.open {
+        display: block;
+    }
+
+    /* Инлайн-редактирование */
+    .edit-row {
+        display: none;
+        background: #fff9e6 !important;
+    }
+
+    .edit-row.active {
+        display: table-row;
+    }
+
+    .edit-row td {
+        padding: 12px !important;
+    }
+
+    .ef {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .ef .fg {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ef .fg label {
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 2px;
+    }
+
+    /* Searchable dropdown & Live Search items */
+    .sd-wrap,
+    .ls-wrap {
+        position: relative;
+    }
+
+    .sd-list {
+        position: absolute;
+        z-index: 1000;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #ced4da;
+        border-top: 0;
+        border-radius: 0 0 4px 4px;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+    }
+
+    .sd-list.open {
+        display: block;
+    }
+
+    .sd-item {
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .sd-item:hover,
+    .sd-item.highlighted {
+        background: #e7f1ff;
+    }
+
+    .ls-tree {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        background: #fff;
+        border-radius: 4px;
+        margin-top: 5px;
+    }
+
+    .ls-node {
+        padding-left: 15px;
+    }
+
+    .ls-row {
+        display: flex;
+        align-items: center;
+        padding: 4px 8px;
+        cursor: pointer;
+        border-bottom: 1px solid #f8f9fa;
+        gap: 8px;
+    }
+
+    .ls-row:hover {
+        background: #f0f8ff;
+    }
+
+    .ls-row.selected {
+        background: #e7f1ff;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .ls-children {
+        border-left: 1px solid #eee;
+        margin-left: 6px;
+    }
+
+    .ls-name {
+        font-weight: 500;
+        font-size: 13px;
+        color: #333;
+    }
+
+    .ls-url {
+        font-family: monospace;
+        font-size: 11px;
+        color: #999;
+        margin-left: auto;
+    }
+
+    .field-error {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 4px;
+        display: none;
+    }
+
+    .field-error.visible {
+        display: block;
+    }
+
+    .selected-url {
+        margin-top: 6px;
+        padding: 6px 10px;
+        background: #d4edda;
+        border: 1px solid #b7dfbf;
+        border-radius: 5px;
+        font-size: 13px;
+        color: #155724;
+        display: none;
+    }
+
+    .selected-url.visible {
+        display: block;
+    }
+
+    .selected-url a {
+        font-weight: 600;
+        text-decoration: underline;
+        color: #0d6efd;
+    }
+
 
     .table td,
     .table th {
@@ -114,12 +365,18 @@ if ($result) {
         font-family: monospace;
         color: #0d6efd;
         font-size: 13px;
+        word-break: break-all;
+        min-width: 200px;
+        max-width: 400px;
     }
 
     .target-url {
         font-family: monospace;
         color: #198754;
         font-size: 13px;
+        word-break: break-all;
+        min-width: 200px;
+        max-width: 400px;
     }
 
     .status-code {
@@ -132,6 +389,35 @@ if ($result) {
 
     .status-302 {
         color: #fd7e14;
+    }
+
+    /* Сортировка */
+    th.sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+    }
+
+    th.sortable:hover {
+        background-color: #444;
+        /* Hover effect for dark header */
+    }
+
+    th.sortable::after {
+        content: '↕';
+        font-size: 10px;
+        margin-left: 5px;
+        opacity: 0.5;
+    }
+
+    th.sortable.asc::after {
+        content: '▲';
+        opacity: 1;
+    }
+
+    th.sortable.desc::after {
+        content: '▼';
+        opacity: 1;
     }
 
     /* Сворачиваемая форма */
@@ -280,7 +566,7 @@ if ($result) {
 
     .ls-input {
         width: 100%;
-        padding: 7px 12px 7px 32px;
+        padding: 7px 36px 7px 32px;
         border: 1px solid #ced4da;
         border-radius: 6px;
         font-size: 14px;
@@ -289,25 +575,26 @@ if ($result) {
 
     .ls-clear {
         position: absolute;
-        right: 8px;
+        right: 6px;
         top: 50%;
         transform: translateY(-50%);
-        width: 24px;
-        height: 24px;
+        width: 28px;
+        height: 28px;
         border: none;
         background: none;
-        font-size: 20px;
-        color: #999;
+        font-size: 18px;
+        color: #aaa;
         cursor: pointer;
         display: none;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        padding-bottom: 3px;
+        border-radius: 50%;
+        transition: background .15s, color .15s;
+        text-align: center;
+        line-height: 28px;
     }
 
     .ls-clear:hover {
         color: #dc3545;
+        background: #fff0f0;
     }
 
     .ls-hint {
@@ -532,7 +819,8 @@ if ($result) {
                         <button type="button" class="btn btn-sm btn-outline-secondary"
                             onclick="setTargetMode('select','add',this)">📋 Из структуры</button>
                     </div>
-                    <div class="selected-url" id="add-selected-url">✅ Выбрано: <a href="#" target="_blank"></a></div>
+                    <div class="selected-url" id="add-selected-url">✅ Выбрано: <a href="#" target="_blank"></a>
+                    </div>
                     <div class="target-manual" id="add-manual">
                         <input type="text" class="form-control" name="target_url" id="add-target-url"
                             placeholder="/new-page или https://...">
@@ -543,7 +831,8 @@ if ($result) {
                                 placeholder="Поиск по названию страницы..." autocomplete="off">
                             <button type="button" class="ls-clear" onclick="clearLiveSearch('add')">×</button>
                         </div>
-                        <div class="ls-hint">Минимум 2 символа. Поиск по разделам, подразделам, категориям и моделям.
+                        <div class="ls-hint">Минимум 2 символа. Поиск по разделам, подразделам, категориям и
+                            моделям.
                         </div>
                         <div class="ls-tree" id="add-ls-tree"></div>
                     </div>
@@ -573,17 +862,17 @@ if ($result) {
 
     <!-- Таблица -->
     <div class="table-responsive">
-        <table class="table table-striped table-hover">
+        <table class="table table-striped table-hover" id="redirectsTable">
             <thead class="table-dark">
                 <tr>
-                    <th>#</th>
-                    <th>Откуда</th>
-                    <th>Куда</th>
-                    <th>Код</th>
-                    <th>Статус</th>
-                    <th>Переходы</th>
-                    <th>Посл.</th>
-                    <th>Комм.</th>
+                    <th><?= sortLink('id', '#', $sortKey, $dir) ?></th>
+                    <th><?= sortLink('source', 'Откуда', $sortKey, $dir) ?></th>
+                    <th><?= sortLink('target', 'Куда', $sortKey, $dir) ?></th>
+                    <th><?= sortLink('code', 'Код', $sortKey, $dir) ?></th>
+                    <th><?= sortLink('status', 'Статус', $sortKey, $dir) ?></th>
+                    <th><?= sortLink('hits', 'Переходы', $sortKey, $dir) ?></th>
+                    <th><?= sortLink('last', 'Посл.', $sortKey, $dir) ?></th>
+                    <th><?= sortLink('comment', 'Комм.', $sortKey, $dir) ?></th>
                     <th>Действия</th>
                 </tr>
             </thead>
@@ -598,7 +887,8 @@ if ($result) {
                             <td><?= $r['id'] ?></td>
                             <td class="source-url"><?= htmlspecialchars($r['source_url']) ?></td>
                             <td class="target-url"><?= htmlspecialchars($r['target_url']) ?></td>
-                            <td><span class="status-code status-<?= $r['status_code'] ?>"><?= $r['status_code'] ?></span></td>
+                            <td><span class="status-code status-<?= $r['status_code'] ?>"><?= $r['status_code'] ?></span>
+                            </td>
                             <td><span
                                     class="badge <?= $r['is_active'] ? 'badge-active' : 'badge-inactive' ?>"><?= $r['is_active'] ? 'Вкл' : 'Выкл' ?></span>
                             </td>
@@ -648,11 +938,13 @@ if ($result) {
                                         <label>Куда</label>
                                         <div class="target-mode-btns">
                                             <button type="button" class="btn btn-sm btn-outline-secondary active"
-                                                onclick="setTargetMode('manual','e<?= $r['id'] ?>',this)">✍️ Вручную</button>
+                                                onclick="setTargetMode('manual','e<?= $r['id'] ?>',this)">✍️
+                                                Вручную</button>
                                             <button type="button" class="btn btn-sm btn-outline-secondary"
                                                 onclick="setTargetMode('search','e<?= $r['id'] ?>',this)">🔍 Поиск</button>
                                             <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                onclick="setTargetMode('select','e<?= $r['id'] ?>',this)">📋 Структура</button>
+                                                onclick="setTargetMode('select','e<?= $r['id'] ?>',this)">📋
+                                                Структура</button>
                                         </div>
                                         <div class="selected-url" id="e<?= $r['id'] ?>-selected-url">✅ <a href="#"
                                                 target="_blank"></a></div>
@@ -661,47 +953,101 @@ if ($result) {
                                                 id="e<?= $r['id'] ?>-target-url"
                                                 value="<?= htmlspecialchars($r['target_url']) ?>" style="width:300px">
                                         </div>
-                                        <div class="ls-wrap">
-                                            <input type="text" class="ls-input" id="e<?= $r['id'] ?>-ls-input"
-                                                placeholder="Поиск по названию..." autocomplete="off" style="width:300px">
-                                            <button type="button" class="ls-clear"
-                                                onclick="clearLiveSearch('e<?= $r['id'] ?>')">×</button>
+                                        <div class="target-search" id="e<?= $r['id'] ?>-search" style="display:none">
+                                            <div class="ls-wrap">
+                                                <input type="text" class="ls-input" id="e<?= $r['id'] ?>-ls-input"
+                                                    placeholder="Поиск по названию..." autocomplete="off">
+                                                <button type="button" class="ls-clear"
+                                                    onclick="clearLiveSearch('e<?= $r['id'] ?>')">×</button>
+                                            </div>
+                                            <div class="ls-hint" style="font-size:12px;color:#888;margin-top:4px">Минимум 2
+                                                символа</div>
+                                            <div class="ls-tree" id="e<?= $r['id'] ?>-ls-tree"></div>
                                         </div>
-                                        <div class="ls-tree" id="e<?= $r['id'] ?>-ls-tree"></div>
+
+                                        <div class="target-select" id="e<?= $r['id'] ?>-select">
+                                            <div id="e<?= $r['id'] ?>-cascade"></div>
+                                        </div>
+                                        <div class="field-error" id="e<?= $r['id'] ?>-target-error">⚠️ Укажите целевой URL</div>
                                     </div>
-                                    <div class="target-select" id="e<?= $r['id'] ?>-select">
-                                        <div id="e<?= $r['id'] ?>-cascade"></div>
+                                    <div class="fg"><label>Код</label>
+                                        <select class="form-select form-select-sm" name="status_code" style="width:80px">
+                                            <option value="301" <?= $r['status_code'] == 301 ? 'selected' : '' ?>>301</option>
+                                            <option value="302" <?= $r['status_code'] == 302 ? 'selected' : '' ?>>302</option>
+                                            <option value="307" <?= $r['status_code'] == 307 ? 'selected' : '' ?>>307</option>
+                                            <option value="308" <?= $r['status_code'] == 308 ? 'selected' : '' ?>>308</option>
+                                        </select>
                                     </div>
-                                    <div class="field-error" id="e<?= $r['id'] ?>-target-error">⚠️ Укажите целевой URL</div>
-            </div>
-            <div class="fg"><label>Код</label>
-                <select class="form-select form-select-sm" name="status_code" style="width:80px">
-                    <option value="301" <?= $r['status_code'] == 301 ? 'selected' : '' ?>>301</option>
-                    <option value="302" <?= $r['status_code'] == 302 ? 'selected' : '' ?>>302</option>
-                    <option value="307" <?= $r['status_code'] == 307 ? 'selected' : '' ?>>307</option>
-                    <option value="308" <?= $r['status_code'] == 308 ? 'selected' : '' ?>>308</option>
-                </select>
-            </div>
-            <div class="fg"><label>Комм.</label>
-                <input type="text" class="form-control form-control-sm" name="comment"
-                    value="<?= htmlspecialchars($r['comment'] ?? '') ?>" style="width:130px">
-            </div>
-            <div class="fg"><label>&nbsp;</label>
-                <div style="display:flex;gap:4px">
-                    <button type="submit" class="btn btn-sm btn-success">💾</button>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleEdit(<?= $r['id'] ?>)">✕</button>
-                </div>
-            </div>
-            </form>
-            </td>
-            </tr>
-        <?php endforeach; ?>
+                                    <div class="fg"><label>Комм.</label>
+                                        <input type="text" class="form-control form-control-sm" name="comment"
+                                            value="<?= htmlspecialchars($r['comment'] ?? '') ?>" style="width:130px">
+                                    </div>
+                                    <div class="fg"><label>&nbsp;</label>
+                                        <div style="display:flex;gap:4px">
+                                            <button type="submit" class="btn btn-sm btn-success">💾</button>
+                                            <button type="button" class="btn btn-sm btn-secondary"
+                                                onclick="toggleEdit(<?= $r['id'] ?>)">✕</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Пагинация -->
+    <?php if ($totalPages > 1): ?>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                <!-- First / Prev -->
+                <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                    <a class="page-link"
+                        href="?page=1&sort=<?= $sortKey ?>&dir=<?= $dir === 'ASC' ? 'asc' : 'desc' ?>">&laquo;</a>
+                </li>
+                <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                    <a class="page-link"
+                        href="?page=<?= max(1, $page - 1) ?>&sort=<?= $sortKey ?>&dir=<?= $dir === 'ASC' ? 'asc' : 'desc' ?>">‹</a>
+                </li>
+
+                <!-- Page range helper -->
+                <?php
+                $start = max(1, $page - 3);
+                $end = min($totalPages, $page + 3);
+                if ($start > 1)
+                    echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                for ($i = $start; $i <= $end; $i++): ?>
+                    <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                        <a class="page-link"
+                            href="?page=<?= $i ?>&sort=<?= $sortKey ?>&dir=<?= $dir === 'ASC' ? 'asc' : 'desc' ?>"><?= $i ?></a>
+                    </li>
+                <?php endfor;
+                if ($end < $totalPages)
+                    echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                ?>
+
+                <!-- Next / Last -->
+                <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
+                    <a class="page-link"
+                        href="?page=<?= min($totalPages, $page + 1) ?>&sort=<?= $sortKey ?>&dir=<?= $dir === 'ASC' ? 'asc' : 'desc' ?>">›</a>
+                </li>
+                <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
+                    <a class="page-link"
+                        href="?page=<?= $totalPages ?>&sort=<?= $sortKey ?>&dir=<?= $dir === 'ASC' ? 'asc' : 'desc' ?>">&raquo;</a>
+                </li>
+            </ul>
+        </nav>
     <?php endif; ?>
-    </tbody>
-    </table>
-</div>
-<small class="text-muted"><strong>Подсказка:</strong> 301 — постоянный (SEO), 302 — временный. Исходный URL
-    начинается с <code>/</code>.</small>
+
+    <div class="row text-center mb-4">
+        <div class="col text-muted small">
+            Всего записей: <strong><?= $totalRows ?></strong>. Показано: <?= count($redirects) ?>.
+        </div>
+    </div>
+    <small class="text-muted"><strong>Подсказка:</strong> 301 — постоянный (SEO), 302 — временный. Исходный URL
+        начинается с <code>/</code>.</small>
 </div>
 
 <script>
@@ -1049,27 +1395,37 @@ if ($result) {
     function initLiveSearch(prefix) {
         const input = document.getElementById(prefix + '-ls-input');
         const tree = document.getElementById(prefix + '-ls-tree');
-        if (!input || input.dataset.inited) return;
-        input.dataset.inited = '1';
+        if (!input) return;
 
-        let timer = null;
-        input.addEventListener('input', () => {
-            const btn = input.nextElementSibling;
-            if (btn && btn.classList.contains('ls-clear')) {
-                btn.style.display = input.value ? 'block' : 'none';
-            }
+        // Ensure we don't double-bind, but allow checking initial state
+        if (!input.dataset.inited) {
+            input.dataset.inited = '1';
 
-            clearTimeout(timer);
-            clearTimeout(timer);
-            const q = input.value.trim();
-            if (q.length < 2) { tree.innerHTML = ''; return; }
-            timer = setTimeout(() => {
-                fetch(API + '?action=search&q=' + encodeURIComponent(q))
-                    .then(r => r.json())
-                    .then(data => renderTree(tree, data, q, prefix))
-                    .catch(e => { tree.innerHTML = '<div style="padding:10px;color:#dc3545">Ошибка запроса</div>'; });
-            }, 300);
-        });
+            let timer = null;
+            input.addEventListener('input', () => {
+                const btn = input.nextElementSibling;
+                if (btn && btn.classList.contains('ls-clear')) {
+                    btn.style.display = input.value ? 'flex' : 'none';
+                }
+
+                clearTimeout(timer);
+                const q = input.value.trim();
+                if (q.length < 2) { tree.innerHTML = ''; return; }
+                timer = setTimeout(() => {
+                    fetch(API + '?action=search&q=' + encodeURIComponent(q))
+                        .then(r => r.json())
+                        .then(data => renderTree(tree, data, q, prefix))
+                        .catch(e => { tree.innerHTML = '<div style="padding:10px;color:#dc3545">Ошибка запроса</div>'; });
+                }, 300);
+            });
+        }
+
+        // Always check initial state of clear button when entering mode
+        const btn = input.nextElementSibling;
+        if (btn && btn.classList.contains('ls-clear')) {
+            btn.style.display = input.value ? 'flex' : 'none';
+        }
+
         input.focus();
     }
 

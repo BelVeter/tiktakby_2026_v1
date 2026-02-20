@@ -12,9 +12,8 @@
 */
 
 // --- Корневые редиректы ---
+// --- Корневые редиректы ---
 Route::get('/', 'App\Http\Controllers\RedirectController@rootToRu');
-Route::get('/lt', 'App\Http\Controllers\RedirectController@ltToRu');
-Route::get('/en', 'App\Http\Controllers\RedirectController@enToRu');
 
 
 // --- Карнавальные костюмы: цепочка редиректов ---
@@ -46,6 +45,12 @@ Route::post(
 Route::get('/favorites', 'App\Http\Controllers\FavoritesController@index');
 Route::post('/favorites/cards', 'App\Http\Controllers\FavoritesController@getCards');
 
+// --- Корзина ---
+Route::get('/cart', 'App\Http\Controllers\CartController@index');
+Route::post('/cart/checkout', 'App\Http\Controllers\CartController@checkout');
+Route::post('/cart/tariffs', 'App\Http\Controllers\CartController@getTariffs');
+Route::post('/cart/check-availability', 'App\Http\Controllers\CartController@checkAvailability');
+
 // --- Главная страница ---
 Route::get(
     '/{lang}/',
@@ -56,10 +61,7 @@ Route::get(
 Route::get('/test/', 'App\Http\Controllers\RedirectController@testPage');
 
 
-// --- Редиректы /en, /lt → /ru для статических страниц ---
-
-Route::get('/en/about', 'App\Http\Controllers\RedirectController@enAboutToRu');
-Route::get('/lt/about', 'App\Http\Controllers\RedirectController@ltAboutToRu');
+// --- Статические страницы ---
 
 Route::get(
     '/{lang}/about',
@@ -67,27 +69,17 @@ Route::get(
 )->name('about');
 
 
-
-Route::get('/en/conditions', 'App\Http\Controllers\RedirectController@enConditionsToRu');
-Route::get('/lt/conditions', 'App\Http\Controllers\RedirectController@ltConditionsToRu');
 Route::get(
     '/{lang}/conditions',
     'App\Http\Controllers\AboutController@showConditionsPage'
 );
 
 
-
-Route::get('/en/delivery', 'App\Http\Controllers\RedirectController@enDeliveryToRu');
-Route::get('/lt/delivery', 'App\Http\Controllers\RedirectController@ltDeliveryToRu');
 Route::get(
     '/{lang}/delivery',
     'App\Http\Controllers\AboutController@showDeliveryPage'
 );
 
-
-
-Route::get('/en/contacts', 'App\Http\Controllers\RedirectController@enContactsToRu');
-Route::get('/lt/contacts', 'App\Http\Controllers\RedirectController@ltContactsToRu');
 
 Route::get(
     '/{lang}/contacts',
@@ -95,9 +87,10 @@ Route::get(
 );
 
 
-
-Route::get('/en/policy', 'App\Http\Controllers\RedirectController@enPolicyToRu');
-Route::get('/lt/policy', 'App\Http\Controllers\RedirectController@ltPolicyToRu');
+Route::get(
+    '/{lang}/policy',
+    'App\Http\Controllers\AboutController@showPolicyPage'
+);
 
 Route::get(
     '/{lang}/policy',

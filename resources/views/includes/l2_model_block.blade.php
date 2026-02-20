@@ -176,6 +176,12 @@
         </div>
 
       @else
+        <div class="meta-row meta-row-header">
+          <span class="meta-header-text">
+            Товар находится в прокате
+          </span>
+        </div>
+
         {{-- Show expected return date --}}
         @php
           $returnDate = \bb\classes\tovar::getEarliestReturnDateForModelId($l2->getModelId());
@@ -200,27 +206,70 @@
 
     <div class="l2-card_action-btn-container">
       @if($availability['hasAvailability'])
-        <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_btn btn-rent">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="btn-icon">
-            <path
-              d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z"
-              stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round"
-              stroke-linejoin="round" />
-            <path
-              d="M15.6947 13.7H15.7037M15.6947 16.7H15.7037M11.9955 13.7H12.0045M11.9955 16.7H12.0045M8.29431 13.7H8.30329M8.29431 16.7H8.30329"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        @php
+          $cartTariffs = [];
+          $tarifModel = $l2->getTarifModel();
+          if ($tarifModel) {
+            foreach ($tarifModel->getTarifs() as $t) {
+              $daysNum = $t->getDaysCalculatedNumber();
+              if ($daysNum > 0) {
+                $dailyRate = round($t->getTotalAmount() / $daysNum, 2);
+                $cartTariffs[] = [$daysNum, $dailyRate];
+              }
+            }
+            usort($cartTariffs, function ($a, $b) {
+              return $a[0] - $b[0];
+            });
+          }
+        @endphp
+
+
+        {{-- Add to Cart button --}}
+        @php
+          $cartTariffs = [];
+          $tarifModel = $l2->getTarifModel();
+          if ($tarifModel) {
+            foreach ($tarifModel->getTarifs() as $t) {
+              $daysNum = $t->getDaysCalculatedNumber();
+              if ($daysNum > 0) {
+                $dailyRate = round($t->getTotalAmount() / $daysNum, 2);
+                $cartTariffs[] = [$daysNum, $dailyRate];
+              }
+            }
+            usort($cartTariffs, function ($a, $b) {
+              return $a[0] - $b[0];
+            });
+          }
+        @endphp
+        <button type="button" class="l2-card_btn-cart" data-model-id="{{ $l2->getModelId() }}"
+          data-model-name="{{ strip_tags($l2->getName()) }}" data-model-pic="{{ $l2->getPicUrl() }}"
+          data-model-url="{{ $l2->getL3Url(request()->lang) }}" data-tariffs='@json($cartTariffs)' onclick="TiktakCart.addItem({
+                                modelId: {{ $l2->getModelId() }},
+                                name: this.getAttribute('data-model-name'),
+                                picUrl: this.getAttribute('data-model-pic'),
+                                l3Url: this.getAttribute('data-model-url'),
+                                dateFrom: TiktakCart.todayStr(),
+                                days: 14,
+                                tariffs: JSON.parse(this.getAttribute('data-tariffs'))
+                              })">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            class="btn-icon">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
           </svg>
-          ВЗЯТЬ НАПРОКАТ
-        </a>
+          В КОРЗИНУ
+        </button>
       @else
-        <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_btn btn-request">
+        <button type="button" class="l2-card_btn btn-request" data-bs-toggle="modal" data-bs-target="#requestModal"
+          data-model-id="{{ $l2->getModelId() }}" data-model-name="{{ strip_tags($l2->getName()) }}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="btn-icon">
             <path
               d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z"
               fill="currentColor" />
           </svg>
           ОСТАВИТЬ ЗАЯВКУ
-        </a>
+        </button>
       @endif
     </div>
   </div>

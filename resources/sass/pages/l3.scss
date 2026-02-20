@@ -856,26 +856,82 @@ h1.l3_h1-mobile {
     margin: 0;
   }
 
-  & .action-button {
-    width: 478px;
+  // Wrapper for the buttons
+  #l3-cart-actions-container {
+    width: 100%;
+    flex: 1; // Grow to fill .row__action-buttons
+  }
+
+  // General action button styles (descendant selector)
+  .action-button {
+    width: 100%;
     height: 60px;
     background: #3180D1;
     border-radius: 5px;
     border: none;
     margin-bottom: 15px;
 
+    // Flex center alignment for icon + text
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px; // Space between icon and text
+
     font-family: 'Nunito';
     font-style: normal;
-    font-weight: 400;
-    font-size: 20px;
-    line-height: 27px;
-    text-align: center;
+    font-weight: 600;
+    font-size: 24px; // Increased for better visibility
+    line-height: normal; // Let flex handle vertical center
     color: #FFFFFF;
 
     @media screen and (max-width: 767px) {
       margin-top: 10px;
       margin-bottom: 25px;
       width: 100%;
+    }
+  }
+
+  // Styles for the split "Go to Cart" + "Remove" buttons
+  #l3-in-cart-controls {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 15px;
+
+    @media screen and (max-width: 767px) {
+      width: 100%;
+      margin-top: 10px;
+      margin-bottom: 25px;
+    }
+
+    .action-button {
+      width: auto; // Override the fixed width
+      margin-bottom: 0; // Parent handles margin
+    }
+
+    .btn-go-to-cart {
+      flex: 1 1 auto; // Fill remaining space
+      background-color: #5EC282;
+      border: none;
+
+      &:hover {
+        background-color: #4cae6e;
+      }
+    }
+
+    .btn-remove-from-cart {
+      flex: 0 0 60px;
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      color: #dc3545;
+      padding: 0;
+
+      &:hover {
+        background-color: #e2e6ea;
+        color: #bd2130;
+      }
     }
   }
 }

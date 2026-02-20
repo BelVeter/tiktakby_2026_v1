@@ -66,6 +66,7 @@ class tovar
   public $model_name;
   public $model_color;
   public $model_set;
+  public $model_addr;
 
   private $isDirtyChecked;
   private $isDirty;
@@ -555,6 +556,15 @@ class tovar
 
   }
 
+  public function getContractName()
+  {
+    if ($this->model_addr != '') {
+      return $this->model_addr;
+    } else {
+      return $this->cat_dog_name;
+    }
+  }
+
   function __construct($mysqli = NULL)
   {//передаем строчку (массив) из mysql запроса
 
@@ -679,6 +689,8 @@ class tovar
       $tov->model_set = $it_ch['set'];
     if (isset($it_ch['collateral']))
       $tov->collateral = $it_ch['collateral'];
+    if (isset($it_ch['model_addr']))
+      $tov->model_addr = $it_ch['model_addr'];
 
     return $tov;
   }
