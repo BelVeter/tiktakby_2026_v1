@@ -21,7 +21,7 @@
     z-index: 1;
     position: relative;
     flex: 0 0 100%;
-    scroll-snap-align: center;
+    scroll-snap-align: start;
     border-radius: 16px;
     overflow: hidden;
     height: max-content;
@@ -38,6 +38,11 @@
     display: none;
 }
 
+/* Slider Wrapper */
+.slider-wrapper {
+    margin-top: 24px;
+}
+
 /* Desktop Navigation Arrows */
 .slider-nav-arrows {
     display: none;
@@ -51,10 +56,8 @@
 }
 
 @media (min-width: 577px) {
-    .img-slider {
-        /* Move positional context to a wrapper if we want arrows outside, 
-           but since .img-slider is the scrolling container, we position arrows absolute to it */
-        /* Let's adjust padding if needed */
+    .img-slider .slide {
+        flex: 0 0 calc(80% - 12px);
     }
 
     .slider-nav-arrows {
@@ -95,11 +98,11 @@
     }
 
     .slider-arrow.prev {
-        left: 3%;
+        left: -24px;
     }
 
     .slider-arrow.next {
-        right: 3%;
+        right: -24px;
     }
 
     .slider-pagination {
