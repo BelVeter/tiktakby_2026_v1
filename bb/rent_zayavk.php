@@ -53,9 +53,31 @@ echo '
 <style>
 
 <style>
-.zayavk_btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin: 4px; border: none; border-radius: 4px; cursor: pointer; color: #fff; transition: opacity 0.2s; vertical-align: middle; }
+.zayavk_btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin: 4px; border: none; border-radius: 4px; cursor: pointer; color: #fff; transition: opacity 0.2s; vertical-align: middle; }
 .zayavk_btn:hover { opacity: 0.8; }
 .zayavk_btn * { pointer-events: none; }
+.zayavk_btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.1s ease-in-out;
+    pointer-events: none;
+    z-index: 1000;
+}
+.zayavk_btn:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
 .z_btn_phone { background-color: #0084ff; }
 .z_btn_cancel { background-color: #6c757d; }
 .z_btn_save { background-color: #28a745; }
@@ -97,8 +119,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 
 			btn.value = "отмена";
 			btn.className = "zayavk_btn z_btn_cancel";
-			btn.title = "Отмена";
-			btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Отмена</title><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+			btn.setAttribute("data-tooltip", "Отмена");
+			btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 
 			document.getElementById('save_podtv_' + id).style.display = "inline-block";
 			document.getElementById('free_inv_n_' + id).style.display = "inline-block";
@@ -108,8 +130,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 		else {
 			btn.value = "оформить звонок";
 			btn.className = "zayavk_btn z_btn_save";
-			btn.title = "Оформить звонок";
-			btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Оформить звонок</title><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+			btn.setAttribute("data-tooltip", "Оформить звонок");
+			btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
 			document.getElementById('save_podtv_' + id).style.display = "none";
 			document.getElementById('free_inv_n_' + id).style.display = "none";
@@ -335,10 +357,10 @@ echo '
 
 
 
-$svg_phone = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Оформить звонок</title><polyline points="20 6 9 17 4 12"></polyline></svg>';
-$svg_check = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Сохранить звонок</title><polyline points="20 6 9 17 4 12"></polyline></svg>';
-$svg_trash = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Удалить</title><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
-$svg_phone_off = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Недозвон</title><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>';
+$svg_phone = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+$svg_check = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+$svg_trash = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
+$svg_phone_off = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>';
 
 while ($ord = $result_or->fetch_assoc()) {
 	$br_line = new \bb\classes\bron();
@@ -421,10 +443,10 @@ while ($ord = $result_or->fetch_assoc()) {
 				<input type="hidden" name="type2" id="type2_' . $br_line->order_id . '" value="' . $br_line->type2 . '">
       			<input type="hidden" name="last_ch_time" value="' . $br_line->ch_time . '">
 
-				<button type="button" name="action" class="zayavk_btn z_btn_save" title="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
-				<button type="submit" name="action" class="zayavk_btn z_btn_save" title="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
-      	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" title="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return obnov(\'' . $br_line->order_id . '\');">' . $svg_phone_off . '</button>
-				<button type="submit" name="action" class="zayavk_btn z_btn_del" title="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
+				<button type="button" name="action" class="zayavk_btn z_btn_save" data-tooltip="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
+				<button type="submit" name="action" class="zayavk_btn z_btn_save" data-tooltip="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
+      	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return obnov(\'' . $br_line->order_id . '\');">' . $svg_phone_off . '</button>
+				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
 			</div>
 			</form>
 		</td>
