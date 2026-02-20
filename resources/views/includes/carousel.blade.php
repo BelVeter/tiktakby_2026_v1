@@ -15,10 +15,10 @@
             </picture>
         </a>
 
-        <a class="slide" href="/ru/prokat-sports/winter">
+        <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/25-karnaval-mob.webp">
-                <img src="/public/slider/25-karnaval-desk.webp" alt="КАРНАВАЛЬНЫЕ КОСТЮМЫ">
+                <source media="(max-width: 576px)" srcset="/public/slider/koliaski-mob.webp">
+                <img src="/public/slider/koliaski-desk.webp" alt="Прокат детских колясок">
             </picture>
         </a>
 

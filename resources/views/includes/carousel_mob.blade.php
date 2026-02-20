@@ -7,29 +7,28 @@
                 <li data-target="#demo" data-slide-to="1"></li>
                 <li data-target="#demo" data-slide-to="2"></li>
             </ul>
-			<div class="carousel-inner">
+            <div class="carousel-inner">
                 <div class="carousel-item active">
-                    <a href="#"><img class="img-fluid" src="/public/img/slider_m_1.jpg" alt="Los Angeles" width="1110" height="456"></a>
+                    <a href="#"><img class="img-fluid" src="/public/img/slider_m_1.jpg" alt="Los Angeles" width="1110"
+                            height="456"></a>
                     <div class="carousel-caption">
                         <h3></h3>
                         <p></p>
                     </div>
                 </div>
 
-				<div class="carousel-item">
-                    <a href="/ru/prokat/karnaval"><img class="img-fluid" src="/public/img/slider_m_2.jpg" alt="Chicago" width="1110" height="456"></a> </div>
+                <div class="carousel-item">
+                    <a href="/ru/prokat/karnaval"><img class="img-fluid" src="/public/img/slider_m_2.jpg" alt="Chicago"
+                            width="1110" height="456"></a>
                     <div class="carousel-caption">
-					<h3></h3>
+                        <h3></h3>
                         <p></p>
-
                     </div>
                 </div>
-				 <div class="carousel-item">
-                     <a href="#"><img class="img-fluid" src="/public/img/slider_m_1.jpg" alt="New York" width="1110" height="456"></a>
-                    <div class="carousel-caption">
-                        <!--<h3>New York</h3>
-                        <p>We love the Big Apple!</p>-->
-                    </div>
+                <div class="carousel-item">
+                    <a href="https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie"><img class="img-fluid"
+                            src="/public/slider/koliaski-mob.webp" alt="Прокат детских колясок" width="1110"
+                            height="456"></a>
                 </div>
             </div>
             <a class="carousel-control-prev" href="#demo" data-slide="prev">
