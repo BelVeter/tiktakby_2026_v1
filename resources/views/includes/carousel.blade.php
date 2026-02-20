@@ -15,10 +15,10 @@
             </picture>
         </a>
 
-        <a class="slide" href="/ru/prokat-sports/winter">
+        <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/25-karnaval-mob.webp">
-                <img src="/public/slider/25-karnaval-desk.webp" alt="КАРНАВАЛЬНЫЕ КОСТЮМЫ">
+                <source media="(max-width: 576px)" srcset="/public/slider/koliaski-mob.webp">
+                <img src="/public/slider/koliaski-desk.webp" alt="Прокат детских колясок">
             </picture>
         </a>
 
@@ -138,7 +138,36 @@
 
         nextBtn.addEventListener('click', () => {
             const slideWidth = slides[0].offsetWidth + 12;
-            slider.scrollBy({ left: slideWidth, behavior: 'smooth' });
+            if (Math.ceil(slider.scrollLeft + slider.clientWidth) >= slider.scrollWidth) {
+       slider.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                slider.scrollBy({ left: slideWidth, behavior: 'smooth' });
+            }
         });
+
+        // Auto-slide functionality (7 seconds)
+        let autoSlideInterval;
+
+        const startAutoSlide = () => {
+            autoSlideInterval = setInterval(() => {
+                const slideWidth = slides[0].offsetWidth + 12;
+                if (Math.ceil(slider.scrollLeft + slider.clientWidth) >= slider.scrollWidth) {
+                    slider.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    slider.scrollBy({ left: slideWidth, behavior: 'smooth' });
+                }
+            }, 7000);
+        };
+
+        const stopAutoSlide = () => clearInterval(autoSlideInterval);
+
+        startAutoSlide();
+
+        if (wrapper) {
+            wrapper.addEventListener('mouseenter', stopAutoSlide);
+            wrapper.addEventListener('mouseleave', startAutoSlide);
+            wrapper.addEventListener('touchstart', stopAutoSlide, { passive: true });
+            wrapper.addEventListener('touchend', startAutoSlide, { passive: true });
+        }
     });
 </script>
