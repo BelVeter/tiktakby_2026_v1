@@ -575,18 +575,18 @@ echo str_repeat('-', 60) . PHP_EOL;
 // (these are old static site folders, not images which are handled in Phase 1)
 $legacy_folders = [
     'about',
-    'assets',
+    // 'assets' removed — used by bb/
     'avtokresla',
     'batuty',
     'bigs',
     'compleksy',
     'fancybox',
-    'fonts',
+    // 'fonts' removed — used by cur_viezdy.php etc
     'gorki',
     'hodunki',
     'igrushki',
     'images',
-    'includes',
+    // 'includes' removed — contains zv_show.php used by CRM
     'jstr',
     'js',
     'kacheli',
@@ -608,8 +608,8 @@ $legacy_folders = [
     'slingi',
     'stoliki',
     'stul',
-    'svg',
-    'tcpdf',
+    // 'svg' removed — used by bb/
+    // 'tcpdf' removed — required by bb/pdf.php
     'tmp',
     'to_copy',
     'toys',
@@ -639,19 +639,14 @@ $legacy_files = [
     'test.html',
     'test copy.html',
     // Superseded PHP scripts (legacy order / deal views now in BB)
-    'zakaz2.php',
     'old_bron.php',
-    'dogovor_new2.php',
-    'rent_deals_all.php',
-    'rent_orders.php',
-    'rent_orders_arch.php',
-    'dohrash2.php',
+    // --- The following were removed from archival because bb/*.php actively uses them:
+    // 'zakaz2.php', 'dogovor_new2.php', 'rent_deals_all.php', 'rent_orders.php', 'rent_orders_arch.php', 'dohrash2.php'
     // Developer / debug scripts
-    'dimanay.php',
-    'dimanay2.php',
     'reproduce_issue.php',
     'test.php',
     'convert_images.php',
+    // --- 'dimanay.php', 'dimanay2.php' were removed because bb/database.php requires them
     // Various loose files
     'DD_belatedPNG.js',
     'swfobject.js',
