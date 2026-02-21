@@ -102,12 +102,15 @@ class L3Controller extends Controller
       $validityDaysNum = $req->input('days_num');
 
       //create zvonok
-      $z=Zvonok::addLitZvonok($req->input('fio'), $req->input('phone'), $req->input('info'), $req->input('model_id'), 'zayavka', $validityDaysNum);
+      $z = Zvonok::addLitZvonok($req->input('fio'), $req->input('phone'), $req->input('info'), $req->input('model_id'), 'zayavka', $validityDaysNum);
 
       //create zayavka
+      $validityDateObj = new \DateTime();
+      if ($validityDaysNum) {
+        $validityDateObj->modify('+' . intval($validityDaysNum) . ' days');
+      }
+      $zayavka = bron::createZayavka($req->input('model_id'), $req->input('phone'), $req->input('fio'), '', '', $validityDateObj, $req->input('info'), 1);
 
-      //$zayavka = bron::createZayavka($iureq->input('model_id'), $req->input('phone'), $req->input('fio'), '', '', $validityDaysNum, $req->input('info'), 1);
-      //$message = $z->getMessage();
       $message = 'Заявка на товар принята. При поступлении товара в указанный срок ожидания, оператор свяжется с вами по телефону.';
     }
 

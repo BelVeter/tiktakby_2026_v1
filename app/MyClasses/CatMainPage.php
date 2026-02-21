@@ -64,10 +64,10 @@ class CatMainPage
         $this->_showAgeFilter = $showAgeFilter;
     }
 
-    public function __construct($lang='ru')
+    public function __construct($lang = 'ru')
     {
-        $this->breadCrumbsArray=[];
-        $this->breadCrumbsArray['Главная']='/ru/';
+        $this->breadCrumbsArray = [];
+        $this->breadCrumbsArray['Главная'] = '/ru/';
     }
 
     /**
@@ -75,18 +75,21 @@ class CatMainPage
      * @param $urlKey
      * @return void
      */
-    public function addBreadCrumbItem($text, $urlKey){
+    public function addBreadCrumbItem($text, $urlKey)
+    {
         $this->breadCrumbsArray[$text] = $urlKey;
     }
 
     /**
      * @return mixed
      */
-    public function getPageTitle() {
+    public function getPageTitle()
+    {
         return $this->h1_title;
     }
 
-    public function setPageTitle($title) {
+    public function setPageTitle($title)
+    {
         $this->h1_title = $title;
     }
 
@@ -94,7 +97,8 @@ class CatMainPage
      * @param $razdelUrl
      * @return CatMainPage
      */
-    public static function createPageByRazdelUrlName($lang='ru', $razdelUrl) {
+    public static function createPageByRazdelUrlName($lang = 'ru', $razdelUrl)
+    {
         $p = new self();
 
         if ($razdel = Razdel::getByUrlName($razdelUrl)) {
@@ -105,10 +109,10 @@ class CatMainPage
             $modelIdArray = Model::getModelIdsArrayByRazdelUrlName($razdelUrl);
 
             foreach ($modelIdArray as $mid) {
-                if ($l2m=L2ModelWeb::getL2ModelWebById($mid)) $p->addL2ModelWeb($l2m);
+                if ($l2m = L2ModelWeb::getL2ModelWebById($mid))
+                    $p->addL2ModelWeb($l2m);
             }
-        }
-        else {
+        } else {
             $p->setPageTitle('Раздел не найден!');
         }
 
@@ -120,13 +124,13 @@ class CatMainPage
      * @param $razdelUrlCode
      * @return bool
      */
-    public function isInRazdel($razdelUrlCode){
+    public function isInRazdel($razdelUrlCode)
+    {
         $cat = Category::getByUrlName($this->url_name);
         $razdelUrls = Razdel::getRazdelUrlNamesForCatId($cat->getId());
         if (in_array($razdelUrlCode, $razdelUrls)) {
             return true;
-        }
-        else{
+        } else {
             return false;
         }
     }
@@ -138,7 +142,8 @@ class CatMainPage
      * @param $subRazdelUrl
      * @return CatMainPage
      */
-    public static function createPageByRazdelAndSubRazdelUrlNames($lang='ru', $razdelUrl, $subRazdelUrl){
+    public static function createPageByRazdelAndSubRazdelUrlNames($lang = 'ru', $razdelUrl, $subRazdelUrl)
+    {
         $p = new self();
 
         $razdel = Razdel::getByUrlName($razdelUrl);
@@ -146,7 +151,7 @@ class CatMainPage
 
         if ($razdel && $subRazdel) {
 
-            $p->setPageTitle($subRazdel->getNameSubRazdelText().' напрокат - '.$razdel->getNameRazdelText());
+            $p->setPageTitle($subRazdel->getNameSubRazdelText() . ' напрокат - ' . $razdel->getNameRazdelText());
             $p->setH1Title($subRazdel->getNameSubRazdelText());
             $p->addBreadCrumbItem($razdel->getNameRazdelText(), $razdel->getUrlForPage($lang));
             $p->addBreadCrumbItem($subRazdel->getNameSubRazdelText(), '');
@@ -154,10 +159,10 @@ class CatMainPage
             $modelIdArray = Model::getModelIdsArrayByRazdelAndSubRazdelNames($razdelUrl, $subRazdelUrl);
 
             foreach ($modelIdArray as $mid) {
-                if ($l2m=L2ModelWeb::getL2ModelWebById($mid)) $p->addL2ModelWeb($l2m);
+                if ($l2m = L2ModelWeb::getL2ModelWebById($mid))
+                    $p->addL2ModelWeb($l2m);
             }
-        }
-        else {
+        } else {
             $p->setPageTitle('Раздел не найден!');
         }
 
@@ -172,7 +177,8 @@ class CatMainPage
      * @param $catUrlName
      * @return CatMainPage
      */
-    public static function createPageByRazdelAndSubRazdelAndCatUrlNames($lang='ru', $razdelUrl, $subRazdelUrl, $catUrlName){
+    public static function createPageByRazdelAndSubRazdelAndCatUrlNames($lang = 'ru', $razdelUrl, $subRazdelUrl, $catUrlName)
+    {
         $p = new self();
 
         $razdel = Razdel::getByUrlName($razdelUrl);
@@ -181,7 +187,7 @@ class CatMainPage
 
         if ($razdel && $subRazdel && $cat) {
 
-            $p->setPageTitle($cat->getName().'напрокат в Минске - '.$subRazdel->getNameSubRazdelText());
+            $p->setPageTitle($cat->getName() . 'напрокат в Минске - ' . $subRazdel->getNameSubRazdelText());
             $p->setH1Title($cat->getName());
             $p->addBreadCrumbItem($razdel->getNameRazdelText(), $razdel->getUrlForPage($lang));
             $p->addBreadCrumbItem($subRazdel->getNameSubRazdelText(), $subRazdel->getUrlForPage($lang, $razdel->getUrlRazdelName()));
@@ -190,10 +196,10 @@ class CatMainPage
             $modelIdArray = Model::getModelIdsArrayByCategoryId($cat->getId());
 
             foreach ($modelIdArray as $mid) {
-                if ($l2m=L2ModelWeb::getL2ModelWebById($mid)) $p->addL2ModelWeb($l2m);
+                if ($l2m = L2ModelWeb::getL2ModelWebById($mid))
+                    $p->addL2ModelWeb($l2m);
             }
-        }
-        else {
+        } else {
             $p->setPageTitle('Раздел не найден!');
         }
 
@@ -206,12 +212,13 @@ class CatMainPage
      */
     public static function getPageByCatId($cat_id): CatMainPage
     {
-        $p=new self();
-        $m_ids=Category::getModelsForCategoryById($cat_id);
+        $p = new self();
+        $m_ids = Category::getModelsForCategoryById($cat_id);
 
 
         foreach ($m_ids as $mid) {
-            if ($l2m=L2ModelWeb::getL2ModelWebById($mid)) $p->addL2ModelWeb($l2m);
+            if ($l2m = L2ModelWeb::getL2ModelWebById($mid))
+                $p->addL2ModelWeb($l2m);
         }
 
         return $p;
@@ -220,7 +227,8 @@ class CatMainPage
     /**
      * @return array
      */
-    public function getBreadCrumbsArray(){
+    public function getBreadCrumbsArray()
+    {
         return $this->breadCrumbsArray;
     }
 
@@ -231,14 +239,14 @@ class CatMainPage
     public static function getPageForCatByUrlName($url_name): CatMainPage
     {
 
-      $mysqli = Db::getInstance()->getConnection();
-      $url_name = $mysqli->real_escape_string($url_name);
+        $mysqli = Db::getInstance()->getConnection();
+        $url_name = $mysqli->real_escape_string($url_name);
 
 
-        $p=new self();
-        $m_ids=array();
+        $p = new self();
+        $m_ids = array();
 
-        $m=CatMenuItem::getItemByUrlName($url_name);
+        $m = CatMenuItem::getItemByUrlName($url_name);
 
         $p->setUrlName($url_name);
         $p->setUrlNameId($m->getId());
@@ -248,22 +256,22 @@ class CatMainPage
 
         if (is_array($m->getCatIds())) {
             //for additional pics of additionals cats for webs for models
-            $add_pics=array();
+            $add_pics = array();
 
             foreach ($m->getCatIds() as $cat_id) {
-                $cat=Category::getModelsForCategoryById($cat_id, 1);
-                if ($cat && is_array($cat)){
+                $cat = Category::getModelsForCategoryById($cat_id, 1);
+                if ($cat && is_array($cat)) {
                     $m_ids = array_merge($m_ids, $cat);
                 }
                 //dd($m_ids);
 
                 //add additional models
-                $add=ModelWeb::getAdditionalModelIdsForCat($cat_id, 1);
+                $add = ModelWeb::getAdditionalModelIdsForCat($cat_id, 1);
 
-                if ($add){
+                if ($add) {
                     foreach ($add as $model_id => $add_pic_url)
-                    $m_ids[]=$model_id;
-                    $add_pics[$model_id]=$add_pic_url;
+                        $m_ids[] = $model_id;
+                    $add_pics[$model_id] = $add_pic_url;
                 }
             }
 
@@ -271,7 +279,8 @@ class CatMainPage
             if (is_array($m_ids)) {
                 foreach ($m_ids as $mid) {
                     if ($l2m = L2ModelWeb::getL2ModelWebById($mid)) {
-                        if (key_exists($mid, $add_pics)) $l2m->changePicUrlAddWeb($add_pics[$mid]);
+                        if (key_exists($mid, $add_pics))
+                            $l2m->changePicUrlAddWeb($add_pics[$mid]);
                         $p->addL2ModelWeb($l2m);
                     }
                 }
@@ -311,81 +320,98 @@ class CatMainPage
     /**
      * @param L2ModelWeb $mw
      */
-    public function addL2ModelWeb(L2ModelWeb $mw) {
-        $this->models[]=$mw;
+    public function addL2ModelWeb(L2ModelWeb $mw)
+    {
+        $this->models[] = $mw;
     }
 
     /**
      * @param $name
      */
-    public function setUrlName($name){
-        $this->url_name=$name;
+    public function setUrlName($name)
+    {
+        $this->url_name = $name;
     }
 
     /**
      * @param $id
      */
-    public function setUrlNameId($id){
-        $this->url_name_id=$id;
+    public function setUrlNameId($id)
+    {
+        $this->url_name_id = $id;
     }
 
     /**
      * @param $name
      */
-    public function setCatName($name){
-        $this->cat_name=$name;
+    public function setCatName($name)
+    {
+        $this->cat_name = $name;
     }
 
     /**
      * @param $code
      */
-    public function setBlock1($code){
-        $this->block1=$code;
+    public function setBlock1($code)
+    {
+        $this->block1 = $code;
     }
 
     /**
      * @return mixed
      */
-    public function getBlock1(){
+    public function getBlock1()
+    {
         return $this->block1;
     }
 
 
-    public function hasBlock1(){
-        if (strlen($this->block1)>0) return true;
-        else return false;
+    public function hasBlock1()
+    {
+        if (strlen($this->block1) > 0)
+            return true;
+        else
+            return false;
     }
 
-    public function hasBlock2(){
+    public function hasBlock2()
+    {
         return false;
     }
 
     /**
      * @return mixed
      */
-    public function getH1Title(){
+    public function getH1Title()
+    {
         return $this->h1_title;
     }
 
     /**
      * @param $title
      */
-    public function setH1Title($title){
-        $this->h1_title=$title;
+    public function setH1Title($title)
+    {
+        $this->h1_title = $title;
     }
 
-    public function loadPageWebBlocks(){
-        $mysqli=Db::getInstance()->getConnection();
+    public function loadPageWebBlocks()
+    {
+        $mysqli = Db::getInstance()->getConnection();
 
-        $q="SELECT * FROM cat_pages WHERE cat_name='$this->url_name'";
+        $q = "SELECT * FROM cat_pages WHERE cat_name='$this->url_name'";
         $result = $mysqli->query($q);
-        if (!$result) {die('Сбой при вставке временной брони в MYSQL: '.$q.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);}
-        if ($result->num_rows>0) {
-            $rez=$result->fetch_assoc();
-            $info=$rez['block1'];
-            $this->setH1Title($rez['title1']);
+        // Фикс: при ошибке соединения $result === false, num_rows недоступен — выходим безопасно
+        if ($result === false) {
+            \Illuminate\Support\Facades\Log::error('CatMainPage::loadPageWebBlocks() SQL error: ' . $mysqli->error);
+            $this->setBlock1('');
+            return;
         }
-        else {
+        if ($result->num_rows > 0) {
+            $rez = $result->fetch_assoc();
+            $info = $rez['block1'];
+            $this->setH1Title($rez['title1']);
+        } else {
             $info = '
                 Прокат детских электронных весов - это разумно и удобно. Нет надобности покупать дорогостоящие весы, которые, как правило, нужны на несколько месяцев, но в то же время контроль за прибавкой веса необходим каждому малышу в первые месяцы жизни, ведь это важный показатель его здоровья и развития. Особенно необходимы электронные весы для недоношенных деток, и для малышей, находящихся на грудном вскармливании - ведь в этом случае только с помощью электронных весов мама точно сможет определить сколько молочка съел кроха за кормление. Также прокат детских электронных весов избавит молодых родителей от необходимости часто посещать поликлинику и позволит ежедевно контролировать набор веса ребенка.
                                 Электронные весы для новорожденных
@@ -403,11 +429,11 @@ class CatMainPage
     /**
      * @return int
      */
-    public function getModelsNum(){
+    public function getModelsNum()
+    {
         if (is_array($this->models)) {
             return count($this->models);
-        }
-        else{
+        } else {
             return 0;
         }
     }

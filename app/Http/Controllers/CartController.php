@@ -255,6 +255,13 @@ class CartController extends Controller
                 // Item not available — create zayavka
                 $validityDays = $days;
                 Zvonok::addLitZvonok($fio, $phone, $info, $modelId, 'zayavka', $validityDays);
+
+                $validityDateObj = new \DateTime();
+                if ($validityDays) {
+                    $validityDateObj->modify('+' . intval($validityDays) . ' days');
+                }
+                bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $info, 1);
+
                 $results[] = [
                     'modelId' => $modelId,
                     'name' => $item['name'] ?? '',

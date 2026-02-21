@@ -57,11 +57,11 @@ class MainPage
     }
 
     //main,razdel,subrazdel,category
-    if ($this->getLevelCode() == 'razdel')
+    if ($this->getLevelCode() == 'razdel' && is_object($this->_razdel))
       return $this->_razdel->getUrlForPage('ru');
-    elseif ($this->getLevelCode() == 'subrazdel')
+    elseif ($this->getLevelCode() == 'subrazdel' && is_object($this->_subRazdel))
       return $this->_subRazdel->getUrlForPage('ru');
-    elseif ($this->getLevelCode() == 'category')
+    elseif ($this->getLevelCode() == 'category' && is_object($this->_category))
       return $this->_category->getUrlForPage('ru');
     else
       return false;
@@ -569,8 +569,10 @@ class MainPage
 
     $query = "SELECT * FROM pages WHERE level_code='$levelCode' AND url_key='$urlKey' AND lang='$lang'";
     $result = $mysqli->query($query);
-    if (!$result) {
-      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    // Фикс: при $result === false (ошибка соединения) num_rows недоступен — возвращаем false
+    if ($result === false) {
+      \Illuminate\Support\Facades\Log::error('MainPage::getPage() SQL error: ' . $mysqli->error . ' | Query: ' . $query);
+      return false;
     }
     if ($result->num_rows < 1)
       return false;
@@ -969,8 +971,10 @@ class MainPage
 
     $query = "SELECT * FROM pages WHERE id='$id'";
     $result = $mysqli->query($query);
-    if (!$result) {
-      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    // Фикс: при $result === false (ошибка соединения) num_rows недоступен — возвращаем false
+    if ($result === false) {
+      \Illuminate\Support\Facades\Log::error('MainPage::getPageById() SQL error: ' . $mysqli->error . ' | Query: ' . $query);
+      return false;
     }
     if ($result->num_rows < 1)
       return false;
