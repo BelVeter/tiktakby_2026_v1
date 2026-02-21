@@ -435,7 +435,7 @@ class tovar
   {
     return '
 	        <div class="qr_name_2">' . $this->getNameForBarCodeNonKarn() . '</div>
-	        <div class="qr_operators"><img src="ph_nk.jpg" style="width: 80px;"></div>
+	        <div class="qr_operators"><img src="/bb/assets/images/ph_nk.jpg" style="width: 80px;"></div>
 	    ';
   }
 
