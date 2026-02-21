@@ -592,34 +592,40 @@
             <div class="backgound"></div>
             <ul class="top-nav-row">
                 @foreach($topMenu->getRazdels() as $r)
-                    <li data-id="{{$r->getIdRazdel()}}" class="top-nav-item">
-                        <a class="item-a" href="{{$r->getUrlForPage(request()->lang)}}">
-                            <img class="item-img" src="{{$r->getUrlIconRazdel()}}">
-                            <span>{{$r->getNameRazdelText()}}</span>
-                        </a>
-                        <!-- SubRazdels-->
-                        @if($r->getSubRazdels())
-                            <div class="container-fluid top-cat-menu-container">
-                                <div class="top-cat-sub-container">
-                                    @foreach($r->getSubRazdels() as $sr)
-                                        <ul class="top-cat-list">
-                                            <li><a class="list-header-img-li"
-                                                    href="{{$sr->getUrlForPage(request()->lang, $r->getUrlRazdelName())}}"><img
-                                                        src="{{$sr->getUrlSubRazdelIcon()}}"></a></li>
-                                            <li class="list-header"><a
-                                                    href="{{$sr->getUrlForPage(request()->lang, $r->getUrlRazdelName())}}">{{$sr->getNameSubRazdelText()}}</a>
-                                            </li>
-                                            @foreach($sr->getCategories() as $cat)
-                                                <li><a
-                                                        href="{{$cat->getUrlForPage(request()->lang, $r->getUrlRazdelName(), $sr->getUrlSubRazdelName())}}">{{$cat->getName()}}</a>
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    @endforeach
+                    @if(is_object($r))
+                        <li data-id="{{$r->getIdRazdel()}}" class="top-nav-item">
+                            <a class="item-a" href="{{$r->getUrlForPage(request()->lang)}}">
+                                <img class="item-img" src="{{$r->getUrlIconRazdel()}}">
+                                <span>{{$r->getNameRazdelText()}}</span>
+                            </a>
+                            <!-- SubRazdels-->
+                            @if($r->getSubRazdels())
+                                <div class="container-fluid top-cat-menu-container">
+                                    <div class="top-cat-sub-container">
+                                        @foreach($r->getSubRazdels() as $sr)
+                                            @if(is_object($sr))
+                                                <ul class="top-cat-list">
+                                                    <li><a class="list-header-img-li"
+                                                            href="{{$sr->getUrlForPage(request()->lang, $r->getUrlRazdelName())}}"><img
+                                                                src="{{$sr->getUrlSubRazdelIcon()}}"></a></li>
+                                                    <li class="list-header"><a
+                                                            href="{{$sr->getUrlForPage(request()->lang, $r->getUrlRazdelName())}}">{{$sr->getNameSubRazdelText()}}</a>
+                                                    </li>
+                                                    @foreach($sr->getCategories() as $cat)
+                                                        @if(is_object($cat))
+                                                            <li><a
+                                                                    href="{{$cat->getUrlForPage(request()->lang, $r->getUrlRazdelName(), $sr->getUrlSubRazdelName())}}">{{$cat->getName()}}</a>
+                                                            </li>
+                                                        @endif
+                                                    @endforeach
+                                                </ul>
+                                            @endif
+                                        @endforeach
+                                    </div>
                                 </div>
-                            </div>
-                        @endif
-                    </li>
+                            @endif
+                        </li>
+                    @endif
                 @endforeach
             </ul>
         </nav>

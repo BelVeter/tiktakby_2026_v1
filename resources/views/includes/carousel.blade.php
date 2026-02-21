@@ -22,47 +22,20 @@
             </picture>
         </a>
 
-        <a class="slide" href="/ru/prokat-detskih-tovarov/autokresla/autokresla-lulki/CybexCloudQ_Plus">
+        <a class="slide" href="https://tiktak.by/ru/medical-prokat/bioptron">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/b12-mob.webp">
-                <img src="/public/slider/b12-desk.webp" alt="CYBEX CLOUD Q PLUS" loading="lazy">
+                <source media="(max-width: 576px)" srcset="/public/slider/bioptron-mob.webp">
+                <img src="/public/slider/bioptron-desk.webp" alt="Bioptron" fetchpriority="high">
             </picture>
         </a>
 
-        <a class="slide" href="/ru/prokat-detskih-tovarov/kolyaski-detskie/koliaski-prokat-minsk/CybexPriamLuxCarrycot">
+        <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/detskaya-komnata/kolybeli">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/25-cybex-mob.webp">
-                <img src="/public/slider/25-cybex-desk.webp" alt="коляска Cybex Priam прокат Минск" loading="lazy">
+                <source media="(max-width: 576px)" srcset="/public/slider/kolybeli-mob.webp">
+                <img src="/public/slider/kolybeli-desk.webp" alt="Колыбели" fetchpriority="high">
             </picture>
         </a>
 
-        <a class="slide" href="ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk">
-            <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/11-mob.webp">
-                <img src="/public/slider/11-desk.webp" alt="Bioptron MedAll" loading="lazy">
-            </picture>
-        </a>
-
-        <a class="slide" href="/ru/prokat-detskih-tovarov/prokat-detskih-krovatok/kolybeli/4momsmamaroosleep_bassinet">
-            <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/sleep-bassinet-mob.webp">
-                <img src="/public/slider/sleep-bassinet-desk.webp" alt="4Moms MamaRoo" loading="lazy">
-            </picture>
-        </a>
-
-        <a class="slide" href="/ru/prokat-detskih-tovarov/kolyaski-detskie">
-            <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/3-mob.webp">
-                <img src="/public/slider/3-desk.webp" alt="Коляски детские" loading="lazy">
-            </picture>
-        </a>
-
-        <a class="slide" href="/ru/prokat-detskih-tovarov/detskaya-komnata/shezlongi/babybjorn_babysitter_balance">
-            <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/babybjorn-sl-mob.webp">
-                <img src="/public/slider/babybjorn-sl-desk.webp" alt="Babybjorn Babysitter Balance" loading="lazy">
-            </picture>
-        </a>
     </div>
 
     {{-- Desktop Navigation (Hidden on mobile via CSS) --}}
@@ -139,7 +112,7 @@
         nextBtn.addEventListener('click', () => {
             const slideWidth = slides[0].offsetWidth + 12;
             if (Math.ceil(slider.scrollLeft + slider.clientWidth) >= slider.scrollWidth) {
-       slider.scrollTo({ left: 0, behavior: 'smooth' });
+                slider.scrollTo({ left: 0, behavior: 'smooth' });
             } else {
                 slider.scrollBy({ left: slideWidth, behavior: 'smooth' });
             }
