@@ -14,6 +14,7 @@
             <div class="modal-body">
                 <form method="post" action="/zvonok" class="back-coll-modal">
                     @csrf
+                    <input type="hidden" name="model_id" id="requestModalModelId" value="">
                     <div class="input-wrapper">
                         <input data-targetinput="" class="call-input1" type="text" name="fio"
                             placeholder="{{$header->translate('Ваше имя')}}" style="width: 100%; margin-bottom: 15px;"
@@ -49,14 +50,20 @@
                 var button = event.relatedTarget;
                 // Extract info from data-bs-* attributes
                 var modelName = button.getAttribute('data-model-name');
+                var modelId = button.getAttribute('data-model-id');
 
                 // Update the modal's content.
                 var modalBodyInput = requestModal.querySelector('#requestModalInfo');
+                var modelIdInput = requestModal.querySelector('#requestModalModelId');
 
                 if (modelName) {
                     modalBodyInput.value = 'Интересует товар: ' + modelName;
                 } else {
                     modalBodyInput.value = '';
+                }
+
+                if (modelIdInput) {
+                    modelIdInput.value = modelId || '';
                 }
             });
         }
