@@ -52,11 +52,6 @@
   <changefreq>weekly</changefreq>
 </url>
 <url>
-  <loc>http://www.tiktak.by/vesy/vesy.htm</loc>
-  <lastmod>2010-04-25T09:42:13+00:00</lastmod>
-  <changefreq>weekly</changefreq>
-</url>
-<url>
   <loc>http://www.tiktak.by/kovriki/kovriki.htm</loc>
   <lastmod>2010-04-25T09:42:53+00:00</lastmod>
   <changefreq>weekly</changefreq>
@@ -99,11 +94,6 @@
 <url>
   <loc>http://www.tiktak.by/compleksy/compleksy.htm</loc>
   <lastmod>2010-04-25T09:42:09+00:00</lastmod>
-  <changefreq>weekly</changefreq>
-</url>
-<url>
-  <loc>http://www.tiktak.by/uvlazhniteli/uvlazhniteli.htm</loc>
-  <lastmod>2010-04-25T09:42:31+00:00</lastmod>
   <changefreq>weekly</changefreq>
 </url>
 </urlset>
