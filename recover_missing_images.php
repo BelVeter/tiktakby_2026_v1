@@ -27,7 +27,11 @@ $mysqli = \bb\Db::getInstance()->getConnection();
 // ============================================================
 // LOGGING
 // ============================================================
-$log_path = PROJECT_ROOT . '/to_delete/recover_log.txt';
+$log_dir = PROJECT_ROOT . '/to_delete';
+if (!is_dir($log_dir)) {
+    mkdir($log_dir, 0755, true);
+}
+$log_path = $log_dir . '/recover_log.txt';
 $log_lines = [];
 
 function log_it(string $msg): void
@@ -53,12 +57,16 @@ function resolve_paths(string $db_path): array
     if (strpos($stripped, '/public/rent/images') === 0) {
         $stripped = substr($stripped, strlen('/public/rent/images'));
     }
+
+    // Also the file might still be in the root (if it wasn't in the archival list)
+    $original_disk = PROJECT_ROOT . $stripped;
     $search_in_to_delete = TO_DELETE_DIR . $stripped;
 
     return [
         'dest_db' => $db_path,
         'dest_disk' => $dest_disk,
         'to_delete_disk' => $search_in_to_delete,
+        'original_disk' => $original_disk,
     ];
 }
 
@@ -68,7 +76,7 @@ function resolve_paths(string $db_path): array
 function move_file(string $src, string $dest, bool $is_live): bool
 {
     if (!file_exists($src)) {
-        log_it("  NOT FOUND in to_delete: $src");
+        log_it("  NOT FOUND: $src");
         return false;
     }
 
@@ -114,7 +122,6 @@ $db_updates = 0;
 while ($row = $res->fetch_assoc()) {
     $scanned++;
     $web_id = $row['web_id'];
-    $row_updated = false;
 
     foreach ($target_fields as $field) {
         $db_path = $row[$field];
@@ -134,34 +141,39 @@ while ($row = $res->fetch_assoc()) {
             continue;
         }
 
-        // 2. File missing — search in to_delete
+        // 2. File missing — time to search
         log_it("MISSING  web_id=$web_id [$field]: $db_path");
 
-        $to_delete_path = $paths['to_delete_disk'];
-
-        if (move_file($to_delete_path, $dest_disk, $IS_LIVE)) {
+        // Strategy A: Check if it's in the project root (was never moved to to_delete)
+        if (move_file($paths['original_disk'], $dest_disk, $IS_LIVE)) {
             $recovered++;
+            continue;
+        }
 
-            // The DB path stays as-is (it already points to /public/rent/images/...)
-            // No DB update needed in this case since the path is already correct.
-            // But if moving succeeded, mark the row as OK.
-        } else {
-            // Try a fallback: search by filename inside to_delete recursively
-            $filename = basename($db_path);
-            log_it("  Trying recursive search for: $filename");
-            $found_path = find_file_recursive(TO_DELETE_DIR, $filename);
+        // Strategy B: Check if it's in to_delete (was moved by migrate_legacy_data's Phase 2)
+        if (move_file($paths['to_delete_disk'], $dest_disk, $IS_LIVE)) {
+            $recovered++;
+            continue;
+        }
 
-            if ($found_path) {
-                log_it("  Found at: $found_path");
-                if (move_file($found_path, $dest_disk, $IS_LIVE)) {
-                    $recovered++;
-                } else {
-                    $not_found++;
-                }
+        // Strategy C: Recursive search in to_delete as a last resort
+        $filename = basename($db_path);
+        log_it("  Trying recursive search for: $filename");
+
+        // Disable recursive search inside the main loop for performance 
+        // if we are searching thousands of files, but we keep it here for fallback
+        $found_path = find_file_recursive(TO_DELETE_DIR, $filename);
+
+        if ($found_path) {
+            log_it("  Found at: $found_path");
+            if (move_file($found_path, $dest_disk, $IS_LIVE)) {
+                $recovered++;
             } else {
-                log_it("  NOT FOUND anywhere in to_delete — skipping");
                 $not_found++;
             }
+        } else {
+            log_it("  NOT FOUND anywhere — skipping");
+            $not_found++;
         }
     }
 }
