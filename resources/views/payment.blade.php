@@ -90,11 +90,11 @@
             @include('includes.breadcrumbs', ['b' => $p->getBreadCrumbsArray()])
         </div>
 
-        <div class="row mb-4">
+        <div class="row mb-3">
             <div class="col-12">
                 <h1 class="about__h1 font-weight-bold" style="font-size: 2.5rem; margin-bottom: 1rem; color: #2c3e50;">
                     Способы оплаты</h1>
-                <p class="text-muted" style="font-size: 1.1rem;">
+                <p class="text-muted mb-0" style="font-size: 1.1rem;">
                     Мы заботимся о вашем удобстве и предлагаем несколько интерактивных вариантов оплаты аренды детских
                     товаров. Выберите тот, который подходит именно вам.
                 </p>
