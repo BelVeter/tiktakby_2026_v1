@@ -153,32 +153,32 @@
                         <div class="ps-timeline__images ps-timeline__images--transparent">
                             <div class="ps-assortment-fan">
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/koliaski-prokat-minsk/CybexBaliosSLux_2025_prokat/FabConvert_1.webp"
+                                    <img src="{{ asset('rent/images/koliaski-prokat-minsk/CybexBaliosSLux_2025_prokat/FabConvert_1.webp') }}"
                                         alt="Коляска" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Коляска</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/kolybeli/4momsmamaroosleep_bassinet/4momsmamaroosleep_bassinet.jpg"
+                                    <img src="{{ asset('rent/images/kolybeli/4momsmamaroosleep_bassinet/4momsmamaroosleep_bassinet.jpg') }}"
                                         alt="Колыбель" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Колыбель</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/kolybel-kacheli/electric_kacheli_4moms_mamaroo_4.0_color_multiplush/1.jpg"
+                                    <img src="{{ asset('rent/images/kolybel-kacheli/electric_kacheli_4moms_mamaroo_4.0_color_multiplush/1.jpg') }}"
                                         alt="Кокон" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Кокон</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/vannochka/StokkeFlexi_Bath/6441440515.jpg"
+                                    <img src="{{ asset('rent/images/vannochka/StokkeFlexi_Bath/6441440515.jpg') }}"
                                         alt="Ванночка для купания" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Ванночка для купания</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/scales/vesy_detskie_laica_MD6141/http-www.jpg" alt="Весы"
-                                        class="ps-assortment-item__img">
+                                    <img src="{{ asset('rent/images/scales/vesy_detskie_laica_MD6141/http-www.jpg') }}"
+                                        alt="Весы" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Весы</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/radio-nyana/philips_avent_philips_avent_scd_501/philips_avent_philips_avent_scd5011.jpg"
+                                    <img src="{{ asset('rent/images/radio-nyana/philips_avent_philips_avent_scd_501/philips_avent_philips_avent_scd5011.jpg') }}"
                                         alt="Радионяня" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Радионяня</div>
                                 </div>
