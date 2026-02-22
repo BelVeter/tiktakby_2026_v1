@@ -106,18 +106,19 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
     ini_set('display_errors', '0');
 
     // Устанавливаем кастомный обработчик ошибок
-    set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    set_error_handler(function ($errno, $errstr, $errfile, $errline) {
         logConversion("PHP Error [$errno]: $errstr in $errfile:$errline", 'ERROR');
         // Не останавливаем выполнение, просто логируем
         return true;
     });
 
     // Обработчик фатальных ошибок
-    register_shutdown_function(function() {
+    register_shutdown_function(function () {
         $error = error_get_last();
         if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
             logConversion("Fatal Error: {$error['message']} in {$error['file']}:{$error['line']}", 'ERROR');
-            if (ob_get_length()) ob_clean();
+            if (ob_get_length())
+                ob_clean();
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => false,
@@ -127,7 +128,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
     });
 
     // Очищаем любой вывод, который мог произойти до этого
-    if (ob_get_length()) ob_clean();
+    if (ob_get_length())
+        ob_clean();
 
     header('Content-Type: application/json');
 
@@ -184,114 +186,114 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
         $fields = ['l2_pic' => $model['l2_pic'], 'm_pic_big' => $model['m_pic_big'], 'logo' => $model['logo']];
 
         foreach ($fields as $colName => $path) {
-        // Пропускаем пустые пути и внешние URL (начинаются с http:// или https://)
-        if (empty($path) || preg_match('#^https?://#i', $path)) {
-            continue;
-        }
-
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
-            continue;
-        }
-
-        $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
-        if (!file_exists($absolutePath)) {
-            $errors[] = "Файл не найден на диске: $path";
-            continue;
-        }
-
-        $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
-        $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
-
-        // Конвертируем используя helper функцию
-        $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
-
-        if ($conversionResult['success']) {
-            $updates[$colName] = $newRelativePath;
-            $converted_count++;
-            // Удаляем старый файл ТОЛЬКО после успешной конвертации и проверки
-            if (!unlink($absolutePath)) {
-                $errors[] = "Не удалось удалить исходный файл: $path";
+            // Пропускаем пустые пути и внешние URL (начинаются с http:// или https://)
+            if (empty($path) || preg_match('#^https?://#i', $path)) {
+                continue;
             }
-        } else {
-            $errors[] = $conversionResult['error'];
-        }
-    }
 
-    // Обновляем rent_model_web (используем стандартный подход как в Db.php)
-    if (!empty($updates)) {
-        $setClauses = [];
-        foreach ($updates as $col => $val) {
-            $escaped_val = $mysqli->real_escape_string($val);
-            $setClauses[] = "$col = '$escaped_val'";
-        }
+            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                continue;
+            }
 
-        $sql = "UPDATE rent_model_web SET " . implode(", ", $setClauses) . " WHERE web_id = " . intval($web_id);
-        if (!$mysqli->query($sql)) {
-            logConversion("Failed to execute UPDATE: " . $mysqli->error . " SQL: $sql", 'ERROR');
-            $errors[] = "Ошибка обновления БД: " . $mysqli->error;
-        }
-    }
+            $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
+            if (!file_exists($absolutePath)) {
+                $errors[] = "Файл не найден на диске: $path";
+                continue;
+            }
 
-    // Обрабатываем доп фотки (dop_photos) - используем стандартный подход как в Db.php
-    $query_dop = "SELECT dop_id, src FROM dop_photos WHERE model_id = " . intval($model_id);
-    $result_dop = $mysqli->query($query_dop);
+            $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
+            $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
 
-    $dops = [];
-    if ($result_dop) {
-        while ($row = $result_dop->fetch_assoc()) {
-            $dops[] = $row;
-        }
-    } else {
-        logConversion("Failed to query dop_photos: " . $mysqli->error, 'ERROR');
-    }
+            // Конвертируем используя helper функцию
+            $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
 
-    foreach ($dops as $dop) {
-        $path = $dop['src'];
-
-        // Пропускаем пустые пути и внешние URL
-        if (empty($path) || preg_match('#^https?://#i', $path)) {
-            continue;
-        }
-
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
-            continue;
-        }
-
-        $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
-        if (!file_exists($absolutePath)) {
-            $errors[] = "Доп.фото не найдено: $path";
-            continue;
-        }
-
-        $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
-        $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
-
-        // Конвертируем используя helper функцию
-        $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
-
-        if ($conversionResult['success']) {
-            // Обновляем запись в БД (используем стандартный подход как в Db.php)
-            $escaped_path = $mysqli->real_escape_string($newRelativePath);
-            $dop_id = intval($dop['dop_id']);
-            $update_sql = "UPDATE dop_photos SET src = '$escaped_path' WHERE dop_id = $dop_id";
-
-            if ($mysqli->query($update_sql)) {
+            if ($conversionResult['success']) {
+                $updates[$colName] = $newRelativePath;
                 $converted_count++;
-                // Удаляем старый файл ТОЛЬКО после успешного обновления БД
+                // Удаляем старый файл ТОЛЬКО после успешной конвертации и проверки
                 if (!unlink($absolutePath)) {
-                    $errors[] = "Не удалось удалить доп.фото: $path";
+                    $errors[] = "Не удалось удалить исходный файл: $path";
                 }
             } else {
-                $errors[] = "Не удалось обновить БД для доп.фото: $path";
-                // Удаляем созданный WebP, т.к. БД не обновилась
-                @unlink($newAbsolutePath);
+                $errors[] = $conversionResult['error'];
+            }
+        }
+
+        // Обновляем rent_model_web (используем стандартный подход как в Db.php)
+        if (!empty($updates)) {
+            $setClauses = [];
+            foreach ($updates as $col => $val) {
+                $escaped_val = $mysqli->real_escape_string($val);
+                $setClauses[] = "$col = '$escaped_val'";
+            }
+
+            $sql = "UPDATE rent_model_web SET " . implode(", ", $setClauses) . " WHERE web_id = " . intval($web_id);
+            if (!$mysqli->query($sql)) {
+                logConversion("Failed to execute UPDATE: " . $mysqli->error . " SQL: $sql", 'ERROR');
+                $errors[] = "Ошибка обновления БД: " . $mysqli->error;
+            }
+        }
+
+        // Обрабатываем доп фотки (dop_photos) - используем стандартный подход как в Db.php
+        $query_dop = "SELECT dop_id, src FROM dop_photos WHERE model_id = " . intval($model_id);
+        $result_dop = $mysqli->query($query_dop);
+
+        $dops = [];
+        if ($result_dop) {
+            while ($row = $result_dop->fetch_assoc()) {
+                $dops[] = $row;
             }
         } else {
-            $errors[] = $conversionResult['error'];
+            logConversion("Failed to query dop_photos: " . $mysqli->error, 'ERROR');
         }
-    }
+
+        foreach ($dops as $dop) {
+            $path = $dop['src'];
+
+            // Пропускаем пустые пути и внешние URL
+            if (empty($path) || preg_match('#^https?://#i', $path)) {
+                continue;
+            }
+
+            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                continue;
+            }
+
+            $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
+            if (!file_exists($absolutePath)) {
+                $errors[] = "Доп.фото не найдено: $path";
+                continue;
+            }
+
+            $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
+            $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
+
+            // Конвертируем используя helper функцию
+            $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
+
+            if ($conversionResult['success']) {
+                // Обновляем запись в БД (используем стандартный подход как в Db.php)
+                $escaped_path = $mysqli->real_escape_string($newRelativePath);
+                $dop_id = intval($dop['dop_id']);
+                $update_sql = "UPDATE dop_photos SET src = '$escaped_path' WHERE dop_id = $dop_id";
+
+                if ($mysqli->query($update_sql)) {
+                    $converted_count++;
+                    // Удаляем старый файл ТОЛЬКО после успешного обновления БД
+                    if (!unlink($absolutePath)) {
+                        $errors[] = "Не удалось удалить доп.фото: $path";
+                    }
+                } else {
+                    $errors[] = "Не удалось обновить БД для доп.фото: $path";
+                    // Удаляем созданный WebP, т.к. БД не обновилась
+                    @unlink($newAbsolutePath);
+                }
+            } else {
+                $errors[] = $conversionResult['error'];
+            }
+        }
 
         logConversion("Completed conversion for model_id: $model_id. Converted: $converted_count, Errors: " . count($errors), 'INFO');
 
@@ -316,7 +318,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
 
 // Pagination
 $per_page = 100;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $offset = ($page - 1) * $per_page;
 
 // Сначала получаем общее количество
@@ -503,7 +505,8 @@ $models_on_page = count($models);
             text-align: center;
         }
 
-        .pagination a, .pagination span {
+        .pagination a,
+        .pagination span {
             display: inline-block;
             padding: 8px 12px;
             margin: 0 5px;
@@ -547,7 +550,8 @@ $models_on_page = count($models);
         <h3>Управление Конвертацией</h3>
         <p>Для предотвращения перегрузки сервера, конвертация выполняется по одной модели за раз через AJAX запросы.</p>
 
-        <button class="btn btn-green" id="convert-page-btn" onclick="convertCurrentPage()" style="font-size: 16px; padding: 10px 20px; margin-right: 10px;">
+        <button class="btn btn-green" id="convert-page-btn" onclick="convertCurrentPage()"
+            style="font-size: 16px; padding: 10px 20px; margin-right: 10px;">
             ▶ Сконвертировать ВСЮ страницу (<?= $models_on_page ?> моделей)
         </button>
 
@@ -562,35 +566,35 @@ $models_on_page = count($models);
     </div>
 
     <?php if ($total_pages > 1): ?>
-    <div class="pagination">
-        <?php if ($page > 1): ?>
-            <a href="?page=1">« Первая</a>
-            <a href="?page=<?= $page - 1 ?>">‹ Назад</a>
-        <?php else: ?>
-            <span class="disabled">« Первая</span>
-            <span class="disabled">‹ Назад</span>
-        <?php endif; ?>
-
-        <?php
-        $start = max(1, $page - 3);
-        $end = min($total_pages, $page + 3);
-        for ($i = $start; $i <= $end; $i++):
-            if ($i == $page): ?>
-                <span class="current"><?= $i ?></span>
+        <div class="pagination">
+            <?php if ($page > 1): ?>
+                <a href="?page=1">« Первая</a>
+                <a href="?page=<?= $page - 1 ?>">‹ Назад</a>
             <?php else: ?>
-                <a href="?page=<?= $i ?>"><?= $i ?></a>
-            <?php endif;
-        endfor;
-        ?>
+                <span class="disabled">« Первая</span>
+                <span class="disabled">‹ Назад</span>
+            <?php endif; ?>
 
-        <?php if ($page < $total_pages): ?>
-            <a href="?page=<?= $page + 1 ?>">Вперед ›</a>
-            <a href="?page=<?= $total_pages ?>">Последняя »</a>
-        <?php else: ?>
-            <span class="disabled">Вперед ›</span>
-            <span class="disabled">Последняя »</span>
-        <?php endif; ?>
-    </div>
+            <?php
+            $start = max(1, $page - 3);
+            $end = min($total_pages, $page + 3);
+            for ($i = $start; $i <= $end; $i++):
+                if ($i == $page): ?>
+                    <span class="current"><?= $i ?></span>
+                <?php else: ?>
+                    <a href="?page=<?= $i ?>"><?= $i ?></a>
+                <?php endif;
+            endfor;
+            ?>
+
+            <?php if ($page < $total_pages): ?>
+                <a href="?page=<?= $page + 1 ?>">Вперед ›</a>
+                <a href="?page=<?= $total_pages ?>">Последняя »</a>
+            <?php else: ?>
+                <span class="disabled">Вперед ›</span>
+                <span class="disabled">Последняя »</span>
+            <?php endif; ?>
+        </div>
     <?php endif; ?>
 
     <table>
@@ -612,9 +616,12 @@ $models_on_page = count($models);
 
                 // Подсчитываем сколько изображений нужно конвертировать
                 $to_convert = [];
-                if (!empty($m['l2_pic']) && preg_match('/\.(jpg|jpeg|png)$/i', $m['l2_pic'])) $to_convert[] = 'L2';
-                if (!empty($m['m_pic_big']) && preg_match('/\.(jpg|jpeg|png)$/i', $m['m_pic_big'])) $to_convert[] = 'L3';
-                if (!empty($m['logo']) && preg_match('/\.(jpg|jpeg|png)$/i', $m['logo'])) $to_convert[] = 'Logo';
+                if (!empty($m['l2_pic']) && preg_match('/\.(jpg|jpeg|png)$/i', $m['l2_pic']))
+                    $to_convert[] = 'L2';
+                if (!empty($m['m_pic_big']) && preg_match('/\.(jpg|jpeg|png)$/i', $m['m_pic_big']))
+                    $to_convert[] = 'L3';
+                if (!empty($m['logo']) && preg_match('/\.(jpg|jpeg|png)$/i', $m['logo']))
+                    $to_convert[] = 'Logo';
 
                 // Проверяем доп фотки (используем стандартный подход как в Db.php)
                 $mid = intval($m['model_id']);
@@ -624,7 +631,8 @@ $models_on_page = count($models);
                 if ($dop_count_result) {
                     $dop_row = $dop_count_result->fetch_assoc();
                     $dop_count = $dop_row['cnt'];
-                    if ($dop_count > 0) $to_convert[] = "Slider($dop_count)";
+                    if ($dop_count > 0)
+                        $to_convert[] = "Slider($dop_count)";
                 }
 
                 $convert_info = implode(', ', $to_convert);
@@ -657,35 +665,35 @@ $models_on_page = count($models);
     </table>
 
     <?php if ($total_pages > 1): ?>
-    <div class="pagination">
-        <?php if ($page > 1): ?>
-            <a href="?page=1">« Первая</a>
-            <a href="?page=<?= $page - 1 ?>">‹ Назад</a>
-        <?php else: ?>
-            <span class="disabled">« Первая</span>
-            <span class="disabled">‹ Назад</span>
-        <?php endif; ?>
-
-        <?php
-        $start = max(1, $page - 3);
-        $end = min($total_pages, $page + 3);
-        for ($i = $start; $i <= $end; $i++):
-            if ($i == $page): ?>
-                <span class="current"><?= $i ?></span>
+        <div class="pagination">
+            <?php if ($page > 1): ?>
+                <a href="?page=1">« Первая</a>
+                <a href="?page=<?= $page - 1 ?>">‹ Назад</a>
             <?php else: ?>
-                <a href="?page=<?= $i ?>"><?= $i ?></a>
-            <?php endif;
-        endfor;
-        ?>
+                <span class="disabled">« Первая</span>
+                <span class="disabled">‹ Назад</span>
+            <?php endif; ?>
 
-        <?php if ($page < $total_pages): ?>
-            <a href="?page=<?= $page + 1 ?>">Вперед ›</a>
-            <a href="?page=<?= $total_pages ?>">Последняя »</a>
-        <?php else: ?>
-            <span class="disabled">Вперед ›</span>
-            <span class="disabled">Последняя »</span>
-        <?php endif; ?>
-    </div>
+            <?php
+            $start = max(1, $page - 3);
+            $end = min($total_pages, $page + 3);
+            for ($i = $start; $i <= $end; $i++):
+                if ($i == $page): ?>
+                    <span class="current"><?= $i ?></span>
+                <?php else: ?>
+                    <a href="?page=<?= $i ?>"><?= $i ?></a>
+                <?php endif;
+            endfor;
+            ?>
+
+            <?php if ($page < $total_pages): ?>
+                <a href="?page=<?= $page + 1 ?>">Вперед ›</a>
+                <a href="?page=<?= $total_pages ?>">Последняя »</a>
+            <?php else: ?>
+                <span class="disabled">Вперед ›</span>
+                <span class="disabled">Последняя »</span>
+            <?php endif; ?>
+        </div>
     <?php endif; ?>
 
     <script>

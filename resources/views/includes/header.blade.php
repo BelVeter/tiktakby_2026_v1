@@ -9,6 +9,28 @@
 
 
 <header>
+    <!-- Announcement Banner -->
+    <div
+        style="background: linear-gradient(90deg, #3180D1, #8E24AA); color: white; text-align: center; padding: 8px 15px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px; position: relative; z-index: 1050; line-height: 1.3;">
+        <div class="d-flex flex-column flex-md-row align-items-center justify-content-center">
+            <div class="d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    style="margin-right: 8px; flex-shrink: 0;">
+                    <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                    <rect x="2" y="7" width="20" height="5"></rect>
+                    <line x1="12" y1="22" x2="12" y2="7"></line>
+                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+                </svg>
+                <span>Бесплатная доставка по Минску</span>
+            </div>
+            <a href="/ru/delivery" class="mt-1 mt-md-0 ms-md-2"
+                style="color: #FFD54F; text-decoration: none; font-weight: bold; border-bottom: 1px dashed #FFD54F;">Узнать
+                подробнее</a>
+        </div>
+    </div>
+
     <div class="top-header-full-width d-none d-md-block">
         <div class="container-app top-header-bar">
             <div class="top-bar-left">
@@ -17,7 +39,9 @@
                 <a
                     href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/conditions">{{$header->translate('Условия проката')}}</a>
                 <a
-                    href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/delivery">{{$header->translate('Доставка и оплата')}}</a>
+                    href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/delivery">{{$header->translate('Доставка')}}</a>
+                <a
+                    href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/payment">{{$header->translate('Оплата')}}</a>
             </div>
             <div class="top-bar-center">
                 <div class="top-phone">
@@ -438,7 +462,19 @@
                                     <circle cx="5.5" cy="18.5" r="2.5"></circle>
                                     <circle cx="18.5" cy="18.5" r="2.5"></circle>
                                 </svg>
-                                Доставка и оплата
+                                Доставка
+                            </a>
+                        </li>
+                        <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">
+                            <a href="/{{(request()->lang ? request()->lang : 'ru')}}/payment"
+                                style="display: flex; align-items: center; padding: 15px; text-decoration: none; color: #333; font-size: 16px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3180D1"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    style="margin-right: 10px;">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                </svg>
+                                Оплата
                             </a>
                         </li>
                         <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">
