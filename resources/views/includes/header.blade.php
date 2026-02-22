@@ -11,22 +11,24 @@
 <header>
     <!-- Announcement Banner -->
     <div
-        style="background: linear-gradient(90deg, #3180D1, #8E24AA); color: white; text-align: center; padding: 8px 15px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px; position: relative; z-index: 1050;">
-        <span class="d-inline-flex align-items-center flex-wrap justify-content-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"
-                style="margin-right: 8px;">
-                <polyline points="20 12 20 22 4 22 4 12"></polyline>
-                <rect x="2" y="7" width="20" height="5"></rect>
-                <line x1="12" y1="22" x2="12" y2="7"></line>
-                <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
-                <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
-            </svg>
-            Бесплатная доставка по Минску при заказе от 30 BYN!
-            <a href="/ru/delivery"
-                style="color: #FFD54F; text-decoration: none; margin-left: 10px; font-weight: bold; border-bottom: 1px dashed #FFD54F;">Узнать
+        style="background: linear-gradient(90deg, #3180D1, #8E24AA); color: white; text-align: center; padding: 8px 15px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px; position: relative; z-index: 1050; line-height: 1.3;">
+        <div class="d-flex flex-column flex-md-row align-items-center justify-content-center">
+            <div class="d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    style="margin-right: 8px; flex-shrink: 0;">
+                    <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                    <rect x="2" y="7" width="20" height="5"></rect>
+                    <line x1="12" y1="22" x2="12" y2="7"></line>
+                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+                </svg>
+                <span>Бесплатная доставка<span class="d-none d-sm-inline"> по Минску при заказе от 30 BYN!</span></span>
+            </div>
+            <a href="/ru/delivery" class="mt-1 mt-md-0 ms-md-2"
+                style="color: #FFD54F; text-decoration: none; font-weight: bold; border-bottom: 1px dashed #FFD54F;">Узнать
                 подробнее</a>
-        </span>
+        </div>
     </div>
 
     <div class="top-header-full-width d-none d-md-block">
