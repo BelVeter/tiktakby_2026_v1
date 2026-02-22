@@ -20,6 +20,7 @@ $queries = [
     ['table' => 'multi_web', 'column' => 'l2_pic_add', 'id' => 'multi_id'],
     ['table' => 'offices', 'column' => 'pic_addr', 'id' => 'number'],
     ['table' => 'pages', 'column' => 'h1_pic_url', 'id' => 'page_id'],
+    ['table' => 'pages', 'column' => 'logo_url', 'id' => 'page_id'],
     ['table' => 'razdel', 'column' => 'url_icon_razdel', 'id' => 'id_razdel'],
     ['table' => 'razdel', 'column' => 'url_icon2_razdel', 'id' => 'id_razdel'],
     ['table' => 'rent_model_web', 'column' => 'l2_pic', 'id' => 'model_id'],
