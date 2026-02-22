@@ -80,6 +80,10 @@ Route::get(
     'App\Http\Controllers\AboutController@showDeliveryPage'
 );
 
+Route::get(
+    '/{lang}/payment',
+    'App\Http\Controllers\AboutController@showPaymentPage'
+);
 
 Route::get(
     '/{lang}/contacts',
