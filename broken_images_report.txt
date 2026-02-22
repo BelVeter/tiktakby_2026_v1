@@ -1,0 +1,134 @@
+Broken Image Links Report
+Generated: 2026-02-22 10:42:16
+Total broken links: 122
+
+--- Table: offices ---
+ID: 1 | Column: pic_addr | Path in DB: /bb/1_1.png
+ID: 2 | Column: pic_addr | Path in DB: /bb/1_2.png
+ID: 3 | Column: pic_addr | Path in DB: /bb/1_3.png
+ID: 4 | Column: pic_addr | Path in DB: /bb/1_4.jpg
+
+--- Table: rent_model_web ---
+ID: 1 | Column: l2_pic | Path in DB: /public/rent/images/test_old_image_1771721008.jpg
+ID: 1596 | Column: l2_pic | Path in DB: /public/rent/images/akkumulyatornyj-instrumentakkumulyatornaya-pila-makita-duc363/akkumulyatornaya-pila-dlya-gipsokartona-makita-dsd-180-z/akkumulyatornaya-pila-dlya-gipsokartona-makita-dsd-180-z_1.jpg
+ID: 1898 | Column: l2_pic | Path in DB: /public/rent/images/manezh-krovati/BabytonPlayboxBeige_prokat/ЧАЫиф.webp.webp
+ID: 1596 | Column: m_pic_big | Path in DB: /public/rent/images/akkumulyatornyj-instrumentakkumulyatornaya-pila-makita-duc363/akkumulyatornaya-pila-dlya-gipsokartona-makita-dsd-180-z/akkumulyatornaya-pila-dlya-gipsokartona-makita-dsd-180-z.jpg
+ID: 545 | Column: m_pic_big | Path in DB: /public/rent/images/prokat/igrushki/mashinki//img/prokat_detskih_mashinok_b.jpg
+ID: 660 | Column: m_pic_big | Path in DB: /public/rent/images/prokat/kovriki_razvivauschie/img/kovrik_fisher_price_rain_forest_3_v_1_b.jpg
+ID: 712 | Column: m_pic_big | Path in DB: /public/rent/images/velo/img/velokreslo_bellelli_tatoo_b.jpg
+ID: 952 | Column: m_pic_big | Path in DB: /public/rent/images/prokat/igrushki//img/kub_hape_b.jpg
+ID: 1898 | Column: m_pic_big | Path in DB: /public/rent/images/manezh-krovati/BabytonPlayboxBeige_prokat/яеклнве.webp.webp
+
+--- Table: tovar_list ---
+ID: 4 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 42 | Column: w_icon | Path in DB: 100kg.png
+ID: 43 | Column: w_icon | Path in DB: 100kg.png
+ID: 46 | Column: w_icon | Path in DB: logo_pampers.png
+ID: 47 | Column: w_icon | Path in DB: logo_pampers.png
+ID: 48 | Column: w_icon | Path in DB: logo_pampers.png
+ID: 49 | Column: w_icon | Path in DB: logo_pampers.png
+ID: 50 | Column: w_icon | Path in DB: 120kg.png
+ID: 51 | Column: w_icon | Path in DB: 120kg.png
+ID: 57 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 58 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 59 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 60 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 61 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 62 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 63 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 72 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 73 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 74 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 75 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 76 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 77 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 78 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 79 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 80 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 81 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 82 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 83 | Column: w_icon | Path in DB: logo_coloria.jpg
+ID: 84 | Column: w_icon | Path in DB: boy.png
+ID: 85 | Column: w_icon | Path in DB: boy.png
+ID: 86 | Column: w_icon | Path in DB: boy.png
+ID: 87 | Column: w_icon | Path in DB: boy.png
+ID: 88 | Column: w_icon | Path in DB: boy.png
+ID: 89 | Column: w_icon | Path in DB: boy.png
+ID: 90 | Column: w_icon | Path in DB: boy.png
+ID: 91 | Column: w_icon | Path in DB: boy.png
+ID: 92 | Column: w_icon | Path in DB: boy.png
+ID: 93 | Column: w_icon | Path in DB: boy.png
+ID: 94 | Column: w_icon | Path in DB: boy.png
+ID: 95 | Column: w_icon | Path in DB: boy.png
+ID: 96 | Column: w_icon | Path in DB: boy.png
+ID: 98 | Column: w_icon | Path in DB: boy.png
+ID: 99 | Column: w_icon | Path in DB: boy.png
+ID: 100 | Column: w_icon | Path in DB: boy.png
+ID: 101 | Column: w_icon | Path in DB: boy.png
+ID: 102 | Column: w_icon | Path in DB: girl.png
+ID: 103 | Column: w_icon | Path in DB: girl.png
+ID: 104 | Column: w_icon | Path in DB: girl.png
+ID: 105 | Column: w_icon | Path in DB: girl.png
+ID: 106 | Column: w_icon | Path in DB: girl.png
+ID: 107 | Column: w_icon | Path in DB: girl.png
+ID: 108 | Column: w_icon | Path in DB: girl.png
+ID: 109 | Column: w_icon | Path in DB: girl.png
+ID: 110 | Column: w_icon | Path in DB: girl.png
+ID: 111 | Column: w_icon | Path in DB: girl.png
+ID: 112 | Column: w_icon | Path in DB: girl.png
+ID: 113 | Column: w_icon | Path in DB: girl.png
+ID: 114 | Column: w_icon | Path in DB: girl.png
+ID: 115 | Column: w_icon | Path in DB: girl.png
+ID: 117 | Column: w_icon | Path in DB: girl.png
+ID: 118 | Column: w_icon | Path in DB: girl.png
+ID: 119 | Column: w_icon | Path in DB: girl.png
+ID: 120 | Column: w_icon | Path in DB: girl.png
+ID: 121 | Column: w_icon | Path in DB: girl.png
+ID: 122 | Column: w_icon | Path in DB: girl.png
+ID: 123 | Column: w_icon | Path in DB: girl.png
+ID: 124 | Column: w_icon | Path in DB: girl.png
+ID: 125 | Column: w_icon | Path in DB: girl.png
+ID: 126 | Column: w_icon | Path in DB: girl.png
+ID: 127 | Column: w_icon | Path in DB: girl.png
+ID: 128 | Column: w_icon | Path in DB: girl.png
+ID: 129 | Column: w_icon | Path in DB: girl.png
+ID: 130 | Column: w_icon | Path in DB: girl.png
+ID: 131 | Column: w_icon | Path in DB: girl.png
+ID: 132 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 133 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 134 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 135 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 136 | Column: w_icon | Path in DB: vozrast_2.png
+ID: 137 | Column: w_icon | Path in DB: logo_pampers.png
+ID: 138 | Column: w_icon | Path in DB: logo_huggies.png
+ID: 139 | Column: w_icon | Path in DB: logo_pampers.png
+ID: 140 | Column: w_icon | Path in DB: logo_huggies.png
+ID: 141 | Column: w_icon | Path in DB: bambinomio.png
+ID: 142 | Column: w_icon | Path in DB: bambinomio.png
+ID: 143 | Column: w_icon | Path in DB: bambinomio.png
+ID: 144 | Column: w_icon | Path in DB: bambinomio.png
+ID: 145 | Column: w_icon | Path in DB: bambinomio.png
+ID: 146 | Column: w_icon | Path in DB: bambinomio.png
+
+--- Table: dop_photos ---
+ID: 144 | Column: src | Path in DB: /public/rent/images/prygunki/lion_fisher_price_jumperoo_3_b.jpg
+ID: 458 | Column: src | Path in DB: /public/rent/images/nochniki/teddy_weina_5.jpg
+ID: 492 | Column: src | Path in DB: /public/rent/images/slingi/panda.jpg
+ID: 493 | Column: src | Path in DB: /public/rent/images/slingi/bars.jpg
+ID: 494 | Column: src | Path in DB: /public/rent/images/slingi/zebra_1.jpg
+ID: 549 | Column: src | Path in DB: /public/rent/images/y/bkids_b_1.jpg
+ID: 579 | Column: src | Path in DB: /public/rent/images/kovriki/discover'n_grow_open_play_musical_gym_b_1.jpg
+ID: 580 | Column: src | Path in DB: /public/rent/images/kovriki/discover'n_grow_open_play_musical_gym_b_2.jpg
+ID: 581 | Column: src | Path in DB: /public/rent/images/kovriki/discover'n_grow_open_play_musical_gym_b_3.jpg
+ID: 582 | Column: src | Path in DB: /public/rent/images/kovriki/discover'n_grow_open_play_musical_gym_b_4.jpg
+ID: 583 | Column: src | Path in DB: /public/rent/images/kovriki/discover'n_grow_open_play_musical_gym_b_5.jpg
+ID: 751 | Column: src | Path in DB: /public/rent/images/prokat/kovrik_bright_starts_swingin'_safari_b_1.jpg
+ID: 752 | Column: src | Path in DB: /public/rent/images/prokat/kovrik_bright_starts_swingin'_safari_b_2.jpg
+ID: 753 | Column: src | Path in DB: /public/rent/images/prokat/kovrik_bright_starts_swingin'_safari_b_3.jpg
+ID: 754 | Column: src | Path in DB: /public/rent/images/prokat/kovrik_bright_starts_swingin'_safari_b_4.jpg
+ID: 755 | Column: src | Path in DB: /public/rent/images/prokat/kovrik_bright_starts_swingin'_safari_b_5.jpg
+ID: 780 | Column: src | Path in DB: /public/rent/images/prokat/kovrik_tiny_love_animal_concert_b_3.jpg
+ID: 865 | Column: src | Path in DB: /public/rent/images/prokat/tiny_love_cozy_rocker_napper_grey_b_1.jpg
+ID: 879 | Column: src | Path in DB: /public/rent/images/shezlongi/shezlong_happy_baby_sleeper_mint_b_3.jpg
+ID: 2098 | Column: src | Path in DB: /public/rent/images/avtokreselo-naprokat/avtokreslo_nania_revo_premiun_sky/gpExaWMzn6NPvMeWTWdVtA.jpeg
+
