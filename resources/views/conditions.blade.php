@@ -45,11 +45,11 @@
             @include('includes.breadcrumbs', ['b' => $p->getBreadCrumbsArray()])
         </div>
 
-        <div class="row mb-5">
-            <div class="col-12 text-center">
+        <div class="row mb-5 justify-content-center">
+            <div class="col-12 col-lg-10">
                 <h1 class="about__h1 font-weight-bold" style="font-size: 2.5rem; margin-bottom: 1rem; color: #2c3e50;">
                     Условия проката</h1>
-                <p class="text-muted" style="font-size: 1.1rem; max-width: 800px; margin: 0 auto;">
+                <p class="text-muted" style="font-size: 1.1rem;">
                     Ознакомьтесь с правилами оформления договора, продления и возврата. Использование сервиса TikTak
                     построено на взаимном доверии и бережном отношении к имуществу.
                 </p>
@@ -168,7 +168,8 @@
                             <p class="text-muted" style="font-size: 0.95rem; margin-bottom: 0.8rem;">Вносится
                                 <strong>обеспечительный
                                     залог</strong> при выдаче (возвращается в 100% размере при своевременном возврате целого
-                                костюма).</p>
+                                костюма).
+                            </p>
                             <p class="text-muted" style="font-size: 0.95rem; margin-bottom: 0;">Продление аренды костюма
                                 возможно только с согласия менеджера, если он не забронирован
                                 другим ребенком на это же время.</p>

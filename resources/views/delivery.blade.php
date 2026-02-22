@@ -54,12 +54,12 @@
         </div>
 
         <div class="row mb-5">
-            <div class="col-12 text-center">
+            <div class="col-12">
                 <h1 class="about__h1 font-weight-bold" style="font-size: 2.5rem; margin-bottom: 1rem; color: #2c3e50;">
                     Условия доставки</h1>
-                <p class="text-muted" style="font-size: 1.1rem; max-width: 800px; margin: 0 auto;">
-                    Мы с радостью доставим ваш заказ по Минску и Минскому району (до 35 кг). <br>Доставка — это отдельная
-                    услуга, оформляется по желанию.
+                <p class="text-muted" style="font-size: 1.1rem;">
+                    Мы оперативно доставим выбранный товар к вам домой. Ознакомьтесь с нашими тарифами
+                    и правилами доставки, чтобы избежать недоразумений.
                 </p>
             </div>
         </div>
