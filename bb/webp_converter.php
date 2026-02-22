@@ -154,15 +154,15 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
     logConversion("Starting conversion for model_id: $model_id", 'INFO');
 
     try {
-        // Получаем данные модели
-        $stmt = $mysqli->prepare("SELECT web_id, l2_pic, m_pic_big, logo FROM rent_model_web WHERE model_id = ?");
-        if (!$stmt) {
-            throw new Exception("Failed to prepare statement: " . $mysqli->error);
+        // Получаем данные модели (используем стандартный подход как в Db.php)
+        $query = "SELECT web_id, l2_pic, m_pic_big, logo FROM rent_model_web WHERE model_id = " . intval($model_id);
+        $result = $mysqli->query($query);
+
+        if (!$result) {
+            throw new Exception("Failed to execute query: " . $mysqli->error);
         }
 
-        $stmt->bind_param("i", $model_id);
-        $stmt->execute();
-        $model = $stmt->get_result()->fetch_assoc();
+        $model = $result->fetch_assoc();
 
         if (!$model) {
             logConversion("Model $model_id not found", 'ERROR');
@@ -218,43 +218,32 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
         }
     }
 
-    // Обновляем rent_model_web
+    // Обновляем rent_model_web (используем стандартный подход как в Db.php)
     if (!empty($updates)) {
         $setClauses = [];
-        $types = "";
-        $params = [];
         foreach ($updates as $col => $val) {
-            $setClauses[] = "$col = ?";
-            $types .= "s";
-            $params[] = $val;
+            $escaped_val = $mysqli->real_escape_string($val);
+            $setClauses[] = "$col = '$escaped_val'";
         }
-        $types .= "i";
-        $params[] = $web_id;
 
-        $sql = "UPDATE rent_model_web SET " . implode(", ", $setClauses) . " WHERE web_id = ?";
-        $stmt_upd = $mysqli->prepare($sql);
-        if (!$stmt_upd) {
-            logConversion("Failed to prepare UPDATE statement: " . $mysqli->error . " SQL: $sql", 'ERROR');
+        $sql = "UPDATE rent_model_web SET " . implode(", ", $setClauses) . " WHERE web_id = " . intval($web_id);
+        if (!$mysqli->query($sql)) {
+            logConversion("Failed to execute UPDATE: " . $mysqli->error . " SQL: $sql", 'ERROR');
             $errors[] = "Ошибка обновления БД: " . $mysqli->error;
-        } else {
-            $stmt_upd->bind_param($types, ...$params);
-            if (!$stmt_upd->execute()) {
-                logConversion("Failed to execute UPDATE: " . $stmt_upd->error, 'ERROR');
-                $errors[] = "Ошибка выполнения UPDATE: " . $stmt_upd->error;
-            }
         }
     }
 
-    // Обрабатываем доп фотки (dop_photos)
-    $stmt_dop = $mysqli->prepare("SELECT dop_id, src FROM dop_photos WHERE model_id = ?");
-    if (!$stmt_dop) {
-        logConversion("Failed to prepare dop_photos SELECT: " . $mysqli->error, 'ERROR');
-        // Не критичная ошибка, продолжаем без доп фоток
-        $dops = [];
+    // Обрабатываем доп фотки (dop_photos) - используем стандартный подход как в Db.php
+    $query_dop = "SELECT dop_id, src FROM dop_photos WHERE model_id = " . intval($model_id);
+    $result_dop = $mysqli->query($query_dop);
+
+    $dops = [];
+    if ($result_dop) {
+        while ($row = $result_dop->fetch_assoc()) {
+            $dops[] = $row;
+        }
     } else {
-        $stmt_dop->bind_param("i", $model_id);
-        $stmt_dop->execute();
-        $dops = $stmt_dop->get_result()->fetch_all(MYSQLI_ASSOC);
+        logConversion("Failed to query dop_photos: " . $mysqli->error, 'ERROR');
     }
 
     foreach ($dops as $dop) {
@@ -283,10 +272,12 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
         $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
 
         if ($conversionResult['success']) {
-            // Обновляем запись в БД
-            $stmt_upd_dop = $mysqli->prepare("UPDATE dop_photos SET src = ? WHERE dop_id = ?");
-            $stmt_upd_dop->bind_param("si", $newRelativePath, $dop['dop_id']);
-            if ($stmt_upd_dop->execute()) {
+            // Обновляем запись в БД (используем стандартный подход как в Db.php)
+            $escaped_path = $mysqli->real_escape_string($newRelativePath);
+            $dop_id = intval($dop['dop_id']);
+            $update_sql = "UPDATE dop_photos SET src = '$escaped_path' WHERE dop_id = $dop_id";
+
+            if ($mysqli->query($update_sql)) {
                 $converted_count++;
                 // Удаляем старый файл ТОЛЬКО после успешного обновления БД
                 if (!unlink($absolutePath)) {
@@ -625,12 +616,14 @@ $models_on_page = count($models);
                 if (!empty($m['m_pic_big']) && preg_match('/\.(jpg|jpeg|png)$/i', $m['m_pic_big'])) $to_convert[] = 'L3';
                 if (!empty($m['logo']) && preg_match('/\.(jpg|jpeg|png)$/i', $m['logo'])) $to_convert[] = 'Logo';
 
-                // Проверяем доп фотки
-                $dop_count_stmt = $mysqli->prepare("SELECT COUNT(*) as cnt FROM dop_photos WHERE model_id = ? AND (src LIKE '%.jpg' OR src LIKE '%.jpeg' OR src LIKE '%.png') AND src NOT LIKE 'http%'");
-                if ($dop_count_stmt) {
-                    $dop_count_stmt->bind_param("i", $m['model_id']);
-                    $dop_count_stmt->execute();
-                    $dop_count = $dop_count_stmt->get_result()->fetch_assoc()['cnt'];
+                // Проверяем доп фотки (используем стандартный подход как в Db.php)
+                $mid = intval($m['model_id']);
+                $dop_count_query = "SELECT COUNT(*) as cnt FROM dop_photos WHERE model_id = $mid AND (src LIKE '%.jpg' OR src LIKE '%.jpeg' OR src LIKE '%.png') AND src NOT LIKE 'http%'";
+                $dop_count_result = $mysqli->query($dop_count_query);
+
+                if ($dop_count_result) {
+                    $dop_row = $dop_count_result->fetch_assoc();
+                    $dop_count = $dop_row['cnt'];
                     if ($dop_count > 0) $to_convert[] = "Slider($dop_count)";
                 }
 
