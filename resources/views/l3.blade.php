@@ -102,7 +102,12 @@
                 <div class="l3_favorite_tovar_container">
                   @foreach($p->getFavoriteTovarsModels() as $mw)
                     <a class="small-card-container" href="{{$mw->getL3Url()}}">
-                      <img class="heart-img" src="/public/png/heart-small-card.png" alt="like">
+                      <div class="l2-card_wishlist heart-img"
+                        style="position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; align-items: center; justify-content: center;"
+                        data-model-id="{{ $mw->getModelId() }}" data-model-name="{{ strip_tags($mw->getName()) }}"
+                        data-model-pic="{{ $mw->getPicUrl() }}" data-model-url="{{ $mw->getL3Url() }}">
+                        <i class="fas fa-heart"></i>
+                      </div>
                       <img class="main-img" src="{{$mw->getPicUrl()}}" alt="{{$mw->getPicAltText()}}">
                       <h4>{!! $mw->getName() !!}</h4>
                       <button>{{$p->translate('Подробнее')}}</button>
