@@ -196,6 +196,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
                 continue;
             }
 
+
             $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
             $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
 
@@ -267,6 +268,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
             if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
                 continue;
             }
+
 
             $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
             $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
