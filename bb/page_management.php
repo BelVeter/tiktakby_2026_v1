@@ -142,6 +142,7 @@ $p = \App\MyClasses\MainPage::getPageOrFillInfroFromRuOrCreateNew($lang, $levelC
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/bb/kr_baza_new.php">Товары</a>
       <a class="nav-item nav-link" href="/bb/favorite_tovars_management.php">Популярные товары</a>
+      <a class="nav-item nav-link" href="/bb/webp_converter.php">Конвертер WebP</a>
       <a class="nav-item nav-link" href="/bb/l3_karn_dop.php">Доп.поля карнавала</a>
     </div>
   </div>
