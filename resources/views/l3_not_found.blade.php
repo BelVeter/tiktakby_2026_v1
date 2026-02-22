@@ -49,16 +49,20 @@
           <div class="row">
             <div class="col l3_line1">
               <div class="l3__slider_container">
-                <button class="l3MainSliderBtn btn-left {{count($p->getPicsForSlider()) < 2 ? 'hide' : ''}}"><img src="/public/svg/arrow-l3-main-slider.svg" alt="left"></button>
-                <button class="l3MainSliderBtn btn-right {{count($p->getPicsForSlider()) < 2 ? 'hide' : ''}}"><img src="/public/svg/arrow-l3-main-slider.svg" alt="right"></button>
-                <div class="l3__slider__small_pics_container {{$p->getPicsSliderNum()==1 ? 'oneslide' : ''}}">
+                <button class="l3MainSliderBtn btn-left {{count($p->getPicsForSlider()) < 2 ? 'hide' : ''}}"><img
+                    src="/public/svg/arrow-l3-main-slider.svg" alt="left"></button>
+                <button class="l3MainSliderBtn btn-right {{count($p->getPicsForSlider()) < 2 ? 'hide' : ''}}"><img
+                    src="/public/svg/arrow-l3-main-slider.svg" alt="right"></button>
+                <div class="l3__slider__small_pics_container {{$p->getPicsSliderNum() == 1 ? 'oneslide' : ''}}">
                   @foreach($p->getPicsForSlider() as $index => $pic)
-                    <a class="l3__slider__small_pic_a {{($index==0 ? 'active' : '')}}" data-slide_num="{{$index}}" href="#slider{{$index}}"><img src="{{$pic->getSrc()}}" alt="{{$pic->getAlt()}}"></a>
+                    <a class="l3__slider__small_pic_a {{($index == 0 ? 'active' : '')}}" data-slide_num="{{$index}}"
+                      href="#slider{{$index}}"><img src="{{$pic->getSrc()}}" alt="{{$pic->getAlt()}}"></a>
                   @endforeach
                 </div>
-                <div class="l3__slider__big_pic_container {{$p->getPicsSliderNum()==1 ? 'oneslide' : ''}}">
+                <div class="l3__slider__big_pic_container {{$p->getPicsSliderNum() == 1 ? 'oneslide' : ''}}">
                   @foreach($p->getPicsForSlider() as $index => $pic)
-                    <img class="l3__slider__big_pic {{$p->getPicsSliderNum()==1 ? 'oneslide' : ''}}" id="slider{{$index}}" src="{{$pic->getSrc()}}" alt="{{$pic->getAlt()}}">
+                    <img class="l3__slider__big_pic {{$p->getPicsSliderNum() == 1 ? 'oneslide' : ''}}" id="slider{{$index}}"
+                      src="{{$pic->getSrc()}}" alt="{{$pic->getAlt()}}">
                   @endforeach
                 </div>
               </div>
@@ -67,16 +71,17 @@
               </div>
             </div>
           </div>
-{{--          <div class="row">--}}
-{{--            <div class="col">--}}
-{{--              @include('includes.kbLine', ['l' => \App\MyClasses\KBronLine::getLine('70287', new DateTime())])--}}
-{{--            </div>--}}
-{{--          </div>--}}
+          {{-- <div class="row">--}}
+            {{-- <div class="col">--}}
+              {{-- @include('includes.kbLine', ['l' => \App\MyClasses\KBronLine::getLine('70287', new DateTime())])--}}
+              {{-- </div>--}}
+            {{-- </div>--}}
           <div class="row">
             <div class="col">
               <div class="l3_description_container">
-{{--                {!! $p->getDescription() !!}--}}
-                <h1 style="color:orangered; text-align:center;">К сожалению, данный товар больше не доступен для проката. Посмотрите, пожалуйста, другие наши предложения.</h1>
+                {{-- {!! $p->getDescription() !!}--}}
+                <h1 style="color:orangered; text-align:center;">К сожалению, данный товар больше не доступен для проката.
+                  Посмотрите, пожалуйста, другие наши предложения.</h1>
                 <div class="shadow-gradient"></div>
                 <button class="show-more-btn"><img src="/public/svg/arrow-l3-main-slider.svg"></button>
               </div>
@@ -86,12 +91,19 @@
             <div class="col">
               <div class="l3-fav-slider-container">
                 <h3>{{$p->translate('Вам может понравится')}}</h3>
-                <button class="btn-controll btn-left hide"><img src="/public/svg/arrow-l3-fav-slider.svg" alt="arrow"></button>
-                <button class="btn-controll btn-right"><img src="/public/svg/arrow-l3-fav-slider.svg" alt="arrow"></button>
+                <button class="btn-controll btn-left hide"><img src="/public/svg/arrow-l3-fav-slider.svg"
+                    alt="arrow"></button>
+                <button class="btn-controll btn-right"><img src="/public/svg/arrow-l3-fav-slider.svg"
+                    alt="arrow"></button>
                 <div class="l3_favorite_tovar_container">
                   @foreach($p->getFavoriteTovarsModels() as $mw)
                     <a class="small-card-container" href="{{$mw->getL3Url()}}">
-                      <img class="heart-img" src="/public/png/heart-small-card.png" alt="like">
+                      <div class="l2-card_wishlist heart-img"
+                        style="position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; align-items: center; justify-content: center;"
+                        data-model-id="{{ $mw->getModelId() }}" data-model-name="{{ strip_tags($mw->getName()) }}"
+                        data-model-pic="{{ $mw->getPicUrl() }}" data-model-url="{{ $mw->getL3Url() }}">
+                        <i class="fas fa-heart"></i>
+                      </div>
                       <img class="main-img" src="{{$mw->getPicUrl()}}" alt="{{$mw->getPicAltText()}}">
                       <h4>{!! $mw->getName() !!}</h4>
                       <button>{{$p->translate('Подробнее')}}</button>
@@ -103,14 +115,15 @@
           </div>
         </div>
       </div>
-      <div class="row">@if(isset($_GET['v']) && $_GET['v']=='dima')
-          <div class="row">
-            <div class="col">
-              работает {{$p->getModelId()}}
-            </div>
+      <div class="row">@if(isset($_GET['v']) && $_GET['v'] == 'dima')
+        <div class="row">
+          <div class="col">
+            работает {{$p->getModelId()}}
           </div>
+        </div>
 
-        @endif</div>
+      @endif
+      </div>
     </div>
   </section>
 
