@@ -53,7 +53,7 @@
             @include('includes.breadcrumbs', ['b' => $p->getBreadCrumbsArray()])
         </div>
 
-        <div class="row mb-5">
+        <div class="row mb-4">
             <div class="col-12">
                 <h1 class="about__h1 font-weight-bold" style="font-size: 2.5rem; margin-bottom: 1rem; color: #2c3e50;">
                     Условия доставки</h1>
@@ -64,9 +64,9 @@
             </div>
         </div>
 
-        <div class="row g-4 mb-5" style="margin-left: -15px; margin-right: -15px;">
-            <div class="col-12 col-lg-7 mb-4">
-                <div class="card info-card p-4">
+        <div class="row g-3 g-md-4 mb-3 mb-md-5" style="margin-left: -15px; margin-right: -15px;">
+            <div class="col-12 col-lg-7 mb-3 mb-md-4">
+                <div class="card info-card p-3 p-md-4">
                     <div class="card-body">
                         <h3 class="h4 font-weight-bold mb-4 d-flex align-items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
@@ -79,7 +79,7 @@
                             </svg>
                             Как работает доставка
                         </h3>
-                        <ul class="check-list text-muted">
+                        <ul class="check-list text-muted mb-0">
                             <li>Товары доставляются с <strong>понедельника по субботу</strong> включительно.</li>
                             <li>Время доставки определяется согласно логистическому маршруту во временном интервале
                                 (например: с 10:00 до 14:00).</li>
@@ -93,8 +93,8 @@
                 </div>
             </div>
 
-            <div class="col-12 col-lg-5 mb-4">
-                <div class="card info-card p-4" style="background-color: #f8fdff;">
+            <div class="col-12 col-lg-5 mb-3 mb-md-4">
+                <div class="card info-card p-3 p-md-4" style="background-color: #f8fdff;">
                     <div class="card-body">
                         <h3 class="h4 font-weight-bold mb-4 d-flex align-items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
@@ -106,7 +106,7 @@
                             Стоимость доставки
                         </h3>
 
-                        <div class="price-box mb-3">
+                        <div class="price-box mb-1">
                             <div class="mb-3">
                                 <span class="d-block font-weight-bold" style="color: #2c3e50; font-size: 1.05rem;">Доставка
                                     по Минску</span>
@@ -143,7 +143,7 @@
 
                             <hr class="my-3" style="border-top: 1px solid #dee2e6;">
 
-                            <div class="mb-3">
+                            <div class="mb-1">
                                 <div class="d-flex justify-content-between align-items-center text-danger">
                                     <span class="font-weight-bold" style="font-size: 1.05rem;">Забор товара курьером</span>
                                     <strong style="font-size: 1.1rem;">10 руб</strong>
@@ -157,9 +157,9 @@
             </div>
         </div>
 
-        <div class="row g-4 mb-5" style="margin-left: -15px; margin-right: -15px;">
-            <div class="col-12 col-md-6 mb-4">
-                <div class="card info-card p-4 h-100">
+        <div class="row g-3 g-md-4 mb-4 mb-md-5" style="margin-left: -15px; margin-right: -15px;">
+            <div class="col-12 col-md-6 mb-3 mb-md-4">
+                <div class="card info-card p-3 p-md-4 h-100">
                     <div class="card-body text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
