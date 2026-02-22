@@ -45,11 +45,11 @@
             @include('includes.breadcrumbs', ['b' => $p->getBreadCrumbsArray()])
         </div>
 
-        <div class="row mb-5 justify-content-center">
+        <div class="row mb-3 justify-content-center">
             <div class="col-12 col-lg-10">
                 <h1 class="about__h1 font-weight-bold" style="font-size: 2.5rem; margin-bottom: 1rem; color: #2c3e50;">
                     Условия проката</h1>
-                <p class="text-muted" style="font-size: 1.1rem;">
+                <p class="text-muted mb-0" style="font-size: 1.1rem;">
                     Ознакомьтесь с правилами оформления договора, продления и возврата. Использование сервиса TikTak
                     построено на взаимном доверии и бережном отношении к имуществу.
                 </p>
