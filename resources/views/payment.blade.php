@@ -92,9 +92,9 @@
 
         <div class="row mb-4">
             <div class="col-12">
-                <h1 class="about__h1 text-center font-weight-bold"
-                    style="font-size: 2.5rem; margin-bottom: 1rem; color: #2c3e50;">Способы оплаты</h1>
-                <p class="text-center text-muted" style="font-size: 1.1rem; max-width: 700px; margin: 0 auto;">
+                <h1 class="about__h1 font-weight-bold" style="font-size: 2.5rem; margin-bottom: 1rem; color: #2c3e50;">
+                    Способы оплаты</h1>
+                <p class="text-muted" style="font-size: 1.1rem;">
                     Мы заботимся о вашем удобстве и предлагаем несколько интерактивных вариантов оплаты аренды детских
                     товаров. Выберите тот, который подходит именно вам.
                 </p>
@@ -195,7 +195,8 @@
                             <div class="mb-2"><span class="text-highlight">Получатель:</span> ЧУП Куюмджи</div>
                             <div class="mb-2"><span class="text-highlight">УНП:</span> 193137666</div>
                             <div class="mb-2"><span class="text-highlight">р/с (IBAN):</span> BY80BPSB30123070280179330000
-                                <br>в ОАО "СБЕРБАНК" г.Минск, BIC: BPSBBY2X</div>
+                                <br>в ОАО "СБЕРБАНК" г.Минск, BIC: BPSBBY2X
+                            </div>
                             <div class="mb-2"><span class="text-highlight">Назначение:</span> За услуги проката от (ФИО
                                 арендатора)</div>
                             <div class="mb-0"><span class="text-highlight">Код платежа:</span> 23501 <span
