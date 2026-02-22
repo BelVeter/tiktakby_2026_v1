@@ -92,18 +92,15 @@ if (isset($_POST['action'])) {
         $file_name = $_FILES['h1_pic_file']['name'];
 
         if (key_exists('h1_pic_file', $_FILES)) {
-          $newFileName = \bb\Base::getUniqueFileName($dir_short, $file_name);
-          move_uploaded_file($_FILES['h1_pic_file']['tmp_name'], $dir_full . $newFileName);
-          $np->setH1PicUrl($dir_short . $newFileName);
+          $savedPath = \bb\Base::processAndSaveImageAsWebp($dir_short, $_FILES['h1_pic_file']['tmp_name'], $file_name);
+          if ($savedPath)
+            $np->setH1PicUrl($savedPath);
         }
         //delete old file if exists
         if ($np->getId() > 0) {
           $old_page = \App\MyClasses\MainPage::getPageById($np->getId());
           if ($old_page->getH1PicUrl() != '') {
-            if (!unlink($_SERVER['DOCUMENT_ROOT'] . $old_page->getH1PicUrl())) {
-              echo 'error on old file deleting';
-            }
-            ;
+            \bb\Base::delFile($old_page->getH1PicUrl());
           }
         }
       } else {//if file not sent - get existing link
@@ -145,6 +142,7 @@ $p = \App\MyClasses\MainPage::getPageOrFillInfroFromRuOrCreateNew($lang, $levelC
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/bb/kr_baza_new.php">Товары</a>
       <a class="nav-item nav-link" href="/bb/favorite_tovars_management.php">Популярные товары</a>
+      <a class="nav-item nav-link" href="/bb/webp_converter.php">Конвертер WebP</a>
       <a class="nav-item nav-link" href="/bb/l3_karn_dop.php">Доп.поля карнавала</a>
     </div>
   </div>
@@ -190,7 +188,8 @@ $p = \App\MyClasses\MainPage::getPageOrFillInfroFromRuOrCreateNew($lang, $levelC
       <input type="hidden" name="url_key" value="<?= $p->getUrlKey() ?>">
       <div class="row">
         <div class="col text-center <?= ($p->getId() > 0 ? 'alert-success' : 'alert-warning') ?>">
-          <?= ($p->getId() > 0 ? 'Редактируем существующую страницу.' : 'Создаем новую страницу') ?></div>
+          <?= ($p->getId() > 0 ? 'Редактируем существующую страницу.' : 'Создаем новую страницу') ?>
+        </div>
       </div>
       <div class="row">
         <label class="col-2 col-form-label" for="title">Title страницы</label>

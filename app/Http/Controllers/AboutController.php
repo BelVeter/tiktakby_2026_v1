@@ -12,8 +12,10 @@ class AboutController extends Controller
     $lang = htmlspecialchars($lang);
 
     $p = MainPage::getPage($lang, 'main', 'about');
-    if (!$p) $p = MainPage::getPage('ru', 'main', 'about');
-    if (!$p) $p = new MainPage('ru', 'main', 'unknown');
+    if (!$p)
+      $p = MainPage::getPage('ru', 'main', 'about');
+    if (!$p)
+      $p = new MainPage('ru', 'main', 'unknown');
     $p->addBreadCrumbItem('О нас', '');
     return view('about', ['p' => $p]);
 
@@ -24,10 +26,12 @@ class AboutController extends Controller
     $lang = htmlspecialchars($lang);
 
     $p = MainPage::getPage($lang, 'main', 'conditions');
-    if (!$p) $p = MainPage::getPage('ru', 'main', 'about');
-    if (!$p) $p = new MainPage('ru', 'main', 'unknown');
+    if (!$p)
+      $p = MainPage::getPage('ru', 'main', 'about');
+    if (!$p)
+      $p = new MainPage('ru', 'main', 'unknown');
     $p->addBreadCrumbItem('Условия проката', '');
-    return view('about_tmpl', ['p' => $p]);
+    return view('conditions', ['p' => $p]);
   }
 
   public function showDeliveryPage($lang, Request $req)
@@ -35,10 +39,25 @@ class AboutController extends Controller
     $lang = htmlspecialchars($lang);
 
     $p = MainPage::getPage($lang, 'main', 'delivery');
-    if (!$p) $p = MainPage::getPage('ru', 'main', 'about');
-    if (!$p) $p = new MainPage('ru', 'main', 'unknown');
-    $p->addBreadCrumbItem('Доставка и оплата', '');
-    return view('about_tmpl', ['p' => $p]);
+    if (!$p)
+      $p = MainPage::getPage('ru', 'main', 'about');
+    if (!$p)
+      $p = new MainPage('ru', 'main', 'unknown');
+    $p->addBreadCrumbItem('Доставка', '');
+    return view('delivery', ['p' => $p]);
+  }
+
+  public function showPaymentPage($lang, Request $req)
+  {
+    $lang = htmlspecialchars($lang);
+
+    $p = MainPage::getPage($lang, 'main', 'payment');
+    if (!$p)
+      $p = MainPage::getPage('ru', 'main', 'about');
+    if (!$p)
+      $p = new MainPage('ru', 'main', 'unknown');
+    $p->addBreadCrumbItem('Оплата', '');
+    return view('payment', ['p' => $p]);
   }
 
   public function showContactsPage($lang, Request $req)
@@ -46,8 +65,10 @@ class AboutController extends Controller
     $lang = htmlspecialchars($lang);
 
     $p = MainPage::getPage($lang, 'main', 'contacts');
-    if (!$p) $p = MainPage::getPage('ru', 'main', 'about');
-    if (!$p) $p = new MainPage('ru', 'main', 'unknown');
+    if (!$p)
+      $p = MainPage::getPage('ru', 'main', 'about');
+    if (!$p)
+      $p = new MainPage('ru', 'main', 'unknown');
     $p->addBreadCrumbItem('Контакты', '');
     return view('about_tmpl', ['p' => $p]);
   }
@@ -57,8 +78,10 @@ class AboutController extends Controller
     $lang = htmlspecialchars($lang);
 
     $p = MainPage::getPage($lang, 'main', 'policy');
-    if (!$p) $p = MainPage::getPage('ru', 'main', 'about');
-    if (!$p) $p = new MainPage('ru', 'main', 'unknown');
+    if (!$p)
+      $p = MainPage::getPage('ru', 'main', 'about');
+    if (!$p)
+      $p = new MainPage('ru', 'main', 'unknown');
     $p->addBreadCrumbItem('Контакты', '');
     return view('about_tmpl', ['p' => $p]);
   }

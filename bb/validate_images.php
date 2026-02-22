@@ -108,6 +108,10 @@ while ($row = $result->fetch_assoc()) {
     // $l3_url_corrected = \bb\classes\ModelWeb::getURLCorrectPathFor($l3_path);
     $l3_res = checkImage($l3_path);
 
+    // Проверка Logo
+    $logo_path = $row['logo'];
+    $logo_res = checkImage($logo_path);
+
     // Проверка слайдера
     $model_dops = isset($dop_photos[$row['model_id']]) ? $dop_photos[$row['model_id']] : [];
     $dop_results = [];
@@ -121,16 +125,18 @@ while ($row = $result->fetch_assoc()) {
         $has_problem = true;
     if ($l3_res['status'] == 'missing')
         $has_problem = true;
+    if ($logo_res['status'] == 'missing')
+        $has_problem = true;
     foreach ($dop_results as $dr) {
         if ($dr['status'] == 'missing')
             $has_problem = true;
     }
 
     if ($has_problem) {
-        // Сохраняем результаты проверки
         $row['__validation'] = [
             'l2' => $l2_res,
             'l3' => $l3_res,
+            'logo' => $logo_res,
             'dop' => $dop_results
         ];
         $problems[] = $row;
@@ -325,6 +331,7 @@ function getPaginationLinks($page, $total_pages, $filter_mode)
                 <th>Ссылка L3</th>
                 <th>L2 Pic</th>
                 <th>L3 Main</th>
+                <th>Logo</th>
                 <th>Slider</th>
             </tr>
         </thead>
@@ -355,6 +362,7 @@ function getPaginationLinks($page, $total_pages, $filter_mode)
                     // Результаты проверки (уже подсчитаны)
                     $l2_res = $row['__validation']['l2'];
                     $l3_res = $row['__validation']['l3'];
+                    $logo_res = $row['__validation']['logo'];
                     $dop_results = $row['__validation']['dop'];
 
                 } catch (Exception $e) {
@@ -400,6 +408,20 @@ function getPaginationLinks($page, $total_pages, $filter_mode)
                             <span class="status-missing">MISS</span>
                             <span class="path-info">
                                 <?= $l3_res['path'] ?>
+                            </span>
+                        <?php else: ?>
+                            <span class="status-empty">-</span>
+                        <?php endif; ?>
+                    </td>
+
+                    <!-- Logo Checker -->
+                    <td style="text-align: center;">
+                        <?php if ($logo_res['status'] == 'ok'): ?>
+                            <span class="status-ok">OK</span>
+                        <?php elseif ($logo_res['status'] == 'missing'): ?>
+                            <span class="status-missing">MISS</span>
+                            <span class="path-info">
+                                <?= $logo_res['path'] ?>
                             </span>
                         <?php else: ?>
                             <span class="status-empty">-</span>

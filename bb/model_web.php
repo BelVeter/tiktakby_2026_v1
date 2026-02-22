@@ -100,9 +100,14 @@ if (isset($_POST['form_check'])) {
           $dir = '/public/rent/images/' . $category->getCatUrlKey() . '/' . $mw->getPageUrlCode() . '/';
           $newFileName = $_POST['m_pic_new_name'] . '.' . (pathinfo($_FILES['m_pic_big']['name'])['extension']);
 
-          $savedFilePath = bb\Base::saveFile($dir, $_FILES['m_pic_big']['tmp_name'], $newFileName);
+          $savedFilePath = bb\Base::processAndSaveImageAsWebp($dir, $_FILES['m_pic_big']['tmp_name'], $newFileName, 85);
 
-          \bb\Base::delFile($mw->getMPicBigUrlAddress());
+          $oldPath = \bb\Base::removeQuotesFromFile($mw->getMPicBigUrlAddress());
+          $savedFilePath = \bb\Base::removeQuotesFromFile($savedFilePath);
+
+          if ($oldPath && $oldPath != $savedFilePath && strlen($oldPath) > 5) {
+            \bb\Base::delFile($oldPath);
+          }
 
           $savedFilePath = \bb\Base::removeQuotesFromFile($savedFilePath);
 
@@ -119,11 +124,14 @@ if (isset($_POST['form_check'])) {
 
           $newFileName = $_POST['l2_pic_new_name'] . '.' . (pathinfo($_FILES['l2_pic']['name'])['extension']);
 
-          $savedFilePath = bb\Base::saveFile($dir, $_FILES['l2_pic']['tmp_name'], $newFileName);
+          $savedFilePath = bb\Base::processAndSaveImageAsWebp($dir, $_FILES['l2_pic']['tmp_name'], $newFileName, 85);
 
-          \bb\Base::delFile($mw->getL2PicUrlAddress());
-
+          $oldPath = \bb\Base::removeQuotesFromFile($mw->getL2PicUrlAddress());
           $savedFilePath = \bb\Base::removeQuotesFromFile($savedFilePath);
+
+          if ($oldPath && $oldPath != $savedFilePath && strlen($oldPath) > 5) {
+            \bb\Base::delFile($oldPath);
+          }
 
           $mw->setL2PicUrlAddress($savedFilePath);
         } else {
@@ -139,10 +147,15 @@ if (isset($_POST['form_check'])) {
 
           $newFileName = $_POST['logo_pic_new_name'] . '.' . (pathinfo($_FILES['logo_pic']['name'])['extension']);
 
-          $savedFilePath = bb\Base::saveFile($dir, $_FILES['logo_pic']['tmp_name'], $newFileName);
+          $savedFilePath = bb\Base::processAndSaveImageAsWebp($dir, $_FILES['logo_pic']['tmp_name'], $newFileName, 85);
 
-          \bb\Base::delFile($mw->getLogoUrlAddress());
+          $oldPath = \bb\Base::removeQuotesFromFile($mw->getLogoUrlAddress());
           $savedFilePath = \bb\Base::removeQuotesFromFile($savedFilePath);
+
+          if ($oldPath && $oldPath != $savedFilePath && strlen($oldPath) > 5) {
+            \bb\Base::delFile($oldPath);
+          }
+
           $mw->setLogoUrlAddress($savedFilePath);
           $mw->updateLogoUrlForAll();
         } else {
@@ -157,7 +170,7 @@ if (isset($_POST['form_check'])) {
 
           $newFileName = $_POST['dop_pic_new_name'] . '.' . (pathinfo($_FILES['dop_pic']['name'])['extension']);
 
-          $savedFilePath = bb\Base::saveFile($dir, $_FILES['dop_pic']['tmp_name'], $newFileName);
+          $savedFilePath = bb\Base::processAndSaveImageAsWebp($dir, $_FILES['dop_pic']['tmp_name'], $newFileName, 85);
 
           $savedFilePath = \bb\Base::removeQuotesFromFile($savedFilePath);
 
