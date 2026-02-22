@@ -68,6 +68,10 @@ Route::get(
     'App\Http\Controllers\AboutController@showAboutPage'
 )->name('about');
 
+Route::get(
+    '/{lang}/premium-start',
+    'App\Http\Controllers\AboutController@showPremiumStartPage'
+)->name('premium-start');
 
 Route::get(
     '/{lang}/conditions',

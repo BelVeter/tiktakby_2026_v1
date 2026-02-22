@@ -21,6 +21,19 @@ class AboutController extends Controller
 
   }
 
+  public function showPremiumStartPage($lang, Request $req)
+  {
+    $lang = htmlspecialchars($lang);
+
+    $p = MainPage::getPage($lang, 'main', 'premium-start');
+    if (!$p)
+      $p = MainPage::getPage('ru', 'main', 'about');
+    if (!$p)
+      $p = new MainPage('ru', 'main', 'unknown');
+    $p->addBreadCrumbItem('Программа «Premium Start»', '');
+    return view('premium_start', ['p' => $p]);
+  }
+
   public function showConditionsPage($lang, Request $req)
   {
     $lang = htmlspecialchars($lang);
