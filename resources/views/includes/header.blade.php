@@ -23,7 +23,7 @@
                     <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
                     <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
                 </svg>
-                <span>Бесплатная доставка<span class="d-none d-sm-inline"> по Минску при заказе от 30 BYN!</span></span>
+                <span>Бесплатная доставка по Минску</span>
             </div>
             <a href="/ru/delivery" class="mt-1 mt-md-0 ms-md-2"
                 style="color: #FFD54F; text-decoration: none; font-weight: bold; border-bottom: 1px dashed #FFD54F;">Узнать
