@@ -115,58 +115,58 @@
   }
 }
 
-/* Section 2: Pains */
-.ps-pains {
-  padding: 40px 0 80px 0;
+/* Section 2: Mission */
+.ps-mission {
+  padding: 60px 0 80px 0;
   background-color: var(--ps-milk);
-  text-align: center;
 }
 
-.ps-pains h2 {
-  font-size: 2.2rem;
+.ps-mission__card {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 40px 50px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+  max-width: 950px;
+  margin: 0 auto;
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+  border-left: 6px solid var(--main-blue);
+}
+
+.ps-mission__quote-icon {
+  flex-shrink: 0;
+  opacity: 0.15;
+}
+
+.ps-mission__text {
+  font-size: 1.5rem;
+  line-height: 1.5;
   color: var(--ps-text-main);
-  margin-bottom: 60px;
-}
-
-.ps-pains__grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 40px;
-}
-
-.ps-pains__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.ps-pains__icon {
-  width: 80px;
-  height: 80px;
-  background-color: var(--ps-beige);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 24px;
-  color: var(--main-blue);
-}
-
-.ps-pains__text {
-  font-size: 1.1rem;
-  color: var(--ps-text-muted);
   font-weight: 500;
+  margin: 0;
+  text-align: left;
 }
 
 @media (max-width: 768px) {
-  .ps-pains__grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
+  .ps-mission {
+    padding: 40px 0 60px 0;
   }
 
-  .ps-pains h2 {
-    font-size: 1.8rem;
-    margin-bottom: 40px;
+  .ps-mission__card {
+    flex-direction: column;
+    padding: 30px 25px;
+    gap: 20px;
+    border-radius: 12px;
+  }
+
+  .ps-mission__text {
+    font-size: 1.2rem;
+  }
+
+  .ps-mission__quote-icon svg {
+    width: 30px;
+    height: 30px;
   }
 }
 
@@ -746,37 +746,13 @@
   justify-content: center;
 }
 
-.ps-gift__mockup {
+.ps-gift__img {
   width: 100%;
-  max-width: 350px;
-  aspect-ratio: 1.6/1;
-  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  max-width: 450px;
   border-radius: 12px;
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border: 1px solid #fff;
-}
-
-.ps-gift__mockup h4 {
-  font-size: 1.4rem;
-  color: var(--main-blue);
-  margin-bottom: 5px;
-}
-
-.ps-gift__mockup p {
-  color: var(--ps-text-muted);
-  font-weight: 500;
-  margin: 0;
-}
-
-.ps-gift__logo {
-  text-align: right;
-  font-family: 'Let\'s Be Glyphs CYR', sans-serif;
-  color: var(--main-blue, #5CA8E0);
-  font-size: 1.5rem;
+  display: block;
+  height: auto;
 }
 
 .ps-gift__content {
@@ -801,11 +777,6 @@
     padding: 30px 20px;
     gap: 40px;
     text-align: center;
-  }
-
-  .ps-gift__mockup {
-    aspect-ratio: auto;
-    min-height: 200px;
   }
 }
 

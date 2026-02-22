@@ -31,46 +31,23 @@
             </div>
         </section>
 
-        <!-- Блок 2: Проблематика (Боли) -->
-        <section class="ps-pains">
+        <!-- Блок 2: Миссия / Сопровождение -->
+        <section class="ps-mission">
             <div class="container-app">
-                <h2>Зачем покупать на века то, что нужно на пару месяцев?</h2>
-                <div class="ps-pains__grid">
-                    <div class="ps-pains__item">
-                        <div class="ps-pains__icon">
-                            <!-- Иконка коробки -->
-                            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                                <path
-                                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-                                </path>
-                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                            </svg>
-                        </div>
-                        <div class="ps-pains__text">Захламление квартиры</div>
+                <div class="ps-mission__card">
+                    <div class="ps-mission__quote-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="var(--main-blue)"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M14.017 18L14.017 10.609C14.017 4.905 17.748 1.039 23 0L23.995 2.151C21.563 3.068 20 5.789 20 8H24V18H14.017ZM0 18V10.609C0 4.905 3.748 1.038 9 0L9.996 2.151C7.563 3.068 6 5.789 6 8H9.983L9.983 18L0 18Z" />
+                        </svg>
                     </div>
-                    <div class="ps-pains__item">
-                        <div class="ps-pains__icon">
-                            <!-- Иконка кошелька/денег -->
-                            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                                <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
-                                <line x1="2" y1="10" x2="22" y2="10"></line>
-                            </svg>
-                        </div>
-                        <div class="ps-pains__text">Огромные траты на старт</div>
-                    </div>
-                    <div class="ps-pains__item">
-                        <div class="ps-pains__icon">
-                            <!-- Иконка часов -->
-                            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                        </div>
-                        <div class="ps-pains__text">Потеря времени на продажу б/у</div>
+                    <div class="ps-mission__content">
+                        <p class="ps-mission__text">
+                            Сопровождаем вас на протяжении первого года жизни малыша, предлагая экспертно подобранные сеты
+                            от лучших
+                            мировых брендов, которые меняются вместе с потребностями вашего ребенка
+                        </p>
                     </div>
                 </div>
             </div>
@@ -270,7 +247,8 @@
                                 <li>Выбор премиум товаров из предложенных в тарифе, либо любые товары из ассортимента
                                     проката на сумму ежемесячного платежа</li>
                             </ul>
-                            <button class="ps-btn ps-btn--outline" data-target-modal="ps-modal-order">Оформить
+                            <button class="ps-btn ps-btn--outline" data-bs-toggle="modal" data-bs-target="#ps-modal-order"
+                                data-model="1909" data-tariff="Тарифный план «Базовый»">Оформить
                                 подписку</button>
                         </div>
                         <!-- Тариф 2 -->
@@ -285,7 +263,8 @@
                                 <li>Выбор премиум товаров из предложенных в тарифе, либо любые товары из ассортимента
                                     проката на сумму ежемесячного платежа</li>
                             </ul>
-                            <button class="ps-btn ps-btn--caramel" data-target-modal="ps-modal-order">Оформить
+                            <button class="ps-btn ps-btn--caramel" data-bs-toggle="modal" data-bs-target="#ps-modal-order"
+                                data-model="1910" data-tariff="Тарифный план «Оптимальный»">Оформить
                                 подписку</button>
                         </div>
                         <!-- Тариф 3 -->
@@ -299,7 +278,8 @@
                                 <li>Выбор премиум товаров из предложенных в тарифе, либо любые товары из ассортимента
                                     проката на сумму ежемесячного платежа</li>
                             </ul>
-                            <button class="ps-btn ps-btn--outline" data-target-modal="ps-modal-order">Оформить
+                            <button class="ps-btn ps-btn--outline" data-bs-toggle="modal" data-bs-target="#ps-modal-order"
+                                data-model="1911" data-tariff="Тарифный план «Премиум»">Оформить
                                 подписку</button>
                         </div>
                     </div>
@@ -311,18 +291,16 @@
                 <div class="container-app">
                     <div class="ps-gift__wrap">
                         <div class="ps-gift__image">
-                            <!-- Плоская заглушка (или сертификат TikTak) -->
-                            <div class="ps-gift__mockup">
-                                <h4>Подарочный Сертификат</h4>
-                                <p>«Premium Start»</p>
-                                <div class="ps-gift__logo">TikTak.by</div>
-                            </div>
+                            <!-- Фото реального сертификата -->
+                            <img src="/public/img/premium-start-certificate.jpg" alt="Подарочный сертификат Premium Start"
+                                class="ps-gift__img">
                         </div>
                         <div class="ps-gift__content">
                             <h2>Ищете идеальный подарок на смотрины?</h2>
                             <p>Подарите молодым родителям самое ценное — спокойствие и комфорт. Сертификат на программу
                                 Premium Start — лучше, чем очередная мягкая игрушка.</p>
-                            <button class="ps-btn ps-btn--outline" data-target-modal="ps-modal-gift">Купить в
+                            <button class="ps-btn ps-btn--outline" data-bs-toggle="modal" data-bs-target="#ps-modal-order"
+                                data-model="1909" data-tariff="Подарочный сертификат">Купить в
                                 подарок</button>
                         </div>
                     </div>
@@ -335,7 +313,7 @@
                     <h2>Остались вопросы?</h2>
                     <div class="ps-faq__list">
                         <details class="ps-faq__item">
-                            <summary>Разве не выгоднее все купить на Авито/Куфаре?</summary>
+                            <summary>Разве не выгоднее все купить на Куфаре?</summary>
                             <div class="ps-faq__content">Вещи б/у часто имеют скрытые дефекты. У нас вы получаете
                                 новые или идеально чистые товары после химчистки, с гарантией и возможностью
                                 обратной замены. Никаких встреч с продавцами и торга!</div>
@@ -390,9 +368,44 @@
 
     </div>
 
+    <!-- Order Modal -->
+    <div class="modal fade" id="ps-modal-order" tabindex="-1" aria-labelledby="psModalOrderLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                <div class="modal-header" style="border-bottom: none; padding: 20px 20px 0;">
+                    <h5 class="modal-title" id="psModalOrderLabel" style="font-weight: 700; color: #333;">Оформление
+                        подписки Premium Start<br><span id="psModalTariffName"
+                            style="color: #666; font-size: 16px; font-weight: 400; display: inline-block; margin-top: 5px;"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="padding: 20px 30px 30px;">
+                    <p style="color: #666; margin-bottom: 20px; font-size: 15px;">Мы свяжемся с вами, чтобы подобрать
+                        стартовый набор товаров на основе выбранного тарифа.</p>
+                    <form method="post" action="/zvonok" class="back-coll-modal">
+                        @csrf
+                        <input type="hidden" name="model_id" value="">
+                        <input type="hidden" name="info"
+                            value="Мы свяжемся с вами, чтобы подобрать стартовый набор товаров">
+                        <div class="input-wrapper">
+                            <input data-targetinput="" class="call-input1" type="text" name="fio" placeholder="Ваше имя"
+                                required style="width: 100%; margin-bottom: 15px;">
+                        </div>
+                        <div class="input-wrapper">
+                            <input data-targetinput="" class="call-input1" type="text" name="phone" placeholder="Телефон"
+                                required style="width: 100%; margin-bottom: 15px;">
+                        </div>
+                        <button type="submit"
+                            style="width: 100%; padding: 12px; border-radius: 25px; background: #3180D1; border: none; font-weight: 600; color: #fff;">Отправить
+                            заявку</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
-    <script src="/public/js/premium_start.js"></script>
+    <script src="/public/js/premium_start.js?v={{ time() }}"></script>
 
     @if(isset($_COOKIE['tt_is_logged_in']))
         <div data-bb-edit-url="/bb/page_management.php" data-bb-edit-method="POST"
