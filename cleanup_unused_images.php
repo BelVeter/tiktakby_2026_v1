@@ -35,6 +35,7 @@ $queries = [
     ['table' => 'razdel', 'column' => 'url_icon2_razdel'],
     ['table' => 'rent_model_web', 'column' => 'l2_pic'],
     ['table' => 'rent_model_web', 'column' => 'm_pic_big'],
+    ['table' => 'rent_model_web', 'column' => 'logo'],
     ['table' => 'sub_razdel', 'column' => 'url_sub_razdel_icon'],
     ['table' => 'tovar_cats', 'column' => 'cat_photo_url'],
     ['table' => 'tovar_list', 'column' => 'w_icon'],
