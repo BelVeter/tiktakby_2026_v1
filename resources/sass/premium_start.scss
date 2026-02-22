@@ -1,0 +1,97 @@
+/* Лендинг "Premium Start" */
+
+.ps-landing {
+  font-family: 'Open Sans', 'Roboto', sans-serif; /* Fallback in case main is different, but should inherit */
+  color: #333;
+  line-height: 1.6;
+
+  /* Global variables for this landing */
+  --ps-milk: #FDFDFD;
+  --ps-grey-light: #F5F5F5;
+  --ps-beige: #F8F5F2;
+  --ps-accent-caramel: #D4A373; /* Мягкий золотой / карамельный */
+  --ps-accent-hover: #b88655;
+  --ps-text-main: #2b2b2b;
+  --ps-text-muted: #666;
+
+  h1, h2, h3, h4 {
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+
+  /* BUTTONS */
+  .ps-btn {
+    display: inline-block;
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+      text-decoration: none;
+      color: #fff;
+    }
+
+    &--caramel {
+      background-color: var(--ps-accent-caramel);
+      color: #fff;
+
+      &:hover {
+        background-color: var(--ps-accent-hover);
+      }
+    }
+  }
+
+  /* Section Styles */
+  .ps-hero {
+    background-color: var(--ps-milk);
+    height: 80vh;
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+
+    /* Background image with overlay to ensure text readability */
+    /* Wait, the prompt said: "Использовать утвержденный светлый рендер (комната с белым окном...)" */
+    /* Since we might not have it yet, we'll set a fallback background */
+    background-image: linear-gradient(to right, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 100%);
+    background-size: cover;
+    background-position: right center;
+
+    &__content {
+      max-width: 600px;
+      z-index: 2;
+      position: relative;
+    }
+
+    &__title {
+      font-size: 2.8rem;
+      line-height: 1.2;
+      color: var(--ps-text-main);
+      margin-bottom: 24px;
+      
+      @media (max-width: 768px) {
+        font-size: 2.2rem;
+      }
+    }
+
+    &__subtitle {
+      font-size: 1.2rem;
+      color: var(--ps-text-muted);
+      margin-bottom: 40px;
+      
+      @media (max-width: 768px) {
+        font-size: 1.1rem;
+      }
+    }
+  }
+}
