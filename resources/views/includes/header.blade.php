@@ -17,7 +17,9 @@
                 <a
                     href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/conditions">{{$header->translate('Условия проката')}}</a>
                 <a
-                    href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/delivery">{{$header->translate('Доставка и оплата')}}</a>
+                    href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/delivery">{{$header->translate('Доставка')}}</a>
+                <a
+                    href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/payment">{{$header->translate('Оплата')}}</a>
             </div>
             <div class="top-bar-center">
                 <div class="top-phone">
@@ -438,7 +440,19 @@
                                     <circle cx="5.5" cy="18.5" r="2.5"></circle>
                                     <circle cx="18.5" cy="18.5" r="2.5"></circle>
                                 </svg>
-                                Доставка и оплата
+                                Доставка
+                            </a>
+                        </li>
+                        <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">
+                            <a href="/{{(request()->lang ? request()->lang : 'ru')}}/payment"
+                                style="display: flex; align-items: center; padding: 15px; text-decoration: none; color: #333; font-size: 16px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3180D1"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    style="margin-right: 10px;">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                </svg>
+                                Оплата
                             </a>
                         </li>
                         <li class="nav-item-mobile" style="border-bottom: 1px solid #eee;">

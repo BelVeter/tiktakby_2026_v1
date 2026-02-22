@@ -227,7 +227,7 @@
                         <div class="mb-4">
                             <h4 style="font-weight: bold; cursor: pointer;">Есть ли доставка за пределы МКАД и как она
                                 рассчитывается?</h4>
-                            <p>Да, мы <a href="/delivery" title="Условия доставки и оплаты"
+                            <p>Да, мы <a href="/delivery" title="Условия доставки"
                                     style="text-decoration: underline; color: inherit;">доставляем товары по Минскому
                                     району</a>. Стоимость рассчитывается просто: стандартный
                                 тариф по городу + доплата за километраж от МКАД. Точную сумму оператор назовет при
@@ -307,122 +307,195 @@
 
                 </div>
             </div>
+
+            <div class="row mt-2 mb-5 justify-content-center">
+                <div class="col-12 text-center mb-4">
+                    <h2 class="about__h1 mb-3">Полезная информация</h2>
+                </div>
+
+                <div class="col-12 col-md-4 mb-4">
+                    <div class="card h-100 text-center"
+                        style="border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s; cursor: pointer;"
+                        onmouseover="this.style.transform='translateY(-5px)'"
+                        onmouseout="this.style.transform='translateY(0)'" onclick="window.location.href='/ru/conditions'">
+                        <div class="card-body p-4">
+                            <div
+                                style="width: 60px; height: 60px; background-color: #e3f2fd; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"
+                                    fill="none" stroke="#2196F3" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-file-text">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+                            <h4 class="font-weight-bold mb-2">Условия проката</h4>
+                            <p class="text-muted mb-0">Правила оформления договора, залоги и возврат.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-4 mb-4">
+                    <div class="card h-100 text-center"
+                        style="border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s; cursor: pointer;"
+                        onmouseover="this.style.transform='translateY(-5px)'"
+                        onmouseout="this.style.transform='translateY(0)'" onclick="window.location.href='/ru/delivery'">
+                        <div class="card-body p-4">
+                            <div
+                                style="width: 60px; height: 60px; background-color: #fff3e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"
+                                    fill="none" stroke="#FF9800" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-truck">
+                                    <rect x="1" y="3" width="15" height="13"></rect>
+                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                </svg>
+                            </div>
+                            <h4 class="font-weight-bold mb-2">Доставка</h4>
+                            <p class="text-muted mb-0">Тарифы на доставку по Минску и району, самовывоз.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-4 mb-4">
+                    <div class="card h-100 text-center"
+                        style="border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s; cursor: pointer;"
+                        onmouseover="this.style.transform='translateY(-5px)'"
+                        onmouseout="this.style.transform='translateY(0)'" onclick="window.location.href='/ru/payment'">
+                        <div class="card-body p-4">
+                            <div
+                                style="width: 60px; height: 60px; background-color: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"
+                                    fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-credit-card">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                </svg>
+                            </div>
+                            <h4 class="font-weight-bold mb-2">Способы оплаты</h4>
+                            <p class="text-muted mb-0">ЕРИП, наличный расчет, банковские карты и переводы.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-    </div>
+        <script src="/public/js/about.js"></script>
 
-    <script src="/public/js/about.js"></script>
+        <script type="application/ld+json">
+                                            {
+                                              "@context": "https://schema.org",
+                                              "@type": "RentalBusiness",
+                                              "name": "TikTak",
+                                              "image": "https://tiktak.by/images/logo.png",
+                                              "@id": "https://tiktak.by",
+                                              "url": "https://tiktak.by",
+                                              "telephone": "+37529XXXXXXX",
+                                              "priceRange": "$$",
+                                              "address": {
+                                                "@type": "PostalAddress",
+                                                "streetAddress": "Улица, дом",
+                                                "addressLocality": "Минск",
+                                                "addressCountry": "BY"
+                                              },
+                                              "geo": {
+                                                "@type": "GeoCoordinates",
+                                                "latitude": 53.9006,
+                                                "longitude": 27.5590
+                                              }
+                                            }
+                                            </script>
 
-    <script type="application/ld+json">
-                                    {
-                                      "@context": "https://schema.org",
-                                      "@type": "RentalBusiness",
-                                      "name": "TikTak",
-                                      "image": "https://tiktak.by/images/logo.png",
-                                      "@id": "https://tiktak.by",
-                                      "url": "https://tiktak.by",
-                                      "telephone": "+37529XXXXXXX",
-                                      "priceRange": "$$",
-                                      "address": {
-                                        "@type": "PostalAddress",
-                                        "streetAddress": "Улица, дом",
-                                        "addressLocality": "Минск",
-                                        "addressCountry": "BY"
-                                      },
-                                      "geo": {
-                                        "@type": "GeoCoordinates",
-                                        "latitude": 53.9006,
-                                        "longitude": 27.5590
-                                      }
-                                    }
-                                    </script>
-
-    <script type="application/ld+json">
-                                    {
-                                      "@context": "https://schema.org",
-                                      "@type": "FAQPage",
-                                      "mainEntity": [{
-                                        "@type": "Question",
-                                        "name": "Как вы обрабатываете товары? Это безопасно для ребенка?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Безопасность — наш приоритет. Мы не просто протираем вещи, а проводим полноценную дезинфекцию в 3 этапа после каждого клиента: стирка гипоаллергенными средствами, обработка паром и кварцевание медицинскими лампами. Товар упаковывается в пленку. Вы получаете гарантированно чистую вещь."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Что нужно для оформления проката? Нужен ли залог?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Для заключения договора необходим только паспорт гражданина РБ (или вид на жительство). В большинстве случаев залог не требуется. Исключение могут составлять дорогостоящие товары или случаи, когда у клиента нет прописки в Минске/Минской области — этот момент менеджер уточнит индивидуально."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Как забронировать вещь и можно ли получить реальное фото товара?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Забронировать можно через сайт (корзину), по телефону или в мессенджерах. Если вы хотите убедиться в состоянии конкретной модели, напишите нам в Viber/Telegram — мы пришлем актуальное фото или видео товара, который поедет к вам."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Есть ли доставка за пределы МКАД и как она рассчитывается?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Да, мы доставляем товары по Минскому району. Стоимость рассчитывается просто: стандартный тариф по городу + доплата за километраж от МКАД. Точную сумму оператор назовет при подтверждении заказа."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Курьер сам заберет товар, когда срок аренды закончится?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "По умолчанию возврат осуществляется клиентом. Однако, если вам неудобно ехать к нам, вы можете заказать услугу вывоза товара курьером. Пожалуйста, сообщите об этом заранее (желательно за 1-2 дня до окончания срока), чтобы мы поставили это в график маршрутов. Услуга платная."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Можно ли заказать доставку/возврат к точному времени?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "У наших курьеров плотный график с интервалами доставки (обычно 3-4 часа). Мы всегда стараемся учитывать пожелания (например, до обеденного сна ребенка), но доставка ровно в 13:00 не всегда возможна из-за дорожной ситуации."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Вы напоминаете об окончании срока аренды?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Мы ценим ваше спокойствие. За сутки до окончания срока наша система автоматически отправляет SMS-напоминание. Вы точно не забудете продлить вещь или подготовить её к возврату."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Как продлить аренду, если вещь еще нужна?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Очень просто! Не нужно приезжать в офис. Просто позвоните нам или напишите в мессенджер. Мы продлим договор дистанционно, а оплату можно будет внести через ЕРИП."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Что делать, если товар сломался у нас дома?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Главное — не паниковать и не пытаться чинить самостоятельно. Сразу свяжитесь с нами. Если это естественный износ (сели батарейки, отклеилась наклейка) — это наши заботы. Если поломка механическая по неосторожности — мы найдем компромиссное решение (ремонт или компенсация запчасти) согласно договору."
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Нужно ли стирать текстиль (чехлы, костюмы) перед возвратом?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Нет, это делать не нужно. Мы в любом случае отправляем все текстильные элементы в профессиональную чистку, чтобы гарантировать стерильность следующему малышу. Сдавайте как есть!"
-                                        }
-                                      }, {
-                                        "@type": "Question",
-                                        "name": "Что делать, если товар не подошел или ребенок отказался в нем сидеть?",
-                                        "acceptedAnswer": {
-                                          "@type": "Answer",
-                                          "text": "Мы рекомендуем внимательно выбирать модель (наши консультанты помогут!). Если вещь исправна, но просто не зашла ребенку, возможен досрочный возврат. Перерасчет средств производится согласно условиям договора (обычно пересчитывается по тарифу за фактический срок использования, но не менее минимального срока аренды)."
-                                        }
-                                      }]
-                                    }
-                                    </script>
-    @if(isset($_COOKIE['tt_is_logged_in']))
-        <div data-bb-edit-url="/bb/page_management.php" data-bb-edit-method="POST"
-            data-bb-edit-params='@json(["level_code" => "main", "url_key" => "about"])'></div>
-    @endif
+        <script type="application/ld+json">
+                                            {
+                                              "@context": "https://schema.org",
+                                              "@type": "FAQPage",
+                                              "mainEntity": [{
+                                                "@type": "Question",
+                                                "name": "Как вы обрабатываете товары? Это безопасно для ребенка?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Безопасность — наш приоритет. Мы не просто протираем вещи, а проводим полноценную дезинфекцию в 3 этапа после каждого клиента: стирка гипоаллергенными средствами, обработка паром и кварцевание медицинскими лампами. Товар упаковывается в пленку. Вы получаете гарантированно чистую вещь."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Что нужно для оформления проката? Нужен ли залог?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Для заключения договора необходим только паспорт гражданина РБ (или вид на жительство). В большинстве случаев залог не требуется. Исключение могут составлять дорогостоящие товары или случаи, когда у клиента нет прописки в Минске/Минской области — этот момент менеджер уточнит индивидуально."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Как забронировать вещь и можно ли получить реальное фото товара?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Забронировать можно через сайт (корзину), по телефону или в мессенджерах. Если вы хотите убедиться в состоянии конкретной модели, напишите нам в Viber/Telegram — мы пришлем актуальное фото или видео товара, который поедет к вам."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Есть ли доставка за пределы МКАД и как она рассчитывается?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Да, мы доставляем товары по Минскому району. Стоимость рассчитывается просто: стандартный тариф по городу + доплата за километраж от МКАД. Точную сумму оператор назовет при подтверждении заказа."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Курьер сам заберет товар, когда срок аренды закончится?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "По умолчанию возврат осуществляется клиентом. Однако, если вам неудобно ехать к нам, вы можете заказать услугу вывоза товара курьером. Пожалуйста, сообщите об этом заранее (желательно за 1-2 дня до окончания срока), чтобы мы поставили это в график маршрутов. Услуга платная."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Можно ли заказать доставку/возврат к точному времени?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "У наших курьеров плотный график с интервалами доставки (обычно 3-4 часа). Мы всегда стараемся учитывать пожелания (например, до обеденного сна ребенка), но доставка ровно в 13:00 не всегда возможна из-за дорожной ситуации."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Вы напоминаете об окончании срока аренды?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Мы ценим ваше спокойствие. За сутки до окончания срока наша система автоматически отправляет SMS-напоминание. Вы точно не забудете продлить вещь или подготовить её к возврату."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Как продлить аренду, если вещь еще нужна?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Очень просто! Не нужно приезжать в офис. Просто позвоните нам или напишите в мессенджер. Мы продлим договор дистанционно, а оплату можно будет внести через ЕРИП."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Что делать, если товар сломался у нас дома?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Главное — не паниковать и не пытаться чинить самостоятельно. Сразу свяжитесь с нами. Если это естественный износ (сели батарейки, отклеилась наклейка) — это наши заботы. Если поломка механическая по неосторожности — мы найдем компромиссное решение (ремонт или компенсация запчасти) согласно договору."
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Нужно ли стирать текстиль (чехлы, костюмы) перед возвратом?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Нет, это делать не нужно. Мы в любом случае отправляем все текстильные элементы в профессиональную чистку, чтобы гарантировать стерильность следующему малышу. Сдавайте как есть!"
+                                                }
+                                              }, {
+                                                "@type": "Question",
+                                                "name": "Что делать, если товар не подошел или ребенок отказался в нем сидеть?",
+                                                "acceptedAnswer": {
+                                                  "@type": "Answer",
+                                                  "text": "Мы рекомендуем внимательно выбирать модель (наши консультанты помогут!). Если вещь исправна, но просто не зашла ребенку, возможен досрочный возврат. Перерасчет средств производится согласно условиям договора (обычно пересчитывается по тарифу за фактический срок использования, но не менее минимального срока аренды)."
+                                                }
+                                              }]
+                                            }
+                                            </script>
+        @if(isset($_COOKIE['tt_is_logged_in']))
+            <div data-bb-edit-url="/bb/page_management.php" data-bb-edit-method="POST"
+                data-bb-edit-params='@json(["level_code" => "main", "url_key" => "about"])'></div>
+        @endif
 @endsection
