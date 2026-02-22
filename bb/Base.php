@@ -1033,6 +1033,67 @@ require_once ($_SERVER[\'DOCUMENT_ROOT\'].\'/' . $addr . '\'); // включае
         return $targetDir . $newFileName;
     }
 
+    /**
+     * Uploads a file, converts JPG/PNG to WebP, and returns the path.
+     * Leaves GIF, SVG, etc., as their original formats.
+     *
+     * @param string $targetDir
+     * @param string $tmpFileName
+     * @param string $newFileName
+     * @param int $quality
+     * @return false|string
+     */
+    public static function processAndSaveImageAsWebp($targetDir, $tmpFileName, $newFileName, $quality = 85)
+    {
+        if ($targetDir == '' || $tmpFileName == '' || $newFileName == '')
+            return false;
+        if (substr($targetDir, -1) != '/')
+            $targetDir = $targetDir . '/';
+
+        $fullDir = $_SERVER['DOCUMENT_ROOT'] . $targetDir;
+        if (!is_dir($fullDir)) {
+            mkdir($fullDir, 0755, true);
+        }
+
+        $extension = strtolower(pathinfo($newFileName, PATHINFO_EXTENSION));
+        $baseName = pathinfo($newFileName, PATHINFO_FILENAME);
+
+        $uniqueOriginalName = self::getUniqueFileName($targetDir, $newFileName);
+        $originalFilePath = $fullDir . $uniqueOriginalName;
+
+        if (!move_uploaded_file($tmpFileName, $originalFilePath)) {
+            return false;
+        }
+
+        if (in_array($extension, ['jpg', 'jpeg', 'png']) && function_exists('imagewebp')) {
+            $isPng = ($extension === 'png');
+            $image = null;
+            if ($isPng && function_exists('imagecreatefrompng')) {
+                $image = @imagecreatefrompng($originalFilePath);
+                if ($image) {
+                    imagepalettetotruecolor($image);
+                    imagealphablending($image, true);
+                    imagesavealpha($image, true);
+                }
+            } elseif (!$isPng && function_exists('imagecreatefromjpeg')) {
+                $image = @imagecreatefromjpeg($originalFilePath);
+            }
+
+            if ($image) {
+                $webpFileName = self::getUniqueFileName($targetDir, $baseName . '.webp');
+                $success = imagewebp($image, $fullDir . $webpFileName, $quality);
+                imagedestroy($image);
+
+                if ($success) {
+                    unlink($originalFilePath);
+                    return $targetDir . $webpFileName;
+                }
+            }
+        }
+
+        return $targetDir . $uniqueOriginalName;
+    }
+
     public static function delFile($path)
     {
         if ($path == '')
@@ -1048,7 +1109,9 @@ require_once ($_SERVER[\'DOCUMENT_ROOT\'].\'/' . $addr . '\'); // включае
     public static function loginCheck($in_level = array(0, 5, 7))
     {
         //------- proverka paroley
-        isset($_SESSION['svoi']) ? $_SESSION['svoi'] = $_SESSION['svoi'] : $_SESSION['svoi'] = 0;
+        if (!isset($_SESSION['svoi'])) {
+            $_SESSION['svoi'] = 0;
+        }
         if ($_SESSION['svoi'] != 8941 || !(in_array($_SESSION['level'], $in_level))) {
             die('
                 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
