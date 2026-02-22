@@ -199,6 +199,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
             $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
             if (!file_exists($absolutePath)) {
                 $errors[] = "Файл не найден на диске: $path";
+                logConversion("Missing file for model $model_id, field $colName: $path", 'WARNING');
                 continue;
             }
 
@@ -264,6 +265,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
             $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
             if (!file_exists($absolutePath)) {
                 $errors[] = "Доп.фото не найдено: $path";
+                logConversion("Missing dop_photo for model $model_id, dop_id={$dop['dop_id']}: $path", 'WARNING');
                 continue;
             }
 
