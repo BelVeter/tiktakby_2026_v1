@@ -196,15 +196,21 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
                 continue;
             }
 
-            $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
-            if (!file_exists($absolutePath)) {
-                $errors[] = "Файл не найден на диске: $path";
-                logConversion("Missing file for model $model_id, field $colName: $path", 'WARNING');
-                continue;
-            }
-
             $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
             $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
+
+            $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
+            if (!file_exists($absolutePath)) {
+                // Если оригинал отсутствует, но WebP уже есть (общий файл) - просто обновляем БД
+                if (file_exists($newAbsolutePath)) {
+                    $updates[$colName] = $newRelativePath;
+                    $converted_count++;
+                } else {
+                    $errors[] = "Файл не найден на диске: $path";
+                    logConversion("Missing file for model $model_id, field $colName: $path", 'WARNING');
+                }
+                continue;
+            }
 
             // Конвертируем используя helper функцию
             $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
@@ -262,15 +268,23 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
                 continue;
             }
 
-            $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
-            if (!file_exists($absolutePath)) {
-                $errors[] = "Доп.фото не найдено: $path";
-                logConversion("Missing dop_photo for model $model_id, dop_id={$dop['dop_id']}: $path", 'WARNING');
-                continue;
-            }
-
             $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
             $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
+
+            $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
+            if (!file_exists($absolutePath)) {
+                if (file_exists($newAbsolutePath)) {
+                    // Обновляем запись в БД
+                    $sql_dop = "UPDATE dop_photos SET src = '" . $mysqli->real_escape_string($newRelativePath) . "' WHERE dop_id = " . intval($dop['dop_id']);
+                    if ($mysqli->query($sql_dop)) {
+                        $converted_count++;
+                    }
+                } else {
+                    $errors[] = "Доп.фото не найдено: $path";
+                    logConversion("Missing dop_photo for model $model_id, dop_id={$dop['dop_id']}: $path", 'WARNING');
+                }
+                continue;
+            }
 
             // Конвертируем используя helper функцию
             $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
