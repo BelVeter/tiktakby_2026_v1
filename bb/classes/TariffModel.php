@@ -20,7 +20,7 @@ class TariffModel
 
     public function __construct()
     {
-        $this->tariffs=[];
+        $this->tariffs = [];
     }
 
     /**
@@ -28,13 +28,13 @@ class TariffModel
      * @return Tariff[]|bool
      * @throws \Exception
      */
-    public static function getTariffsForModel($model_id) {
+    public static function getTariffsForModel($model_id)
+    {
 
         if (isset(self::$all_tariffs[$model_id])) {//check if already loaded
 
             return self::$all_tariffs[$model_id];
-        }
-        else {
+        } else {
 
             $tarifs = [];
 
@@ -64,16 +64,18 @@ class TariffModel
      * @return TariffModel|bool
      * @throws \Exception
      */
-    public static function getTarifModelForModelId($modelId){
+    public static function getTarifModelForModelId($modelId)
+    {
         $mod_tariffs = new self();
-            $mod_tariffs->tariffs = self::getTariffsForModel($modelId);
+        $mod_tariffs->tariffs = self::getTariffsForModel($modelId);
         return $mod_tariffs;
     }
 
     /**
      * @return Tariff[]
      */
-    public function getTarifs(){
+    public function getTarifs()
+    {
         return $this->tariffs;
     }
 
@@ -82,7 +84,8 @@ class TariffModel
      * @return Tariff|void|null
      * @throws \Exception
      */
-    public static function getChippestTarifByModelId($model_id){
+    public static function getChippestTarifByModelId($model_id)
+    {
 
         $mysqli = \bb\Db::getInstance()->getConnection();
         //запрашиваем тариф the smallest one
@@ -91,41 +94,46 @@ class TariffModel
         if (!$result) {
             die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
         }
-        if ($result->num_rows<1) return null;
+        if ($result->num_rows < 1)
+            return null;
         else {
             return Tariff::getFromDbArray($result->fetch_assoc());
         }
     }
 
-    public function allTariffsText() {
-        if (count($this->tariffs)<1) {
+    public function allTariffsText()
+    {
+        if (count($this->tariffs) < 1) {
             return 'нет';
-        }
-        else {
+        } else {
             $rez = '';
             foreach ($this->tariffs as $t) {
-                $rez .= $t->kol_vo . ' ' . $t->shortStepText() . ' - '.number_format($t->rent_amount, 2, ',', ' ').'<br>';
+                $rez .= $t->kol_vo . ' ' . $t->shortStepText() . ' - ' . number_format($t->rent_amount, 2, ',', ' ') . '<br>';
             }
             return $rez;
         }
     }
 
-    public function tarNum(){
-        if(is_array($this->tariffs)) return count($this->tariffs);
-        else return 0;
+    public function tarNum()
+    {
+        if (is_array($this->tariffs))
+            return count($this->tariffs);
+        else
+            return 0;
 
     }
 
-    public static function getHtmlTarifInputs($model_id){
-        $rez='';
+    public static function getHtmlTarifInputs($model_id)
+    {
+        $rez = '';
         $tars = self::getTariffsForModel($model_id)->getTarifs();
-        if ($tars & count($tars)>0) {
-            foreach ($tars as $t){
-                $rez.='<input type="hidden" class="tarifs-in-days" name="'.$t->getPeriodInDays().'" value="'.$t->getTotalAmount().'">';
+        if ($tars & count($tars) > 0) {
+            foreach ($tars as $t) {
+                $rez .= '<input type="hidden" class="tarifs-in-days" name="' . $t->getPeriodInDays() . '" value="' . $t->getTotalAmount() . '">';
             }
             return $rez;
-        }
-        else return false;
+        } else
+            return false;
 
     }
 
@@ -133,65 +141,74 @@ class TariffModel
      * @param $days
      * @return float
      */
-    public function getAmmountForDaysPeriod($days){
-        if (count($this->getTarifs()) <1 ) return 0;
+    public function getAmmountForDaysPeriod($days)
+    {
+        if (count($this->getTarifs()) < 1)
+            return 0;
 
         $tarifs = [];
 
         foreach ($this->getTarifs() as $t) {
-          if ($t->getDaysCalculatedNumber()==0) {
-            $tarifs[] = [0, 0];
-          }
-          else{
-            $tarifs[] = [$t->getDaysCalculatedNumber(), round(($t->getTotalAmount()/$t->getDaysCalculatedNumber()),2)];
-          }
+            if ($t->getDaysCalculatedNumber() == 0) {
+                $tarifs[] = [0, 0];
+            } else {
+                $tarifs[] = [$t->getDaysCalculatedNumber(), round(($t->getTotalAmount() / $t->getDaysCalculatedNumber()), 2)];
+            }
 
         }
 
-        usort($tarifs, function ($a,$b){
-            return $a[0]-$b[0];
+        usort($tarifs, function ($a, $b) {
+            return $a[0] - $b[0];
         });
 
         $tarifPerDay = $tarifs[0][1];
         foreach ($tarifs as $tar) {
-            if ($days>=$tar[0]) $tarifPerDay = $tar[1];
+            if ($days >= $tar[0])
+                $tarifPerDay = $tar[1];
         }
 
-        return round(($days*$tarifPerDay),2);
+        $amount = round(($days * $tarifPerDay), 2);
+
+        // Ceiling check: don't exceed next tier total
+        $tarifsDesc = $tarifs;
+        usort($tarifsDesc, function ($a, $b) {
+            return $b[0] - $a[0];
+        });
+
+        $currentTierDays = $tarifs[0][0];
+        foreach ($tarifs as $tar) {
+            if ($days >= $tar[0])
+                $currentTierDays = $tar[0];
+        }
+
+        foreach ($tarifsDesc as $tar) {
+            if ($tar[0] > $currentTierDays) {
+                $ceilingAmount = round($tar[0] * $tar[1], 2);
+                if ($amount > $ceilingAmount) {
+                    $amount = $ceilingAmount;
+                }
+            }
+        }
+
+        return $amount;
     }
 
     /**
      * @param $days
      * @return float
      */
-    public function getDaylyTarifForDaysPeriod($days){
+    public function getDaylyTarifForDaysPeriod($days)
+    {
 
-        if (count($this->getTarifs()) <1 ) return 0;
+        if (count($this->getTarifs()) < 1)
+            return 0;
 
-        $tarifs = [];
-
-        foreach ($this->getTarifs() as $t) {
-          if ($t->getDaysCalculatedNumber()==0){
-            $tarifs[] = [0, 0];
-          }
-          else{
-            $tarifs[] = [$t->getDaysCalculatedNumber(), round(($t->getTotalAmount()/$t->getDaysCalculatedNumber()),2)];
-          }
-
+        $totalAmount = $this->getAmmountForDaysPeriod($days);
+        if ($days > 0 && $totalAmount > 0) {
+            return round($totalAmount / $days, 2);
         }
 
-//        dd($tarifs);
-        usort($tarifs, function ($a,$b){
-            return $a[0]-$b[0];
-        });
-
-        $tarifPerDay = $tarifs[0][1];
-
-        foreach ($tarifs as $tar) {
-            if ($days>=$tar[0]) $tarifPerDay = $tar[1];
-        }
-
-        return round($tarifPerDay,2);
+        return 0;
     }
 
 
