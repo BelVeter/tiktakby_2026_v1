@@ -158,27 +158,27 @@
                                     <div class="ps-assortment-item__label">Коляска</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/kolybeli/4momsmamaroosleep_bassinet/4momsmamaroosleep_bassinet.jpg"
+                                    <img src="/public/rent/images/kolybeli/4momsmamaroosleep_bassinet/4momsmamaroosleep_bassinet.webp"
                                         alt="Колыбель" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Колыбель</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/kolybel-kacheli/electric_kacheli_4moms_mamaroo_4.0_color_multiplush/1.jpg"
+                                    <img src="/public/rent/images/kolybel-kacheli/electric_kacheli_4moms_mamaroo_4.0_color_multiplush/1.webp"
                                         alt="Кокон" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Кокон</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/vannochka/StokkeFlexi_Bath/6441440515.jpg"
+                                    <img src="/public/rent/images/vannochka/StokkeFlexi_Bath/6441440515.webp"
                                         alt="Ванночка для купания" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Ванночка для купания</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/scales/vesy_detskie_laica_MD6141/http-www.jpg" alt="Весы"
+                                    <img src="/public/rent/images/scales/vesy_detskie_laica_MD6141/http-www.webp" alt="Весы"
                                         class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Весы</div>
                                 </div>
                                 <div class="ps-assortment-item">
-                                    <img src="/public/rent/images/radio-nyana/philips_avent_philips_avent_scd_501/philips_avent_philips_avent_scd5011.jpg"
+                                    <img src="/public/rent/images/radio-nyana/philips_avent_philips_avent_scd_501/philips_avent_philips_avent_scd5011.webp"
                                         alt="Радионяня" class="ps-assortment-item__img">
                                     <div class="ps-assortment-item__label">Радионяня</div>
                                 </div>
