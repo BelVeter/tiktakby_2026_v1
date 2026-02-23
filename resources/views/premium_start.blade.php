@@ -186,9 +186,39 @@
                         </div>
                     </div>
                     <div class="ps-tab-content" id="tab-2">
-                        <div class="ps-timeline__images">
-                            <img src="https://placehold.co/800x400/F8F5F2/D4A373?text=Товары+4-8+месяцев"
-                                alt="Товары 4-8 месяцев">
+                        <div class="ps-timeline__images ps-timeline__images--transparent">
+                            <div class="ps-assortment-fan">
+                                <div class="ps-assortment-item">
+                                    <img src="/public/rent/images/prokat/autokresla/img/maxi_cosi_pebble_b.webp"
+                                        alt="Автокресло" class="ps-assortment-item__img">
+                                    <div class="ps-assortment-item__label">Автокресло</div>
+                                </div>
+                                <div class="ps-assortment-item">
+                                    <img src="/public/rent/images/stulchiki/stulchik_peg_perego_siesta/stulchik_peg_perego_siesta1.webp"
+                                        alt="Стульчик для кормления" class="ps-assortment-item__img">
+                                    <div class="ps-assortment-item__label">Стульчик для кормления</div>
+                                </div>
+                                <div class="ps-assortment-item">
+                                    <img src="/public/rent/images/prygunki/prygunki_fisher_price_precious_planet/preciuos-planet-fisher-price.webp"
+                                        alt="Прыгунки" class="ps-assortment-item__img">
+                                    <div class="ps-assortment-item__label">Прыгунки</div>
+                                </div>
+                                <div class="ps-assortment-item">
+                                    <img src="/public/rent/images/detskie-kolyaski-naprokat/PegPeregoVolo_prokat/IP31000000BK01BK94_GALLERY02.webp"
+                                        alt="Прогулочная коляска" class="ps-assortment-item__img">
+                                    <div class="ps-assortment-item__label">Прогулочная коляска</div>
+                                </div>
+                                <div class="ps-assortment-item">
+                                    <img src="/public/rent/images/prokat/kovriki_razvivauschie/img/tiny_love_les_b.webp"
+                                        alt="Коврик" class="ps-assortment-item__img">
+                                    <div class="ps-assortment-item__label">Коврик</div>
+                                </div>
+                                <div class="ps-assortment-item">
+                                    <img src="/public/rent/images/radio-nyana/SCD711/52Avent/3b46db04a4c74380adf7ac5500e40b62.webp"
+                                        alt="Радионяня" class="ps-assortment-item__img">
+                                    <div class="ps-assortment-item__label">Радионяня</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="ps-tab-content" id="tab-3">
