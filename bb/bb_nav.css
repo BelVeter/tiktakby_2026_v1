@@ -75,6 +75,23 @@
     display: inline-block;
 }
 
+/* Red badge — new unprocessed zayavki (top-right) */
+.bb-icon-nav__badge--red {
+    background: #e53935;
+    box-shadow: 0 1px 3px rgba(229, 57, 53, 0.4);
+    top: -6px;
+    right: -6px;
+}
+
+/* Green badge — item became available (bottom-right) */
+.bb-icon-nav__badge--green {
+    background: #43a047;
+    box-shadow: 0 1px 3px rgba(67, 160, 71, 0.4);
+    top: auto;
+    bottom: -6px;
+    right: -6px;
+}
+
 .bb-icon-nav__home-icon {
     width: 24px;
     height: 24px;
