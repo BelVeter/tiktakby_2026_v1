@@ -40,7 +40,7 @@ $_bb_nav_items = [
     ],
 ];
 ?>
-<link rel="stylesheet" href="/bb/bb_nav.css?v=2">
+<link rel="stylesheet" href="/bb/bb_nav.css?v=4">
 <nav class="bb-icon-nav">
     <?php foreach ($_bb_nav_items as $item): ?>
         <?php if (!empty($item['type']) && $item['type'] === 'dropdown'): ?>
@@ -66,7 +66,10 @@ $_bb_nav_items = [
                 href="<?= $item['href'] ?>">
                 <?= $item['icon'] ?>
                 <?= $item['label'] ?>
-                <?php if (!empty($item['badge'])): ?>
+                <?php if (!empty($item['badge']) && $item['badge'] === 'zayavki'): ?>
+                    <span class="bb-icon-nav__badge bb-icon-nav__badge--red" id="bb-nav-badge-zayavki-new"></span>
+                    <span class="bb-icon-nav__badge bb-icon-nav__badge--green" id="bb-nav-badge-zayavki-avail"></span>
+                <?php elseif (!empty($item['badge'])): ?>
                     <span class="bb-icon-nav__badge" id="bb-nav-badge-<?= $item['badge'] ?>"></span>
                 <?php endif; ?>
             </a>
@@ -90,13 +93,25 @@ $_bb_nav_items = [
                         }
                     }
 
-                    var badgeZayavk = document.getElementById('bb-nav-badge-zayavki');
-                    if (badgeZayavk) {
-                        if (data.count_zayavk > 0) {
-                            badgeZayavk.textContent = data.count_zayavk;
-                            badgeZayavk.classList.add('bb-icon-nav__badge--visible');
+                    // Blue badge: new unprocessed zayavki
+                    var badgeNew = document.getElementById('bb-nav-badge-zayavki-new');
+                    if (badgeNew) {
+                        if (data.count_zayavk_new > 0) {
+                            badgeNew.textContent = data.count_zayavk_new;
+                            badgeNew.classList.add('bb-icon-nav__badge--visible');
                         } else {
-                            badgeZayavk.classList.remove('bb-icon-nav__badge--visible');
+                            badgeNew.classList.remove('bb-icon-nav__badge--visible');
+                        }
+                    }
+
+                    // Green badge: zayavki where item became available
+                    var badgeAvail = document.getElementById('bb-nav-badge-zayavki-avail');
+                    if (badgeAvail) {
+                        if (data.count_zayavk_avail > 0) {
+                            badgeAvail.textContent = data.count_zayavk_avail;
+                            badgeAvail.classList.add('bb-icon-nav__badge--visible');
+                        } else {
+                            badgeAvail.classList.remove('bb-icon-nav__badge--visible');
                         }
                     }
                 })
