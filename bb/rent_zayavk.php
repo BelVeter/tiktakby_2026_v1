@@ -328,7 +328,7 @@ if (isset($_POST['action'])) {
 }
 
 
-$query_or = "SELECT * FROM rent_orders WHERE type2='zayavka' ORDER BY validity";
+$query_or = "SELECT * FROM rent_orders WHERE type2='zayavka' ORDER BY (info2 IS NULL OR info2 = '') DESC, validity";
 $result_or = $mysqli->query($query_or);
 if (!$result_or) {
 	die('Сбой при доступе к базе данных: ' . $query_or . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -385,8 +385,9 @@ while ($ord = $result_or->fetch_assoc()) {
 
 
 
+	$is_new = ($br_line->info2 === null || $br_line->info2 === '');
 	echo '
-	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '">
+	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '"' . ($is_new ? ' style="background-color:#e3f2fd;"' : '') . '>
 		<td style="text-align: center;"><img src="' . $br_line->small_pic . '" style="max-height: 80px; width: auto;" /></td>
 		<td ' . ($it_free_num > 0 ? 'style="background-color:#acf398;"' : '') . '>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" <br />
 		' . (User::getCurrentUser()->isAdmin() ? 'br_id:' . $br_line->order_id : '') . '
