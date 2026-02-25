@@ -285,25 +285,25 @@ if ($item_rows == 1) {
 	if ($tarif_rows > 0) {
 
 		// выборка действующих тарифов
+		$tarif_idx = 0;
 		$tarif_code = '
-			<table border="1" cellspacing="0">
-				  <tr>
-				    <th scope="col">сумма</th>
-				    <th scope="col">за весь период</th>
-				    <th scope="col">за шаг</th>
-				    <th scope="col">выбрать тариф</th>
+			<style>.tt-row:hover{background:#bbdefb!important;}</style>
+			<table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:13px;width:auto;">
+				  <tr style="background:#455a64;color:#fff;">
+				    <th style="padding:4px 10px;text-align:left;">Сумма</th>
+				    <th style="padding:4px 10px;text-align:left;">Период</th>
+				    <th style="padding:4px 10px;text-align:left;">За шаг</th>
 				  </tr>';
 
 		while ($tarif = $result_tarif->fetch_assoc()) {
+			$bg = ($tarif_idx % 2 == 0) ? '#f5f5f5' : '#e8eaf6';
 			$tarif_code = $tarif_code . '
-				  <tr>
-				    <td>' . $tarif['rent_amount'] . ' руб. <input type="hidden" value="' . $tarif['rent_amount'] . '" id="rent_amount_' . $tarif['tarif_id'] . '" /></td>
-				   	<td> за ' . $tarif['kol_vo'] . ' ' . tenor_print($tarif['step'], $tarif['kol_vo']) . '<input type="hidden" value="' . $tarif['kol_vo'] . '" id="kol_vo_' . $tarif['tarif_id'] . '" /><input type="hidden" value="' . $tarif['kol_vo_min'] . '" id="kol_vo_min_' . $tarif['tarif_id'] . '" /><input type="hidden" value="' . $tarif['step'] . '" id="step_' . $tarif['tarif_id'] . '" /></td>
-				   	<td>=' . $tarif['rent_per_step'] . ' руб. в ' . tenor_print($tarif['step'], 'd') . ' <input type="hidden" value="' . $tarif['rent_per_step'] . '" id="rent_per_step_' . $tarif['tarif_id'] . '" /></td>
-				    <td><input type="button" name="button" id="button" value="Выбрать" onclick="apply_tarif(\\\'' . $tarif['tarif_id'] . '\\\'); return false;" disabled />
-				        <input type="hidden" class="tarif" data-days="' . ($tarif['sort_num'] * $tarif['kol_vo']) . '" value="' . ($tarif['rent_amount']) . '">
-				    </td>
+				  <tr class="tt-row" style="cursor:pointer;background:' . $bg . ';" onclick="apply_tarif(\\\'' . $tarif['tarif_id'] . '\\\'); this.style.background=\\\'#a5d6a7\\\'; return false;">
+				    <td style="padding:3px 10px;white-space:nowrap;">' . $tarif['rent_amount'] . ' р.<input type="hidden" value="' . $tarif['rent_amount'] . '" id="rent_amount_' . $tarif['tarif_id'] . '" /></td>
+				   	<td style="padding:3px 10px;white-space:nowrap;">' . $tarif['kol_vo'] . ' ' . tenor_print($tarif['step'], $tarif['kol_vo']) . '<input type="hidden" value="' . $tarif['kol_vo'] . '" id="kol_vo_' . $tarif['tarif_id'] . '" /><input type="hidden" value="' . $tarif['kol_vo_min'] . '" id="kol_vo_min_' . $tarif['tarif_id'] . '" /><input type="hidden" value="' . $tarif['step'] . '" id="step_' . $tarif['tarif_id'] . '" /></td>
+				   	<td style="padding:3px 10px;white-space:nowrap;">=' . $tarif['rent_per_step'] . ' р./' . tenor_print($tarif['step'], 'd') . '<input type="hidden" value="' . $tarif['rent_per_step'] . '" id="rent_per_step_' . $tarif['tarif_id'] . '" /><input type="hidden" class="tarif" data-days="' . ($tarif['sort_num'] * $tarif['kol_vo']) . '" value="' . ($tarif['rent_amount']) . '"></td>
 				  </tr>';
+			$tarif_idx++;
 		}
 
 		$tarif_code = $tarif_code . '</table>
