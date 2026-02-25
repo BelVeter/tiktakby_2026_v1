@@ -443,15 +443,21 @@ if ($item_rows == 1) {
 
 		<br />
 
-<div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;">
-<div>' . $tarif_code . '</div>
-<div style="font-size:13px;display:flex;flex-direction:column;gap:6px;padding-top:2px;">
-  <div>Тариф: <input type="number" step="0.01" name="rent_tarif" id="rent_tarif" value="" readonly style="background-color:#cacaca;width:70px;" /> бел. руб.
+' . $tarif_code . '
+
+<div style="display:flex;align-items:flex-start;gap:18px;margin-top:4px;">
+<div style="font-size:13px;">
+  <div style="margin-bottom:4px;">Тариф: <input type="number" step="0.01" name="rent_tarif" id="rent_tarif" value="" readonly style="background-color:#cacaca;width:70px;" /> бел. руб.
     <input type="hidden" name="tarif_id" id="tarif_id" value="" />
-    <select name="step" id="step" style="display:none;"><option value="day" selected="selected">в день</option></select>
+    <select name="step" id="step">
+      <option value="day" selected="selected">в день</option>
+      <option value="week">в неделю</option>
+      <option value="month">в месяц</option>
+    </select>
   </div>
-  <div>Кол-во (д/н/м): <input type="number" step="any" name="rent_tenor" id="rent_tenor" onchange="daysChange();" onkeydown="return event.key != \\\'Enter\\\';" value="" style="width:60px;" ' . ((\bb\classes\tovar::isKarnavalByInvN($item_inv_n)) ? 'readonly="readonly"' : '') . ' /></div>
-  <div>Скидка: <input min="0" max="100" step="5" style="width:50px;font-size:14px;background-color:orange;text-align:center;border-radius:4px;border:1px solid #ccc;" type="number" name="discount" id="discount" value="0" onchange="calculateNew();"> %</div>
+  <div style="margin-bottom:4px;">Кол-во (д/н/м): <input type="number" step="any" name="rent_tenor" id="rent_tenor" onchange="daysChange();" onkeydown="return event.key != \\\'Enter\\\';" value="" style="width:60px;" ' . ((\bb\classes\tovar::isKarnavalByInvN($item_inv_n)) ? 'readonly="readonly"' : '') . ' />
+    &nbsp;&nbsp; Скидка: <input min="0" max="100" step="5" style="width:50px;font-size:14px;background-color:orange;text-align:center;border-radius:4px;border:1px solid #ccc;" type="number" name="discount" id="discount" value="0" onchange="calculateNew();"> %
+  </div>
   <div><input type="button" value="пересчитать" id="calc_button" onclick="calculateNew(); return false;" style="padding:4px 12px;cursor:pointer;" /></div>
 </div>
 </div>
@@ -1009,24 +1015,23 @@ if ($item_rows == 1) {
 				   	' . $sub_dl_def['tarif_value'] . ' руб. в ' . tenor_print($sub_dl_def['tarif_step'], 'd') . ' <input type="hidden" value="' . $sub_dl_def['tarif_value'] . '" id="rent_per_step_old" />
 				   	<input type="hidden" class="tarifPrev" data-days="' . ($oldTarifDays) . '" value="' . ($sub_dl_def['tarif_value']) . '">
 				   	</td>
-		<td><input type="button" name="button" id="button" value="Выбрать" onclick="apply_tarif(\\\'old\\\'); return false;" disabled />
+		<td><input type="button" name="button" id="button" value="Выбрать" onclick="apply_tarif(\\\'old\\\'); return false;" />
 		</td></tr>
 		</table>
 
 <strong>Актуальные тарифы:</strong><br />
 ' . $tarif_code . '
 
-Тариф:<input type="number" step="0.01" name="rent_tarif" id="rent_tarif" value="" readonly style="background-color: #cacaca" />бел. руб.
-	<input type="hidden" name="tarif_id" id="tarif_id" value="" />	<!--сохранение выбранного тарифа-->
-
+Тариф:<input type="number" step="0.01" name="rent_tarif" id="rent_tarif" value="" readonly style="background-color: #cacaca; width:70px;" />бел. руб.
+	<input type="hidden" name="tarif_id" id="tarif_id" value="" />
 <select name="step" id="step">
 	<option value="day">в день</option>
-	<!--<option selected="selected" value="week">в неделю</option>-->
-	<!--<option value="month">в месяц</option>-->
+	<option value="week">в неделю</option>
+	<option value="month">в месяц</option>
 </select>
-количество (д/н/м - по тарифу):<input type="number" name="rent_tenor" id="rent_tenor" onchange="daysChange();" value="" size="10"/><br/>
-
-		<input type="button" value="пересчитать" id="calc_button" onclick="calculate(); return false;" /><br />
+количество (д/н/м):<input type="number" name="rent_tenor" id="rent_tenor" onchange="daysChange();" value="" style="width:60px;"/>
+&nbsp;&nbsp; Скидка: <input min="0" max="100" step="5" style="width:50px;font-size:14px;background-color:orange;text-align:center;border-radius:4px;border:1px solid #ccc;" type="number" name="discount" id="discount" value="0" onchange="calculateNew();"> %<br/>
+		<input type="button" value="пересчитать" id="calc_button" onclick="calculateNew(); return false;" /><br />
 
 Стоимость аренды:<input type="text" name="r_to_pay" id="r_to_pay" size="10" value="" />,
 		<select name="rent_payment_type" id="rent_payment_type" onchange="multi_ch();" >
