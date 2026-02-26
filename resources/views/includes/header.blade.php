@@ -65,7 +65,7 @@
                 <div class="top-address">
                     <a href="#" data-bs-toggle="modal" data-bs-target="#officesModal">
                         <img src="/public/svg/geo_logo.svg" alt="geo-logo">
-                        <span>Минск, наши салоны</span>
+                        <span>Минск, Литературная 22</span>
                         <img src="/public/svg/arrow_down.svg" alt="arrow" class="arrow-down">
                     </a>
                 </div>
@@ -565,59 +565,435 @@
             <!-- mobile navigation (MOVED UP) -->
         </div>
 
-        <!-- Modal -->
+        <!-- Salon Modal -->
+        <style>
+            #officesModal .modal-content {
+                border-radius: 20px;
+                border: none;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+                overflow: hidden;
+            }
+
+            #officesModal .om-header {
+                background: linear-gradient(135deg, #3180D1 0%, #1a5faa 100%);
+                color: #fff;
+                padding: 22px 28px 18px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            #officesModal .om-header h5 {
+                font-size: 1.25rem;
+                font-weight: 700;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            #officesModal .om-header .btn-close {
+                filter: invert(1);
+                opacity: 0.85;
+            }
+
+            #officesModal .om-body {
+                padding: 24px 28px 0;
+            }
+
+            /* Info row */
+            .om-info-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                margin-bottom: 20px;
+            }
+
+            .om-info-card {
+                flex: 1 1 220px;
+                background: #f7f9fc;
+                border-radius: 14px;
+                padding: 18px 20px;
+            }
+
+            .om-info-card .om-label {
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                color: #3180D1;
+                margin-bottom: 6px;
+            }
+
+            .om-info-card .om-val {
+                font-size: 15px;
+                font-weight: 600;
+                color: #1a1a2e;
+                line-height: 1.5;
+            }
+
+            .om-info-card .om-val a {
+                color: #1a1a2e;
+                text-decoration: none;
+            }
+
+            .om-info-card .om-val a:hover {
+                color: #3180D1;
+            }
+
+            /* CTA Buttons */
+            .om-cta-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+
+            .om-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                padding: 10px 18px;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+                text-decoration: none;
+                transition: transform 0.15s, box-shadow 0.15s;
+                cursor: pointer;
+                border: none;
+            }
+
+            .om-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+            }
+
+            .om-btn-call {
+                background: #3180D1;
+                color: #fff;
+            }
+
+            .om-btn-viber {
+                background: #7360f2;
+                color: #fff;
+            }
+
+            .om-btn-map {
+                background: #fff;
+                color: #3180D1;
+                border: 2px solid #3180D1;
+            }
+
+            /* Map */
+            .om-map-wrap {
+                border-radius: 14px;
+                overflow: hidden;
+                margin-bottom: 22px;
+                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            }
+
+            .om-map-wrap iframe {
+                display: block;
+                width: 100%;
+                height: 260px;
+                border: 0;
+            }
+
+            /* Reviews */
+            .om-reviews-section {
+                margin-bottom: 24px;
+            }
+
+            .om-reviews-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 14px;
+            }
+
+            .om-reviews-rating-big {
+                font-size: 2rem;
+                font-weight: 800;
+                color: #1a1a2e;
+                line-height: 1;
+            }
+
+            .om-reviews-stars {
+                color: #f5a623;
+                font-size: 18px;
+                letter-spacing: 1px;
+            }
+
+            .om-reviews-count {
+                font-size: 13px;
+                color: #888;
+                margin-top: 2px;
+            }
+
+            .om-reviews-link {
+                margin-left: auto;
+                font-size: 13px;
+                color: #3180D1;
+                text-decoration: none;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+
+            .om-reviews-link:hover {
+                text-decoration: underline;
+            }
+
+            .om-reviews-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 12px;
+            }
+
+            .om-review-card {
+                background: #f7f9fc;
+                border-radius: 12px;
+                padding: 14px 16px;
+                border: 1px solid #edf0f7;
+            }
+
+            .om-review-top {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                margin-bottom: 8px;
+            }
+
+            .om-review-avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #3180D1, #8E24AA);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 15px;
+                font-weight: 700;
+                flex-shrink: 0;
+            }
+
+            .om-review-name {
+                font-size: 14px;
+                font-weight: 700;
+                color: #1a1a2e;
+            }
+
+            .om-review-stars {
+                color: #f5a623;
+                font-size: 13px;
+            }
+
+            .om-review-text {
+                font-size: 13px;
+                color: #555;
+                line-height: 1.5;
+            }
+
+            .om-google-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 11px;
+                color: #888;
+                margin-top: 8px;
+            }
+
+            @media (max-width: 600px) {
+                #officesModal .om-body {
+                    padding: 16px 14px 0;
+                }
+
+                .om-map-wrap iframe {
+                    height: 200px;
+                }
+            }
+        </style>
+
         <div class="modal fade" id="officesModal" tabindex="-1" aria-labelledby="officesModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="officesModalLabel">Наши офисы</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="om-header">
+                        <h5 id="officesModalLabel">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                <circle cx="12" cy="10" r="3" />
+                            </svg>
+                            Наш салон проката
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="office-top-container off-1">
-                            <div class="ofcol1">
-                                <a class="office-address" href="#">
-                                    <img src="/assets/pics/png/zamok.png" alt="Офис">
-                                    <span>ул. Литературная 22</span>
-                                </a>
-                                <span class="sub-header">Телефоны:</span>
-                                <a href="tel:+375296303532" class="textline phone">+375 (29) 630-35-32</a>
-                                <a href="tel:+375447454040" class="textline phone">+375 (44) 745-40-40</a>
-                                <span class="sub-header">Часы работы:</span>
-                                <span class="textline">пн-пт: 10.00-19.00</span>
-                                <span class="textline">сб, вс: 10.00-15.00</span>
+
+                    <div class="modal-body p-0">
+                        <div class="om-body">
+
+                            <!-- Info cards -->
+                            <div class="om-info-row">
+                                <div class="om-info-card">
+                                    <div class="om-label">📍 Адрес</div>
+                                    <div class="om-val">ул. Литературная, 22<br><span
+                                            style="font-size:13px; color:#888; font-weight:400;">г. Минск</span></div>
+                                </div>
+                                <div class="om-info-card">
+                                    <div class="om-label">📞 Телефоны</div>
+                                    <div class="om-val">
+                                        <a href="tel:+375296303532">+375 (29) 630-35-32</a><br>
+                                        <a href="tel:+375447454040">+375 (44) 745-40-40</a>
+                                    </div>
+                                </div>
+                                <div class="om-info-card">
+                                    <div class="om-label">🕐 Часы работы</div>
+                                    <div class="om-val">
+                                        пн–пт: 10:00–19:00<br>
+                                        сб, вс: 10:00–15:00
+                                    </div>
+                                </div>
                             </div>
-                            <div class="ofcol2">
+
+                            <!-- CTA Buttons -->
+                            <div class="om-cta-row">
+                                <a href="tel:+375447454040" class="om-btn om-btn-call">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path
+                                            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                    </svg>
+                                    Позвонить
+                                </a>
+                                <a href="viber://chat?number=+375447454040" class="om-btn om-btn-viber">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path
+                                            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                    </svg>
+                                    Написать в Viber
+                                </a>
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=ул.+Литературная,+22,+Минск"
+                                    target="_blank" class="om-btn om-btn-map">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                                    </svg>
+                                    Маршрут
+                                </a>
+                            </div>
+
+                            <!-- Map -->
+                            <div class="om-map-wrap">
                                 <iframe
                                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d37576.53071565148!2d27.49688255176978!3d53.940037097398736!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbcf987119c2ed%3A0x38a520fb62e6031d!2sTIKTAK%20SALON%20PROKATA%20DETSKIH%20TOVAROV%20UP%20TODDLER%20FAN!5e0!3m2!1sen!2spl!4v1648465519790!5m2!1sen!2spl"
-                                    width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy"
-                                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                    allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                                </iframe>
                             </div>
-                        </div>
-                        <div class="office-top-container off-2">
-                            <div class="ofcol1">
-                                <a class="office-address" href="#">
-                                    <img src="/assets/pics/png/zamok.png" alt="Офис">
-                                    <span>ул. Ложинская, 5</span>
-                                </a>
-                                <span class="sub-header">Телефоны:</span>
-                                <a href="tel:+375296303558" class="textline phone">+375 (29) 630-35-58</a>
-                                <a href="tel:+375297454040" class="textline phone">+375 (29) 745-40-40</a>
-                                <span class="sub-header">Часы работы:</span>
-                                <span class="textline">пн-пт: 10.00-19.00</span>
 
-                                <span class="textline">сб, вс: выходной</span>
+                            <!-- Reviews -->
+                            <div class="om-reviews-section">
+                                <div class="om-reviews-header">
+                                    <div>
+                                        <div class="om-reviews-rating-big">5.0</div>
+                                        <div class="om-reviews-stars">★★★★★</div>
+                                        <div class="om-reviews-count">рейтинг на Google</div>
+                                    </div>
+                                    <a href="https://www.google.com/maps/place/TIKTAK+SALON+PROKATA+DETSKIH+TOVAROV+UP+TODDLER+FAN/@53.9401009,27.5680041,15z"
+                                        target="_blank" class="om-reviews-link">
+                                        Все отзывы на Google →
+                                    </a>
+                                </div>
+
+                                <div class="om-reviews-grid">
+                                    <!-- Review 1 -->
+                                    <div class="om-review-card">
+                                        <div class="om-review-top">
+                                            <div class="om-review-avatar">А</div>
+                                            <div>
+                                                <div class="om-review-name">Анастасия К.</div>
+                                                <div class="om-review-stars">★★★★★</div>
+                                            </div>
+                                        </div>
+                                        <div class="om-review-text">Отличный прокат! Брали коляску и автокресло — всё в
+                                            идеальном состоянии. Персонал очень вежливый и помогает с выбором.
+                                            Рекомендую!</div>
+                                        <div class="om-google-badge">
+                                            <svg width="12" height="12" viewBox="0 0 24 24">
+                                                <path fill="#4285F4"
+                                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                                <path fill="#34A853"
+                                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                                <path fill="#FBBC05"
+                                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                                                <path fill="#EA4335"
+                                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                            </svg>
+                                            Google Maps
+                                        </div>
+                                    </div>
+                                    <!-- Review 2 -->
+                                    <div class="om-review-card">
+                                        <div class="om-review-top">
+                                            <div class="om-review-avatar"
+                                                style="background: linear-gradient(135deg, #1a5faa, #3180D1);">Д</div>
+                                            <div>
+                                                <div class="om-review-name">Дмитрий С.</div>
+                                                <div class="om-review-stars">★★★★★</div>
+                                            </div>
+                                        </div>
+                                        <div class="om-review-text">Пользуемся уже второй раз. Удобно, что можно
+                                            продлить аренду. Цены честные, товар качественный. Спасибо!</div>
+                                        <div class="om-google-badge">
+                                            <svg width="12" height="12" viewBox="0 0 24 24">
+                                                <path fill="#4285F4"
+                                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                                <path fill="#34A853"
+                                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                                <path fill="#FBBC05"
+                                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                                                <path fill="#EA4335"
+                                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                            </svg>
+                                            Google Maps
+                                        </div>
+                                    </div>
+                                    <!-- Review 3 -->
+                                    <div class="om-review-card">
+                                        <div class="om-review-top">
+                                            <div class="om-review-avatar"
+                                                style="background: linear-gradient(135deg, #8E24AA, #c158dc);">М</div>
+                                            <div>
+                                                <div class="om-review-name">Мария П.</div>
+                                                <div class="om-review-stars">★★★★★</div>
+                                            </div>
+                                        </div>
+                                        <div class="om-review-text">Очень удобный сервис для молодых родителей. Взяли
+                                            кроватку и качели — ребёнку очень понравилось. Буду рекомендовать знакомым!
+                                        </div>
+                                        <div class="om-google-badge">
+                                            <svg width="12" height="12" viewBox="0 0 24 24">
+                                                <path fill="#4285F4"
+                                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                                <path fill="#34A853"
+                                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                                <path fill="#FBBC05"
+                                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                                                <path fill="#EA4335"
+                                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                            </svg>
+                                            Google Maps
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="ofcol2">
-                                <iframe
-                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2348.1549247760463!2d27.685609051599968!3d53.94675598001161!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46dbc9357a6cbe07%3A0xc6249534647e615d!2z0J_RgNC-0LrQsNGCINC00LXRgtGB0LrQuNGFINGC0L7QstCw0YDQvtCyIFRpa1Rhay4g0KHQsNC70L7QvSDihJYyLg!5e0!3m2!1sen!2spl!4v1648465657389!5m2!1sen!2spl"
-                                    height="450" style="width: 100%; border:0;" allowfullscreen="" loading="lazy"
-                                    referrerpolicy="no-referrer-when-downgrade"></iframe>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
+
+                        </div><!-- /.om-body -->
+                    </div><!-- /.modal-body -->
+
+                    <div class="modal-footer" style="border-top: 1px solid #eef0f6; padding: 14px 28px;">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
+                            style="background: #3180D1; border: none; padding: 9px 30px; border-radius: 10px; font-weight: 600;">Закрыть</button>
                     </div>
                 </div>
             </div>
