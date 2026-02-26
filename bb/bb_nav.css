@@ -101,6 +101,7 @@
 /* Dropdown (Архив) */
 .bb-icon-nav__dropdown {
     position: relative;
+    z-index: 1200;
 }
 
 .bb-icon-nav__dropdown-toggle {

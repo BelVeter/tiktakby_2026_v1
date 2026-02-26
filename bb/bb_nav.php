@@ -35,12 +35,13 @@ $_bb_nav_items = [
         'items' => [
             ['label' => 'Завершенные сделки', 'href' => '/bb/deals_arch.php'],
             ['label' => 'Удаленные брони', 'href' => '/bb/rent_orders_arch.php'],
+            ['label' => 'Удаленные заявки', 'href' => '/bb/rent_zayavk_arch.php'],
         ],
-        'pages' => ['deals_arch.php', 'rent_orders_arch.php']
+        'pages' => ['deals_arch.php', 'rent_orders_arch.php', 'rent_zayavk_arch.php']
     ],
 ];
 ?>
-<link rel="stylesheet" href="/bb/bb_nav.css?v=4">
+<link rel="stylesheet" href="/bb/bb_nav.css?v=5">
 <nav class="bb-icon-nav">
     <?php foreach ($_bb_nav_items as $item): ?>
         <?php if (!empty($item['type']) && $item['type'] === 'dropdown'): ?>
