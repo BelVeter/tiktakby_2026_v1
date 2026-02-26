@@ -1006,59 +1006,75 @@ if ($item_rows == 1) {
 
 		$item_output = '<br />
 
-
-<strong>Продление с:</strong><input type="date" name="start_date" id="start_date" value="' . date("Y-m-d", $dl_def['return_date']) . '" readonly="readonly"/><br /><br />
-<strong>Последний использованный тариф:</strong><br />
-		<table border="1" cellspacing="0">
-		<tr><td>
-		<input type="hidden" value="1" id="kol_vo_old" /><input type="hidden" value="1" id="kol_vo_min_old" /><input type="hidden" value="' . $sub_dl_def['tarif_step'] . '" id="step_old" />
-				   	' . $sub_dl_def['tarif_value'] . ' руб. в ' . tenor_print($sub_dl_def['tarif_step'], 'd') . ' <input type="hidden" value="' . $sub_dl_def['tarif_value'] . '" id="rent_per_step_old" />
-				   	<input type="hidden" class="tarifPrev" data-days="' . ($oldTarifDays) . '" value="' . ($sub_dl_def['tarif_value']) . '">
-				   	</td>
-		<td><input type="button" name="button" id="button" value="Выбрать" onclick="apply_tarif(\\\'old\\\'); return false;" />
-		</td></tr>
-		</table>
-
-<strong>Актуальные тарифы:</strong><br />
-' . $tarif_code . '
-
-Тариф:<input type="number" step="0.01" name="rent_tarif" id="rent_tarif" value="" readonly style="background-color: #cacaca; width:70px;" />бел. руб.
-	<input type="hidden" name="tarif_id" id="tarif_id" value="" />
-<select name="step" id="step">
-	<option value="day">в день</option>
-	<option value="week">в неделю</option>
-	<option value="month">в месяц</option>
-</select>
-количество (д/н/м):<input type="number" name="rent_tenor" id="rent_tenor" onchange="daysChange();" value="" style="width:60px;"/>
-&nbsp;&nbsp; Скидка: <input min="0" max="100" step="5" style="width:50px;font-size:14px;background-color:orange;text-align:center;border-radius:4px;border:1px solid #ccc;" type="number" name="discount" id="discount" value="0" onchange="calculateNew();"> %<br/>
-		<input type="button" value="пересчитать" id="calc_button" onclick="calculateNew(); return false;" /><br />
-
-Стоимость аренды:<input type="text" name="r_to_pay" id="r_to_pay" size="10" value="" />,
-		<select name="rent_payment_type" id="rent_payment_type" onchange="multi_ch();" >
-					<option value="no_payment">не оплачено</option>
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
-					<option value="card">карточка</option>
-					<option value="bank">банк</option>
-					<option value="multi">мульти-оплата</option>
-		</select>
-		<span id="ch_num_span" style="display:none;">, № документа:<input type="text" name="ch_num" id="ch_num" value="" size="10" /></span>
-		Дата оплаты: <input type="date" name="payment_date" id="payment_date" value="' . date("Y-m-d") . '" /><br />
-
-<div id="multi_pay" style="display:none; position:relative; left:135px;">
-	<input type="number" step="any" name="rent_p_k1" id="rent_p_k1" value="" style="width:90px;" />	касса 1 (нч), № документа: <input type="text" name="ch_num_p_k1" id="ch_num_p_k1" value="" size="10" /><br />
-	<input type="number" step="any" name="rent_p_k2" id="rent_p_k2" value="" style="width:90px;" />	касса 2 (нбч)<br />
-	<input type="number" step="any" name="rent_p_card" id="rent_p_card" value="" style="width:90px;" />	карточка, № документа: <input type="text" name="ch_num_p_card" id="ch_num_p_card" value="" size="10" /><br />
-	<input type="number" step="any" name="rent_p_bank" id="rent_p_bank" value="" style="width:90px;" />	банк, № документа: <input type="text" name="ch_num_p_bank" id="ch_num_p_bank" value="" size="10" /><br />
+<div style="display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;">
+  <div>
+    <strong>Актуальные тарифы:</strong><br />
+    ' . $tarif_code . '
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div>
+      <strong>Последний использованный тариф:</strong><br />
+      <div style="border:2px solid #e57373;border-radius:6px;padding:6px 14px;cursor:pointer;display:inline-block;margin-top:4px;" onclick="apply_tarif(\\\'old\\\'); this.style.background=\\\'#a5d6a7\\\'; return false;">
+        <input type="hidden" value="1" id="kol_vo_old" /><input type="hidden" value="1" id="kol_vo_min_old" /><input type="hidden" value="' . $sub_dl_def['tarif_step'] . '" id="step_old" />
+        ' . $sub_dl_def['tarif_value'] . ' руб. в ' . tenor_print($sub_dl_def['tarif_step'], 'd') . '
+        <input type="hidden" value="' . $sub_dl_def['tarif_value'] . '" id="rent_per_step_old" />
+        <input type="hidden" class="tarifPrev" data-days="' . ($oldTarifDays) . '" value="' . ($sub_dl_def['tarif_value']) . '">
+      </div>
+    </div>
+    <div>
+      Дополнительная информация по сделке:<br /> <textarea cols="50" rows="3" name="deal_info" id="deal_info"></textarea>
+    </div>
+    <div>
+      <strong>Продление с:</strong> <input type="date" name="start_date" id="start_date" value="' . date("Y-m-d", $dl_def['return_date']) . '" readonly="readonly"/>
+    </div>
+  </div>
 </div>
 
-Дата возврата:<input type="date" name="return_date" id="return_date" onchange="dateChange();" value=""/>
+<div style="margin-top:12px;">
+  Тариф: <input type="number" step="0.01" name="rent_tarif" id="rent_tarif" value="" readonly style="background-color:#cacaca;width:70px;" /> бел. руб.
+  <input type="hidden" name="tarif_id" id="tarif_id" value="" />
+  &nbsp;
+  <select name="step" id="step">
+    <option value="day">в день</option>
+    <option value="week">в неделю</option>
+    <option value="month">в месяц</option>
+  </select>
+  &nbsp; количество (д/н/м): <input type="number" name="rent_tenor" id="rent_tenor" onchange="daysChange();" value="" style="width:60px;"/>
+  &nbsp;&nbsp; Скидка: <input min="0" max="100" step="5" style="width:50px;font-size:14px;background-color:orange;text-align:center;border-radius:4px;border:1px solid #ccc;" type="number" name="discount" id="discount" value="0" onchange="calculateNew();"> %
+</div>
+
+<div style="margin-top:8px;">
+  <input type="button" value="Пересчитать" id="calc_button" onclick="calculateNew(); return false;" style="padding:8px 24px;font-size:16px;font-weight:bold;color:#e65100;background:#fff;border:2px solid #e65100;border-radius:20px;cursor:pointer;" />
+</div>
+
+<div style="margin-top:10px;">
+Стоимость аренды: <input type="text" name="r_to_pay" id="r_to_pay" size="10" value="" />,
+  <select name="rent_payment_type" id="rent_payment_type" onchange="multi_ch();">
+    <option value="no_payment">не оплачено</option>
+    <option value="nal_no_cheque">нал без чека</option>
+    <option value="nal_cheque">нал с чеком</option>
+    <option value="card">карточка</option>
+    <option value="bank">банк</option>
+    <option value="multi">мульти-оплата</option>
+  </select>
+  <span id="ch_num_span" style="display:none;">, № документа:<input type="text" name="ch_num" id="ch_num" value="" size="10" /></span>
+  &nbsp; Дата оплаты: <input type="date" name="payment_date" id="payment_date" value="' . date("Y-m-d") . '" />
+</div>
+
+<div id="multi_pay" style="display:none; position:relative; left:135px;">
+  <input type="number" step="any" name="rent_p_k1" id="rent_p_k1" value="" style="width:90px;" /> касса 1 (нч), № документа: <input type="text" name="ch_num_p_k1" id="ch_num_p_k1" value="" size="10" /><br />
+  <input type="number" step="any" name="rent_p_k2" id="rent_p_k2" value="" style="width:90px;" /> касса 2 (нбч)<br />
+  <input type="number" step="any" name="rent_p_card" id="rent_p_card" value="" style="width:90px;" /> карточка, № документа: <input type="text" name="ch_num_p_card" id="ch_num_p_card" value="" size="10" /><br />
+  <input type="number" step="any" name="rent_p_bank" id="rent_p_bank" value="" style="width:90px;" /> банк, № документа: <input type="text" name="ch_num_p_bank" id="ch_num_p_bank" value="" size="10" /><br />
+</div>
+
+<div style="margin-top:8px;">
+  Дата возврата: <input type="date" name="return_date" id="return_date" onchange="dateChange();" value=""/>
+</div>
 
 <input type="hidden" name="del_to_pay" id="del_to_pay" value="" />
 
 <br />
-
-Дополнительная информация по сделке:<br/> <textarea cols="100" rows="3" name="deal_info" id="deal_info"></textarea><br />
 
 
 ';
