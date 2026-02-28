@@ -43,6 +43,11 @@ class CartController extends Controller
             if (!$tarifModel)
                 continue;
 
+            // Load L2ModelWeb to get fresh name, picUrl, and l3Url
+            $l2 = \App\MyClasses\L2ModelWeb::getL2ModelWebById($id, $request->input('lang', 'ru'));
+            if (!$l2)
+                continue;
+
             $tariffs = [];
             foreach ($tarifModel->getTarifs() as $t) {
                 $daysNum = $t->getDaysCalculatedNumber();
@@ -64,6 +69,10 @@ class CartController extends Controller
             $result[$id] = [
                 'tariffs' => $tariffs,
                 'available' => $hasAvailability,
+                'name' => strip_tags($l2->getName()),
+                'picUrl' => $l2->getPicUrl(),
+                'l3Url' => $l2->getL3Url($request->input('lang', 'ru')),
+                'baseDays' => $l2->getBaseDaysForPlusMinus(),
             ];
         }
 

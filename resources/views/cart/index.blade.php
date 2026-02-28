@@ -884,10 +884,68 @@
                 return;
             }
 
-            // Render cart items
-            loadingEl.style.display = 'none';
-            contentEl.style.display = 'block';
-            renderCart(items);
+            // Fetch fresh data from server (Single Source of Truth)
+            loadingEl.style.display = 'block';
+            emptyEl.style.display = 'none';
+            contentEl.style.display = 'none';
+
+            var modelIds = items.map(function (item) { return item.modelId; });
+
+            fetch('/cart/tariffs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ ids: modelIds })
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    loadingEl.style.display = 'none';
+
+                    if (!data.tariffs || Object.keys(data.tariffs).length === 0) {
+                        emptyEl.style.display = 'block';
+                        TiktakCart.clear();
+                        return;
+                    }
+
+                    // Merge local user-data with fresh server-data
+                    var validItems = [];
+                    items.forEach(function (localItem) {
+                        var serverData = data.tariffs[localItem.modelId];
+                        if (serverData && serverData.tariffs && serverData.tariffs.length > 0) {
+                            validItems.push({
+                                modelId: localItem.modelId,
+                                days: localItem.days,
+                                dateFrom: localItem.dateFrom,
+                                name: serverData.name || 'Товар',
+                                picUrl: serverData.picUrl || '',
+                                l3Url: serverData.l3Url || '',
+                                tariffs: serverData.tariffs,
+                                available: serverData.available
+                            });
+                        } else {
+                            // Soft delete local item if not found on server
+                            TiktakCart.removeByModelId(localItem.modelId);
+                        }
+                    });
+
+                    if (validItems.length === 0) {
+                        emptyEl.style.display = 'block';
+                        return;
+                    }
+
+                    contentEl.style.display = 'block';
+                    // Save sanitized items globally for the renderer
+                    window._cartRenderItems = validItems;
+                    renderCart(validItems);
+                })
+                .catch(function (err) {
+                    console.error('Cart fetch error:', err);
+                    loadingEl.style.display = 'none';
+                    emptyEl.style.display = 'block';
+                    TiktakCart.showToast('Ошибка связи с сервером. Попробуйте обновить страницу.', 'error');
+                });
 
             // Delivery radio toggle
             var deliveryRadios = document.querySelectorAll('[name="cart_delivery"]');
@@ -1005,17 +1063,19 @@
             }
 
             function bindCartEvents() {
+                var items = window._cartRenderItems || [];
+
                 // Remove buttons
                 document.querySelectorAll('.cart-remove-item').forEach(function (btn) {
                     btn.onclick = function () {
                         var idx = parseInt(this.getAttribute('data-index'));
-                        TiktakCart.removeByIndex(idx);
-                        var items = TiktakCart.getItems();
+                        TiktakCart.removeByModelId(items[idx].modelId);
+                        items.splice(idx, 1);
                         if (items.length === 0) {
                             contentEl.style.display = 'none';
                             emptyEl.style.display = 'block';
                         } else {
-                            renderCart(items);
+                            saveItemsAndReRender(items);
                         }
                     };
                 });
@@ -1024,11 +1084,9 @@
                 document.querySelectorAll('.cart-days-plus').forEach(function (btn) {
                     btn.onclick = function () {
                         var idx = parseInt(this.getAttribute('data-index'));
-                        var items = TiktakCart.getItems();
                         if (items[idx]) {
                             items[idx].days = items[idx].days + 1;
-                            TiktakCart.saveItems(items);
-                            renderCart(items);
+                            saveItemsAndReRender(items);
                         }
                     };
                 });
@@ -1036,11 +1094,9 @@
                 document.querySelectorAll('.cart-days-minus').forEach(function (btn) {
                     btn.onclick = function () {
                         var idx = parseInt(this.getAttribute('data-index'));
-                        var items = TiktakCart.getItems();
                         if (items[idx] && items[idx].days > 1) {
                             items[idx].days = items[idx].days - 1;
-                            TiktakCart.saveItems(items);
-                            renderCart(items);
+                            saveItemsAndReRender(items);
                         }
                     };
                 });
@@ -1049,11 +1105,9 @@
                 document.querySelectorAll('.cart-date-from').forEach(function (input) {
                     input.onchange = function () {
                         var idx = parseInt(this.getAttribute('data-index'));
-                        var items = TiktakCart.getItems();
                         if (items[idx]) {
                             items[idx].dateFrom = this.value;
-                            TiktakCart.saveItems(items);
-                            renderCart(items);
+                            saveItemsAndReRender(items);
                         }
                     };
                 });
@@ -1062,18 +1116,26 @@
                 document.querySelectorAll('.cart-date-to').forEach(function (input) {
                     input.onchange = function () {
                         var idx = parseInt(this.getAttribute('data-index'));
-                        var items = TiktakCart.getItems();
                         if (items[idx]) {
                             var dateFrom = new Date(items[idx].dateFrom);
                             var dateTo = new Date(this.value);
                             var diffDays = Math.round((dateTo - dateFrom) / (1000 * 60 * 60 * 24));
                             if (diffDays < 1) diffDays = 1;
                             items[idx].days = diffDays;
-                            TiktakCart.saveItems(items);
-                            renderCart(items);
+                            saveItemsAndReRender(items);
                         }
                     };
                 });
+            }
+
+            function saveItemsAndReRender(items) {
+                // Only write single-source-of-truth data to localStorage
+                var basicItems = items.map(function (obj) {
+                    return { modelId: obj.modelId, days: obj.days, dateFrom: obj.dateFrom };
+                });
+                TiktakCart.saveItems(basicItems);
+                window._cartRenderItems = items;
+                renderCart(items);
             }
 
             function updateTotal(items) {
@@ -1096,7 +1158,7 @@
             }
 
             function doCheckout() {
-                var items = TiktakCart.getItems();
+                var items = window._cartRenderItems || [];
                 if (items.length === 0) return;
 
                 var fio = document.getElementById('cart-fio').value;

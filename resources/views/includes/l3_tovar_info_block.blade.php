@@ -80,30 +80,11 @@
   <div class="row__action-buttons">
 
 
-    {{-- Add to Cart button --}}
-    @php
-      $l3CartTariffs = [];
-      $l3TarifModel = $p->getTarifModel();
-      if ($l3TarifModel) {
-        foreach ($l3TarifModel->getTarifs() as $t) {
-          $daysNum = $t->getDaysCalculatedNumber();
-          if ($daysNum > 0) {
-            $dailyRate = round($t->getTotalAmount() / $daysNum, 2);
-            $l3CartTariffs[] = [$daysNum, $dailyRate];
-          }
-        }
-        usort($l3CartTariffs, function ($a, $b) {
-          return $a[0] - $b[0];
-        });
-      }
-    @endphp
     <div id="l3-cart-actions-container">
       @if($p->model->hasFreeItems())
         {{-- Initial State: Add to Cart --}}
         <button type="button" class="action-button cart-button" id="l3-add-to-cart-btn"
-          data-model-id="{{ $p->getModelId() }}" data-model-name="{{ strip_tags($p->getL3MainName()) }}"
-          data-model-pic="{{ $p->getMainSmallPicUrl() }}" data-model-url="{{ url()->current() }}"
-          data-tariffs='@json($l3CartTariffs)'>
+          data-model-id="{{ $p->getModelId() }}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             style="vertical-align:middle;">
             <circle cx="9" cy="21" r="1"></circle>
@@ -188,12 +169,8 @@
 
           var success = TiktakCart.addItem({
             modelId: parseInt(btn.getAttribute('data-model-id')),
-            name: btn.getAttribute('data-model-name'),
-            picUrl: btn.getAttribute('data-model-pic'),
-            l3Url: btn.getAttribute('data-model-url'),
             dateFrom: dateFrom ? dateFrom.value : TiktakCart.todayStr(),
-            days: daysInput ? parseInt(daysInput.value) || 14 : 14,
-            tariffs: JSON.parse(btn.getAttribute('data-tariffs'))
+            days: daysInput ? parseInt(daysInput.value) || 14 : 14
           });
 
           if (success) {

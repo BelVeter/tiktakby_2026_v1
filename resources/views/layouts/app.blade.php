@@ -318,7 +318,7 @@
 
         /**
          * Add item to cart
-         * @param {Object} item { modelId, name, picUrl, l3Url, dateFrom, days, tariffs }
+         * @param {Object} item { modelId, dateFrom, days }
          * @returns {boolean}
          */
         function addItem(item) {
@@ -338,8 +338,15 @@
             return false;
           }
 
-          item.addedAt = Date.now();
-          data.items.push(item);
+          // Store only essential user data (Single Source of Truth pattern)
+          var cartItem = {
+            modelId: item.modelId,
+            dateFrom: item.dateFrom,
+            days: item.days,
+            addedAt: Date.now()
+          };
+
+          data.items.push(cartItem);
           saveCartData(data);
           updateBadges();
           showToast('Товар добавлен в корзину!', 'success');
