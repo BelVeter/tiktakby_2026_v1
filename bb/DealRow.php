@@ -579,6 +579,7 @@ clients.family, clients.name, clients.otch, clients.city, clients.str, clients.d
 
     public function ActionPrint()
     {
+        $uid = 'km_' . $this->id_sub_deal;
         if ($this->status_sub_deal == 'act') {
             // Иконка: перейти к договору (document icon)
             $btn = '
@@ -611,6 +612,7 @@ clients.family, clients.name, clients.otch, clients.city, clients.str, clients.d
         }
 
         return '<div class="rda-actions">' . $btn . '</div>';
+
     }
 
     public static function sel_d($value, $pattern)

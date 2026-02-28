@@ -151,21 +151,7 @@ use bb\classes\Collateral;
         history.go(1);
     };
 
-    // Kebab menu toggle
-    function toggleKebab(uid) {
-        var menu = document.querySelector('#' + uid + ' .km-menu');
-        if (!menu) return;
-        var isOpen = menu.classList.contains('open');
-        // close all menus
-        document.querySelectorAll('.km-menu.open').forEach(function (m) { m.classList.remove('open'); });
-        if (!isOpen) menu.classList.add('open');
-    }
-    // Close kebab on outside click
-    document.addEventListener('click', functio n(e) {
-        if(!e.target.closest('.km-wrap')) {
-        document.querySelectorAll('.km-menu.open').forEach(functi on(m) { m.classList.remove('open'); });
-    }
-    });
+
 
     function ch_num_close(chnid) {
 
@@ -721,8 +707,9 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
             </th>
             <th style="width:240px; position:relative;">
                 Товар
-                <span
-                    style="position:absolute;top:4px;right:8px;font-weight:normal;font-size:0.72rem;color:#aaa;"><?php echo number_format($total_money, 2, ',', ' ') ?></span>
+                <span style="position:absolute;top:4px;right:8px;font-weight:normal;font-size:0.72rem;color:#aaa;">
+                    <?php echo number_format($total_money, 2, ',', ' ') ?>
+                </span>
             </th>
             <th style="width:100px;"><span title="Период по договору">Период</span></th>
             <th style="width:55px;">К опл.</th>
@@ -731,7 +718,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
                 <select name="payment_type" id="rent_payment_type" form="srch_form"
                     onchange="document.getElementById('srch_form').submit();">
                     <option value="all" <?= DealRow::sel_d($payment_type, 'all') ?>>все</option>
-                    <option value="nal_no_cheque" <?= DealRow::sel_d($payment_type, 'nal_no_cheque') ?>>Касса №2</option>
+                    <option value="nal_no_cheque" <?= DealRow::sel_d($payment_type, 'nal_no_cheque') ?>>Касса №2
+                    </option>
                     <option value="nal_cheque" <?= DealRow::sel_d($payment_type, 'nal_cheque') ?>>Касса №1</option>
                     <option value="card" <?= DealRow::sel_d($payment_type, 'card') ?>>Карточка</option>
                     <option value="bank" <?= DealRow::sel_d($payment_type, 'bank') ?>>Банк</option>
@@ -773,6 +761,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
             $dot_class = ($dot_office === 2) ? 'rda-office-dot--2' : 'rda-office-dot--1';
             $dot_title = 'Выдан на Офис ' . $dot_office;
             $dot_html = '<span class="rda-office-dot ' . $dot_class . '" title="' . $dot_title . '"></span>';
+
             echo '
     <tr ' . $dl->SubColorRowStyle() . '>
         <td class="rda-date-cell">
@@ -786,11 +775,13 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
         <td style="text-align:right;">' . number_format($dl->r_to_pay_sub, 2, ',', ' ') . ($dl->delivery_to_pay_sub > 0 ? '<br><span class="deliv_num">' . number_format($dl->delivery_to_pay_sub, 2, ',', ' ') . '</span>' : '') . '</td>
         <td><span style="font-size:0.75rem;color:#999;">' . User::GetUserName($dl->acc_person_id) . '</span><br>' . $dl->PrintPayment() . '</td>
         <td style="text-align:center;">' . $dot_html . '</td>
+
         <td class="rda-client">' . $dl->ClientPrint() . '</td>
         <td>' . User::GetUserName($dl->cr_who_sub_deal) . '<br>' . $dl->PrintSubInfo() . $dl->DeveloperInfo() . '</td>
         <td style="text-align:center;">' . $dl->ActionPrint() . '</td>
     </tr>
     ';
+
 
         }
         ?>
