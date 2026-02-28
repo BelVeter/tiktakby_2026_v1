@@ -410,7 +410,7 @@ clients.family, clients.name, clients.otch, clients.city, clients.str, clients.d
     }
 
     public function FirstPlacePic()
-    { //do not forgea about arch and act
+    {
         if (!($this->first_rent_place > 1)) {
             $db = Db::getInstance();
             $mysqli = $db->getConnection();
@@ -420,7 +420,6 @@ clients.family, clients.name, clients.otch, clients.city, clients.str, clients.d
                 $sql_query = "SELECT place FROM rent_sub_deals_arch WHERE deal_id='$this->id_deal' AND (`type`='first_rent' OR `type`='takeaway_plan')";
             }
 
-            //echo $sql_query;
             $result = $mysqli->query($sql_query);
             $row = $result->fetch_assoc();
             if ($row['place'] > 0)
@@ -428,15 +427,24 @@ clients.family, clients.name, clients.otch, clients.city, clients.str, clients.d
         }
 
         if ($this->first_rent_delivery_yn == 1) {
-            $output = '<img src="/images/k.png" title="Выдано курьером" style="position:absolute; right:0; top:0; width:25px; heght:25px;" />';
+            // Courier: Car Icon
+            $output = '
+            <div class="rda-channel-icon rda-channel-icon--courier" title="Доставка курьером">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="3" width="15" height="13"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                </svg>
+            </div>';
         } else {
-            $output = '<img src="/images/' . $this->first_rent_place . '.gif" title="Выдано на офисе №' . $this->first_rent_place . '" style="position:absolute; right:0; top:0; width:25px; heght:25px;">';
+            // Office Dot
+            $dot_class = ($this->first_rent_place == 2) ? 'rda-office-dot--2' : 'rda-office-dot--1';
+            $dot_title = 'Выдано на Офисе ' . $this->first_rent_place;
+            $output = '<span class="rda-office-dot ' . $dot_class . '" title="' . $dot_title . '"></span>';
         }
 
-
-
         return $output;
-
     }
 
     public function LastExtensionDatePrint()
