@@ -26,7 +26,8 @@ if (isset($_POST['action'])) {
         $id = (int) $_POST['ri_id'];
         $text = $mysqli->real_escape_string($_POST['ri_text']);
         $order = (int) $_POST['ri_order'];
-        $query = "UPDATE rash_items SET ri_text='$text', ri_order='$order' WHERE ri_id='$id'";
+        $is_active = isset($_POST['is_active']) ? 1 : 0;
+        $query = "UPDATE rash_items SET ri_text='$text', ri_order='$order', is_active='$is_active' WHERE ri_id='$id'";
         if ($mysqli->query($query)) {
             $message = '<div style="color: green; font-weight: bold;">Расход успешно обновлен.</div>';
         } else {
@@ -36,7 +37,8 @@ if (isset($_POST['action'])) {
         $id = (int) $_POST['rd_id'];
         $text = $mysqli->real_escape_string($_POST['rd_text']);
         $order = (int) $_POST['rd_order'];
-        $query = "UPDATE doh_items SET rd_text='$text', rd_order='$order' WHERE rd_id='$id'";
+        $is_active = isset($_POST['is_active']) ? 1 : 0;
+        $query = "UPDATE doh_items SET rd_text='$text', rd_order='$order', is_active='$is_active' WHERE rd_id='$id'";
         if ($mysqli->query($query)) {
             $message = '<div style="color: green; font-weight: bold;">Доход успешно обновлен.</div>';
         } else {
@@ -78,6 +80,7 @@ echo '
         <th>Порядок</th>
         <th>Код</th>
         <th>Банк?</th>
+        <th>Активно</th>
         <th>Действие</th>
     </tr>';
 
@@ -91,6 +94,7 @@ while ($row = $res->fetch_assoc()) {
         <td><input type="number" name="ri_order" value="' . $row['ri_order'] . '" style="width: 70px;"></td>
         <td><code>' . $row['ri_code'] . '</code></td>
         <td>' . ($row['bank_yn'] ? 'Да' : 'Нет') . '</td>
+        <td style="text-align: center;"><input type="checkbox" name="is_active" value="1" ' . ($row['is_active'] ? 'checked' : '') . ' style="width: 20px;"></td>
         <td>
             <input type="hidden" name="ri_id" value="' . $row['ri_id'] . '">
             <button type="submit" name="action" value="save_rash">Сохранить</button>
@@ -109,6 +113,7 @@ echo '</table>
         <th>Порядок</th>
         <th>Код</th>
         <th>Банк?</th>
+        <th>Активно</th>
         <th>Действие</th>
     </tr>';
 
@@ -122,6 +127,7 @@ while ($row = $res->fetch_assoc()) {
         <td><input type="number" name="rd_order" value="' . $row['rd_order'] . '" style="width: 70px;"></td>
         <td><code>' . $row['rd_code'] . '</code></td>
         <td>' . ($row['bank_yn'] ? 'Да' : 'Нет') . '</td>
+        <td style="text-align: center;"><input type="checkbox" name="is_active" value="1" ' . ($row['is_active'] ? 'checked' : '') . ' style="width: 20px;"></td>
         <td>
             <input type="hidden" name="rd_id" value="' . $row['rd_id'] . '">
             <button type="submit" name="action" value="save_doh">Сохранить</button>
