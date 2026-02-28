@@ -53,6 +53,7 @@ Separate PHP admin panel (not Laravel-based), accessible at `/bb/`. Key files:
 - `bb/bb_nav.php` — shared navigation component (admin header)
 - `bb/redirects.php` — redirect management
 - `bb/redirects_api.php` — API for cascading URL selection (by site structure)
+- `bb/items_manage.php` — Management of expense and income categories (added by Antigravity)
 - `bb/webp_converter.php` — batch image conversion tool (GD library, WebP)
 - Order, client, product, and rental management
 
@@ -87,6 +88,7 @@ Sequence:
 | Catalog | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_cats`, `tovar_list`, `tovar_properties` |
 | Rental | `rent_deals_act`, `rent_orders`, `rent_model_web`, `rent_tarif_act`, `rent_sub_deals_act`, `deals` |
 | Clients | `clients`, `clients_arch`, `users`, `logpass` |
+| Handbooks | `rash_items`, `doh_items` (contain `is_active` column for entry form filtering) |
 | Orders | `rent_orders`, `rent_orders_arch`, `karn_brons`, `karn_brons_arch` |
 | Content | `pages`, `video_links`, `dop_photos` |
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
