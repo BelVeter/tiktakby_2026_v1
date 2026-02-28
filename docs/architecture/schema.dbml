@@ -1,0 +1,1532 @@
+// =============================================================================
+// TikTak.by — New Database Schema (DBML) v2
+// Designed for Laravel 12 Modular Monolith rewrite
+// Multi-service rental platform with i18n support
+// Updated: 2026-02-28
+// =============================================================================
+// CONVENTIONS:
+//   - All PKs: bigint unsigned auto-increment (id)
+//   - All timestamps: created_at, updated_at (Laravel), plus domain-specific datetimes
+//   - Soft deletes where appropriate (deleted_at)
+//   - Money: decimal(12,2)
+//   - Enums: stored as varchar (mapped to PHP enums in code)
+//   - Public-facing IDs: use Hashids at application layer (no UUID columns)
+//   - All dates: proper DATE/DATETIME instead of Unix timestamps
+//   - Multi-language: separate _translations tables (astrotomic/laravel-translatable)
+//   - Multi-service: optional tenant_id (nullable) on tenant-scoped tables
+//   - Product attributes: EAV pattern (attribute_definitions + product_attribute_values)
+// =============================================================================
+
+
+// ═════════════════════════════════════════════
+// MODULE: CORE (Shared / Cross-Cutting)
+// ═════════════════════════════════════════════
+
+Table tenants {
+  id bigint [pk, increment]
+  code varchar(30) [unique, not null, note: 'e.g. tiktak, buildrent']
+  name varchar(200) [not null]
+  domain varchar(255) [note: 'tiktak.by, buildrent.by']
+  is_active boolean [not null, default: true]
+  settings json [note: 'Tenant-specific config overrides']
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Service instances. Nullable FK on tenant-scoped tables allows single- or multi-tenant use.'
+}
+
+Table settings {
+  id bigint [pk, increment]
+  tenant_id bigint
+  group varchar(50) [not null, note: 'general, email, pricing, spam, etc.']
+  key varchar(100) [not null]
+  value text
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, group, key) [unique, name: 'settings_tenant_group_key_unique']
+  }
+
+  Note: 'Key-value application settings. Replaces hardcoded values (email recipients, spam keywords, exchange rates, etc.)'
+}
+
+Ref: settings.tenant_id > tenants.id
+
+Table offices {
+  id bigint [pk, increment]
+  tenant_id bigint
+  name varchar(100) [not null]
+  type varchar(20) [not null, note: 'office, courier']
+  number int [not null, note: 'Legacy office number for compatibility']
+  short_address varchar(255)
+  ip_address varchar(45)
+  css_color varchar(20)
+  is_active boolean [not null, default: true]
+  weekday_open_time time
+  weekday_close_time time
+  weekend_open_time time
+  weekend_close_time time
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, number) [unique, name: 'offices_tenant_number_unique']
+  }
+
+  Note: 'Physical locations (offices) and courier bases'
+}
+
+Ref: offices.tenant_id > tenants.id
+
+Table announcements {
+  id bigint [pk, increment]
+  tenant_id bigint
+  type_code varchar(30) [not null]
+  message text [not null]
+  is_active boolean [not null, default: false]
+  is_time_controlled boolean [not null, default: false]
+  starts_at datetime
+  ends_at datetime
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, type_code) [unique]
+  }
+
+  Note: 'System-wide announcements and banners'
+}
+
+Ref: announcements.tenant_id > tenants.id
+
+// --- Pages with translations ---
+
+Table pages {
+  id bigint [pk, increment]
+  tenant_id bigint
+  level_code varchar(50) [not null]
+  url_key varchar(100) [not null]
+  hero_image_url varchar(255)
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, level_code, url_key) [unique, name: 'pages_identity_unique']
+  }
+
+  Note: 'CMS static pages (about, contacts, conditions, etc.)'
+}
+
+Ref: pages.tenant_id > tenants.id
+
+Table page_translations {
+  id bigint [pk, increment]
+  page_id bigint [not null]
+  locale varchar(5) [not null, note: 'ru, en, lt, pl']
+  title varchar(255) [not null]
+  meta_description varchar(255)
+  h1 varchar(255) [not null]
+  body_text text
+  secondary_title varchar(255)
+  secondary_body text
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (page_id, locale) [unique]
+  }
+}
+
+Ref: page_translations.page_id > pages.id [delete: cascade]
+
+Table redirects {
+  id bigint [pk, increment]
+  tenant_id bigint
+  source_url varchar(500) [not null]
+  target_url varchar(500) [not null]
+  status_code int [not null, default: 301]
+  is_active boolean [not null, default: true]
+  hit_count bigint [not null, default: 0]
+  last_hit_at datetime
+  comment varchar(255)
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, source_url) [unique]
+  }
+
+  Note: 'SEO URL redirects managed by admin'
+}
+
+Ref: redirects.tenant_id > tenants.id
+
+Table subscriptions {
+  id bigint [pk, increment]
+  tenant_id bigint
+  email varchar(255) [not null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, email) [unique]
+  }
+
+  Note: 'Email newsletter subscriptions'
+}
+
+Ref: subscriptions.tenant_id > tenants.id
+
+Table legal_entities {
+  id bigint [pk, increment]
+  tenant_id bigint
+  full_name varchar(200) [not null]
+  short_name varchar(100)
+  legal_address varchar(255)
+  tax_id varchar(20) [note: 'UNP in Belarus']
+  iban varchar(34)
+  bank_name varchar(200)
+  bank_bic varchar(15)
+  website varchar(200)
+  email varchar(200)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: legal_entities.tenant_id > tenants.id
+
+Table exchange_rates {
+  id bigint [pk, increment]
+  date date [not null]
+  currency_from varchar(5) [not null, note: 'USD, EUR, etc.']
+  currency_to varchar(5) [not null, default: 'BYN']
+  rate decimal(12,6) [not null]
+  created_at timestamp
+
+  indexes {
+    (date, currency_from, currency_to) [unique]
+  }
+
+  Note: 'Exchange rates for purchase price conversion. Replaces hardcoded 3.2 BYN/USD.'
+}
+
+// Laravel framework tables for shared hosting (no Redis)
+Table sessions {
+  id varchar(255) [pk]
+  user_id bigint
+  ip_address varchar(45)
+  user_agent text
+  payload longtext [not null]
+  last_activity int [not null]
+
+  indexes {
+    last_activity
+    user_id
+  }
+
+  Note: 'Laravel DB session driver (required on shared hosting without Redis)'
+}
+
+Table cache {
+  key varchar(255) [pk]
+  value mediumtext [not null]
+  expiration int [not null]
+
+  Note: 'Laravel DB cache driver (required on shared hosting without Redis)'
+}
+
+Table cache_locks {
+  key varchar(255) [pk]
+  owner varchar(255) [not null]
+  expiration int [not null]
+
+  Note: 'Laravel DB cache lock table'
+}
+
+
+// ═════════════════════════════════════════════
+// MODULE: IAM (Identity & Access Management)
+// ═════════════════════════════════════════════
+
+Table staff_users {
+  id bigint [pk, increment]
+  tenant_id bigint
+  username varchar(50) [not null]
+  password_hash varchar(255) [not null]
+  full_name varchar(255) [not null]
+  role varchar(30) [not null, note: 'owner, consultant, courier, accountant, coder']
+  is_active boolean [not null, default: true]
+  color varchar(10) [note: 'UI display color']
+
+  // Access control
+  ip_restriction_enabled boolean [not null, default: false]
+  allowed_ips json [note: 'Array of allowed IP addresses']
+  time_restriction_enabled boolean [not null, default: false]
+  allowed_from_time time
+  allowed_to_time time
+
+  // Payroll
+  has_salary boolean [not null, default: false]
+  salary_amount decimal(10,2) [default: 0]
+
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, username) [unique]
+  }
+
+  Note: 'Admin panel staff users (migrated from logpass)'
+}
+
+Ref: staff_users.tenant_id > tenants.id
+
+Table permissions {
+  id bigint [pk, increment]
+  code varchar(50) [unique, not null]
+  description varchar(255)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table staff_user_permissions {
+  id bigint [pk, increment]
+  staff_user_id bigint [not null]
+  permission_id bigint [not null]
+  created_at timestamp
+
+  indexes {
+    (staff_user_id, permission_id) [unique]
+  }
+}
+
+Ref: staff_user_permissions.staff_user_id > staff_users.id [delete: cascade]
+Ref: staff_user_permissions.permission_id > permissions.id [delete: cascade]
+
+Table staff_sessions {
+  id bigint [pk, increment]
+  staff_user_id bigint [not null]
+  event_type varchar(30) [not null, note: 'login, logout, failed_login']
+  ip_address varchar(45) [not null]
+  office_id bigint
+  occurred_at datetime [not null]
+  created_at timestamp
+}
+
+Ref: staff_sessions.staff_user_id > staff_users.id
+Ref: staff_sessions.office_id > offices.id
+
+Table ip_allowlist {
+  id bigint [pk, increment]
+  ip_address varchar(45) [not null]
+  office_id bigint
+  created_at timestamp
+}
+
+Ref: ip_allowlist.office_id > offices.id
+
+Table email_signatures {
+  id bigint [pk, increment]
+  staff_user_id bigint [not null]
+  legal_entity_id bigint [not null]
+  opening_text varchar(255)
+  short_signature varchar(200)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: email_signatures.staff_user_id > staff_users.id
+Ref: email_signatures.legal_entity_id > legal_entities.id
+
+// Laravel Breeze / public-facing auth (future)
+Table users {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  email_verified_at datetime
+  password varchar(255) [not null]
+  remember_token varchar(100)
+  created_at timestamp
+  updated_at timestamp
+}
+
+
+// ═════════════════════════════════════════════
+// MODULE: CATALOG (Product Hierarchy & Web Presentation)
+// ═════════════════════════════════════════════
+
+// --- Sections ---
+
+Table sections {
+  id bigint [pk, increment]
+  tenant_id bigint
+  slug varchar(255) [not null]
+  icon_url varchar(255)
+  icon_alt_url varchar(255)
+  sort_order int [not null, default: 0]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, slug) [unique]
+  }
+
+  Note: 'Top-level catalog sections (razdel). E.g. "Children furniture", "Strollers"'
+}
+
+Ref: sections.tenant_id > tenants.id
+
+Table section_translations {
+  id bigint [pk, increment]
+  section_id bigint [not null]
+  locale varchar(5) [not null]
+  name varchar(255) [not null]
+
+  indexes {
+    (section_id, locale) [unique]
+  }
+}
+
+Ref: section_translations.section_id > sections.id [delete: cascade]
+
+// --- Subsections ---
+
+Table subsections {
+  id bigint [pk, increment]
+  primary_section_id bigint [not null]
+  slug varchar(255) [not null]
+  icon_url varchar(255)
+  sort_order int [not null, default: 0]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    slug [unique]
+  }
+
+  Note: 'Subsections within sections (sub_razdel)'
+}
+
+Ref: subsections.primary_section_id > sections.id
+
+Table subsection_translations {
+  id bigint [pk, increment]
+  subsection_id bigint [not null]
+  locale varchar(5) [not null]
+  name varchar(255) [not null]
+
+  indexes {
+    (subsection_id, locale) [unique]
+  }
+}
+
+Ref: subsection_translations.subsection_id > subsections.id [delete: cascade]
+
+Table section_subsection {
+  id bigint [pk, increment]
+  section_id bigint [not null]
+  subsection_id bigint [not null]
+
+  indexes {
+    (section_id, subsection_id) [unique]
+  }
+}
+
+Ref: section_subsection.section_id > sections.id [delete: cascade]
+Ref: section_subsection.subsection_id > subsections.id [delete: cascade]
+
+// --- Categories ---
+
+Table categories {
+  id bigint [pk, increment]
+  tenant_id bigint
+  primary_subsection_id bigint [not null]
+  slug varchar(255) [not null]
+  category_type int [not null, default: 0, note: '0=regular rental, 1=carnival costumes']
+  sort_order int [not null, default: 0]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+
+  indexes {
+    (tenant_id, slug) [unique]
+  }
+
+  Note: 'Product categories (tovar_rent_cat). E.g. "Highchairs", "Car seats 0-13 kg"'
+}
+
+Ref: categories.tenant_id > tenants.id
+Ref: categories.primary_subsection_id > subsections.id
+
+Table category_translations {
+  id bigint [pk, increment]
+  category_id bigint [not null]
+  locale varchar(5) [not null]
+  name varchar(255) [not null]
+  contract_name varchar(255) [note: 'Name used in rental contracts (dog_name)']
+
+  indexes {
+    (category_id, locale) [unique]
+  }
+}
+
+Ref: category_translations.category_id > categories.id [delete: cascade]
+
+Table subsection_category {
+  id bigint [pk, increment]
+  subsection_id bigint [not null]
+  category_id bigint [not null]
+
+  indexes {
+    (subsection_id, category_id) [unique]
+  }
+}
+
+Ref: subsection_category.subsection_id > subsections.id [delete: cascade]
+Ref: subsection_category.category_id > categories.id [delete: cascade]
+
+// --- Product Attribute Definitions (EAV) ---
+
+Table attribute_definitions {
+  id bigint [pk, increment]
+  tenant_id bigint
+  code varchar(50) [not null, note: 'Slug: age_from, power_watts, chuck_size, etc.']
+  data_type varchar(20) [not null, note: 'integer, decimal, string, boolean, enum']
+  unit varchar(30) [note: 'Raw unit code (translated in attribute_definition_translations)']
+  is_filterable boolean [not null, default: false, note: 'Show in catalog filter sidebar']
+  is_required boolean [not null, default: false]
+  is_range boolean [not null, default: false, note: 'True for paired attrs like age_from/age_to']
+  range_pair_code varchar(50) [note: 'Code of the paired attribute (age_from ↔ age_to)']
+  sort_order int [not null, default: 0]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, code) [unique]
+  }
+
+  Note: 'EAV: attribute type definitions. Admin-configurable per service. E.g. "Age from (months)", "Power (watts)".'
+}
+
+Ref: attribute_definitions.tenant_id > tenants.id
+
+Table attribute_definition_translations {
+  id bigint [pk, increment]
+  attribute_definition_id bigint [not null]
+  locale varchar(5) [not null]
+  name varchar(100) [not null, note: '"Возраст от", "Age from", "Amžius nuo"']
+  unit_label varchar(50) [note: '"мес.", "months", "mėn."']
+
+  indexes {
+    (attribute_definition_id, locale) [unique]
+  }
+}
+
+Ref: attribute_definition_translations.attribute_definition_id > attribute_definitions.id [delete: cascade]
+
+// Which attributes apply to which categories
+Table category_attribute {
+  id bigint [pk, increment]
+  category_id bigint [not null]
+  attribute_definition_id bigint [not null]
+  sort_order int [not null, default: 0]
+
+  indexes {
+    (category_id, attribute_definition_id) [unique]
+  }
+
+  Note: 'Pivot: which attributes are relevant for which category. E.g. "Highchairs" → age_from, age_to, weight_max'
+}
+
+Ref: category_attribute.category_id > categories.id [delete: cascade]
+Ref: category_attribute.attribute_definition_id > attribute_definitions.id [delete: cascade]
+
+// For enum-type attributes (e.g. sex: m/f/u, fuel_type: petrol/diesel/electric)
+Table attribute_enum_options {
+  id bigint [pk, increment]
+  attribute_definition_id bigint [not null]
+  value varchar(50) [not null, note: 'Stored value: m, f, petrol, etc.']
+  sort_order int [not null, default: 0]
+
+  indexes {
+    (attribute_definition_id, value) [unique]
+  }
+}
+
+Ref: attribute_enum_options.attribute_definition_id > attribute_definitions.id [delete: cascade]
+
+Table attribute_enum_option_translations {
+  id bigint [pk, increment]
+  attribute_enum_option_id bigint [not null]
+  locale varchar(5) [not null]
+  label varchar(100) [not null, note: '"Мальчик", "Boy", "Berniukas"']
+
+  indexes {
+    (attribute_enum_option_id, locale) [unique]
+  }
+}
+
+Ref: attribute_enum_option_translations.attribute_enum_option_id > attribute_enum_options.id [delete: cascade]
+
+// --- Product Models (lean, service-agnostic) ---
+
+Table product_models {
+  id bigint [pk, increment]
+  tenant_id bigint
+  category_id bigint [not null]
+  manufacturer varchar(255) [not null]
+
+  // Procurement / internal
+  purchase_price decimal(12,2)
+  purchase_currency varchar(10)
+  depreciation_months decimal(6,1) [note: 'Useful life in months']
+  price_new_byn int [default: 0, note: 'Current retail price for reference']
+
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+
+  indexes {
+    (tenant_id, category_id) [name: 'idx_product_models_tenant_category']
+  }
+
+  Note: 'Product models (tovar_rent). Service-agnostic — all variable characteristics in EAV.'
+}
+
+Ref: product_models.tenant_id > tenants.id
+Ref: product_models.category_id > categories.id
+
+Table product_model_translations {
+  id bigint [pk, increment]
+  product_model_id bigint [not null]
+  locale varchar(5) [not null]
+  name varchar(255) [not null, note: 'Model name (may differ by locale for some services)']
+  included_set text [note: 'What is included with the product']
+
+  indexes {
+    (product_model_id, locale) [unique]
+  }
+}
+
+Ref: product_model_translations.product_model_id > product_models.id [delete: cascade]
+
+// EAV values for product models
+Table product_attribute_values {
+  id bigint [pk, increment]
+  product_model_id bigint [not null]
+  attribute_definition_id bigint [not null]
+  value_text varchar(255) [note: 'For string/enum types']
+  value_numeric decimal(12,3) [note: 'For integer/decimal types']
+  value_boolean boolean [note: 'For boolean types']
+
+  indexes {
+    (product_model_id, attribute_definition_id) [unique, name: 'idx_pav_model_attr']
+    (attribute_definition_id, value_numeric) [name: 'idx_pav_attr_numeric', note: 'For range filters']
+    (attribute_definition_id, value_text) [name: 'idx_pav_attr_text', note: 'For enum/text filters']
+  }
+
+  Note: 'EAV values. Replaces hardcoded age_from, weight_to, sex columns. Type determined by attribute_definitions.data_type.'
+}
+
+Ref: product_attribute_values.product_model_id > product_models.id [delete: cascade]
+Ref: product_attribute_values.attribute_definition_id > attribute_definitions.id
+
+// --- Web Profiles (presentation layer, separate from domain model) ---
+
+Table product_web_profiles {
+  id bigint [pk, increment]
+  product_model_id bigint [unique, not null]
+  page_url varchar(500) [not null, note: 'URL slug, locale-independent']
+
+  // L2 listing display
+  listing_image_url varchar(255)
+
+  // L3 detail page display
+  main_image_url text
+  logo_url text
+
+  // Tariff display config
+  tariff_display_period varchar(10) [note: 'day, week, month — which period to highlight']
+  tariff_base_days int [default: 0]
+
+  // Display control
+  status varchar(10) [not null, default: 'show', note: 'show, not_show']
+  show_availability_on_listing boolean [not null, default: true]
+  sort_order int [not null, default: 0]
+
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Web display profile — non-translatable fields (images, config). Translatable content in translations table.'
+}
+
+Ref: product_web_profiles.product_model_id > product_models.id [delete: cascade]
+
+Table product_web_profile_translations {
+  id bigint [pk, increment]
+  product_web_profile_id bigint [not null]
+  locale varchar(5) [not null]
+  title varchar(255)
+  meta_description text
+  breadcrumb_name varchar(255)
+  listing_name varchar(255)
+  listing_alt_text varchar(255)
+  main_name text
+  main_image_alt text
+  main_image_title text
+  description text
+  keywords varchar(255)
+
+  indexes {
+    (product_web_profile_id, locale) [unique]
+  }
+}
+
+Ref: product_web_profile_translations.product_web_profile_id > product_web_profiles.id [delete: cascade]
+
+// --- Supporting catalog tables ---
+
+Table product_photos {
+  id bigint [pk, increment]
+  product_model_id bigint [not null]
+  image_url text [not null]
+  alt_text varchar(255)
+  title varchar(255)
+  sort_order int [not null, default: 0]
+  created_at timestamp
+}
+
+Ref: product_photos.product_model_id > product_models.id [delete: cascade]
+
+Table product_cross_listings {
+  id bigint [pk, increment]
+  product_model_id bigint [not null]
+  additional_category_id bigint [not null]
+  listing_image_override varchar(255)
+  is_active boolean [not null, default: true]
+
+  indexes {
+    (product_model_id, additional_category_id) [unique]
+  }
+
+  Note: 'Show a model in additional categories besides its primary one (multi_web)'
+}
+
+Ref: product_cross_listings.product_model_id > product_models.id [delete: cascade]
+Ref: product_cross_listings.additional_category_id > categories.id [delete: cascade]
+
+Table video_links {
+  id bigint [pk, increment]
+  tenant_id bigint
+  url varchar(500) [unique, not null]
+  name varchar(255) [not null]
+  sort_order int [not null, default: 0]
+  tags json [note: 'Flexible tagging']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: video_links.tenant_id > tenants.id
+
+Table favorites {
+  id bigint [pk, increment]
+  tenant_id bigint
+  product_model_id bigint [unique, not null]
+  image_url varchar(255)
+  image_alt varchar(255)
+  name varchar(255)
+  description varchar(500)
+  is_active boolean [not null, default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: favorites.tenant_id > tenants.id
+Ref: favorites.product_model_id > product_models.id [delete: cascade]
+
+
+// ═════════════════════════════════════════════
+// MODULE: INVENTORY (Physical Items)
+// ═════════════════════════════════════════════
+
+Table inventory_items {
+  id bigint [pk, increment]
+  tenant_id bigint
+  product_model_id bigint [not null]
+  category_id bigint [not null]
+  inventory_number int [not null, note: 'Unique inv_n across tenant']
+  item_sequence int [not null, note: 'Sequential number within model']
+  color varchar(255)
+
+  // Procurement
+  purchased_at date
+  purchase_price decimal(12,2)
+  purchase_currency varchar(10)
+  exchange_rate_to_usd decimal(10,5)
+  supplier varchar(255)
+
+  // Status & Location
+  status varchar(20) [not null, default: 'available', note: 'available, rented, reserved, in_delivery, unavailable, in_repair']
+  office_id bigint
+  transfer_to_office_id bigint
+  active_deal_id bigint [note: 'Denormalized cache — not a strict FK']
+
+  // Condition
+  condition int [not null, default: 0, note: '0=normal, 3=last_rent (sell after return)']
+  has_qr_code boolean [not null, default: false]
+  notes text
+
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+
+  indexes {
+    (tenant_id, inventory_number) [unique, name: 'idx_inv_tenant_number']
+    (product_model_id, status) [name: 'idx_inv_model_status', note: 'HOT: availability checks on every page load']
+    (status, office_id) [name: 'idx_inv_status_office']
+  }
+
+  Note: 'Physical inventory items. Item-specific characteristics (size, height) stored in inventory_item_attribute_values.'
+}
+
+Ref: inventory_items.tenant_id > tenants.id
+Ref: inventory_items.product_model_id > product_models.id
+Ref: inventory_items.category_id > categories.id
+Ref: inventory_items.office_id > offices.id
+Ref: inventory_items.transfer_to_office_id > offices.id
+
+// EAV for item-specific attributes (size, height range — can differ per physical unit)
+Table inventory_item_attribute_values {
+  id bigint [pk, increment]
+  inventory_item_id bigint [not null]
+  attribute_definition_id bigint [not null]
+  value_text varchar(255)
+  value_numeric decimal(12,3)
+  value_boolean boolean
+
+  indexes {
+    (inventory_item_id, attribute_definition_id) [unique]
+  }
+
+  Note: 'Item-level EAV. E.g. size=M, height_from=80, height_to=100 for a specific physical unit.'
+}
+
+Ref: inventory_item_attribute_values.inventory_item_id > inventory_items.id [delete: cascade]
+Ref: inventory_item_attribute_values.attribute_definition_id > attribute_definitions.id
+
+Table inventory_disposals {
+  id bigint [pk, increment]
+  inventory_item_id bigint [not null]
+  disposed_at date [not null]
+  disposal_reason varchar(30) [not null, note: 'sold, no_return, written_off, bron_delete']
+  sale_amount_byn decimal(12,2) [default: 0]
+  sale_payment_type varchar(30)
+  sale_amount_usd decimal(12,2) [default: 0]
+  notes text
+  disposed_by bigint [not null]
+  created_at timestamp
+}
+
+Ref: inventory_disposals.inventory_item_id > inventory_items.id
+Ref: inventory_disposals.disposed_by > staff_users.id
+
+Table last_rent_listings {
+  id bigint [pk, increment]
+  inventory_item_id bigint [unique, not null]
+  photo_urls json
+  additional_info text
+  sale_price decimal(12,2)
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Items marked for sale after last rental'
+}
+
+Ref: last_rent_listings.inventory_item_id > inventory_items.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: PRICING (Tariffs)
+// ═════════════════════════════════════════════
+
+Table tariffs {
+  id bigint [pk, increment]
+  tenant_id bigint
+  product_model_id bigint [not null]
+  period_type varchar(10) [not null, note: 'day, week, month']
+  period_count int [not null]
+  min_period_count int [not null, default: 0]
+  total_amount decimal(12,2) [not null]
+  per_period_amount decimal(12,2) [not null]
+  sort_order int [not null, default: 0]
+  effective_from date [not null]
+  changed_by bigint
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+
+  indexes {
+    (product_model_id, sort_order, period_count) [name: 'idx_tariffs_model_sort']
+  }
+
+  Note: 'Pricing tiers. Degressive pricing: more periods = cheaper per period.'
+}
+
+Ref: tariffs.tenant_id > tenants.id
+Ref: tariffs.product_model_id > product_models.id [delete: cascade]
+Ref: tariffs.changed_by > staff_users.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: CRM (Clients)
+// ═════════════════════════════════════════════
+
+Table clients {
+  id bigint [pk, increment]
+  tenant_id bigint
+
+  // Personal
+  last_name varchar(150) [not null]
+  first_name varchar(150) [not null]
+  patronymic varchar(150)
+
+  // Contact
+  phone_primary varchar(30) [not null]
+  phone_secondary varchar(30)
+
+  // Address (current)
+  city varchar(100)
+  street varchar(255)
+  building varchar(20)
+  apartment varchar(20)
+
+  // Passport
+  passport_number varchar(30)
+  passport_personal_number varchar(20)
+  passport_issued_at date
+  passport_issued_by varchar(255)
+
+  // Registered address
+  reg_city varchar(100)
+  reg_street varchar(255)
+  reg_building varchar(20)
+  reg_apartment varchar(20)
+
+  // Meta
+  status varchar(50)
+  source varchar(30)
+  notes text
+
+  // Aggregated stats (denormalized)
+  archived_deals_count int [not null, default: 0]
+  archived_deals_total decimal(12,2) [not null, default: 0]
+  last_deal_date date
+
+  created_by bigint
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (tenant_id, phone_primary) [name: 'idx_clients_tenant_phone']
+    (tenant_id, last_name, first_name) [name: 'idx_clients_tenant_name']
+  }
+}
+
+Ref: clients.tenant_id > tenants.id
+Ref: clients.created_by > staff_users.id
+
+Table client_history {
+  id bigint [pk, increment]
+  client_id bigint [not null]
+  changed_by bigint [not null]
+  snapshot json [not null]
+  change_reason varchar(255)
+  created_at timestamp
+}
+
+Ref: client_history.client_id > clients.id
+Ref: client_history.changed_by > staff_users.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: RENTAL (Deals & Sub-operations)
+// ═════════════════════════════════════════════
+
+Table rental_deals {
+  id bigint [pk, increment]
+  tenant_id bigint
+  client_id bigint [not null]
+  inventory_item_id bigint [not null]
+  inventory_number int [not null, note: 'Denormalized for historical reference even if item soft-deleted']
+
+  // Dates
+  started_at datetime [not null]
+  expected_return_at datetime [not null]
+  actual_return_at datetime
+  planned_return_at datetime
+
+  // Delivery
+  has_delivery boolean [not null, default: false]
+  delivery_amount_due decimal(12,2) [not null, default: 0]
+  delivery_amount_paid decimal(12,2) [not null, default: 0]
+
+  // Rental financials
+  rental_amount_due decimal(12,2) [not null, default: 0]
+  rental_amount_paid decimal(12,2) [not null, default: 0]
+
+  // Collateral
+  collateral_amount decimal(12,2) [not null, default: 0]
+  collateral_currency varchar(10)
+
+  // Status & workflow
+  status varchar(30) [not null, default: 'active', note: 'active, closed, closed_loss, closed_problem']
+  overdue_assignee_id bigint
+  notes text
+  item_set_description text
+
+  // Tracking
+  originating_office_id bigint
+  accountable_staff_id bigint
+  created_by bigint [not null]
+  created_at timestamp
+  updated_at timestamp
+  archived_at datetime
+
+  indexes {
+    (status, expected_return_at) [name: 'idx_deals_status_return', note: 'HOT: overdue deal queries']
+    (tenant_id, status) [name: 'idx_deals_tenant_status']
+    (client_id) [name: 'idx_deals_client']
+    (inventory_number) [name: 'idx_deals_inv_number']
+  }
+
+  Note: 'Rental deals — single table replaces rent_deals_act + rent_deals_arch.'
+}
+
+Ref: rental_deals.tenant_id > tenants.id
+Ref: rental_deals.client_id > clients.id
+Ref: rental_deals.inventory_item_id > inventory_items.id
+Ref: rental_deals.overdue_assignee_id > staff_users.id
+Ref: rental_deals.originating_office_id > offices.id
+Ref: rental_deals.accountable_staff_id > staff_users.id
+Ref: rental_deals.created_by > staff_users.id
+
+Table rental_operations {
+  id bigint [pk, increment]
+  rental_deal_id bigint [not null]
+
+  type varchar(30) [not null, note: 'first_rent, extension, return, close, payment, client_payment, planned_pickup']
+  type_sort_order int [not null, default: 0]
+
+  period_from datetime
+  period_to datetime
+
+  tariff_id bigint
+  tariff_period_type varchar(10)
+  tariff_rate decimal(12,2)
+  rental_duration decimal(6,1)
+
+  rental_amount_due decimal(12,2) [not null, default: 0]
+  rental_amount_paid decimal(12,2) [not null, default: 0]
+  rental_payment_type varchar(20) [note: 'bank, card, cash_receipt, cash_no_receipt']
+
+  has_delivery boolean [not null, default: false]
+  delivery_amount_due decimal(12,2) [not null, default: 0]
+  delivery_amount_paid decimal(12,2) [not null, default: 0]
+  delivery_payment_type varchar(20)
+  courier_id bigint
+
+  status varchar(20) [not null, default: 'pending', note: 'pending, for_courier, delivered, completed']
+  notes text
+  fiscal_receipt_number varchar(100)
+
+  office_id bigint
+  accounting_date date
+  linked_operation_id bigint
+
+  // Denormalized snapshot for historical queries
+  snapshot_category_id bigint
+  snapshot_model_id bigint
+  snapshot_inventory_number int
+
+  created_by bigint [not null]
+  created_at timestamp
+  updated_at timestamp
+  archived_at datetime
+
+  indexes {
+    (rental_deal_id, type) [name: 'idx_ops_deal_type', note: 'HOT: amount recalculation']
+    (accounting_date, office_id) [name: 'idx_ops_date_office', note: 'Financial reporting']
+  }
+}
+
+Ref: rental_operations.rental_deal_id > rental_deals.id
+Ref: rental_operations.tariff_id > tariffs.id
+Ref: rental_operations.courier_id > staff_users.id
+Ref: rental_operations.office_id > offices.id
+Ref: rental_operations.linked_operation_id > rental_operations.id
+Ref: rental_operations.created_by > staff_users.id
+
+Table collaterals {
+  id bigint [pk, increment]
+  rental_deal_id bigint [not null]
+  booking_id bigint
+  amount decimal(12,2) [not null]
+  description varchar(500)
+  office_id bigint
+  accounting_date date
+  received_by bigint [not null]
+  received_at datetime [not null]
+  returned_by bigint
+  returned_at datetime
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: collaterals.rental_deal_id > rental_deals.id
+Ref: collaterals.received_by > staff_users.id
+Ref: collaterals.returned_by > staff_users.id
+Ref: collaterals.office_id > offices.id
+
+Table deliveries {
+  id bigint [pk, increment]
+  rental_operation_id bigint
+  scheduled_date date [not null]
+  address_from varchar(255)
+  address_to varchar(255) [not null]
+  delivery_type varchar(20) [not null, note: 'deal, custom']
+  sub_type varchar(50)
+  status varchar(20) [not null, default: 'new', note: 'new, in_progress, done, failed']
+  estimated_start_time datetime
+  estimated_end_time datetime
+  notes text
+  comments text
+  sort_order int [not null, default: 0]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: deliveries.rental_operation_id > rental_operations.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: BOOKINGS (Orders & Reservations)
+// ═════════════════════════════════════════════
+
+Table bookings {
+  id bigint [pk, increment]
+  tenant_id bigint
+
+  booking_type varchar(20) [not null, note: 'confirmed, waitlist']
+  purpose varchar(20) [not null, note: 'rental, delivery, repair, disposal, cleaning']
+
+  customer_name varchar(200)
+  customer_phone varchar(30) [not null]
+  customer_address text
+
+  inventory_number int
+  product_model_id bigint
+  category_id bigint
+
+  booking_date date [not null]
+  valid_until datetime
+  rental_days int
+
+  client_id bigint
+  needs_callback boolean [not null, default: false]
+
+  notes text
+  internal_notes text
+  is_web_booking boolean [not null, default: false]
+  source_ip varchar(45)
+
+  status varchar(20) [not null, default: 'new', note: 'new, approved, completed, cancelled']
+  approved_by bigint
+  approved_at datetime
+
+  created_by bigint
+  created_at timestamp
+  updated_at timestamp
+  archived_at datetime
+  archived_by bigint
+
+  indexes {
+    (inventory_number, status) [name: 'idx_bookings_inv_status', note: 'HOT: booking validation']
+    (tenant_id, status, booking_date) [name: 'idx_bookings_tenant_status']
+  }
+}
+
+Ref: bookings.tenant_id > tenants.id
+Ref: bookings.product_model_id > product_models.id
+Ref: bookings.category_id > categories.id
+Ref: bookings.client_id > clients.id
+Ref: bookings.approved_by > staff_users.id
+Ref: bookings.created_by > staff_users.id
+Ref: bookings.archived_by > staff_users.id
+
+Table booking_date_changes {
+  id bigint [pk, increment]
+  booking_id bigint [not null]
+  old_from datetime [not null]
+  old_to datetime [not null]
+  new_from datetime [not null]
+  new_to datetime [not null]
+  changed_by bigint [not null]
+  previous_approver_id bigint
+  created_at timestamp
+}
+
+Ref: booking_date_changes.booking_id > bookings.id
+Ref: booking_date_changes.changed_by > staff_users.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: CARNIVAL (Costume Rental — Special Section)
+// ═════════════════════════════════════════════
+
+Table carnival_bookings {
+  id bigint [pk, increment]
+  tenant_id bigint
+  inventory_number int [not null]
+  client_id bigint
+
+  booked_from datetime [not null]
+  booked_to datetime [not null]
+
+  customer_name varchar(200)
+  customer_phone varchar(30)
+  customer_email varchar(100)
+  booking_number varchar(20)
+  max_simultaneous int
+
+  payment_cash_1 decimal(12,2) [default: 0]
+  payment_cash_2 decimal(12,2) [default: 0]
+  payment_terminal decimal(12,2) [default: 0]
+  payment_bank decimal(12,2) [default: 0]
+  payment_date date
+
+  status varchar(20) [not null, default: 'new', note: 'new, in_process, ok, cancelled']
+  notes text
+
+  issued_at datetime
+  issued_by bigint
+  returned_at datetime
+  returned_by bigint
+  missed_calls_count int [default: 0]
+  valid_until datetime
+
+  approved_at datetime
+  approved_by bigint
+  created_by bigint
+  created_at timestamp
+  updated_at timestamp
+  archived_at datetime
+}
+
+Ref: carnival_bookings.tenant_id > tenants.id
+Ref: carnival_bookings.client_id > clients.id
+Ref: carnival_bookings.issued_by > staff_users.id
+Ref: carnival_bookings.returned_by > staff_users.id
+Ref: carnival_bookings.approved_by > staff_users.id
+Ref: carnival_bookings.created_by > staff_users.id
+
+Table carnival_orders {
+  id bigint [pk, increment]
+  tenant_id bigint
+  product_model_id bigint [not null]
+  customer_name varchar(255) [not null]
+  customer_phone varchar(30) [not null]
+  event_date date [not null]
+  event_time varchar(20)
+  height_cm varchar(20)
+  build varchar(30)
+  notes text
+  status varchar(30) [not null, default: 'new']
+  approved_at date
+  approved_days int
+  source_ip varchar(45)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: carnival_orders.tenant_id > tenants.id
+Ref: carnival_orders.product_model_id > product_models.id
+
+Table carnival_booking_requests {
+  id bigint [pk, increment]
+  tenant_id bigint
+  product_model_id bigint [not null]
+  event_date date [not null]
+  height_from_cm int
+  height_to_cm int
+  phone varchar(30) [not null]
+  notes varchar(500)
+  created_at timestamp
+}
+
+Ref: carnival_booking_requests.tenant_id > tenants.id
+Ref: carnival_booking_requests.product_model_id > product_models.id
+
+Table carnival_page_settings {
+  id bigint [pk, increment]
+  tenant_id bigint
+  tariff_info text
+  collateral_info text
+  address_info text
+  delivery_info text
+  updated_at timestamp
+}
+
+Ref: carnival_page_settings.tenant_id > tenants.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: COMMUNICATION (Callbacks, Leads)
+// ═════════════════════════════════════════════
+
+Table callback_requests {
+  id bigint [pk, increment]
+  tenant_id bigint
+  customer_name varchar(255) [not null]
+  phone varchar(50) [not null]
+  subject varchar(100)
+  message text
+  request_type varchar(30) [not null, default: 'callback']
+  product_model_id bigint
+  validity_days int [default: 0]
+  status varchar(20) [not null, default: 'new']
+  handled_by bigint
+  handled_at datetime
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: callback_requests.tenant_id > tenants.id
+Ref: callback_requests.product_model_id > product_models.id
+Ref: callback_requests.handled_by > staff_users.id
+
+Table fitting_requests {
+  id bigint [pk, increment]
+  tenant_id bigint
+  customer_name varchar(255) [not null]
+  phone varchar(50) [not null]
+  subject varchar(100)
+  message text
+  requested_time datetime
+  status varchar(20) [not null, default: 'new']
+  handled_by bigint
+  handled_at datetime
+  created_at timestamp
+}
+
+Ref: fitting_requests.tenant_id > tenants.id
+Ref: fitting_requests.handled_by > staff_users.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: FINANCE (Accounting & Cash Management)
+// ═════════════════════════════════════════════
+
+Table income_categories {
+  id bigint [pk, increment]
+  tenant_id bigint
+  code varchar(50) [not null]
+  name varchar(255) [not null]
+  is_bank_transaction boolean [not null, default: false]
+  sort_order int [not null, default: 0]
+  created_at timestamp
+
+  indexes {
+    (tenant_id, code) [unique]
+  }
+}
+
+Ref: income_categories.tenant_id > tenants.id
+
+Table expense_categories {
+  id bigint [pk, increment]
+  tenant_id bigint
+  code varchar(50) [not null]
+  name varchar(255) [not null]
+  is_bank_transaction boolean [not null, default: false]
+  sort_order int [not null, default: 0]
+  created_at timestamp
+
+  indexes {
+    (tenant_id, code) [unique]
+  }
+}
+
+Ref: expense_categories.tenant_id > tenants.id
+
+Table financial_transactions {
+  id bigint [pk, increment]
+  tenant_id bigint
+  accounting_date date [not null]
+  amount decimal(12,2) [not null]
+  direction varchar(10) [not null, note: 'income, expense']
+  income_category_id bigint
+  expense_category_id bigint
+  payment_channel varchar(20) [not null]
+  office_id bigint [not null]
+  linked_entity_type varchar(30)
+  linked_entity_id bigint
+  description text
+  created_by bigint [not null]
+  created_at timestamp
+
+  indexes {
+    (tenant_id, accounting_date) [name: 'idx_fin_tenant_date']
+  }
+}
+
+Ref: financial_transactions.tenant_id > tenants.id
+Ref: financial_transactions.income_category_id > income_categories.id
+Ref: financial_transactions.expense_category_id > expense_categories.id
+Ref: financial_transactions.office_id > offices.id
+Ref: financial_transactions.created_by > staff_users.id
+
+Table cash_register_days {
+  id bigint [pk, increment]
+  tenant_id bigint
+  office_id bigint [not null]
+  accounting_date date [not null]
+  payment_channel varchar(20) [not null]
+  opening_balance decimal(12,2) [not null, default: 0]
+  sales_total decimal(12,2) [not null, default: 0]
+  other_movements decimal(12,2) [not null, default: 0]
+  closing_balance decimal(12,2) [not null, default: 0]
+  register_type varchar(30)
+  created_by bigint [not null]
+  created_at timestamp
+
+  indexes {
+    (tenant_id, office_id, accounting_date, payment_channel) [unique]
+  }
+}
+
+Ref: cash_register_days.tenant_id > tenants.id
+Ref: cash_register_days.office_id > offices.id
+Ref: cash_register_days.created_by > staff_users.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: OPERATIONS (Staff Scheduling, Tasks)
+// ═════════════════════════════════════════════
+
+Table work_shifts {
+  id bigint [pk, increment]
+  staff_user_id bigint [not null]
+  place_type varchar(20) [not null, note: 'office, car, vacation, home']
+  office_id bigint
+  shift_date date [not null]
+  start_time time [not null]
+  end_time time [not null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: work_shifts.staff_user_id > staff_users.id
+Ref: work_shifts.office_id > offices.id
+
+Table work_hour_norms {
+  id bigint [pk, increment]
+  year int [not null]
+  month int [not null]
+  norm_hours int [not null]
+
+  indexes {
+    (year, month) [unique]
+  }
+}
+
+Table tasks {
+  id bigint [pk, increment]
+  tenant_id bigint
+  title varchar(255)
+  description text [not null]
+  priority int [not null, default: 3]
+  status varchar(20) [not null, default: 'new', note: 'new, acknowledged, done, rejected, deleted']
+  assigned_to bigint [not null]
+  created_by bigint [not null]
+  starts_at datetime
+  due_at datetime [not null]
+  completed_at datetime
+  comments text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: tasks.tenant_id > tenants.id
+Ref: tasks.assigned_to > staff_users.id
+Ref: tasks.created_by > staff_users.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: AUDIT (Logging)
+// ═════════════════════════════════════════════
+
+Table audit_log {
+  id bigint [pk, increment]
+  tenant_id bigint
+  staff_user_id bigint [not null]
+  client_id bigint
+  entity_type varchar(50) [not null]
+  entity_id bigint [not null]
+  action varchar(30) [not null, note: 'create, update, delete, archive']
+  details json
+  created_at timestamp
+
+  indexes {
+    (entity_type, entity_id) [name: 'idx_audit_entity']
+    (tenant_id, created_at) [name: 'idx_audit_tenant_date']
+  }
+}
+
+Ref: audit_log.tenant_id > tenants.id
+Ref: audit_log.staff_user_id > staff_users.id
+
+
+// ═════════════════════════════════════════════
+// MODULE: LEGACY SHOP (if retained)
+// ═════════════════════════════════════════════
+
+Table shop_sections {
+  id bigint [pk, increment]
+  name varchar(200) [unique, not null]
+  sort_order int [not null, default: 0]
+  created_at timestamp
+}
+
+Table shop_categories {
+  id bigint [pk, increment]
+  section_id bigint [not null]
+  name varchar(200) [not null]
+  slug varchar(200)
+  photo_url varchar(300)
+  sort_order int [not null, default: 0]
+  created_at timestamp
+}
+
+Ref: shop_categories.section_id > shop_sections.id
+
+Table shop_products {
+  id bigint [pk, increment]
+  category_id bigint [not null]
+  name varchar(200) [not null]
+  description text
+  country_of_origin varchar(100)
+  producer_logo_url varchar(200)
+  price decimal(12,2)
+  currency varchar(10)
+  page_url varchar(500)
+  main_photo_url varchar(200)
+  thumbnail_url varchar(200)
+  is_for_sale boolean [not null, default: true]
+  is_for_rent boolean [not null, default: false]
+  is_featured boolean [not null, default: false]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: shop_products.category_id > shop_categories.id
