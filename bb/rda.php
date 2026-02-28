@@ -619,6 +619,24 @@ use bb\classes\Collateral;
         background: #f0b429;
         box-shadow: 0 0 0 2px #fef9c3;
     }
+
+    .rda-channel-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        color: #555;
+    }
+
+    .rda-channel-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .rda-channel-icon--courier {
+        color: #8b5cf6;
+    }
 </style>
 
 
@@ -711,6 +729,9 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
                     <?php echo number_format($total_money, 2, ',', ' ') ?>
                 </span>
             </th>
+            <th style="width:40px;" title="Канал выдачи">
+                Канал
+            </th>
             <th style="width:100px;"><span title="Период по договору">Период</span></th>
             <th style="width:55px;">К опл.</th>
             <th style="width:100px;">
@@ -725,8 +746,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
                     <option value="bank" <?= DealRow::sel_d($payment_type, 'bank') ?>>Банк</option>
                 </select>
             </th>
-            <th style="width:40px;" title="Офис, где выдан">
-                <span title="Зел. = Офис 1, Жел. = Офис 2">&#9679;</span><br>
+            <th style="width:40px;" title="Офис">
+                Офис<br>
                 <select name="place" id="place_select" form="srch_form" style="width:36px;font-size:0.7rem;"
                     onchange="document.getElementById('srch_form').submit();">
                     <?= Office::OptionsList($place, $user) ?>
@@ -770,7 +791,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
             <span class="deal-num">д№' . $dl->id_deal . '</span>
         </td>
         <td><span class="op-badge ' . $opClass . '">' . $dl->operation_print() . '</span></td>
-        <td style="position:relative;"><strong>' . $dl->inv_n_print() . '</strong>' . $dl->FirstPlacePic() . '<br><span style="color:#555;">' . $dl->cat_dog_name . ' ' . $dl->model_name . ' ' . $dl->producer . '</span></td>
+        <td style="position:relative;"><strong>' . $dl->inv_n_print() . '</strong><br><span style="color:#555;">' . $dl->cat_dog_name . ' ' . $dl->model_name . ' ' . $dl->producer . '</span></td>
+        <td style="text-align:center;">' . $dl->FirstPlacePic() . '</td>
         <td style="white-space:nowrap;">' . date("d.m.y", $dl->from_deal) . '&nbsp;–&nbsp;' . date("d.m.y", $dl->to_deal) . $dl->LastExtensionDatePrint() . '</td>
         <td style="text-align:right;">' . number_format($dl->r_to_pay_sub, 2, ',', ' ') . ($dl->delivery_to_pay_sub > 0 ? '<br><span class="deliv_num">' . number_format($dl->delivery_to_pay_sub, 2, ',', ' ') . '</span>' : '') . '</td>
         <td><span style="font-size:0.75rem;color:#999;">' . User::GetUserName($dl->acc_person_id) . '</span><br>' . $dl->PrintPayment() . '</td>

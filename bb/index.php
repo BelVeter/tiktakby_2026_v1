@@ -407,6 +407,7 @@ if (User::getCurrentUser()->hasPermission(3)) {
 
 	<a class="div_item" href="/bb/sales_breakdown.php" style="background-color: #00FF00">Динамика выручки.</a>
 	<a class="div_item" href="/bb/dohrash2.php" style="background-color: #00FF00">Свод доходов и расходов.</a>
+	<a class="div_item" href="/bb/items_manage.php" style="background-color: #ffc107; color: black;">Настройка статей.</a>
 	<a class="div_item" href="/bb/cat_analysis.php" style="background-color: #00FF00">Анализ выдачи по категориям.</a>
 	<a class="div_item" href="/bb/tovar_report.php" style="background-color: #00FF00">Динамика товаров.</a>
 	<a class="div_item" href="/bb/tovar_dinamics.php" style="background-color: #00FF00">Покупка/продажа товаров детали.</a>
