@@ -725,6 +725,9 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
             </th>
             <th style="width:240px; position:relative;">
                 Товар
+                <span style="position:absolute;top:4px;right:8px;font-weight:normal;font-size:0.72rem;color:#aaa;">
+                    <?php echo number_format($total_money, 2, ',', ' ') ?>
+                </span>
             </th>
             <th style="width:40px;" title="Канал выдачи">
                 Канал
