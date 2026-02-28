@@ -23,6 +23,9 @@ class Kassa
     public $cr_who;
     public $cr_when;
 
+    /** @var float sum of delivery_to_pay for the day (courier column) */
+    public $delivery_sum = 0;
+
     public static $_total_ostatok;
 
     /**
@@ -87,6 +90,35 @@ class Kassa
         }
     }
 
+    /**
+     * Get total delivery_to_pay for the day from the courier sub-deals (delivery_yn=1)
+     */
+    public function GetDeliveryForDay($acc_date_str, $office) {
+        $db = Db::getInstance();
+        $mysqli = $db->getConnection();
+
+        $date_ts = strtotime($acc_date_str);
+
+        $where_place = ($office != 'all') ? "AND sub1.place='$office'" : '';
+
+        $sql = "
+            SELECT COALESCE(SUM(sub1.delivery_to_pay), 0) AS total_delivery
+            FROM rent_sub_deals_act AS sub1
+            WHERE sub1.acc_date='$date_ts' AND sub1.delivery_yn='1' $where_place
+            UNION ALL
+            SELECT COALESCE(SUM(sub1.delivery_to_pay), 0)
+            FROM rent_sub_deals_arch AS sub1
+            WHERE sub1.acc_date='$date_ts' AND sub1.delivery_yn='1' $where_place
+        ";
+
+        $result = $mysqli->query($sql);
+        $total = 0;
+        while ($row = $result->fetch_row()) {
+            $total += (float)$row[0];
+        }
+        $this->delivery_sum = $total;
+    }
+
     public function LoadKassa($acc_date, $office, array $sales) {
         $this->acc_date=strtotime($acc_date);
         $this->office=$office;
@@ -107,48 +139,92 @@ class Kassa
         $this->ostatok_last_saved['k1']=self::GetKassaLastOstatok($this->acc_date, $this->office, 'k1', 'now');
         $this->ostatok_last_saved['k2']=self::GetKassaLastOstatok($this->acc_date, $this->office, 'k2', 'now');
 
+        // Load delivery sum for courier column
+        $this->GetDeliveryForDay($acc_date, $office);
     }
 
     public function PrintKassaTable(){
         if ($this->office=='all') return '';
 
-        $output= '
-        <table border="1" cellspacing="0" style="background-color:#AFDC7E; display:block; float:left; margin: 0 20px;" id="stats2">
-        <tr>
-            <th></th>
-            <th>Касса 1</th>
-            <th>Касса 2</th>
-            <th>Терминал</th>
+        $k1_start  = $this->ostatok_start['k1'] !== null ? number_format($this->ostatok_start['k1'], 2, '.', ' ') : '—';
+        $k2_start  = $this->ostatok_start['k2'] !== null ? number_format($this->ostatok_start['k2'], 2, '.', ' ') : '—';
 
-        </tr>
-        <tr>
-            <td>Входящий остаток:</td>
-            <td style="text-align:right">'.number_format($this->ostatok_start['k1'], 2, ',', ' ').'</td>
-            <td style="text-align:right">'.$this->ostatok_start['k2'].'</td>
-            <td style="text-align:right">X</td>
-        </tr>
-        <tr>
-            <td>Выручка:</td>
-            <td style="text-align:right">'.number_format($this->sales['k1'], 2, ',', ' ').'</td>
-            <td style="text-align:right">'.number_format($this->sales['k2'], 2, ',', ' ').'</td>
-            <td style="text-align:right">'.number_format($this->sales['card'], 2, ',', ' ').'</td>
-        </tr>
-        <tr>
-            <td><a href="#" onclick="rash_show(); return false;">Расход(-)\доход(+):</a></td>
-            <td style="text-align:right">'.number_format($this->doh_rash['k1'], 2, ',', ' ').'</td>
-            <td style="text-align:right">'.number_format($this->doh_rash['k2'], 2, ',', ' ').'</td>
-            <td style="text-align:right">X</td>
-        </tr>
-        <tr '.$this->KassaSavedStyle().'>
-            <td>Остаток, конец дня:</td>
-            <td style="text-align:right"><span>'.number_format($this->ostatok_end['k1'], 2, ',', ' ').'</span></td>
-            <td style="text-align:right"><span>'.number_format($this->ostatok_end['k2'], 2, ',', ' ').'</span></td>
-            <td style="text-align:right; font-weight: bold;"><span>'.number_format(($this->ostatok_end['k2']+$this->ostatok_end['k1']), 2, ',', ' ').'</td>
-        </tr>
-        
+        $k1_sales  = number_format($this->sales['k1'],   2, '.', ' ');
+        $k2_sales  = number_format($this->sales['k2'],   2, '.', ' ');
+        $card_sales= number_format($this->sales['card'],  2, '.', ' ');
+        $bank_sales= number_format($this->sales['bank'],  2, '.', ' ');
+        $deliv_sum = number_format($this->delivery_sum,   2, '.', ' ');
 
-    </table> 
-    ';
+        $k1_rash   = number_format($this->doh_rash['k1'], 2, '.', ' ');
+        $k2_rash   = number_format($this->doh_rash['k2'], 2, '.', ' ');
+
+        $k1_end    = number_format($this->ostatok_end['k1'], 2, '.', ' ');
+        $k2_end    = number_format($this->ostatok_end['k2'], 2, '.', ' ');
+
+        $total_end = number_format($this->ostatok_end['k1'] + $this->ostatok_end['k2'], 2, '.', ' ');
+
+        // ИТОГО = К1 + К2 + По картам + Счет (bank)
+        $itogo_sales = number_format(
+            $this->sales['k1'] + $this->sales['k2'] + $this->sales['card'] + $this->sales['bank'],
+            2, '.', ' '
+        );
+
+        $saved_style = $this->KassaSavedStyle();
+
+        $output = '
+        <table class="kassa-table" id="stats2">
+            <thead>
+            <tr>
+                <th></th>
+                <th>К1</th>
+                <th>К2</th>
+                <th>По картам</th>
+                <th>Счет</th>
+                <th class="kassa-courier">Курьер</th>
+                <th class="kassa-itogo">Итого</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td class="kassa-label">Вх. остаток</td>
+                <td class="kassa-num kassa-muted">' . $k1_start . '</td>
+                <td class="kassa-num kassa-muted">' . $k2_start . '</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted">—</td>
+            </tr>
+            <tr>
+                <td class="kassa-label">Выручка</td>
+                <td class="kassa-num kassa-bold">' . $k1_sales . '</td>
+                <td class="kassa-num kassa-bold">' . $k2_sales . '</td>
+                <td class="kassa-num kassa-bold">' . $card_sales . '</td>
+                <td class="kassa-num kassa-bold">' . $bank_sales . '</td>
+                <td class="kassa-num kassa-courier">' . $deliv_sum . '</td>
+                <td class="kassa-num kassa-itogo">' . $itogo_sales . '</td>
+            </tr>
+            <tr>
+                <td class="kassa-label"><a href="#" onclick="rash_show(); return false;" style="color:#3a7bd5;text-decoration:none;">Расход(-)/доход(+)</a></td>
+                <td class="kassa-num" style="color:' . ($this->doh_rash['k1'] < 0 ? '#e74c3c' : '#333') . ';">' . $k1_rash . '</td>
+                <td class="kassa-num" style="color:' . ($this->doh_rash['k2'] < 0 ? '#e74c3c' : '#333') . ';">' . $k2_rash . '</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted">—</td>
+            </tr>
+            <tr ' . $saved_style . '>
+                <td class="kassa-label">Остаток, конец дня</td>
+                <td class="kassa-num kassa-muted">' . $k1_end . '</td>
+                <td class="kassa-num kassa-muted">' . $k2_end . '</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted">—</td>
+                <td class="kassa-num kassa-muted kassa-bold">' . $total_end . '</td>
+            </tr>
+            </tbody>
+        </table>
+        ';
+
         self::$_total_ostatok=$this->ostatok_end['k2']+$this->ostatok_end['k1'];
 
         if (($this->acc_date+60*60*24)>time()) $output.=$this->PrintSaveFormFields();
@@ -175,7 +251,7 @@ class Kassa
             <input form="srch_form" type="hidden" name="k2_rash" value="'.$this->doh_rash['k2'].'" />
             <input form="srch_form" type="hidden" name="k1_end" value="'.$this->ostatok_end['k1'].'" />
             <input form="srch_form" type="hidden" name="k2_end" value="'.$this->ostatok_end['k2'].'" />
-            <input form="srch_form" type="submit" name="action" value="сохранить остаток" style="position:relative; top:85px;" />
+            <input form="srch_form" type="submit" name="action" value="сохранить остаток" style="margin-top:6px; padding:4px 12px; border-radius:5px; border:1px solid #c5d8fb; background:#e8f0fe; color:#2b72c8; font-size:0.82rem; cursor:pointer;" />
             
         ';
     }

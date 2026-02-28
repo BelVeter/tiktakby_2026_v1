@@ -579,21 +579,29 @@ clients.family, clients.name, clients.otch, clients.city, clients.str, clients.d
 
     public function ActionPrint()
     {
+        $uid = 'km_' . $this->id_sub_deal;
         if ($this->status_sub_deal == 'act') {
-            return '
-                <form method="post" action="dogovor_new.php">
-					<input type="hidden" name="item_inv_n" value="' . $this->inv_n_item . '" />
-					<input type="hidden" name="client_id" value="' . $this->id_client . '" />
-					<input type="submit" value="к договору" />
-				</form>';
+            $actionForm = '
+                <form method="post" action="dogovor_new.php" style="margin:0;">
+                    <input type="hidden" name="item_inv_n" value="' . $this->inv_n_item . '" />
+                    <input type="hidden" name="client_id" value="' . $this->id_client . '" />
+                    <button type="submit" class="km-action-item">К договору</button>
+                </form>';
         } else {
-            return '
-                <form method="post" action="deals_arch.php">
-					<input type="hidden" name="deal_id" value="' . $this->id_deal . '" />
-					<input type="submit" name="action" value="в архив" />
-				</form>';
+            $actionForm = '
+                <form method="post" action="deals_arch.php" style="margin:0;">
+                    <input type="hidden" name="deal_id" value="' . $this->id_deal . '" />
+                    <button type="submit" name="action" value="в архив" class="km-action-item">В архив</button>
+                </form>';
         }
 
+        return '
+        <div class="km-wrap" id="' . $uid . '">
+            <button class="km-btn" type="button" onclick="toggleKebab(\'' . $uid . '\')">&#8942;</button>
+            <div class="km-menu">
+                ' . $actionForm . '
+            </div>
+        </div>';
     }
 
     public static function sel_d($value, $pattern)
