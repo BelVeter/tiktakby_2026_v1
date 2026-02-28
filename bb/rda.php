@@ -157,14 +157,14 @@ use bb\classes\Collateral;
         if (!menu) return;
         var isOpen = menu.classList.contains('open');
         // close all menus
-        document.querySelectorAll('.km-menu.open').forEach(function  (m) { m.classList.remove('open'); });
+        document.querySelectorAll('.km-menu.open').forEach(function (m) { m.classList.remove('open'); });
         if (!isOpen) menu.classList.add('open');
     }
     // Close kebab on outside click
-    document.addEventListener('click', functio n (e) {
-        if (!e.target.closest('.km-wrap')) {
-            document.querySelectorAll('.km-menu.open').forEach(functi on (m) { m.classList.remove('open'); });
-        }
+    document.addEventListener('click', functio n(e) {
+        if(!e.target.closest('.km-wrap')) {
+        document.querySelectorAll('.km-menu.open').forEach(functi on(m) { m.classList.remove('open'); });
+    }
     });
 
     function ch_num_close(chnid) {
@@ -564,70 +564,74 @@ use bb\classes\Collateral;
         font-size: 0.76rem;
     }
 
-    /* === KEBAB MENU === */
-    .km-wrap {
+    /* === ICON ACTION BUTTONS === */
+    .rda-actions {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .rda-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        border: 1px solid #c5d8fb;
+        background: #eef3ff;
+        color: #3a7bd5;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        padding: 0;
         position: relative;
+    }
+
+    .rda-icon-btn svg {
+        width: 15px;
+        height: 15px;
+        pointer-events: none;
+    }
+
+    .rda-icon-btn:hover {
+        background: #3a7bd5;
+        color: #fff;
+        border-color: #3a7bd5;
+        box-shadow: 0 2px 8px rgba(58, 123, 213, 0.25);
+        transform: translateY(-1px);
+    }
+
+    .rda-icon-btn--archive {
+        border-color: #d5c8f0;
+        background: #f0ecff;
+        color: #7c5cbf;
+    }
+
+    .rda-icon-btn--archive:hover {
+        background: #7c5cbf;
+        color: #fff;
+        border-color: #7c5cbf;
+        box-shadow: 0 2px 8px rgba(124, 92, 191, 0.25);
+    }
+
+    /* === OFFICE DOT INDICATOR === */
+    .rda-office-dot {
         display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        cursor: default;
     }
 
-    .km-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1.25rem;
-        color: #aaa;
-        padding: 2px 8px;
-        border-radius: 6px;
-        transition: color 0.15s, background 0.15s;
-        line-height: 1;
-        display: block;
+    .rda-office-dot--1 {
+        background: #27ae60;
+        box-shadow: 0 0 0 2px #d5f5e3;
     }
 
-    .km-btn:hover {
-        color: #4a90d9;
-        background: #eef3fb;
-    }
-
-    .km-menu {
-        display: none;
-        position: absolute;
-        right: 0;
-        top: 100%;
-        background: #fff;
-        border: 1px solid #e0e5f0;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
-        min-width: 140px;
-        z-index: 1000;
-        overflow: hidden;
-    }
-
-    .km-menu.open {
-        display: block;
-    }
-
-    .km-action-item {
-        display: block;
-        width: 100%;
-        padding: 9px 16px;
-        background: none;
-        border: none;
-        text-align: left;
-        cursor: pointer;
-        font-size: 0.85rem;
-        font-family: 'Nunito', sans-serif;
-        color: #333;
-        transition: background 0.12s;
-        border-bottom: 1px solid #f0f2f7;
-    }
-
-    .km-action-item:last-child {
-        border-bottom: none;
-    }
-
-    .km-action-item:hover {
-        background: #f4f7ff;
-        color: #2b72c8;
+    .rda-office-dot--2 {
+        background: #f0b429;
+        box-shadow: 0 0 0 2px #fef9c3;
     }
 </style>
 
@@ -733,9 +737,9 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
                     <option value="bank" <?= DealRow::sel_d($payment_type, 'bank') ?>>Банк</option>
                 </select>
             </th>
-            <th style="width:60px;">
-                Офис<br>
-                <select name="place" id="place_select" form="srch_form" style="width:56px;"
+            <th style="width:40px;" title="Офис, где выдан">
+                <span title="Зел. = Офис 1, Жел. = Офис 2">&#9679;</span><br>
+                <select name="place" id="place_select" form="srch_form" style="width:36px;font-size:0.7rem;"
                     onchange="document.getElementById('srch_form').submit();">
                     <?= Office::OptionsList($place, $user) ?>
                 </select>
@@ -765,6 +769,10 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
                     $opClass = 'op-vozvrat';
                     break;
             }
+            $dot_office = intval($dl->first_rent_place);
+            $dot_class = ($dot_office === 2) ? 'rda-office-dot--2' : 'rda-office-dot--1';
+            $dot_title = 'Выдан на Офис ' . $dot_office;
+            $dot_html = '<span class="rda-office-dot ' . $dot_class . '" title="' . $dot_title . '"></span>';
             echo '
     <tr ' . $dl->SubColorRowStyle() . '>
         <td class="rda-date-cell">
@@ -777,12 +785,13 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
         <td style="white-space:nowrap;">' . date("d.m.y", $dl->from_deal) . '&nbsp;–&nbsp;' . date("d.m.y", $dl->to_deal) . $dl->LastExtensionDatePrint() . '</td>
         <td style="text-align:right;">' . number_format($dl->r_to_pay_sub, 2, ',', ' ') . ($dl->delivery_to_pay_sub > 0 ? '<br><span class="deliv_num">' . number_format($dl->delivery_to_pay_sub, 2, ',', ' ') . '</span>' : '') . '</td>
         <td><span style="font-size:0.75rem;color:#999;">' . User::GetUserName($dl->acc_person_id) . '</span><br>' . $dl->PrintPayment() . '</td>
-        <td style="text-align:center;color:#777;">Оф' . $dl->place_sub_deal . '</td>
+        <td style="text-align:center;">' . $dot_html . '</td>
         <td class="rda-client">' . $dl->ClientPrint() . '</td>
         <td>' . User::GetUserName($dl->cr_who_sub_deal) . '<br>' . $dl->PrintSubInfo() . $dl->DeveloperInfo() . '</td>
         <td style="text-align:center;">' . $dl->ActionPrint() . '</td>
     </tr>
     ';
+
         }
         ?>
     </tbody>
