@@ -8,10 +8,17 @@
             </picture>
         </a>
 
-        <a class="slide" href="https://tiktak.by/ru/prokat-sports/winter">
+        {{-- <a class="slide" href="https://tiktak.by/ru/prokat-sports/winter">
             <picture>
                 <source media="(max-width: 576px)" srcset="/public/slider/sanki-tubingi-mob.webp">
                 <img src="/public/slider/sanki-tubingi-desk.webp" alt="Санки и тюбинги">
+            </picture>
+        </a> --}}
+
+        <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/begovely_velosipedy_samokaty">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/begovel-mob.webp">
+                <img src="/public/slider/begovel-desk.webp" alt="Беговелы, велосипеды, самокаты">
             </picture>
         </a>
 
