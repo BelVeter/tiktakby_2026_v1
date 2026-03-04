@@ -29,6 +29,13 @@
             </picture>
         </a>
 
+        <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/detskaya-komnata/kolybel-kacheli">
+            <picture>
+                <source media="(max-width: 576px)" srcset="/public/slider/mamaroo-mob.webp">
+                <img src="/public/slider/mamaroo-desk.webp" alt="Колыбель-качели 4moms mamaRoo">
+            </picture>
+        </a>
+
         <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie">
             <picture>
                 <source media="(max-width: 576px)" srcset="/public/slider/koliaski-mob.webp">
