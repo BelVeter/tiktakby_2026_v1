@@ -378,7 +378,7 @@ if (!$result_ri) {
 $ri_t1 = '';
 $ri_t1_s = '';
 while ($ri_def = $result_ri->fetch_assoc()) {
-	if ($ri_def['is_active'] == 1) {
+	if (($ri_def['is_active'] ?? 1) == 1) {
 		$ri_t1 .= '<option value="' . $ri_def['ri_code'] . '">' . $ri_def['ri_text'] . '</option>';
 	}
 	$ri_t1_s .= '<option value="' . $ri_def['ri_code'] . '" ' . sel_d($ri_def['ri_code'], $type2_s) . '>' . $ri_def['ri_text'] . '</option>';
@@ -394,7 +394,7 @@ if (!$result_ri) {
 $ri_t2 = $ri_t1;
 $ri_t2_s = $ri_t1_s;
 while ($ri_def = $result_ri->fetch_assoc()) {
-	if ($ri_def['is_active'] == 1) {
+	if (($ri_def['is_active'] ?? 1) == 1) {
 		$ri_t2 .= '<option value="' . $ri_def['ri_code'] . '">' . $ri_def['ri_text'] . '</option>';
 	}
 	$ri_t2_s .= '<option value="' . $ri_def['ri_code'] . '" ' . sel_d($ri_def['ri_code'], $type2_s) . '>' . $ri_def['ri_text'] . '</option>';
@@ -412,7 +412,7 @@ if (!$result_rd) {
 $rd_t1 = '';
 $rd_t1_s = '';
 while ($rd_def = $result_rd->fetch_assoc()) {
-	if ($rd_def['is_active'] == 1) {
+	if (($rd_def['is_active'] ?? 1) == 1) {
 		$rd_t1 .= '<option value="' . $rd_def['rd_code'] . '">' . $rd_def['rd_text'] . '</option>';
 	}
 	$rd_t1_s .= '<option value="' . $rd_def['rd_code'] . '" ' . sel_d($rd_def['rd_code'], $type2_s) . '>' . $rd_def['rd_text'] . '</option>';
