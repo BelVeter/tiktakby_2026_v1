@@ -121,7 +121,7 @@ while ($row = $res->fetch_assoc()) {
         <td><input type="number" name="ri_order" value="' . $row['ri_order'] . '" style="width: 70px;"></td>
         <td><input type="text" name="ri_code" value="' . htmlspecialchars($row['ri_code']) . '" style="width: 100px;"></td>
         <td style="text-align: center;"><input type="checkbox" name="bank_yn" value="1" ' . ($row['bank_yn'] ? 'checked' : '') . '></td>
-        <td style="text-align: center;"><input type="checkbox" name="is_active" value="1" ' . ($row['is_active'] ? 'checked' : '') . ' style="width: 20px;"></td>
+        <td style="text-align: center;"><input type="checkbox" name="is_active" value="1" ' . (($row['is_active'] ?? 1) ? 'checked' : '') . ' style="width: 20px;"></td>
         <td>
             <input type="hidden" name="ri_id" value="' . $row['ri_id'] . '">
             <button type="submit" name="action" value="save_rash">Сохранить</button>
@@ -168,7 +168,7 @@ while ($row = $res->fetch_assoc()) {
         <td><input type="number" name="rd_order" value="' . $row['rd_order'] . '" style="width: 70px;"></td>
         <td><input type="text" name="rd_code" value="' . htmlspecialchars($row['rd_code']) . '" style="width: 100px;"></td>
         <td style="text-align: center;"><input type="checkbox" name="bank_yn" value="1" ' . ($row['bank_yn'] ? 'checked' : '') . '></td>
-        <td style="text-align: center;"><input type="checkbox" name="is_active" value="1" ' . ($row['is_active'] ? 'checked' : '') . ' style="width: 20px;"></td>
+        <td style="text-align: center;"><input type="checkbox" name="is_active" value="1" ' . (($row['is_active'] ?? 1) ? 'checked' : '') . ' style="width: 20px;"></td>
         <td>
             <input type="hidden" name="rd_id" value="' . $row['rd_id'] . '">
             <button type="submit" name="action" value="save_doh">Сохранить</button>
