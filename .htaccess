@@ -44,6 +44,16 @@
         AddType image/webp .webp
     </IfModule>
 
+    <IfModule mod_php.c>
+        php_value date.timezone "Europe/Minsk"
+    </IfModule>
+    <IfModule mod_php7.c>
+        php_value date.timezone "Europe/Minsk"
+    </IfModule>
+    <IfModule mod_php8.c>
+        php_value date.timezone "Europe/Minsk"
+    </IfModule>
+
 </IfModule>
 
 #AddType application/x-httpd-php .php .htm .html .phtml

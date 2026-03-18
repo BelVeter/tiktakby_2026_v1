@@ -292,7 +292,7 @@ clients.family, clients.name, clients.otch, clients.city, clients.str, clients.d
         LEFT JOIN tovar_rent_items ON dl1.item_inv_n=tovar_rent_items.item_inv_n
         LEFT JOIN tovar_rent ON tovar_rent_items.model_id=tovar_rent.tovar_rent_id
         LEFT JOIN tovar_rent_cat ON tovar_rent.tovar_rent_cat_id=tovar_rent_cat.tovar_rent_cat_id
-        LEFT JOIN rent_model_web ON tovar_rent.tovar_rent_id=rent_model_web.model_id
+        LEFT JOIN (SELECT model_id, MAX(l2_pic) as l2_pic FROM rent_model_web GROUP BY model_id) AS rent_model_web ON tovar_rent.tovar_rent_id=rent_model_web.model_id
         LEFT JOIN clients ON dl1.client_id=clients.client_id AND sub1.type NOT IN ('payment', 'cl_payment')
 
         " . $where_close;
@@ -422,7 +422,7 @@ clients.family, clients.name, clients.otch, clients.city, clients.str, clients.d
 
             $result = $mysqli->query($sql_query);
             $row = $result->fetch_assoc();
-            if ($row['place'] > 0)
+            if ($row && $row['place'] > 0)
                 $this->first_rent_place = $row['place'];
         }
 
