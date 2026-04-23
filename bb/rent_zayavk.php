@@ -110,6 +110,18 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 		history.go(1);
 	};
 
+	function submitAction(btn, actionName, confirmMsg) {
+		if (confirmMsg) {
+			if (!confirm(confirmMsg)) return false;
+		}
+		var inp = document.createElement('input');
+		inp.type = 'hidden';
+		inp.name = 'action';
+		inp.value = actionName;
+		btn.form.appendChild(inp);
+		return true;
+	}
+
 	function show_edit(id) {
 
 		let btn = document.getElementById('edit_show_' + id);
@@ -443,9 +455,9 @@ while ($ord = $result_or->fetch_assoc()) {
       			<input type="hidden" name="last_ch_time" value="' . $br_line->ch_time . '">
 
 				<button type="button" name="action" class="zayavk_btn z_btn_save" data-tooltip="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
-				<button type="submit" name="action" class="zayavk_btn z_btn_save" data-tooltip="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
-      	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return obnov(\'' . $br_line->order_id . '\');">' . $svg_phone_off . '</button>
-				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
+				<button type="submit" name="action" class="zayavk_btn z_btn_save" data-tooltip="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;" onclick="return submitAction(this, \'сохранить звонок\');">' . $svg_check . '</button>
+      	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return submitAction(this, \'недозвон\', \'Точно обновить? (недозвон)\');">' . $svg_phone_off . '</button>
+				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return submitAction(this, \'удалить\', \'Вы точно хотите удалить эту заявку?\');" value="удалить">' . $svg_trash . '</button>
 			</div>
 			</form>
 		</td>
