@@ -81,6 +81,7 @@ echo '
 .z_btn_save { background-color: #28a745; }
 .z_btn_del { background-color: #dc3545; }
 .z_btn_missed { background-color: #ffc107; color: #333; }
+.zayavk_btn svg, .zayavk_btn path, .zayavk_btn polyline, .zayavk_btn line { pointer-events: none; }
 </style>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ' . Base::getBarCodeReaderScript() . '
@@ -435,33 +436,18 @@ while ($ord = $result_or->fetch_assoc()) {
       		</td>
     	<!--<td ' . ($br_line->web == 1 ? 'style="background-color:#F60"' : '') . '>' . $lp_list[$br_line->cr_who_id] . '/' . $lp_list[$br_line->appr_id] . '</td>-->
 		<td>
-			<!-- Главная форма: оформить/сохранить звонок -->
 			<form name="order_' . $br_line->order_id . '" id="order_' . $br_line->order_id . '" action="rent_zayavk.php" method="post" ' . ($br_line->type2 == 'out' ? 'style="display:none;"' : '') . '>
 			<div>
-				<input type="hidden" name="user_id" value="' . $_SESSION['user_id'] . '">
-				<input type="hidden" name="order_id" value="' . $br_line->order_id . '">
-				<input type="hidden" name="type2" value="' . $br_line->type2 . '">
-				<input type="hidden" name="last_ch_time" value="' . $br_line->ch_time . '">
+				<input type="hidden" name="user_id" id="user_id_' . $br_line->order_id . '" value="' . $_SESSION['user_id'] . '">
+				<input type="hidden" name="order_id" id="order_id_' . $br_line->order_id . '" value="' . $br_line->order_id . '">
+				<input type="hidden" name="type2" id="type2_' . $br_line->order_id . '" value="' . $br_line->type2 . '">
+      			<input type="hidden" name="last_ch_time" value="' . $br_line->ch_time . '">
 
-				<button type="button" class="zayavk_btn z_btn_save" data-tooltip="Оформить звонок" id="edit_show_' . $br_line->order_id . '" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
+				<button type="button" name="action" class="zayavk_btn z_btn_save" data-tooltip="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
 				<button type="submit" name="action" class="zayavk_btn z_btn_save" data-tooltip="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
+      	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return confirm(\'Отметить недозвон?\');">' . $svg_phone_off . '</button>
+				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
 			</div>
-			</form>
-
-			<!-- Недозвон (своя форма) -->
-			<form action="rent_zayavk.php" method="post" style="display:inline;" onsubmit="return confirm(\'Отметить недозвон?\');">
-				<input type="hidden" name="user_id" value="' . $_SESSION['user_id'] . '">
-				<input type="hidden" name="order_id" value="' . $br_line->order_id . '">
-				<input type="hidden" name="action" value="недозвон">
-				<button type="submit" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '">' . $svg_phone_off . '</button>
-			</form>
-
-			<!-- Удалить (своя форма) -->
-			<form action="rent_zayavk.php" method="post" style="display:inline;" onsubmit="return confirm(\'Вы точно хотите удалить эту заявку?\');">
-				<input type="hidden" name="user_id" value="' . $_SESSION['user_id'] . '">
-				<input type="hidden" name="order_id" value="' . $br_line->order_id . '">
-				<input type="hidden" name="action" value="удалить">
-				<button type="submit" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '">' . $svg_trash . '</button>
 			</form>
 		</td>
 	</tr>
