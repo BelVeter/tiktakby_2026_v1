@@ -137,13 +137,15 @@ if(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && !empty($_SERVER['HTTP_X_REQUESTED
             $model_id_z = Base::GetPost('model_id');
             $phone_z    = preg_replace('/[^0-9]/', '', Base::GetPost('phone'));
             $family_z   = Base::GetPost('family');
+            $name_z     = Base::GetPost('name');
+            $otch_z     = Base::GetPost('otch');
             $validity_s = Base::GetPost('validity');
             $info_z     = Base::GetPost('info');
 
             $validity_dt = \DateTime::createFromFormat('Y-m-d', $validity_s);
             if (!$validity_dt) $validity_dt = new \DateTime('+30 days');
 
-            \bb\classes\bron::createZayavka($model_id_z, $phone_z, $family_z, '', '', $validity_dt, $info_z, 0);
+            \bb\classes\bron::createZayavka($model_id_z, $phone_z, $family_z, $name_z, $otch_z, $validity_dt, $info_z, 0);
 
             $res['status'] = 'ok';
             $res['message'] = 'Заявка создана';
@@ -1191,6 +1193,8 @@ function step_translate ($step) {
         document.getElementById('z_client_search').value = '';
         document.getElementById('z_client_results').style.display = 'none';
         document.getElementById('z_family').value = '';
+        document.getElementById('z_name').value = '';
+        document.getElementById('z_otch').value = '';
         document.getElementById('z_phone').value = '';
         document.getElementById('z_validity').value = '';
         document.getElementById('z_info').value = '';
@@ -1227,6 +1231,8 @@ function step_translate ($step) {
                 div.addEventListener('mouseleave', function(){ this.style.background=''; });
                 div.addEventListener('click', function() {
                   document.getElementById('z_family').value = cl.family;
+                  document.getElementById('z_name').value = cl.name;
+                  document.getElementById('z_otch').value = cl.otch;
                   document.getElementById('z_phone').value  = cl.phone;
                   document.getElementById('z_client_search').value = cl.label;
                   results.style.display = 'none';
@@ -1249,6 +1255,8 @@ function step_translate ($step) {
     document.getElementById('zayavka_submit').addEventListener('click', function() {
       var modelId  = document.getElementById('z_model_id').value;
       var family   = document.getElementById('z_family').value.trim();
+      var name     = document.getElementById('z_name').value.trim();
+      var otch     = document.getElementById('z_otch').value.trim();
       var phone    = document.getElementById('z_phone').value.trim();
       var validity = document.getElementById('z_validity').value;
       var info     = document.getElementById('z_info').value.trim();
@@ -1259,7 +1267,7 @@ function step_translate ($step) {
       $.ajax({
         type: 'POST',
         url: '/bb/kr_baza_new.php',
-        data: { action: 'create_zayavka', model_id: modelId, family: family, phone: phone, validity: validity, info: info },
+        data: { action: 'create_zayavka', model_id: modelId, family: family, name: name, otch: otch, phone: phone, validity: validity, info: info },
         success: function(data) {
           var res = JSON.parse(data);
           if (res.status === 'ok') {
@@ -1288,9 +1296,19 @@ function step_translate ($step) {
           <input type="text" id="z_client_search" class="form-control" placeholder="Иванова или +375...">
           <div id="z_client_results" style="border:1px solid #ccc; border-top:none; display:none; max-height:180px; overflow-y:auto; background:#fff; position:absolute; z-index:2000; width:calc(100% - 30px);"></div>
         </div>
-        <div class="form-group">
-          <label>Фамилия</label>
-          <input type="text" id="z_family" class="form-control" placeholder="Фамилия клиента">
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label>Фамилия</label>
+            <input type="text" id="z_family" class="form-control" placeholder="Фамилия">
+          </div>
+          <div class="form-group col-md-4">
+            <label>Имя</label>
+            <input type="text" id="z_name" class="form-control" placeholder="Имя">
+          </div>
+          <div class="form-group col-md-4">
+            <label>Отчество</label>
+            <input type="text" id="z_otch" class="form-control" placeholder="Отчество">
+          </div>
         </div>
         <div class="form-group">
           <label>Телефон <span class="text-danger">*</span></label>
