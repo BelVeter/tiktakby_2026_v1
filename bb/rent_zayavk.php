@@ -114,12 +114,15 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 		if (confirmMsg) {
 			if (!confirm(confirmMsg)) return false;
 		}
+		var form = btn.closest('form');
+		if (!form) return false;
 		var inp = document.createElement('input');
 		inp.type = 'hidden';
 		inp.name = 'action';
 		inp.value = actionName;
-		btn.form.appendChild(inp);
-		return true;
+		form.appendChild(inp);
+		form.submit();
+		return false;
 	}
 
 	function show_edit(id) {
