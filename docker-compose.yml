@@ -29,7 +29,7 @@ services:
     volumes:
       - db-data:/var/lib/mysql
       - ./tiktakby.sql:/docker-entrypoint-initdb.d/tiktakby.sql
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --sql-mode=""
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
