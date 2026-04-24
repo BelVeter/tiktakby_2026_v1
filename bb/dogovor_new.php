@@ -3541,6 +3541,12 @@ class RTF_Template
 	public function __construct($filename)
 	{
 		$this->content = file_get_contents($filename);
+		
+		// Защита от "кракозябров": если редактор (Word/LibreOffice) удалил кодировку Windows-1251 при сохранении шаблона
+		if (strpos($this->content, '\ansicpg1251') === false) {
+			$this->content = preg_replace('/\\\\ansicpg[0-9]+/', '', $this->content); // удаляем неправильную кодировку, если есть
+			$this->content = preg_replace('/\{\\\\rtf1\\\\ansi/', '{\\\\rtf1\\\\ansi\\\\ansicpg1251', $this->content, 1);
+		}
 	}//construct
 	/*************************************************************************/
 	/**
