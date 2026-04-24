@@ -3603,10 +3603,21 @@ class RTF_Template
 
 function encode_for_rtf($str)
 {
-	$str = bin2hex(iconv('utf-8', 'windows-1251', $str));
-	$str = preg_replace("/([a-zA-Z0-9]{2})/", "\'$1", $str);
-
-	return $str;
+	$out = '';
+	$len = mb_strlen($str, 'UTF-8');
+	for ($i = 0; $i < $len; $i++) {
+		$char = mb_substr($str, $i, 1, 'UTF-8');
+		$ord = mb_ord($char, 'UTF-8');
+		if ($ord <= 127) {
+			$out .= $char;
+		} else {
+			if ($ord > 32767) {
+				$ord -= 65536;
+			}
+			$out .= '\u' . $ord . '?';
+		}
+	}
+	return $out;
 }
 
 
