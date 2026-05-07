@@ -30,10 +30,14 @@
 | `RedirectController` | All redirect routes (created for `route:cache` compatibility) |
 | `FavoritesController` | Favorites functionality (added by Kristina) |
 | `CartController` | Shopping cart: display cart page, tariff retrieval, availability check, checkout with booking creation |
+| `McpAnalyticsController` | MCP Analytics API (GET-only): inventory tree, orders stats, deals list, item profitability, categories performance, client LTV |
 
 ### Middleware (`app/Http/Middleware/`)
 
 - `CheckRedirects` — global middleware (in `$middleware` in `Kernel.php`). Intercepts requests and checks the `redirects` table for 301/302 redirects
+- `McpTokenMiddleware` — route middleware (`mcp.token`). Validates Bearer token from `MCP_API_TOKEN` env var for MCP API
+- `McpGeoCountryMiddleware` — route middleware (`mcp.geo`). Restricts access by country (BY+RU) using GeoLite2 database at `storage/app/geoip/GeoLite2-Country.mmdb`
+- `McpAuditLogMiddleware` — route middleware (`mcp.audit`). Writes each MCP API request to the `mcp_api_log` table
 
 ### MyClasses (`app/MyClasses/`)
 
@@ -61,12 +65,13 @@ Separate PHP admin panel (not Laravel-based), accessible at `/bb/`. Key files:
 
 Blade templates. Main layout: `layouts/app.blade.php` (contains version number for vendor CSS/JS cache-busting).
 
-### Routes (`routes/web.php`)
+### Routes (`routes/web.php` and `routes/api.php`)
 
 - All routes use controllers (no closures!) — required for `route:cache`
 - Language redirects `/en/*`, `/lt/*` → `/ru/*`
 - Catalog: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
 - Fallback → 404 page
+- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 7 analytics endpoints, protected by `mcp.token + mcp.geo + mcp.audit` middleware stack
 
 ## Deploy (`Deploy.php`)
 
@@ -93,6 +98,7 @@ Sequence:
 | Content | `pages`, `video_links`, `dop_photos` |
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
+| MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent) |
 
 ## Data Access Strategy
 
@@ -114,6 +120,9 @@ The project uses two distinct methods for database interaction due to its hybrid
 3. **Legacy code**: the project root contains many old .htm files and folders (pre-Laravel era)
 4. **Carnival costumes**: separate section with special routes and booking logic
 5. **No npm on production**: frontend is built locally (`npm run prod`), output in `public/` + `mix-manifest.json`, then committed to git
+6. **PHP version**: Container runs **PHP 7.4** — avoid PHP 8.0+ syntax (`match`, named arguments, nullsafe operator `?->`, etc.) in Laravel code
+7. **MCP Analytics API**: A GET-only analytics API lives at `/api/mcp/v1/` and is consumed by a Node.js MCP wrapper at `/home/dmitry/sites/mcp-tiktak/`. The wrapper uses `@modelcontextprotocol/sdk` and Node.js 20 (installed via fnm at `/home/dmitry/.fnm`). See `mcp-tiktak/README.md` for Claude Desktop config. The Bearer token is in `.env` as `MCP_API_TOKEN`. GeoLite2 DB is at `storage/app/geoip/GeoLite2-Country.mmdb` (not in git — downloaded at setup time).
+8. **Local dev environment**: Docker-based on Linux (not Laragon/Windows). Containers: `tiktakby-app` (Apache+PHP 7.4, port 80), `db` (MySQL). Run commands via `docker exec tiktakby-app php artisan ...`
 
 ## Rules for AI Agents
 
