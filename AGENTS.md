@@ -30,14 +30,32 @@
 | `RedirectController` | All redirect routes (created for `route:cache` compatibility) |
 | `FavoritesController` | Favorites functionality (added by Kristina) |
 | `CartController` | Shopping cart: display cart page, tariff retrieval, availability check, checkout with booking creation |
-| `McpAnalyticsController` | MCP Analytics API (GET-only): inventory tree, orders stats, deals list, item profitability, categories performance, client LTV |
+| `Mcp/HealthController` | `/health` + `/openapi.json` |
+| `Mcp/MetaController` | `/meta/*` — categories, locations, expense-items, income-items, data-freshness |
+| `Mcp/FinanceController` | `/finance/{pnl,revenue,expenses,cash-flow}` — P&L injects 2025 bank-channel warning |
+| `Mcp/OperationsController` | `/operations/*` (funnel/timeline/by-category/by-location) + legacy `/orders/stats`, `/deals/list` |
+| `Mcp/InventoryController` | `/inventory/{free-tree,profitability,utilization,turnover,idle}` |
+| `Mcp/CustomersController` | `/customers/{timeline,cohorts,repeat-intervals}` + legacy `/clients/ltv` |
+| `Mcp/GeoController` | `/geo/clients-by-city` (Minsk-district resolution deferred to Stage 2) |
+| `Mcp/LocationsController` | `/locations/{performance,lifecycle}` |
+| `Mcp/CategoriesController` | `/categories/{seasonality,performance}` |
+| `Mcp/CarnivalController` | `/carnival/{funnel,seasonality,revenue}` (UNION of `karn_brons` + `karn_brons_arch`) |
+| `Mcp/ExportController` | `/export/monthly/{topic}` — CSV streams matching `data/monthly/_schema.md` |
+| `Mcp/BaseController` | abstract — `envelope()`, `cacheRemember()`, `dataFreshness()`, TTL constants |
+
+See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoint catalog.
 
 ### Middleware (`app/Http/Middleware/`)
 
 - `CheckRedirects` — global middleware (in `$middleware` in `Kernel.php`). Intercepts requests and checks the `redirects` table for 301/302 redirects
+- `McpForceJsonMiddleware` — route middleware (`mcp.json`). Sets `Accept: application/json` so validation failures return 422 JSON instead of 302 HTML redirects
 - `McpTokenMiddleware` — route middleware (`mcp.token`). Validates Bearer token from `MCP_API_TOKEN` env var for MCP API
 - `McpGeoCountryMiddleware` — route middleware (`mcp.geo`). Restricts access by country (BY+RU) using GeoLite2 database at `storage/app/geoip/GeoLite2-Country.mmdb`
 - `McpAuditLogMiddleware` — route middleware (`mcp.audit`). Writes each MCP API request to the `mcp_api_log` table
+
+### Form Requests (`app/Http/Requests/Mcp/`)
+
+- `RangeRequest` — common parameters for range-based MCP endpoints. Default range is the last 12 months; `granularity=month`; all dimensional filters (`category`/`segment`/`region`/`location`) default to `all`. Provides `granularityFormatFor($column)` to build the matching MySQL `DATE_FORMAT()` expression.
 
 ### MyClasses (`app/MyClasses/`)
 
@@ -71,7 +89,7 @@ Blade templates. Main layout: `layouts/app.blade.php` (contains version number f
 - Language redirects `/en/*`, `/lt/*` → `/ru/*`
 - Catalog: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
 - Fallback → 404 page
-- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 7 analytics endpoints, protected by `mcp.token + mcp.geo + mcp.audit` middleware stack
+- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 33 analytics endpoints + `/health` + `/openapi.json`, middleware chain `mcp.json → mcp.token → mcp.geo → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+. See `docs/mcp_server.md`.
 
 ## Deploy (`Deploy.php`)
 
@@ -98,7 +116,7 @@ Sequence:
 | Content | `pages`, `video_links`, `dop_photos` |
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
-| MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent) |
+| MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent); plus `idx_mcp_*` performance indexes on `rent_deals_arch`, `rent_sub_deals_arch`, `doh_rash`, `clients`, `karn_brons`, `karn_brons_arch`, `rent_orders`, `rent_orders_arch`, `rent_deals_act` (migration `2026_05_09_000001_add_mcp_analytics_indexes`) |
 
 ## Data Access Strategy
 

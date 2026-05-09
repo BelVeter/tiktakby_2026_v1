@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Mcp;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 /**
  * GET /api/mcp/v1/health
@@ -25,6 +26,25 @@ class HealthController extends BaseController
                 'currency' => 'BYN',
                 'warnings' => [],
             ],
+        ]);
+    }
+
+    /**
+     * GET /api/mcp/v1/openapi.json
+     *
+     * Serves the static OpenAPI 3.0 spec from resources/openapi/mcp-v1.json
+     * so MCP-server tooling (openapi-mcp-generator) can auto-generate tool
+     * definitions for Phase B.
+     */
+    public function openapi(): Response
+    {
+        $path = resource_path('openapi/mcp-v1.json');
+        if (!is_file($path)) {
+            abort(500, 'OpenAPI spec is missing.');
+        }
+        return response((string) file_get_contents($path), 200, [
+            'Content-Type'  => 'application/json',
+            'Cache-Control' => 'public, max-age=300',
         ]);
     }
 }

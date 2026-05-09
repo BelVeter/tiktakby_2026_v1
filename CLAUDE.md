@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **CRITICAL**: Dual architecture:
 1. **Laravel app** (`app/`, `routes/`, `resources/`) - Public website
 2. **Legacy admin panel** (`bb/`) - Standalone PHP admin interface
-3. **MCP Analytics API** (`routes/api.php`, `McpAnalyticsController`) - Analytics endpoints with token auth
+3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 33 read-only analytics endpoints under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
 
 ## Essential Commands
 
@@ -161,13 +161,31 @@ Check admin status in Laravel views:
 | `FavoritesController` | Favorites functionality |
 | `ZvonokController` | Callback requests, bookings (KB), subscriptions |
 | `RedirectController` | URL redirects (created for `route:cache` compatibility) |
-| `McpAnalyticsController` | MCP Analytics API (inventory tree, orders stats, deals, profitability, categories, client LTV) |
+
+### MCP Analytics API Controllers (`app/Http/Controllers/Mcp/`)
+
+All MCP controllers extend `BaseController` (envelope/cache/data-freshness helpers, TTL constants). Common date-range parameters validated by `App\Http\Requests\Mcp\RangeRequest` with defaults (last 12 months, `granularity=month`, all dimensional filters = `all`).
+
+| Controller | Path prefix | Endpoints (count) |
+|-----------|-------------|-------------------|
+| `HealthController` | `/health`, `/openapi.json` | 2 — liveness probe + OpenAPI 3.0 spec |
+| `MetaController` | `/meta/*` | 5 — categories, locations, expense-items, income-items, data-freshness |
+| `FinanceController` | `/finance/*` | 4 — pnl (with 2025 warning), revenue, expenses, cash-flow |
+| `OperationsController` | `/operations/*`, `/orders/stats`, `/deals/list` | 6 — funnel, timeline, by-category, by-location + 2 legacy |
+| `InventoryController` | `/inventory/*` | 5 — free-tree, profitability, utilization, turnover, idle |
+| `CustomersController` | `/customers/*`, `/clients/ltv` | 4 — timeline, cohorts, repeat-intervals + legacy LTV |
+| `GeoController` | `/geo/clients-by-city` | 1 — city-level grouping (Minsk-district resolution deferred to Stage 2) |
+| `LocationsController` | `/locations/*` | 2 — performance (per period × office), lifecycle (full history) |
+| `CategoriesController` | `/categories/*` | 2 — seasonality, performance (legacy) |
+| `CarnivalController` | `/carnival/*` | 3 — funnel, seasonality, revenue (UNION of `karn_brons` + `karn_brons_arch`) |
+| `ExportController` | `/export/monthly/{topic}` | 1 — streaming CSV for `operations`, `revenue`, `pnl`, `traffic` |
 
 ### Middleware (`app/Http/Middleware/`)
 
 | Middleware | Type | Purpose |
 |-----------|------|---------|
 | `CheckRedirects` | Global | Intercepts all requests, checks `redirects` table for 301/302 redirects |
+| `McpForceJsonMiddleware` | Route (mcp.json) | Sets `Accept: application/json` so validation failures return 422 JSON instead of 302 HTML |
 | `McpTokenMiddleware` | Route (mcp.token) | Validates Bearer token from `MCP_API_TOKEN` env |
 | `McpGeoCountryMiddleware` | Route (mcp.geo) | Restricts access by country (BY+RU using GeoLite2) |
 | `McpAuditLogMiddleware` | Route (mcp.audit) | Logs each MCP API request to `mcp_api_log` table |
@@ -201,8 +219,10 @@ Standalone PHP application (not Laravel):
 
 **API routes** (`routes/api.php`):
 - **MCP Analytics API** (`GET /api/mcp/v1/*`)
-  - Middleware: `mcp.token` → `mcp.geo` → `mcp.audit` → `throttle:60,1`
-  - Endpoints: `/health`, `/inventory/free-tree`, `/inventory/profitability`, `/orders/stats`, `/deals/list`, `/categories/performance`, `/clients/ltv`
+  - Middleware chain: `mcp.json` → `mcp.token` → `mcp.geo` → `mcp.audit` → `throttle:60,1`
+  - 33 endpoints + `/health` + `/openapi.json` — see [docs/mcp_server.md](docs/mcp_server.md) and `resources/openapi/mcp-v1.json` for the full catalog
+  - Response envelope: `{query, data, meta:{total_rows, currency:"BYN", data_freshness, warnings}}`
+  - `/finance/pnl` injects a `meta.warnings` entry referring to `D-OPEN-FY2025` whenever the requested period overlaps 2025-01 or later — DO NOT remove this without coordinating with the analytics workspace at `/home/dmitry/Documents/прокат/`
 
 ### Database Tables (Key Groups)
 
@@ -215,7 +235,7 @@ Standalone PHP application (not Laravel):
 | **Handbooks** | `rash_items`, `doh_items` (contain `is_active` for form filtering) |
 | **Content** | `pages`, `video_links`, `dop_photos` |
 | **Redirects** | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
-| **MCP API** | `mcp_api_log` (audit logs for analytics endpoints) |
+| **MCP API** | `mcp_api_log` (audit logs); `idx_mcp_*` performance indexes added in migration `2026_05_09_000001_add_mcp_analytics_indexes` |
 | **System** | `migrations`, `personal_access_tokens` |
 
 ### Frontend (`resources/views/`)

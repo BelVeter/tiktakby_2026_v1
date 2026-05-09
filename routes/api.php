@@ -36,6 +36,9 @@ Route::prefix('mcp/v1')
         // Health check
         Route::get('health', [HealthController::class, 'index'])->name('health');
 
+        // OpenAPI 3.0 spec for MCP-server tool auto-generation (Phase B)
+        Route::get('openapi.json', [HealthController::class, 'openapi'])->name('openapi');
+
         // Meta / reference (A.3)
         Route::get('meta/categories',      [MetaController::class, 'categories'])->name('meta.categories');
         Route::get('meta/locations',       [MetaController::class, 'locations'])->name('meta.locations');
