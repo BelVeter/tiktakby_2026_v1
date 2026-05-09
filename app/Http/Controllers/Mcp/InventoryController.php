@@ -188,18 +188,248 @@ class InventoryController extends BaseController
         ], $rows);
     }
 
+    /**
+     * GET /inventory/utilization?from&to&category
+     *
+     * Per-model utilization = rented_days / (unit_count * period_days).
+     * rented_days is computed by clipping each deal's [cr_time .. return_date]
+     * window to the requested period and summing across all units of the model.
+     * Deals that haven't returned yet (return_date = 0) are clipped at NOW().
+     */
     public function utilization(RangeRequest $request): JsonResponse
     {
-        return $this->envelope($request->queryEcho(), []);
+        $from     = $request->fromTimestamp();
+        $to       = $request->toTimestamp();
+        $category = $request->input('category', 'all');
+
+        $key = $this->cacheKey('inventory.utilization', [
+            'from' => $from, 'to' => $to, 'cat' => $category,
+        ]);
+
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category) {
+            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
+            if ($category !== 'all' && $razdel === null) {
+                return [];
+            }
+
+            $periodSeconds = max(1, $to - $from);
+            $now           = time();
+
+            $catJoin   = '';
+            $catWhere  = '';
+            $catParams = [];
+            if ($razdel !== null) {
+                $catJoin = '
+                    JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
+                    JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
+                ';
+                $catWhere   = 'AND rs.id_razdel = ?';
+                $catParams[] = $razdel;
+            }
+
+            // Number of physical units per model (independent of the period).
+            $unitsByModel = [];
+            $unitRows = DB::select("
+                SELECT tri.model_id, COUNT(*) AS unit_count
+                FROM tovar_rent_items tri
+                {$catJoin}
+                WHERE tri.model_id IS NOT NULL
+                  {$catWhere}
+                GROUP BY tri.model_id
+            ", $catParams);
+            foreach ($unitRows as $u) {
+                $unitsByModel[$u->model_id] = (int) $u->unit_count;
+            }
+
+            // Rented seconds per model = sum of clipped [cr_time .. return_date or now] intervals.
+            $rentedSql = "
+                SELECT tri.model_id,
+                       rmw.l2_name AS model_name,
+                       SUM(
+                           GREATEST(0,
+                               LEAST(IF(da.return_date > 0, da.return_date, ?), ?)
+                               - GREATEST(da.cr_time, ?)
+                           )
+                       ) AS rented_seconds,
+                       COUNT(DISTINCT da.deal_id) AS deals
+                FROM rent_deals_arch da
+                JOIN tovar_rent_items tri ON tri.item_inv_n = da.item_inv_n
+                LEFT JOIN rent_model_web rmw ON rmw.model_id = tri.model_id AND rmw.lang = 'ru'
+                {$catJoin}
+                WHERE da.cr_time < ?
+                  AND (da.return_date = 0 OR da.return_date > ?)
+                  {$catWhere}
+                GROUP BY tri.model_id, rmw.l2_name
+                ORDER BY rented_seconds DESC
+            ";
+            $rentedRows = DB::select($rentedSql, array_merge([$now, $to, $from, $to, $from], $catParams));
+
+            $out = [];
+            foreach ($rentedRows as $r) {
+                $units    = $unitsByModel[$r->model_id] ?? 0;
+                $rentSecs = (float) ($r->rented_seconds ?? 0);
+                if ($units <= 0) {
+                    continue;
+                }
+                $rentedDays = round($rentSecs / 86400, 2);
+                $util       = round($rentSecs / ($units * $periodSeconds), 4);
+                $out[] = [
+                    'model_id'        => (int) $r->model_id,
+                    'model_name'      => $r->model_name,
+                    'units'           => $units,
+                    'deals_in_period' => (int) $r->deals,
+                    'rented_days'     => $rentedDays,
+                    'utilization'     => min(1.0, $util),
+                ];
+            }
+            return $out;
+        });
+
+        return $this->envelope($request->queryEcho(), $rows);
     }
 
+    /**
+     * GET /inventory/turnover?from&to&category
+     *
+     * Per-model turnover = deals_in_period / unit_count. A turnover of 4 means
+     * each unit was rented out four times on average during the period.
+     */
     public function turnover(RangeRequest $request): JsonResponse
     {
-        return $this->envelope($request->queryEcho(), []);
+        $from     = $request->fromTimestamp();
+        $to       = $request->toTimestamp();
+        $category = $request->input('category', 'all');
+
+        $key = $this->cacheKey('inventory.turnover', [
+            'from' => $from, 'to' => $to, 'cat' => $category,
+        ]);
+
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category) {
+            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
+            if ($category !== 'all' && $razdel === null) {
+                return [];
+            }
+
+            $catJoin   = '';
+            $catWhere  = '';
+            $catParams = [];
+            if ($razdel !== null) {
+                $catJoin = '
+                    JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
+                    JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
+                ';
+                $catWhere   = 'AND rs.id_razdel = ?';
+                $catParams[] = $razdel;
+            }
+
+            return DB::select("
+                SELECT tri.model_id,
+                       rmw.l2_name AS model_name,
+                       tc.cat_id,
+                       tc.cat_name,
+                       COUNT(DISTINCT tri.item_id)  AS units,
+                       COUNT(DISTINCT da.deal_id)   AS deals,
+                       ROUND(SUM(da.r_paid + da.delivery_paid), 2) AS revenue_byn,
+                       ROUND(COUNT(DISTINCT da.deal_id) / NULLIF(COUNT(DISTINCT tri.item_id), 0), 2) AS turnover
+                FROM tovar_rent_items tri
+                LEFT JOIN rent_deals_arch da ON da.item_inv_n = tri.item_inv_n
+                                               AND da.cr_time BETWEEN ? AND ?
+                LEFT JOIN rent_model_web rmw ON rmw.model_id = tri.model_id AND rmw.lang = 'ru'
+                LEFT JOIN tovar_cats tc      ON tc.cat_id    = tri.cat_id
+                {$catJoin}
+                WHERE 1=1
+                  {$catWhere}
+                GROUP BY tri.model_id, rmw.l2_name, tc.cat_id, tc.cat_name
+                ORDER BY turnover DESC
+            ", array_merge([$from, $to], $catParams));
+        });
+
+        return $this->envelope($request->queryEcho(), $rows);
     }
 
+    /**
+     * GET /inventory/idle?days=90&category
+     *
+     * Models whose last rental cr_time is older than `days` days ago (or that
+     * have never been rented at all). Useful for ассортимент cleanup.
+     */
     public function idle(Request $request): JsonResponse
     {
-        return $this->envelope([], []);
+        $request->validate([
+            'days'     => 'integer|min:1|max:3650',
+            'category' => 'nullable|string|in:' . implode(',', \App\Http\Requests\Mcp\RangeRequest::CATEGORIES),
+        ]);
+
+        $days     = (int) $request->get('days', 90);
+        $category = $request->get('category', 'all');
+        $cutoff   = time() - $days * 86400;
+
+        $key = $this->cacheKey('inventory.idle', ['days' => $days, 'cat' => $category]);
+
+        $rows = $this->cacheRemember($key, self::TTL_DEFAULT, function () use ($cutoff, $days, $category) {
+            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
+            if ($category !== 'all' && $razdel === null) {
+                return [];
+            }
+
+            $catJoin   = '';
+            $catWhere  = '';
+            $catParams = [];
+            if ($razdel !== null) {
+                $catJoin = '
+                    JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
+                    JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
+                ';
+                $catWhere   = 'AND rs.id_razdel = ?';
+                $catParams[] = $razdel;
+            }
+
+            return DB::select("
+                SELECT tri.model_id,
+                       rmw.l2_name AS model_name,
+                       tc.cat_id,
+                       tc.cat_name,
+                       COUNT(DISTINCT tri.item_id) AS units,
+                       MAX(da.cr_time)             AS last_deal_ts,
+                       FROM_UNIXTIME(MAX(da.cr_time), '%Y-%m-%d') AS last_deal_date,
+                       FLOOR((? - MAX(da.cr_time)) / 86400) AS days_idle
+                FROM tovar_rent_items tri
+                LEFT JOIN rent_deals_arch da ON da.item_inv_n = tri.item_inv_n
+                LEFT JOIN rent_model_web rmw ON rmw.model_id = tri.model_id AND rmw.lang = 'ru'
+                LEFT JOIN tovar_cats tc      ON tc.cat_id    = tri.cat_id
+                {$catJoin}
+                WHERE 1=1
+                  {$catWhere}
+                GROUP BY tri.model_id, rmw.l2_name, tc.cat_id, tc.cat_name
+                HAVING (MAX(da.cr_time) IS NULL OR MAX(da.cr_time) < ?)
+                ORDER BY (MAX(da.cr_time) IS NULL) DESC, MAX(da.cr_time) ASC
+            ", array_merge([time()], $catParams, [$cutoff]));
+        });
+
+        return $this->envelope([
+            'days'     => $days,
+            'category' => $category,
+            'cutoff_iso' => gmdate('Y-m-d\TH:i:s\Z', $cutoff),
+        ], $rows);
+    }
+
+    private function categoryToRazdelId(string $category): ?int
+    {
+        $map = $this->cacheRemember('mcp.category_razdel_map', self::TTL_META, function () {
+            $rows = DB::select("SELECT id_razdel, url_razdel_name FROM razdel");
+            $byUrl = [];
+            foreach ($rows as $r) {
+                $byUrl[$r->url_razdel_name] = (int) $r->id_razdel;
+            }
+            return [
+                'children' => $byUrl['prokat-detskih-tovarov'] ?? null,
+                'costumes' => $byUrl['karnavalnye-kostyumy']   ?? null,
+                'medical'  => $byUrl['medical-prokat']         ?? null,
+                'cleaning' => $byUrl['prokat-uborka']          ?? null,
+                'sports'   => $byUrl['prokat-sports']          ?? null,
+                'tools'    => null,
+            ];
+        });
+        return $map[$category] ?? null;
     }
 }
