@@ -217,13 +217,18 @@ class CustomersController extends BaseController
      * GET /customers/repeat-intervals?from&to&category
      *
      * Distribution of intervals (in days) between consecutive deals of the
-     * same client, computed via window function LAG. We surface:
+     * same client. We surface:
      *   - count of intervals
      *   - mean / min / max
      *   - p25 / p50 (median) / p75 via offset-based selection
      *   - histogram buckets: 0–7 / 7–30 / 30–90 / 90–180 / 180–365 / 365+ days
      *
      * Useful for sizing reminder windows and detecting churn.
+     *
+     * Intervals are computed in PHP rather than via SQL window functions —
+     * production MariaDB rejected the `WITH ordered AS (... LAG(...) OVER ...)`
+     * form with a 500, so we keep the SQL portable (plain ORDER BY) and do a
+     * single linear scan in PHP.
      */
     public function repeatIntervals(RangeRequest $request): JsonResponse
     {
@@ -254,26 +259,30 @@ class CustomersController extends BaseController
                 $catParams[] = $razdel;
             }
 
-            $intervalsSql = "
-                WITH ordered AS (
-                    SELECT da.client_id, da.cr_time,
-                           LAG(da.cr_time) OVER (PARTITION BY da.client_id ORDER BY da.cr_time) AS prev_time
-                    FROM rent_deals_arch da
-                    {$catJoin}
-                    WHERE da.cr_time BETWEEN ? AND ?
-                      {$catWhere}
-                )
-                SELECT (cr_time - prev_time) / 86400 AS days
-                FROM ordered
-                WHERE prev_time IS NOT NULL
-            ";
-
-            $intervals = DB::select(
-                "SELECT days FROM ({$intervalsSql}) i ORDER BY days",
+            $rows = DB::select(
+                "SELECT da.client_id, da.cr_time
+                 FROM rent_deals_arch da
+                 {$catJoin}
+                 WHERE da.cr_time BETWEEN ? AND ?
+                   {$catWhere}
+                 ORDER BY da.client_id, da.cr_time",
                 array_merge([$from, $to], $catParams)
             );
-            $values = array_map(fn($r) => (float) $r->days, $intervals);
-            $count  = count($values);
+
+            $values     = [];
+            $lastClient = null;
+            $lastTime   = null;
+            foreach ($rows as $r) {
+                $client = (string) $r->client_id;
+                $time   = (int) $r->cr_time;
+                if ($client === $lastClient && $lastTime !== null) {
+                    $values[] = ($time - $lastTime) / 86400.0;
+                }
+                $lastClient = $client;
+                $lastTime   = $time;
+            }
+            sort($values);
+            $count = count($values);
 
             if ($count === 0) {
                 return [
