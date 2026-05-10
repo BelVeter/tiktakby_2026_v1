@@ -54,4 +54,18 @@ abstract class McpTestCase extends TestCase
         ]);
         $response->assertJsonPath('meta.currency', 'BYN');
     }
+
+    /** Assert that an endpoint requires the Bearer token (401 without). */
+    protected function assertRequiresToken(string $path): void
+    {
+        $this->getJson('/api/mcp/v1/' . ltrim($path, '/'))->assertStatus(401);
+    }
+
+    /** Assert that a numeric column is sorted in descending order. */
+    protected function assertSortedDesc(array $values, string $message = ''): void
+    {
+        $sorted = $values;
+        rsort($sorted);
+        $this->assertSame($sorted, $values, $message ?: 'values must be sorted DESC');
+    }
 }
