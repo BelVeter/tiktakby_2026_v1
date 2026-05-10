@@ -1,0 +1,141 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TikTak.by MCP Analytics API",
+    "version": "1.0.0",
+    "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN. All dates in MySQL are UNIX timestamps but the API exposes ISO-8601 / YYYY-MM-DD strings.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
+  },
+  "servers": [
+    { "url": "https://tiktak.by/api/mcp/v1", "description": "Production" }
+  ],
+  "security": [
+    { "bearerAuth": [] }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    },
+    "parameters": {
+      "from":        { "in": "query", "name": "from",        "schema": { "type": "string", "format": "date" }, "description": "Period start (ISO date). Default: 12 months ago." },
+      "to":          { "in": "query", "name": "to",          "schema": { "type": "string", "format": "date" }, "description": "Period end (ISO date). Default: today." },
+      "granularity": { "in": "query", "name": "granularity", "schema": { "type": "string", "enum": ["day","week","month","quarter","year"], "default": "month" } },
+      "category":    { "in": "query", "name": "category",    "schema": { "type": "string", "enum": ["all","children","costumes","medical","cleaning","sports","tools"], "default": "all" } },
+      "segment":     { "in": "query", "name": "segment",     "schema": { "type": "string", "enum": ["all","b2c","b2b"], "default": "all" } },
+      "region":      { "in": "query", "name": "region",      "schema": { "type": "string", "enum": ["all","belarus","minsk","vitebsk","grodno","mogilev","gomel","brest"], "default": "all" } },
+      "location":    { "in": "query", "name": "location",    "schema": { "type": "string" }, "description": "Office id (1..) or 'all'." },
+      "channel":     { "in": "query", "name": "channel",     "schema": { "type": "string" }, "description": "'cash' (channels 1..4 + cur), 'bank', 'all', or exact value." },
+      "years":       { "in": "query", "name": "years",       "schema": { "type": "integer", "minimum": 1, "maximum": 11, "default": 5 } },
+      "days":        { "in": "query", "name": "days",        "schema": { "type": "integer", "minimum": 1, "maximum": 3650, "default": 90 } }
+    },
+    "schemas": {
+      "Envelope": {
+        "type": "object",
+        "required": ["query", "data", "meta"],
+        "properties": {
+          "query": { "type": "object", "additionalProperties": true, "description": "Echo of the request parameters with defaults filled in." },
+          "data":  { "description": "Endpoint-specific payload (array, object, or scalar)." },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total_rows":     { "type": ["integer","null"] },
+              "currency":       { "type": "string", "example": "BYN" },
+              "data_freshness": { "type": ["string","null"], "format": "date-time" },
+              "warnings":       { "type": "array", "items": { "$ref": "#/components/schemas/Warning" } }
+            }
+          }
+        }
+      },
+      "Warning": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code":    { "type": "string" },
+          "message": { "type": "string" },
+          "ref":     { "type": "string", "description": "Optional decisions_log.md reference, e.g. D-OPEN-FY2025." }
+        }
+      }
+    },
+    "responses": {
+      "Envelope":      { "description": "Standard envelope.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } },
+      "Unauthorized":  { "description": "Missing or invalid Bearer token." },
+      "Forbidden":     { "description": "Country not in allow-list." },
+      "TooManyRequests": { "description": "Rate limit exceeded (60 req/min)." },
+      "ValidationError": { "description": "Invalid query parameters.", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "errors": { "type": "object" } } } } } }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "tiktak_health",
+        "summary": "Liveness probe (no DB).",
+        "responses": { "200": { "$ref": "#/components/responses/Envelope" }, "401": { "$ref": "#/components/responses/Unauthorized" } }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "tiktak_openapi",
+        "summary": "Returns this OpenAPI spec.",
+        "security": [],
+        "responses": { "200": { "description": "OpenAPI document." } }
+      }
+    },
+
+    "/meta/categories":     { "get": { "operationId": "tiktak_meta_categories", "summary": "Business categories + detailed tovar_cats list.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/meta/locations":      { "get": { "operationId": "tiktak_meta_locations", "summary": "Offices/couriers with computed first/last deal + revenue.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/meta/expense-items":  { "get": { "operationId": "tiktak_meta_expense_items", "summary": "Active rash_items dictionary.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/meta/income-items":   { "get": { "operationId": "tiktak_meta_income_items", "summary": "Active doh_items dictionary.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/meta/data-freshness": { "get": { "operationId": "tiktak_meta_data_freshness", "summary": "Latest write timestamp per hot table + global max.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/finance/pnl":       { "get": { "operationId": "tiktak_finance_pnl", "summary": "Revenue, expenses (7 buckets), EBITDA. Adds 2025 bank-channel warning when range overlaps 2025+.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" }, "422": { "$ref": "#/components/responses/ValidationError" } } } },
+    "/finance/revenue":   { "get": { "operationId": "tiktak_finance_revenue", "summary": "Rental revenue with category/location filters.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/finance/expenses":  { "get": { "operationId": "tiktak_finance_expenses", "summary": "doh_rash expenses by period × type2 × channel.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/channel" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/finance/cash-flow": { "get": { "operationId": "tiktak_finance_cash_flow", "summary": "Inflow/outflow/net per till (kassa).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/operations/funnel":      { "get": { "operationId": "tiktak_operations_funnel", "summary": "Lead → deal → sub-deal → return funnel with conversion rates.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/operations/timeline":    { "get": { "operationId": "tiktak_operations_timeline", "summary": "Period-bucketed funnel.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/operations/by-category": { "get": { "operationId": "tiktak_operations_by_category", "summary": "Per-razdel orders + deals + revenue.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/operations/by-location": { "get": { "operationId": "tiktak_operations_by_location", "summary": "Per-office deals + clients + revenue + returns.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/inventory/free-tree":     { "get": { "operationId": "tiktak_inventory_free_tree", "summary": "Catalog tree with free-unit counts.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/inventory/profitability": { "get": { "operationId": "tiktak_inventory_profitability", "summary": "Per-physical-item profitability.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/inventory/utilization":   { "get": { "operationId": "tiktak_inventory_utilization", "summary": "Per-model utilization = rented_seconds / (units × period).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/inventory/turnover":      { "get": { "operationId": "tiktak_inventory_turnover", "summary": "Per-model turnover = deals / units.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/inventory/idle":          { "get": { "operationId": "tiktak_inventory_idle", "summary": "Models without rentals for at least N days.", "parameters": [ { "$ref": "#/components/parameters/days" }, { "$ref": "#/components/parameters/category" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/customers/timeline":         { "get": { "operationId": "tiktak_customers_timeline", "summary": "Per-period new / active / returning / new-active customer counts.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/customers/cohorts":          { "get": { "operationId": "tiktak_customers_cohorts", "summary": "Monthly cohort × observed retention matrix.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/customers/repeat-intervals": { "get": { "operationId": "tiktak_customers_repeat_intervals", "summary": "Distribution of intervals between consecutive deals (mean/p25/median/p75/histogram).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/clients/ltv":                { "get": { "operationId": "tiktak_clients_ltv", "summary": "Per-client LTV ranking (no PII).", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/geo/clients-by-city": { "get": { "operationId": "tiktak_geo_clients_by_city", "summary": "Distinct clients × deals × revenue by trimmed/lower-cased city.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/locations/performance": { "get": { "operationId": "tiktak_locations_performance", "summary": "Per-period × per-office revenue, deals, avg ticket.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/locations/lifecycle":   { "get": { "operationId": "tiktak_locations_lifecycle", "summary": "Office full lifecycle: first/last deal, total revenue, currently_active flag.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/categories/seasonality": { "get": { "operationId": "tiktak_categories_seasonality", "summary": "Monthly seasonality_index for a business category over the last N years.", "parameters": [ { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/years" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/categories/performance": { "get": { "operationId": "tiktak_categories_performance", "summary": "Per-category deals + revenue + active models (legacy).", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/carnival/funnel":      { "get": { "operationId": "tiktak_carnival_funnel", "summary": "Carnival booking funnel: bookings → approved → issued → returned.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/carnival/seasonality": { "get": { "operationId": "tiktak_carnival_seasonality", "summary": "Monthly carnival seasonality_index. December is the peak.", "parameters": [ { "$ref": "#/components/parameters/years" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/carnival/revenue":     { "get": { "operationId": "tiktak_carnival_revenue", "summary": "Per-period carnival revenue by payment channel (k1/k2/terminal/bank).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/orders/stats": { "get": { "operationId": "tiktak_orders_stats", "summary": "Legacy: orders + carnival_bookings + deals counts grouped by day/week/month.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/deals/list":   { "get": { "operationId": "tiktak_deals_list", "summary": "Legacy: paginated list of recent deals with addresses (no PII).", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+
+    "/export/monthly/{topic}": {
+      "get": {
+        "operationId": "tiktak_export_monthly",
+        "summary": "Streaming CSV export. Topics: operations, revenue, pnl, traffic. Column layout matches data/monthly/_schema.md.",
+        "parameters": [
+          { "in": "path", "name": "topic", "required": true, "schema": { "type": "string", "enum": ["operations","revenue","pnl","traffic"] } },
+          { "$ref": "#/components/parameters/from" },
+          { "$ref": "#/components/parameters/to" }
+        ],
+        "responses": {
+          "200": { "description": "CSV stream (text/csv; charset=UTF-8).", "content": { "text/csv": { "schema": { "type": "string" } } } },
+          "404": { "description": "Unknown topic." }
+        }
+      }
+    }
+  }
+}

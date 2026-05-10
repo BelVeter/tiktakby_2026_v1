@@ -65,6 +65,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         // MCP API
+        'mcp.json'  => \App\Http\Middleware\McpForceJsonMiddleware::class,
         'mcp.token' => \App\Http\Middleware\McpTokenMiddleware::class,
         'mcp.geo'   => \App\Http\Middleware\McpGeoCountryMiddleware::class,
         'mcp.audit' => \App\Http\Middleware\McpAuditLogMiddleware::class,
