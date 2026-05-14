@@ -62,9 +62,16 @@ class MetaController extends BaseController
             }
 
             $detailed = DB::select("
-                SELECT cat_id, cat_name, cat_folder, cat_url, cat_order, razdel
-                FROM tovar_cats
-                ORDER BY cat_order, cat_id
+                SELECT
+                    trc.tovar_rent_cat_id  AS cat_id,
+                    trc.rent_cat_name      AS cat_name,
+                    trc.cat_url_key        AS cat_folder,
+                    trc.cat_url_key        AS cat_url,
+                    trc.cat_sort           AS cat_order,
+                    sr.main_razdel_id      AS razdel
+                FROM tovar_rent_cat trc
+                LEFT JOIN sub_razdel sr ON sr.id_sub_razdel = trc.main_sub_razdel_id
+                ORDER BY trc.cat_sort, trc.tovar_rent_cat_id
             ");
 
             return [

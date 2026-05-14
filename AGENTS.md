@@ -108,7 +108,7 @@ Sequence:
 
 | Group | Tables |
 |-------|--------|
-| Catalog | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_cats`, `tovar_list`, `tovar_properties` |
+| Catalog | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_rent_cat`, `tovar_list`, `tovar_properties` |
 | Rental | `rent_deals_act`, `rent_orders`, `rent_model_web`, `rent_tarif_act`, `rent_sub_deals_act`, `deals` |
 | Clients | `clients`, `clients_arch`, `users`, `logpass` |
 | Handbooks | `rash_items`, `doh_items` (contain `is_active` column for entry form filtering) |
