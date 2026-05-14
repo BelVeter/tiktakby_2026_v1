@@ -158,7 +158,7 @@ class InventoryController extends BaseController
                 tri.model_id,
                 tri.cat_id,
                 rmw.l2_name AS model_name,
-                tc.cat_name,
+                tc.rent_cat_name AS cat_name,
                 tri.buy_date,
                 ROUND(tri.buy_price * COALESCE(tri.exch_to_byr, 1), 2) AS buy_price_byn,
                 FROM_UNIXTIME(tri.buy_date, '%Y-%m-%d') AS buy_date_fmt,
@@ -172,11 +172,11 @@ class InventoryController extends BaseController
             FROM tovar_rent_items tri
             LEFT JOIN rent_deals_act rda ON rda.item_inv_n = tri.item_inv_n
             LEFT JOIN rent_model_web rmw ON rmw.model_id = tri.model_id AND rmw.lang = 'ru'
-            LEFT JOIN tovar_cats tc      ON tc.cat_id = tri.cat_id
+            LEFT JOIN tovar_rent_cat tc  ON tc.tovar_rent_cat_id = tri.cat_id
             WHERE 1=1
               {$catFilter}
               {$modelFilter}
-            GROUP BY tri.item_id, tri.item_inv_n, tri.model_id, tri.cat_id, rmw.l2_name, tc.cat_name, tri.buy_date, tri.buy_price, tri.exch_to_byr, tri.status
+            GROUP BY tri.item_id, tri.item_inv_n, tri.model_id, tri.cat_id, rmw.l2_name, tc.rent_cat_name, tri.buy_date, tri.buy_price, tri.exch_to_byr, tri.status
             HAVING COUNT(rda.deal_id) >= ?
             ORDER BY profit_byn DESC
         ", $params);
@@ -325,8 +325,8 @@ class InventoryController extends BaseController
             return DB::select("
                 SELECT tri.model_id,
                        rmw.l2_name AS model_name,
-                       tc.cat_id,
-                       tc.cat_name,
+                       tri.cat_id,
+                       tc.rent_cat_name AS cat_name,
                        COUNT(DISTINCT tri.item_id)  AS units,
                        COUNT(DISTINCT da.deal_id)   AS deals,
                        ROUND(SUM(da.r_paid + da.delivery_paid), 2) AS revenue_byn,
@@ -334,12 +334,12 @@ class InventoryController extends BaseController
                 FROM tovar_rent_items tri
                 LEFT JOIN rent_deals_arch da ON da.item_inv_n = tri.item_inv_n
                                                AND da.cr_time BETWEEN ? AND ?
-                LEFT JOIN rent_model_web rmw ON rmw.model_id = tri.model_id AND rmw.lang = 'ru'
-                LEFT JOIN tovar_cats tc      ON tc.cat_id    = tri.cat_id
+                LEFT JOIN rent_model_web rmw ON rmw.model_id          = tri.model_id AND rmw.lang = 'ru'
+                LEFT JOIN tovar_rent_cat tc  ON tc.tovar_rent_cat_id  = tri.cat_id
                 {$catJoin}
                 WHERE 1=1
                   {$catWhere}
-                GROUP BY tri.model_id, rmw.l2_name, tc.cat_id, tc.cat_name
+                GROUP BY tri.model_id, rmw.l2_name, tri.cat_id, tc.rent_cat_name
                 ORDER BY turnover DESC
             ", array_merge([$from, $to], $catParams));
         });
@@ -387,20 +387,20 @@ class InventoryController extends BaseController
             return DB::select("
                 SELECT tri.model_id,
                        rmw.l2_name AS model_name,
-                       tc.cat_id,
-                       tc.cat_name,
+                       tri.cat_id,
+                       tc.rent_cat_name AS cat_name,
                        COUNT(DISTINCT tri.item_id) AS units,
                        MAX(da.cr_time)             AS last_deal_ts,
                        FROM_UNIXTIME(MAX(da.cr_time), '%Y-%m-%d') AS last_deal_date,
                        FLOOR((? - MAX(da.cr_time)) / 86400) AS days_idle
                 FROM tovar_rent_items tri
                 LEFT JOIN rent_deals_arch da ON da.item_inv_n = tri.item_inv_n
-                LEFT JOIN rent_model_web rmw ON rmw.model_id = tri.model_id AND rmw.lang = 'ru'
-                LEFT JOIN tovar_cats tc      ON tc.cat_id    = tri.cat_id
+                LEFT JOIN rent_model_web rmw ON rmw.model_id         = tri.model_id AND rmw.lang = 'ru'
+                LEFT JOIN tovar_rent_cat tc  ON tc.tovar_rent_cat_id = tri.cat_id
                 {$catJoin}
                 WHERE 1=1
                   {$catWhere}
-                GROUP BY tri.model_id, rmw.l2_name, tc.cat_id, tc.cat_name
+                GROUP BY tri.model_id, rmw.l2_name, tri.cat_id, tc.rent_cat_name
                 HAVING (MAX(da.cr_time) IS NULL OR MAX(da.cr_time) < ?)
                 ORDER BY (MAX(da.cr_time) IS NULL) DESC, MAX(da.cr_time) ASC
             ", array_merge([time()], $catParams, [$cutoff]));
