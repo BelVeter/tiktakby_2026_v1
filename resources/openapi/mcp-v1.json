@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "TikTak.by MCP Analytics API",
-    "version": "2.0.0",
-    "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. /finance/revenue and /finance/pnl accept `include_carnival` (default true). When include_carnival=true the response still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn — see PnL schema.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
+    "version": "2.0.1",
+    "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
   },
   "servers": [
     { "url": "https://tiktak.by/api/mcp/v1", "description": "Production" }
@@ -54,6 +54,510 @@
           "message": { "type": "string" },
           "ref":     { "type": "string", "description": "Optional decisions_log.md reference, e.g. D-OPEN-FY2025." }
         }
+      },
+      "AmountBYN": {
+        "description": "BYN monetary amount. May be a JSON number (when the controller casts to float) or a decimal string such as \"424231.72\" (when MariaDB ROUND(...,2) is passed through directly). Always parse as numeric.",
+        "oneOf": [{ "type": "number" }, { "type": "string" }],
+        "nullable": true
+      },
+      "Ratio": {
+        "description": "Conversion ratio in [0..1]. Null when the denominator is zero.",
+        "type": ["number","null"]
+      },
+
+      "HealthData": {
+        "type": "object",
+        "required": ["status","version","timestamp"],
+        "properties": {
+          "status":    { "type": "string", "example": "ok" },
+          "version":   { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+
+      "MetaCategoriesData": {
+        "type": "object",
+        "required": ["business_categories","detailed_categories"],
+        "properties": {
+          "business_categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key":       { "type": "string" },
+                "name":      { "type": "string" },
+                "url_slug":  { "type": ["string","null"] },
+                "razdel_id": { "type": ["integer","null"] },
+                "available": { "type": "boolean" }
+              }
+            }
+          },
+          "detailed_categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "cat_id":     { "type": "integer" },
+                "cat_name":   { "type": "string" },
+                "cat_folder": { "type": ["string","null"] },
+                "cat_url":    { "type": ["string","null"] },
+                "cat_order":  { "type": ["integer","null"] },
+                "razdel":     { "type": ["integer","null"] }
+              }
+            }
+          }
+        }
+      },
+      "MetaLocationRow": {
+        "type": "object",
+        "properties": {
+          "id":                { "type": "integer" },
+          "type":              { "type": ["string","null"] },
+          "number":            { "type": ["integer","string","null"] },
+          "name":              { "type": ["string","null"] },
+          "short_address":     { "type": ["string","null"] },
+          "active":            { "type": ["integer","boolean"] },
+          "first_deal_date":   { "type": ["string","null"], "format": "date" },
+          "last_deal_date":    { "type": ["string","null"], "format": "date" },
+          "total_deals":       { "type": "integer" },
+          "total_revenue_byn": { "$ref": "#/components/schemas/AmountBYN" }
+        }
+      },
+      "MetaItemRow": {
+        "type": "object",
+        "description": "Row for /meta/expense-items and /meta/income-items.",
+        "properties": {
+          "id":         { "type": "integer" },
+          "code":       { "type": "string" },
+          "name":       { "type": "string" },
+          "sort_order": { "type": ["integer","null"] },
+          "bank_yn":    { "type": ["integer","string","null"] }
+        }
+      },
+      "MetaDataFreshnessData": {
+        "type": "object",
+        "properties": {
+          "tables": {
+            "type": "object",
+            "properties": {
+              "rent_deals_arch":  { "type": ["string","null"], "format": "date-time" },
+              "doh_rash":         { "type": ["string","null"], "format": "date-time" },
+              "karn_brons":       { "type": ["string","null"], "format": "date-time" },
+              "clients":          { "type": ["string","null"], "format": "date-time" },
+              "rent_orders_arch": { "type": ["string","null"], "format": "date-time" }
+            }
+          },
+          "max": { "type": ["string","null"], "format": "date-time" }
+        }
+      },
+
+      "FinancePnlRow": {
+        "type": "object",
+        "properties": {
+          "period":                   { "type": ["string","null"] },
+          "revenue_byn":              { "$ref": "#/components/schemas/AmountBYN" },
+          "revenue_rent_byn":         { "$ref": "#/components/schemas/AmountBYN" },
+          "revenue_delivery_byn":     { "$ref": "#/components/schemas/AmountBYN" },
+          "revenue_non_carnival_byn": { "$ref": "#/components/schemas/AmountBYN" },
+          "revenue_carnival_byn":     { "$ref": "#/components/schemas/AmountBYN" },
+          "deals":                    { "type": "integer" },
+          "expenses_total_byn":       { "$ref": "#/components/schemas/AmountBYN" },
+          "cogs_byn":                 { "$ref": "#/components/schemas/AmountBYN" },
+          "opex_payroll_byn":         { "$ref": "#/components/schemas/AmountBYN" },
+          "opex_rent_byn":            { "$ref": "#/components/schemas/AmountBYN" },
+          "opex_marketing_byn":       { "$ref": "#/components/schemas/AmountBYN" },
+          "opex_admin_byn":           { "$ref": "#/components/schemas/AmountBYN" },
+          "taxes_byn":                { "$ref": "#/components/schemas/AmountBYN" },
+          "financial_byn":            { "$ref": "#/components/schemas/AmountBYN" },
+          "ebitda_byn":               { "$ref": "#/components/schemas/AmountBYN" }
+        }
+      },
+      "FinanceRevenueRow": {
+        "type": "object",
+        "properties": {
+          "period":          { "type": ["string","null"] },
+          "rent_byn":        { "$ref": "#/components/schemas/AmountBYN" },
+          "delivery_byn":    { "$ref": "#/components/schemas/AmountBYN" },
+          "total_byn":       { "$ref": "#/components/schemas/AmountBYN" },
+          "deals":           { "type": "integer" },
+          "issuance_events": { "type": "integer" }
+        }
+      },
+      "FinanceExpensesRow": {
+        "type": "object",
+        "properties": {
+          "period":       { "type": ["string","null"] },
+          "item_code":    { "type": ["string","null"], "description": "doh_rash.type2 (expense item code, see /meta/expense-items)." },
+          "channel":      { "type": ["string","null"] },
+          "amount_byn":   { "$ref": "#/components/schemas/AmountBYN" },
+          "transactions": { "type": "integer" }
+        }
+      },
+      "FinanceCashFlowRow": {
+        "type": "object",
+        "properties": {
+          "period":         { "type": ["string","null"] },
+          "kassa":          { "type": ["string","null"] },
+          "inflow_byn":     { "$ref": "#/components/schemas/AmountBYN" },
+          "outflow_byn":    { "$ref": "#/components/schemas/AmountBYN" },
+          "net_byn":        { "$ref": "#/components/schemas/AmountBYN" },
+          "shift_in_byn":   { "$ref": "#/components/schemas/AmountBYN" },
+          "shift_out_byn":  { "$ref": "#/components/schemas/AmountBYN" },
+          "transactions":   { "type": "integer" }
+        }
+      },
+
+      "OperationsFunnelData": {
+        "type": "object",
+        "description": "May be `[]` (empty array) when category resolves to no razdel.",
+        "properties": {
+          "leads": {
+            "type": "object",
+            "properties": {
+              "online_orders": { "type": "integer" },
+              "phone_calls":   { "type": "integer" },
+              "total":         { "type": "integer" }
+            }
+          },
+          "deals":            { "type": "integer" },
+          "issuance_events":  { "type": "integer" },
+          "sub_deals":        { "type": "integer" },
+          "returns":          { "type": "integer" },
+          "conversion_rates": {
+            "type": "object",
+            "properties": {
+              "lead_to_deal":     { "$ref": "#/components/schemas/Ratio" },
+              "deal_to_sub_avg":  { "$ref": "#/components/schemas/Ratio" },
+              "deal_to_return":   { "$ref": "#/components/schemas/Ratio" }
+            }
+          }
+        }
+      },
+      "OperationsTimelineRow": {
+        "type": "object",
+        "properties": {
+          "period":            { "type": ["string","null"] },
+          "online_orders":     { "type": "integer" },
+          "phone_calls":       { "type": "integer" },
+          "leads_total":       { "type": "integer" },
+          "deals":             { "type": "integer" },
+          "sub_deals":         { "type": "integer" },
+          "returns":           { "type": "integer" },
+          "cr_lead_to_deal":   { "$ref": "#/components/schemas/Ratio" },
+          "cr_deal_to_sub":    { "$ref": "#/components/schemas/Ratio" },
+          "cr_deal_to_return": { "$ref": "#/components/schemas/Ratio" }
+        }
+      },
+      "OperationsByCategoryRow": {
+        "type": "object",
+        "properties": {
+          "razdel_id":     { "type": "integer" },
+          "name":          { "type": ["string","null"] },
+          "url_slug":      { "type": ["string","null"] },
+          "online_orders": { "type": "integer" },
+          "deals":         { "type": "integer" },
+          "revenue_byn":   { "$ref": "#/components/schemas/AmountBYN" }
+        }
+      },
+      "OperationsByLocationRow": {
+        "type": "object",
+        "properties": {
+          "office_id":       { "type": "integer", "description": "0 = synthetic 'Курьер' pseudo-office (delivery_yn='1' sub-deals)." },
+          "office_name":     { "type": ["string","null"] },
+          "office_type":     { "type": ["string","null"], "description": "'office', 'courier', or null when offices row is missing." },
+          "office_address":  { "type": ["string","null"] },
+          "deals":           { "type": "integer" },
+          "issuance_events": { "type": "integer" },
+          "revenue_byn":     { "$ref": "#/components/schemas/AmountBYN" }
+        }
+      },
+
+      "InventoryFreeTreeData": {
+        "type": "array",
+        "description": "Catalog tree: section → subsection → category → model.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "section_id":   { "type": "integer" },
+            "section_name": { "type": "string" },
+            "section_url":  { "type": ["string","null"] },
+            "subsections":  {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "subsection_id":   { "type": "integer" },
+                  "subsection_name": { "type": "string" },
+                  "subsection_url":  { "type": ["string","null"] },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "cat_id":      { "type": "integer" },
+                        "cat_name":    { "type": "string" },
+                        "cat_url":     { "type": ["string","null"] },
+                        "total_units": { "type": "integer", "description": "Sum of free_units across all models in this category." },
+                        "models": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "model_id":   { "type": "integer" },
+                              "model_name": { "type": ["string","null"] },
+                              "model_url":  { "type": ["string","null"] },
+                              "free_units": { "type": "integer" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "InventoryProfitabilityRow": {
+        "type": "object",
+        "properties": {
+          "item_id":            { "type": "integer" },
+          "item_inv_n":         { "type": ["string","null"] },
+          "model_id":           { "type": ["integer","null"] },
+          "cat_id":             { "type": ["integer","null"] },
+          "model_name":         { "type": ["string","null"] },
+          "cat_name":           { "type": ["string","null"] },
+          "buy_date":           { "type": ["integer","null"], "description": "Unix timestamp." },
+          "buy_date_fmt":       { "type": ["string","null"], "format": "date" },
+          "buy_price_byn":      { "$ref": "#/components/schemas/AmountBYN" },
+          "total_deals":        { "type": "integer" },
+          "total_revenue_byn":  { "$ref": "#/components/schemas/AmountBYN" },
+          "profit_byn":         { "$ref": "#/components/schemas/AmountBYN" },
+          "current_status":     { "type": ["string","null"] }
+        }
+      },
+      "InventoryUtilizationRow": {
+        "type": "object",
+        "properties": {
+          "model_id":        { "type": "integer" },
+          "model_name":      { "type": ["string","null"] },
+          "units_at_from":   { "type": "integer", "description": "Historical unit count at period start (active + alive-archived)." },
+          "units_at_to":     { "type": "integer", "description": "Historical unit count at period end." },
+          "avg_units":       { "type": "number", "description": "(units_at_from + units_at_to) / 2 — utilization denominator." },
+          "deals_in_period": { "type": "integer" },
+          "rented_days":     { "type": "number" },
+          "utilization":     { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      },
+      "InventoryTurnoverRow": {
+        "type": "object",
+        "properties": {
+          "model_id":    { "type": "integer" },
+          "model_name":  { "type": ["string","null"] },
+          "cat_id":      { "type": ["integer","null"] },
+          "cat_name":    { "type": ["string","null"] },
+          "units":       { "type": "integer" },
+          "deals":       { "type": "integer" },
+          "revenue_byn": { "$ref": "#/components/schemas/AmountBYN" },
+          "turnover":    { "type": ["number","null"] }
+        }
+      },
+      "InventoryIdleRow": {
+        "type": "object",
+        "properties": {
+          "model_id":       { "type": "integer" },
+          "model_name":     { "type": ["string","null"] },
+          "cat_id":         { "type": ["integer","null"] },
+          "cat_name":       { "type": ["string","null"] },
+          "units":          { "type": "integer" },
+          "last_deal_ts":   { "type": ["integer","null"], "description": "Unix timestamp of the last deal touching this model. Null = never." },
+          "last_deal_date": { "type": ["string","null"], "format": "date" },
+          "days_idle":      { "type": ["integer","null"] }
+        }
+      },
+
+      "CustomersTimelineRow": {
+        "type": "object",
+        "properties": {
+          "period":             { "type": ["string","null"] },
+          "new_clients":        { "type": "integer" },
+          "active_clients":     { "type": "integer" },
+          "returning_clients":  { "type": "integer" },
+          "new_active_clients": { "type": "integer" }
+        }
+      },
+      "CustomersCohortRow": {
+        "type": "object",
+        "properties": {
+          "cohort":   { "type": "string", "example": "2024-03" },
+          "size":     { "type": "integer" },
+          "retention": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "period": { "type": "string", "example": "2024-04" },
+                "active": { "type": "integer" },
+                "rate":   { "$ref": "#/components/schemas/Ratio" }
+              }
+            }
+          }
+        }
+      },
+      "CustomersRepeatIntervalsData": {
+        "type": "object",
+        "properties": {
+          "count":       { "type": "integer" },
+          "mean_days":   { "type": ["number","null"] },
+          "min_days":    { "type": ["number","null"] },
+          "max_days":    { "type": ["number","null"] },
+          "p25_days":    { "type": ["number","null"] },
+          "median_days": { "type": ["number","null"] },
+          "p75_days":    { "type": ["number","null"] },
+          "histogram": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": { "type": "string", "example": "30-90d" },
+                "lo":    { "type": "integer" },
+                "hi":    { "type": ["integer","null"] },
+                "count": { "type": "integer" }
+              }
+            }
+          }
+        }
+      },
+      "ClientsLtvRow": {
+        "type": "object",
+        "properties": {
+          "client_id":       { "type": ["integer","string"] },
+          "client_city":     { "type": ["string","null"] },
+          "client_status":   { "type": ["string","null"] },
+          "client_since":    { "type": ["string","null"], "format": "date" },
+          "total_deals":     { "type": "integer" },
+          "ltv_byn":         { "$ref": "#/components/schemas/AmountBYN" },
+          "avg_deal_byn":    { "$ref": "#/components/schemas/AmountBYN" },
+          "first_deal_date": { "type": ["string","null"], "format": "date" },
+          "last_deal_date":  { "type": ["string","null"], "format": "date" },
+          "active_days":     { "type": ["integer","null"] }
+        }
+      },
+
+      "GeoClientsByCityRow": {
+        "type": "object",
+        "properties": {
+          "city_norm":      { "type": "string", "description": "lower-cased + trimmed clients.city, or '(unknown)'." },
+          "unique_clients": { "type": "integer" },
+          "deals":          { "type": "integer" },
+          "revenue_byn":    { "$ref": "#/components/schemas/AmountBYN" }
+        }
+      },
+
+      "LocationsPerformanceRow": {
+        "type": "object",
+        "properties": {
+          "period":                { "type": ["string","null"] },
+          "office_id":             { "type": "integer", "description": "0 = synthetic 'Курьер' pseudo-office." },
+          "office_name":           { "type": ["string","null"] },
+          "office_type":           { "type": ["string","null"], "description": "'office', 'courier', or null." },
+          "deals":                 { "type": "integer" },
+          "issuance_events":       { "type": "integer" },
+          "unique_clients_proxy":  { "type": "integer", "description": "DISTINCT deal_id of issuance sub-deals — proxy for unique customers visiting that office in that period." },
+          "revenue_byn":           { "$ref": "#/components/schemas/AmountBYN" },
+          "avg_payment_byn":       { "$ref": "#/components/schemas/AmountBYN", "description": "Average sub-deal payment (NOT average per deal)." }
+        }
+      },
+      "LocationsLifecycleRow": {
+        "type": "object",
+        "properties": {
+          "office_id":           { "type": "integer" },
+          "office_type":         { "type": ["string","null"] },
+          "office_name":         { "type": ["string","null"] },
+          "office_address":      { "type": ["string","null"] },
+          "currently_active":    { "type": ["integer","boolean"] },
+          "first_activity_date": { "type": ["string","null"], "format": "date", "description": "Earliest sub_deal.acc_date for this office. Renamed from first_deal_date in v2.0.0." },
+          "last_activity_date":  { "type": ["string","null"], "format": "date", "description": "Latest sub_deal.acc_date for this office. Renamed from last_deal_date in v2.0.0." },
+          "total_deals":         { "type": "integer" },
+          "total_revenue_byn":   { "$ref": "#/components/schemas/AmountBYN" },
+          "active_days":         { "type": ["integer","null"] }
+        }
+      },
+
+      "CategoriesSeasonalityRow": {
+        "type": "object",
+        "properties": {
+          "month_num":          { "type": "integer", "minimum": 1, "maximum": 12 },
+          "month_name":         { "type": ["string","null"] },
+          "deals":              { "type": "integer" },
+          "avg_deals_per_year": { "type": "number" },
+          "revenue_byn":        { "$ref": "#/components/schemas/AmountBYN" },
+          "years_covered":      { "type": "integer" },
+          "seasonality_index":  { "type": "number", "description": "deals / (totalDeals / monthsObserved). 1.0 = average month; 6.7 = December for costumes." }
+        }
+      },
+      "CategoriesPerformanceRow": {
+        "type": "object",
+        "properties": {
+          "cat_id":            { "type": "integer" },
+          "cat_name":          { "type": ["string","null"] },
+          "cat_url":           { "type": ["string","null"] },
+          "subsection_name":   { "type": ["string","null"] },
+          "section_name":      { "type": ["string","null"] },
+          "total_deals":       { "type": "integer" },
+          "unique_clients":    { "type": "integer" },
+          "avg_payment_byn":   { "$ref": "#/components/schemas/AmountBYN" },
+          "active_models":     { "type": "integer" },
+          "units_rented":      { "type": "integer" },
+          "total_revenue_byn": { "$ref": "#/components/schemas/AmountBYN", "description": "Pre-aggregated per item to avoid M:N inflation through subrazdel_category × razdel_subrazdel." },
+          "issuance_events":   { "type": "integer" }
+        }
+      },
+
+      "CarnivalFunnelData": {
+        "type": "object",
+        "properties": {
+          "bookings":   { "type": "integer" },
+          "approved":   { "type": "integer" },
+          "issued":     { "type": "integer" },
+          "returned":   { "type": "integer" },
+          "unanswered": { "type": "integer" },
+          "conversion_rates": {
+            "type": "object",
+            "properties": {
+              "booking_to_approved": { "$ref": "#/components/schemas/Ratio" },
+              "approved_to_issued":  { "$ref": "#/components/schemas/Ratio" },
+              "issued_to_returned":  { "$ref": "#/components/schemas/Ratio" },
+              "booking_to_issued":   { "$ref": "#/components/schemas/Ratio" }
+            }
+          }
+        }
+      },
+      "CarnivalSeasonalityRow": {
+        "type": "object",
+        "properties": {
+          "month_num":             { "type": "integer", "minimum": 1, "maximum": 12 },
+          "month_name":            { "type": ["string","null"] },
+          "bookings":              { "type": "integer" },
+          "issued":                { "type": "integer" },
+          "revenue_byn":           { "$ref": "#/components/schemas/AmountBYN" },
+          "avg_bookings_per_year": { "type": "number" },
+          "years_covered":         { "type": "integer" },
+          "seasonality_index":     { "type": "number" }
+        }
+      },
+      "CarnivalRevenueRow": {
+        "type": "object",
+        "properties": {
+          "period":               { "type": ["string","null"] },
+          "bookings":             { "type": "integer" },
+          "revenue_k1_byn":       { "$ref": "#/components/schemas/AmountBYN" },
+          "revenue_k2_byn":       { "$ref": "#/components/schemas/AmountBYN" },
+          "revenue_terminal_byn": { "$ref": "#/components/schemas/AmountBYN" },
+          "revenue_bank_byn":     { "$ref": "#/components/schemas/AmountBYN" },
+          "revenue_total_byn":    { "$ref": "#/components/schemas/AmountBYN" }
+        }
       }
     },
     "responses": {
@@ -61,7 +565,47 @@
       "Unauthorized":  { "description": "Missing or invalid Bearer token." },
       "Forbidden":     { "description": "Country not in allow-list." },
       "TooManyRequests": { "description": "Rate limit exceeded (60 req/min)." },
-      "ValidationError": { "description": "Invalid query parameters.", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "errors": { "type": "object" } } } } } }
+      "ValidationError": { "description": "Invalid query parameters.", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "errors": { "type": "object" } } } } } },
+
+      "HealthEnvelope":               { "description": "Health envelope.",                "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/HealthData" } } }] } } } },
+
+      "MetaCategoriesEnvelope":       { "description": "Meta categories envelope.",       "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/MetaCategoriesData" } } }] } } } },
+      "MetaLocationsEnvelope":        { "description": "Meta locations envelope.",        "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/MetaLocationRow" } } } }] } } } },
+      "MetaItemsEnvelope":            { "description": "Meta expense/income items envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/MetaItemRow" } } } }] } } } },
+      "MetaDataFreshnessEnvelope":    { "description": "Per-table data freshness envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/MetaDataFreshnessData" } } }] } } } },
+
+      "FinancePnlEnvelope":           { "description": "P&L envelope.",                   "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinancePnlRow" } } } }] } } } },
+      "FinanceRevenueEnvelope":       { "description": "Revenue envelope.",               "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinanceRevenueRow" } } } }] } } } },
+      "FinanceExpensesEnvelope":      { "description": "Expenses envelope.",              "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinanceExpensesRow" } } } }] } } } },
+      "FinanceCashFlowEnvelope":      { "description": "Cash-flow envelope.",             "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinanceCashFlowRow" } } } }] } } } },
+
+      "OperationsFunnelEnvelope":     { "description": "Operations funnel envelope.",     "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/OperationsFunnelData" } } }] } } } },
+      "OperationsTimelineEnvelope":   { "description": "Operations timeline envelope.",   "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/OperationsTimelineRow" } } } }] } } } },
+      "OperationsByCategoryEnvelope": { "description": "Operations by-category envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/OperationsByCategoryRow" } } } }] } } } },
+      "OperationsByLocationEnvelope": { "description": "Operations by-location envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/OperationsByLocationRow" } } } }] } } } },
+
+      "InventoryFreeTreeEnvelope":     { "description": "Inventory free-tree envelope.",     "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/InventoryFreeTreeData" } } }] } } } },
+      "InventoryProfitabilityEnvelope":{ "description": "Inventory profitability envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryProfitabilityRow" } } } }] } } } },
+      "InventoryUtilizationEnvelope":  { "description": "Inventory utilization envelope.",   "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryUtilizationRow" } } } }] } } } },
+      "InventoryTurnoverEnvelope":     { "description": "Inventory turnover envelope.",      "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryTurnoverRow" } } } }] } } } },
+      "InventoryIdleEnvelope":         { "description": "Inventory idle envelope.",          "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryIdleRow" } } } }] } } } },
+
+      "CustomersTimelineEnvelope":        { "description": "Customers timeline envelope.",        "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CustomersTimelineRow" } } } }] } } } },
+      "CustomersCohortsEnvelope":         { "description": "Customers cohorts envelope.",         "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CustomersCohortRow" } } } }] } } } },
+      "CustomersRepeatIntervalsEnvelope": { "description": "Repeat-intervals envelope.",          "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/CustomersRepeatIntervalsData" } } }] } } } },
+      "ClientsLtvEnvelope":               { "description": "Clients LTV envelope.",               "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/ClientsLtvRow" } } } }] } } } },
+
+      "GeoClientsByCityEnvelope":     { "description": "Geo clients-by-city envelope.",   "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/GeoClientsByCityRow" } } } }] } } } },
+
+      "LocationsPerformanceEnvelope": { "description": "Locations performance envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/LocationsPerformanceRow" } } } }] } } } },
+      "LocationsLifecycleEnvelope":   { "description": "Locations lifecycle envelope.",   "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/LocationsLifecycleRow" } } } }] } } } },
+
+      "CategoriesSeasonalityEnvelope": { "description": "Categories seasonality envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CategoriesSeasonalityRow" } } } }] } } } },
+      "CategoriesPerformanceEnvelope": { "description": "Categories performance envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CategoriesPerformanceRow" } } } }] } } } },
+
+      "CarnivalFunnelEnvelope":      { "description": "Carnival funnel envelope.",      "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/CarnivalFunnelData" } } }] } } } },
+      "CarnivalSeasonalityEnvelope": { "description": "Carnival seasonality envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CarnivalSeasonalityRow" } } } }] } } } },
+      "CarnivalRevenueEnvelope":     { "description": "Carnival revenue envelope.",     "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CarnivalRevenueRow" } } } }] } } } }
     }
   },
   "paths": {
@@ -69,7 +613,7 @@
       "get": {
         "operationId": "tiktak_health",
         "summary": "Liveness probe (no DB).",
-        "responses": { "200": { "$ref": "#/components/responses/Envelope" }, "401": { "$ref": "#/components/responses/Unauthorized" } }
+        "responses": { "200": { "$ref": "#/components/responses/HealthEnvelope" }, "401": { "$ref": "#/components/responses/Unauthorized" } }
       }
     },
     "/openapi.json": {
@@ -81,44 +625,44 @@
       }
     },
 
-    "/meta/categories":     { "get": { "operationId": "tiktak_meta_categories", "summary": "Business categories + detailed tovar_cats list.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/meta/locations":      { "get": { "operationId": "tiktak_meta_locations", "summary": "Offices/couriers with computed first/last deal + revenue.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/meta/expense-items":  { "get": { "operationId": "tiktak_meta_expense_items", "summary": "Active rash_items dictionary.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/meta/income-items":   { "get": { "operationId": "tiktak_meta_income_items", "summary": "Active doh_items dictionary.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/meta/data-freshness": { "get": { "operationId": "tiktak_meta_data_freshness", "summary": "Latest write timestamp per hot table + global max.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/meta/categories":     { "get": { "operationId": "tiktak_meta_categories", "summary": "Business categories + detailed tovar_cats list.", "responses": { "200": { "$ref": "#/components/responses/MetaCategoriesEnvelope" } } } },
+    "/meta/locations":      { "get": { "operationId": "tiktak_meta_locations", "summary": "Offices/couriers with computed first/last deal + revenue.", "responses": { "200": { "$ref": "#/components/responses/MetaLocationsEnvelope" } } } },
+    "/meta/expense-items":  { "get": { "operationId": "tiktak_meta_expense_items", "summary": "Active rash_items dictionary.", "responses": { "200": { "$ref": "#/components/responses/MetaItemsEnvelope" } } } },
+    "/meta/income-items":   { "get": { "operationId": "tiktak_meta_income_items", "summary": "Active doh_items dictionary.", "responses": { "200": { "$ref": "#/components/responses/MetaItemsEnvelope" } } } },
+    "/meta/data-freshness": { "get": { "operationId": "tiktak_meta_data_freshness", "summary": "Latest write timestamp per hot table + global max.", "responses": { "200": { "$ref": "#/components/responses/MetaDataFreshnessEnvelope" } } } },
 
-    "/finance/pnl":       { "get": { "operationId": "tiktak_finance_pnl", "summary": "Revenue (total + non-carnival + carnival), expenses (7 buckets), EBITDA. Adds 2025 bank-channel warning when range overlaps 2025+. Response rows include: revenue_byn, revenue_rent_byn, revenue_delivery_byn, revenue_non_carnival_byn, revenue_carnival_byn, expenses_total_byn, ebitda_byn + per-bucket fields.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" }, "422": { "$ref": "#/components/responses/ValidationError" } } } },
-    "/finance/revenue":   { "get": { "operationId": "tiktak_finance_revenue", "summary": "Rental revenue from UNION(sub_deals_act, sub_deals_arch) by acc_date. Response rows: period, rent_byn, delivery_byn, total_byn, deals, issuance_events.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/finance/expenses":  { "get": { "operationId": "tiktak_finance_expenses", "summary": "doh_rash expenses by period × type2 × channel.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/channel" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/finance/cash-flow": { "get": { "operationId": "tiktak_finance_cash_flow", "summary": "Inflow/outflow/net per till (kassa).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/finance/pnl":       { "get": { "operationId": "tiktak_finance_pnl", "summary": "Revenue (total + non-carnival + carnival), expenses (7 buckets), EBITDA. Adds 2025 bank-channel warning when range overlaps 2025+.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/FinancePnlEnvelope" }, "422": { "$ref": "#/components/responses/ValidationError" } } } },
+    "/finance/revenue":   { "get": { "operationId": "tiktak_finance_revenue", "summary": "Rental revenue from UNION(sub_deals_act, sub_deals_arch) by acc_date.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/FinanceRevenueEnvelope" } } } },
+    "/finance/expenses":  { "get": { "operationId": "tiktak_finance_expenses", "summary": "doh_rash expenses by period × type2 × channel.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/channel" } ], "responses": { "200": { "$ref": "#/components/responses/FinanceExpensesEnvelope" } } } },
+    "/finance/cash-flow": { "get": { "operationId": "tiktak_finance_cash_flow", "summary": "Inflow/outflow/net per till (kassa).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/FinanceCashFlowEnvelope" } } } },
 
-    "/operations/funnel":      { "get": { "operationId": "tiktak_operations_funnel", "summary": "Lead → deal → sub-deal → return funnel with conversion rates. Response.data adds issuance_events (sub_deal type IN first_rent/takeaway_plan) — matches /bb/reports.php deal counts.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/operations/timeline":    { "get": { "operationId": "tiktak_operations_timeline", "summary": "Period-bucketed funnel. Same fields as /funnel per period.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/operations/by-category": { "get": { "operationId": "tiktak_operations_by_category", "summary": "Per-razdel orders + deals + revenue. Revenue is pre-aggregated per item to avoid M:N inflation.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/operations/by-location": { "get": { "operationId": "tiktak_operations_by_location", "summary": "Per-office deals + revenue + issuance_events. office_id=0 is the synthetic 'Курьер' row (delivery_yn='1' sub-deals).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/operations/funnel":      { "get": { "operationId": "tiktak_operations_funnel", "summary": "Lead → deal → sub-deal → return funnel with conversion rates. issuance_events = sub_deal type IN first_rent/takeaway_plan (matches /bb/reports.php deal counts).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsFunnelEnvelope" } } } },
+    "/operations/timeline":    { "get": { "operationId": "tiktak_operations_timeline", "summary": "Period-bucketed funnel.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsTimelineEnvelope" } } } },
+    "/operations/by-category": { "get": { "operationId": "tiktak_operations_by_category", "summary": "Per-razdel orders + deals + revenue. Revenue is pre-aggregated per item to avoid M:N inflation.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsByCategoryEnvelope" } } } },
+    "/operations/by-location": { "get": { "operationId": "tiktak_operations_by_location", "summary": "Per-office deals + revenue + issuance_events. office_id=0 is the synthetic 'Курьер' row (delivery_yn='1' sub-deals).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsByLocationEnvelope" } } } },
 
-    "/inventory/free-tree":     { "get": { "operationId": "tiktak_inventory_free_tree", "summary": "Current catalog tree with free-unit counts.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/inventory/profitability": { "get": { "operationId": "tiktak_inventory_profitability", "summary": "Per-physical-item profitability across UNION(deals_act, deals_arch).", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/inventory/utilization":   { "get": { "operationId": "tiktak_inventory_utilization", "summary": "Per-model utilization = rented_seconds / (avg_units × period). Response rows: model_id, model_name, units_at_from, units_at_to, avg_units, deals_in_period, rented_days, utilization. Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/inventory/turnover":      { "get": { "operationId": "tiktak_inventory_turnover", "summary": "Per-model turnover = deals / units.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/inventory/idle":          { "get": { "operationId": "tiktak_inventory_idle", "summary": "Models without rentals for at least N days.", "parameters": [ { "$ref": "#/components/parameters/days" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/inventory/free-tree":     { "get": { "operationId": "tiktak_inventory_free_tree", "summary": "Current catalog tree with free-unit counts.", "responses": { "200": { "$ref": "#/components/responses/InventoryFreeTreeEnvelope" } } } },
+    "/inventory/profitability": { "get": { "operationId": "tiktak_inventory_profitability", "summary": "Per-physical-item profitability across UNION(deals_act, deals_arch).", "responses": { "200": { "$ref": "#/components/responses/InventoryProfitabilityEnvelope" } } } },
+    "/inventory/utilization":   { "get": { "operationId": "tiktak_inventory_utilization", "summary": "Per-model utilization = rented_seconds / (avg_units × period). Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/InventoryUtilizationEnvelope" } } } },
+    "/inventory/turnover":      { "get": { "operationId": "tiktak_inventory_turnover", "summary": "Per-model turnover = deals / units.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/InventoryTurnoverEnvelope" } } } },
+    "/inventory/idle":          { "get": { "operationId": "tiktak_inventory_idle", "summary": "Models without rentals for at least N days.", "parameters": [ { "$ref": "#/components/parameters/days" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/InventoryIdleEnvelope" } } } },
 
-    "/customers/timeline":         { "get": { "operationId": "tiktak_customers_timeline", "summary": "Per-period new / active / returning / new-active customer counts.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/customers/cohorts":          { "get": { "operationId": "tiktak_customers_cohorts", "summary": "Monthly cohort × observed retention matrix.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/customers/repeat-intervals": { "get": { "operationId": "tiktak_customers_repeat_intervals", "summary": "Distribution of intervals between consecutive deals (mean/p25/median/p75/histogram).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/clients/ltv":                { "get": { "operationId": "tiktak_clients_ltv", "summary": "Per-client LTV ranking across UNION(deals_act, deals_arch). No PII.", "parameters": [ { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/customers/timeline":         { "get": { "operationId": "tiktak_customers_timeline", "summary": "Per-period new / active / returning / new-active customer counts.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/CustomersTimelineEnvelope" } } } },
+    "/customers/cohorts":          { "get": { "operationId": "tiktak_customers_cohorts", "summary": "Monthly cohort × observed retention matrix.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/CustomersCohortsEnvelope" } } } },
+    "/customers/repeat-intervals": { "get": { "operationId": "tiktak_customers_repeat_intervals", "summary": "Distribution of intervals between consecutive deals (mean/p25/median/p75/histogram).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/CustomersRepeatIntervalsEnvelope" } } } },
+    "/clients/ltv":                { "get": { "operationId": "tiktak_clients_ltv", "summary": "Per-client LTV ranking across UNION(deals_act, deals_arch). No PII.", "parameters": [ { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/ClientsLtvEnvelope" } } } },
 
-    "/geo/clients-by-city": { "get": { "operationId": "tiktak_geo_clients_by_city", "summary": "Distinct clients × deals × revenue by trimmed/lower-cased city.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/geo/clients-by-city": { "get": { "operationId": "tiktak_geo_clients_by_city", "summary": "Distinct clients × deals × revenue by trimmed/lower-cased city.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/GeoClientsByCityEnvelope" } } } },
 
-    "/locations/performance": { "get": { "operationId": "tiktak_locations_performance", "summary": "Per-period × per-office revenue, deals, issuance_events. Office attribution via sub_deal.place + delivery_yn (per-payment). office_id=0 is the Курьер pseudo-office.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/locations/lifecycle":   { "get": { "operationId": "tiktak_locations_lifecycle", "summary": "Office full lifecycle: first/last activity date, total revenue, currently_active flag.", "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/locations/performance": { "get": { "operationId": "tiktak_locations_performance", "summary": "Per-period × per-office revenue, deals, issuance_events. Office attribution via sub_deal.place + delivery_yn (per-payment). office_id=0 is the Курьер pseudo-office. avg_payment_byn is per sub-deal payment, not per deal.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/LocationsPerformanceEnvelope" } } } },
+    "/locations/lifecycle":   { "get": { "operationId": "tiktak_locations_lifecycle", "summary": "Office full lifecycle: first/last activity date (sub_deal.acc_date), total revenue, currently_active flag.", "responses": { "200": { "$ref": "#/components/responses/LocationsLifecycleEnvelope" } } } },
 
-    "/categories/seasonality": { "get": { "operationId": "tiktak_categories_seasonality", "summary": "Monthly seasonality_index for a business category over the last N years.", "parameters": [ { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/years" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/categories/performance": { "get": { "operationId": "tiktak_categories_performance", "summary": "Per-category deals + revenue + active models. Revenue pre-aggregated per item to avoid M:N inflation.", "parameters": [ { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/categories/seasonality": { "get": { "operationId": "tiktak_categories_seasonality", "summary": "Monthly seasonality_index for a business category over the last N years.", "parameters": [ { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/years" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/CategoriesSeasonalityEnvelope" } } } },
+    "/categories/performance": { "get": { "operationId": "tiktak_categories_performance", "summary": "Per-category deals + revenue + active models. Revenue pre-aggregated per item to avoid M:N inflation. Requires date_from + date_to (NOT from/to).", "parameters": [ { "in": "query", "name": "date_from", "required": true, "schema": { "type": "string", "format": "date" } }, { "in": "query", "name": "date_to", "required": true, "schema": { "type": "string", "format": "date" } }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/CategoriesPerformanceEnvelope" } } } },
 
-    "/carnival/funnel":      { "get": { "operationId": "tiktak_carnival_funnel", "summary": "Carnival booking funnel: bookings → approved → issued → returned. Source: karn_brons + karn_brons_arch (separate from regular rentals).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/carnival/seasonality": { "get": { "operationId": "tiktak_carnival_seasonality", "summary": "Monthly carnival seasonality_index. December is the peak.", "parameters": [ { "$ref": "#/components/parameters/years" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
-    "/carnival/revenue":     { "get": { "operationId": "tiktak_carnival_revenue", "summary": "Per-period carnival revenue by payment channel (k1/k2/terminal/bank). NOTE: this is the karn_brons pre-booking system — separate from /finance/revenue which sums rent_sub_deals. DO NOT sum both — that double-counts carnival revenue.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/Envelope" } } } },
+    "/carnival/funnel":      { "get": { "operationId": "tiktak_carnival_funnel", "summary": "Carnival booking funnel: bookings → approved → issued → returned. Source: karn_brons + karn_brons_arch (separate from regular rentals).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" } ], "responses": { "200": { "$ref": "#/components/responses/CarnivalFunnelEnvelope" } } } },
+    "/carnival/seasonality": { "get": { "operationId": "tiktak_carnival_seasonality", "summary": "Monthly carnival seasonality_index. December is the peak.", "parameters": [ { "$ref": "#/components/parameters/years" } ], "responses": { "200": { "$ref": "#/components/responses/CarnivalSeasonalityEnvelope" } } } },
+    "/carnival/revenue":     { "get": { "operationId": "tiktak_carnival_revenue", "summary": "Per-period carnival revenue by payment channel (k1/k2/terminal/bank). NOTE: this is the karn_brons pre-booking system — separate from /finance/revenue which sums rent_sub_deals. DO NOT sum both — that double-counts carnival revenue.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/CarnivalRevenueEnvelope" } } } },
 
     "/export/monthly/{topic}": {
       "get": {
