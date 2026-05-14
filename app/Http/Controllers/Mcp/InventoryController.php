@@ -168,6 +168,7 @@ class InventoryController extends BaseController
             WHERE 1=1
               {$catFilter}
               {$modelFilter}
+            GROUP BY tri.item_id, tri.item_inv_n, tri.model_id, tri.cat_id, rmw.l2_name, tc.rent_cat_name, tri.buy_date, tri.buy_price, tri.exch_to_byr, tri.status
             HAVING COUNT(da.deal_id) >= ?
             ORDER BY profit_byn DESC
         ", $params);
