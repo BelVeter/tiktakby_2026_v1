@@ -8,7 +8,11 @@ class LocationsTest extends McpTestCase
     {
         $r = $this->mcp('locations/performance', ['from' => '2024-01-01', 'to' => '2024-12-31', 'granularity' => 'quarter']);
         $this->assertEnvelope($r);
-        $r->assertJsonStructure(['data' => [['period', 'office_id', 'office_name', 'deals', 'unique_clients', 'revenue_byn', 'avg_ticket_byn']]]);
+        $r->assertJsonStructure(['data' => [[
+            'period', 'office_id', 'office_name', 'office_type',
+            'deals', 'issuance_events', 'unique_clients_proxy',
+            'revenue_byn', 'avg_payment_byn',
+        ]]]);
     }
 
     public function test_performance_2024_q4_lozhinskaya_lower_than_q3(): void
@@ -36,17 +40,19 @@ class LocationsTest extends McpTestCase
         $byId = collect($rows)->keyBy('office_id');
 
         $this->assertSame(0, (int) $byId[3]['currently_active']);
-        $this->assertSame('2022-07-06', $byId[3]['last_deal_date']);
-        $this->assertGreaterThan(20000, $byId[3]['total_deals']);
+        // last_activity_date is from sub_deals (cl_payment settlements on old deals)
+        // and may extend years past the 2022-07 physical office closure.
+        $this->assertNotNull($byId[3]['last_activity_date']);
+        $this->assertGreaterThan(20000, (int) $byId[3]['total_deals']);
         $this->assertGreaterThan(600000, (float) $byId[3]['total_revenue_byn']);
     }
 
-    public function test_lifecycle_lozhinskaya_last_deal_2026(): void
+    public function test_lifecycle_lozhinskaya_last_activity_2026(): void
     {
         $rows = $this->mcp('locations/lifecycle')->json('data');
         $byId = collect($rows)->keyBy('office_id');
-        // Lozhinskaya (id=2) trail-off through Feb 2026.
-        $this->assertStringStartsWith('2026-', $byId[2]['last_deal_date']);
+        // Lozhinskaya (id=2) trail-off through 2026.
+        $this->assertStringStartsWith('2026-', $byId[2]['last_activity_date']);
     }
 
     public function test_lifecycle_includes_courier_rows(): void

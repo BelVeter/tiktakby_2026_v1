@@ -31,7 +31,7 @@ class HealthTest extends McpTestCase
         $spec = $r->json();
         $this->assertSame('3.0.3', $spec['openapi']);
         $this->assertArrayHasKey('paths', $spec);
-        $this->assertGreaterThanOrEqual(33, count($spec['paths']));
+        $this->assertGreaterThanOrEqual(31, count($spec['paths']));
     }
 
     public function test_openapi_describes_all_implemented_endpoints(): void
@@ -48,7 +48,6 @@ class HealthTest extends McpTestCase
             '/locations/performance', '/locations/lifecycle',
             '/categories/seasonality', '/categories/performance',
             '/carnival/funnel', '/carnival/seasonality', '/carnival/revenue',
-            '/orders/stats', '/deals/list',
             '/export/monthly/{topic}',
         ];
         foreach ($expected as $path) {

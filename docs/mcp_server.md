@@ -5,6 +5,40 @@ Lives on `https://tiktak.by/api/mcp/v1/*` behind a token + GeoIP gate, returns
 a uniform `{query, data, meta}` envelope, and exposes its own OpenAPI 3.0
 description for client tooling.
 
+## Methodology (locked 2026-05-14)
+
+The API reproduces the calculations used by legacy admin reports
+`/bb/reports.php`, `/bb/sales_breakdown.php`, `/bb/dohrash2.php`,
+`/bb/cat_analysis.php`:
+
+| Concern | Convention |
+|---|---|
+| **Revenue source** | `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` |
+| **Period filter** | `acc_date` (accounting date — when the payment landed). Not deal `cr_time`. |
+| **Deal counts** | `COUNT(DISTINCT deal_id)` over `UNION(rent_deals_act, rent_deals_arch)` |
+| **Issuance events** | `COUNT(*)` of sub-deals with `type IN ('first_rent','takeaway_plan')` — matches `/bb/reports.php` |
+| **Office attribution** | `sub_deal.place` + `sub_deal.delivery_yn` (per-payment), NOT `deal.first_rent_place` (per-deal). Office 0 in responses = synthetic "Курьер" pseudo-office for `delivery_yn='1'` sub-deals. |
+| **Carnival detection** | `tovar_rent_cat.cat_type=1`. All endpoints accept `include_carnival` (default true). `/finance/pnl` returns both `revenue_carnival_byn` and `revenue_non_carnival_byn`. |
+| **Historical inventory** | At date X = `COUNT(tovar_rent_items WHERE buy_date<=X)` + `COUNT(tovar_rent_items_arch WHERE buy_date<=X AND arch_time>=X)`. Used by `/inventory/utilization`. |
+| **Razdel filter dedup** | Joins through `subrazdel_category × razdel_subrazdel` are many-to-many and would inflate `SUM` aggregates. Use `BaseController::itemsInRazdelSubquery()` which returns DISTINCT `item_inv_n` for a razdel. |
+
+### Common pitfalls for API consumers
+
+- **Don't sum `/finance/revenue` with `/carnival/revenue`.** The carnival
+  endpoint reads `karn_brons` (pre-booking system) — these bookings,
+  once issued, also live in `rent_sub_deals_*`. Summing both is a
+  double-count. To compare, use `/finance/pnl.revenue_carnival_byn` for
+  realized carnival revenue and `/carnival/revenue` for pre-booking
+  pipeline.
+- **`include_carnival=false`** zeroes carnival contribution in every
+  numeric field including `/finance/pnl.revenue_carnival_byn` (which is
+  always zero in that mode by construction).
+- **`location=courier`** is the new way to filter delivery_yn='1'
+  sub-deals. Numeric `location=1|2|3` filters `place=N AND delivery_yn!='1'`.
+- **`/inventory/utilization`** denominator is historical: `(units_at_from + units_at_to)/2`,
+  not the current catalog count. For very old periods the inventory may
+  be larger than today (items archived since).
+
 ## Architecture
 
 ```

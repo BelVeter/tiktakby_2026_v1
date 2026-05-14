@@ -38,13 +38,14 @@ class RangeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'from'        => ['nullable', 'date'],
-            'to'          => ['nullable', 'date', 'after_or_equal:from'],
-            'granularity' => ['nullable', 'string', 'in:' . implode(',', self::GRANULARITIES)],
-            'category'    => ['nullable', 'string', 'in:' . implode(',', self::CATEGORIES)],
-            'segment'     => ['nullable', 'string', 'in:' . implode(',', self::SEGMENTS)],
-            'region'      => ['nullable', 'string', 'in:' . implode(',', self::REGIONS)],
-            'location'    => ['nullable'], // string 'all' or numeric office id - validated below
+            'from'             => ['nullable', 'date'],
+            'to'               => ['nullable', 'date', 'after_or_equal:from'],
+            'granularity'      => ['nullable', 'string', 'in:' . implode(',', self::GRANULARITIES)],
+            'category'         => ['nullable', 'string', 'in:' . implode(',', self::CATEGORIES)],
+            'segment'          => ['nullable', 'string', 'in:' . implode(',', self::SEGMENTS)],
+            'region'           => ['nullable', 'string', 'in:' . implode(',', self::REGIONS)],
+            'location'         => ['nullable'], // string 'all' or numeric office id - validated below
+            'include_carnival' => ['nullable'], // truthy/falsy — coerced in includeCarnival()
         ];
     }
 
@@ -59,8 +60,8 @@ class RangeRequest extends FormRequest
             $merged['from'] = Carbon::now()->subMonthsNoOverflow(12)->startOfMonth()->toDateString();
             $merged['to']   = Carbon::now()->endOfDay()->toDateString();
         }
-        foreach (['granularity' => 'month', 'category' => 'all', 'segment' => 'all', 'region' => 'all', 'location' => 'all'] as $k => $default) {
-            if (!$this->filled($k)) {
+        foreach (['granularity' => 'month', 'category' => 'all', 'segment' => 'all', 'region' => 'all', 'location' => 'all', 'include_carnival' => 'true'] as $k => $default) {
+            if (!$this->filled($k) && $this->input($k) === null) {
                 $merged[$k] = $default;
             }
         }
@@ -68,6 +69,20 @@ class RangeRequest extends FormRequest
         if ($merged) {
             $this->merge($merged);
         }
+    }
+
+    /**
+     * Parse include_carnival as a strict boolean.
+     * Treats '0', 'false', 'no', 'off', '' as false; everything else as true.
+     * Default is true (carnival items contribute to revenue/deal aggregates).
+     */
+    public function includeCarnival(): bool
+    {
+        $v = $this->input('include_carnival');
+        if ($v === null) return true;
+        if (is_bool($v)) return $v;
+        $s = strtolower(trim((string) $v));
+        return !in_array($s, ['0', 'false', 'no', 'off', '', 'n'], true);
     }
 
     public function fromTimestamp(): int
@@ -88,13 +103,14 @@ class RangeRequest extends FormRequest
     public function queryEcho(): array
     {
         return [
-            'from'        => $this->input('from'),
-            'to'          => $this->input('to'),
-            'granularity' => $this->input('granularity'),
-            'category'    => $this->input('category'),
-            'segment'     => $this->input('segment'),
-            'region'      => $this->input('region'),
-            'location'    => $this->input('location'),
+            'from'             => $this->input('from'),
+            'to'               => $this->input('to'),
+            'granularity'      => $this->input('granularity'),
+            'category'         => $this->input('category'),
+            'segment'          => $this->input('segment'),
+            'region'           => $this->input('region'),
+            'location'         => $this->input('location'),
+            'include_carnival' => $this->includeCarnival(),
         ];
     }
 

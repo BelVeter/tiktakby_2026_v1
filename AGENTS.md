@@ -55,7 +55,7 @@ See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoi
 
 ### Form Requests (`app/Http/Requests/Mcp/`)
 
-- `RangeRequest` — common parameters for range-based MCP endpoints. Default range is the last 12 months; `granularity=month`; all dimensional filters (`category`/`segment`/`region`/`location`) default to `all`. Provides `granularityFormatFor($column)` to build the matching MySQL `DATE_FORMAT()` expression.
+- `RangeRequest` — common parameters for range-based MCP endpoints. Default range is the last 12 months; `granularity=month`; all dimensional filters (`category`/`segment`/`region`/`location`) default to `all`; `include_carnival` defaults to `true`. Provides `granularityFormatFor($column)` to build the matching MySQL `DATE_FORMAT()` expression and `includeCarnival()` for the boolean flag.
 
 ### MyClasses (`app/MyClasses/`)
 
@@ -89,7 +89,16 @@ Blade templates. Main layout: `layouts/app.blade.php` (contains version number f
 - Language redirects `/en/*`, `/lt/*` → `/ru/*`
 - Catalog: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
 - Fallback → 404 page
-- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 33 analytics endpoints + `/health` + `/openapi.json`, middleware chain `mcp.json → mcp.token → mcp.geo → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+. See `docs/mcp_server.md`.
+- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 31 analytics endpoints + `/health` + `/openapi.json`, middleware chain `mcp.json → mcp.token → mcp.geo → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+.
+
+  **Methodology (locked 2026-05-14, reproduces legacy admin reports — see `docs/mcp_server.md`):**
+  - Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` by `acc_date` (not deal `cr_time`).
+  - Deal/return counts read `UNION(rent_deals_act, rent_deals_arch)`. `_act` holds ~430 open deals.
+  - Office attribution uses `sub_deal.place + delivery_yn` per-payment, not `deal.first_rent_place` per-deal. office_id=0 = Курьер pseudo-office.
+  - Carnival = `tovar_rent_cat.cat_type=1`. `include_carnival` toggle (default true). `/finance/pnl` always splits into carnival/non-carnival columns.
+  - Inventory at date X = `tovar_rent_items (buy_date≤X)` + `tovar_rent_items_arch (buy_date≤X AND arch_time≥X)`. Used by `/inventory/utilization`.
+  - `subrazdel_category × razdel_subrazdel` joins inflate SUM aggregates M×N. Use `BaseController::itemsInRazdelSubquery()` instead.
+  - `tests/Feature/Mcp/LegacyParityTest.php` enforces parity with direct legacy-style SQL.
 
 ## Deploy (`Deploy.php`)
 

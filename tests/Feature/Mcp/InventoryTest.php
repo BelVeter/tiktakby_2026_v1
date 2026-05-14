@@ -56,7 +56,11 @@ class InventoryTest extends McpTestCase
         $r = $this->mcp('inventory/utilization', ['from' => '2024-01-01', 'to' => '2024-12-31', 'category' => 'children']);
         $this->assertEnvelope($r);
         if (!empty($r->json('data'))) {
-            $r->assertJsonStructure(['data' => [['model_id', 'model_name', 'units', 'deals_in_period', 'rented_days', 'utilization']]]);
+            $r->assertJsonStructure(['data' => [[
+                'model_id', 'model_name',
+                'units_at_from', 'units_at_to', 'avg_units',
+                'deals_in_period', 'rented_days', 'utilization',
+            ]]]);
         }
     }
 
