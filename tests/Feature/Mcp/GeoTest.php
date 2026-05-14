@@ -172,9 +172,10 @@ class GeoTest extends McpTestCase
 
     private function insertDealForClient(int $clientId, string $when, float $rPaid, float $deliveryPaid): void
     {
-        $ts = $this->ts($when);
+        $ts     = $this->ts($when);
+        $dealId = 9_000_000 + (++self::$dealSeq); // unique per insert; UNIQUE constraint on deal_id
         DB::table('rent_deals_arch')->insert([
-            'deal_id'             => 9_000_000 + (++self::$dealSeq), // unique per insert; UNIQUE constraint on deal_id
+            'deal_id'             => $dealId,
             'client_id'           => $clientId,
             'item_inv_n'          => 0,
             'start_date'          => $ts,
@@ -196,6 +197,44 @@ class GeoTest extends McpTestCase
             'deal_set'            => '',
             'first_rent_place'    => 0,
             'arch_time'           => 0,
+        ]);
+
+        // Revenue is now sourced from UNION(rent_sub_deals_act, rent_sub_deals_arch)
+        // by acc_date — we must record at least one sub-deal payment so the deal
+        // appears in /geo/clients-by-city aggregations.
+        DB::table('rent_sub_deals_arch')->insert([
+            'arch_time'        => 0,
+            'sub_deal_id'      => $dealId,           // unique enough for fixtures
+            'deal_id'          => $dealId,
+            'type'             => 'first_rent',
+            'type_sort_n'      => 0,
+            'from'             => $ts,
+            'to'               => $ts,
+            'tarif_id'         => 0,
+            'tarif_step'       => '',
+            'tarif_value'      => 0,
+            'rent_tenor'       => 0,
+            'r_to_pay'         => $rPaid,
+            'delivery_yn'      => '0',
+            'delivery_to_pay'  => $deliveryPaid,
+            'courier_id'       => 0,
+            'r_paid'           => $rPaid,
+            'delivery_paid'    => $deliveryPaid,
+            'r_payment_type'   => '',
+            'del_payment_type' => '',
+            'status'           => '',
+            'info'             => '',
+            'cr_time'          => $ts,
+            'cr_who_id'        => 0,
+            'ch_time'          => 0,
+            'ch_who_id'        => 0,
+            'link'             => 0,
+            'acc_date'         => $ts,
+            'place'            => 0,
+            'ch_num'           => '',
+            'sd_cat_id'        => 0,
+            'sd_model_id'      => 0,
+            'sd_inv_n'         => 0,
         ]);
     }
 

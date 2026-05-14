@@ -10,15 +10,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * GET /api/mcp/v1/export/monthly/{topic}
  *
- * CSV streaming export for regular backfill of
- * /home/dmitry/Documents/прокат/04_analytics/data/monthly/*.csv.
- * Column layout matches data/monthly/_schema.md and the existing CSV
- * headers exactly so files can be appended without breaking downstream
- * tooling.
+ * CSV streaming export. Numbers tie out to the live API (FinanceController,
+ * OperationsController) by going through the same UNION subqueries and
+ * acc_date convention.
  *
  * Topics implemented from MySQL: operations, revenue, pnl.
  * Topic `traffic` requires Yandex Metrika and is returned as a header-only
- * file with X-Mcp-Warning hinting where to fetch the data instead.
+ * file.
  */
 class ExportController extends BaseController
 {
@@ -54,13 +52,6 @@ class ExportController extends BaseController
         }, $topic . '.csv', $headers);
     }
 
-    /**
-     * operations.csv columns (from data/monthly/_schema.md):
-     *   period, category, applications, applications_online, applications_phone,
-     *   applications_messenger, bookings, issuances, prolongations, returns,
-     *   cancelled, no_show, damages, losses,
-     *   cr_application_to_booking, cr_booking_to_issuance, avg_rental_days
-     */
     private function streamOperations($out, int $from, int $to): void
     {
         fputcsv($out, [
@@ -69,6 +60,9 @@ class ExportController extends BaseController
             'cancelled', 'no_show', 'damages', 'losses',
             'cr_application_to_booking', 'cr_booking_to_issuance', 'avg_rental_days',
         ]);
+
+        $daSub = $this->unifiedDealsSubquery();
+        $sdSub = $this->unifiedSubDealsSubquery();
 
         $rows = DB::select("
             SELECT DATE_FORMAT(FROM_UNIXTIME(cr_time), '%Y-%m') AS period,
@@ -96,12 +90,12 @@ class ExportController extends BaseController
 
         $rows = DB::select("
             SELECT DATE_FORMAT(FROM_UNIXTIME(cr_time), '%Y-%m') AS period,
-                   COUNT(*) AS issuances,
+                   COUNT(DISTINCT deal_id) AS issuances,
                    ROUND(AVG(CASE
-                       WHEN return_date > cr_time
-                       THEN (LEAST(return_date, ?) - cr_time) / 86400
+                       WHEN return_date > start_date
+                       THEN (LEAST(return_date, ?) - start_date) / 86400
                    END), 2) AS avg_rental_days
-            FROM rent_deals_arch
+            FROM {$daSub} da
             WHERE cr_time BETWEEN ? AND ?
             GROUP BY period
         ", [$to, $from, $to]);
@@ -115,7 +109,7 @@ class ExportController extends BaseController
 
         $rows = DB::select("
             SELECT DATE_FORMAT(FROM_UNIXTIME(cr_time), '%Y-%m') AS period, COUNT(*) AS cnt
-            FROM rent_sub_deals_arch
+            FROM {$sdSub} sd
             WHERE cr_time BETWEEN ? AND ?
             GROUP BY period
         ", [$from, $to]);
@@ -126,7 +120,7 @@ class ExportController extends BaseController
 
         $rows = DB::select("
             SELECT DATE_FORMAT(FROM_UNIXTIME(return_date), '%Y-%m') AS period, COUNT(*) AS cnt
-            FROM rent_deals_arch
+            FROM {$daSub} da
             WHERE return_date BETWEEN ? AND ? AND return_date > 0
             GROUP BY period
         ", [$from, $to]);
@@ -149,29 +143,19 @@ class ExportController extends BaseController
             $subDeals     = $subs[$period]                 ?? 0;
             $returns      = $rets[$period]                 ?? 0;
 
-            // application-to-booking and booking-to-issuance not directly modelable here
-            // (we don't have a separate "booking" stage) → use applications→issuances ratio.
             $crAppToBook = $applications > 0 ? round($issuances / $applications, 3) : 0;
 
             fputcsv($out, [
                 $period, 'all',
                 $applications + $phone, $online, $phone, 0,
-                $issuances,                  // bookings ≈ issuances (no separate booking stage)
-                $issuances,
-                $subDeals,
-                $returns,
-                0, 0, 0, 0,                  // cancelled, no_show, damages, losses — not tracked yet
-                $crAppToBook, 1.0,           // cr_application_to_booking, cr_booking_to_issuance
+                $issuances, $issuances, $subDeals, $returns,
+                0, 0, 0, 0,
+                $crAppToBook, 1.0,
                 $avgDays,
             ]);
         }
     }
 
-    /**
-     * revenue.csv columns:
-     *   period, category, segment, revenue_gross, revenue_discounts, revenue_net,
-     *   refunds, penalties, revenue_final, issuances_count, avg_check
-     */
     private function streamRevenue($out, int $from, int $to): void
     {
         fputcsv($out, [
@@ -180,13 +164,16 @@ class ExportController extends BaseController
             'issuances_count', 'avg_check',
         ]);
 
+        // Revenue via sub-deals (acc_date) — same methodology as FinanceController::revenue.
+        $sdSub = $this->unifiedSubDealsSubquery();
         $rows = DB::select("
-            SELECT DATE_FORMAT(FROM_UNIXTIME(cr_time), '%Y-%m') AS period,
-                   ROUND(SUM(r_paid + delivery_paid), 2)        AS revenue_final,
-                   COUNT(*)                                      AS issuances_count,
-                   ROUND(AVG(r_paid + delivery_paid), 2)         AS avg_check
-            FROM rent_deals_arch
-            WHERE cr_time BETWEEN ? AND ?
+            SELECT DATE_FORMAT(FROM_UNIXTIME(sd.acc_date), '%Y-%m')   AS period,
+                   ROUND(SUM(sd.r_paid + sd.delivery_paid), 2)         AS revenue_final,
+                   COUNT(DISTINCT sd.deal_id)                          AS issuances_count,
+                   ROUND(SUM(sd.r_paid + sd.delivery_paid) /
+                         NULLIF(COUNT(DISTINCT sd.deal_id), 0), 2)     AS avg_check
+            FROM {$sdSub} sd
+            WHERE sd.acc_date BETWEEN ? AND ?
             GROUP BY period
             ORDER BY period
         ", [$from, $to]);
@@ -194,7 +181,7 @@ class ExportController extends BaseController
         foreach ($rows as $r) {
             fputcsv($out, [
                 $r->period, 'all', 'all',
-                0, 0, 0, 0, 0,                              // discounts/refunds/penalties not tracked here
+                0, 0, 0, 0, 0,
                 $r->revenue_final ?: 0,
                 (int) $r->issuances_count,
                 $r->avg_check ?: 0,
@@ -202,13 +189,6 @@ class ExportController extends BaseController
         }
     }
 
-    /**
-     * pnl.csv columns:
-     *   period, revenue_total, cogs_park_amortization, cogs_cleaning, cogs_repairs,
-     *   cogs_courier_fuel, cogs_courier_salary, direct_costs, gross_margin,
-     *   opex_rent, opex_payroll, opex_marketing, opex_telephony, opex_admin,
-     *   ebitda, capex_new_park, net_cash_flow
-     */
     private function streamPnl($out, int $from, int $to): void
     {
         fputcsv($out, [
@@ -218,11 +198,12 @@ class ExportController extends BaseController
             'opex_telephony', 'opex_admin', 'ebitda', 'capex_new_park', 'net_cash_flow',
         ]);
 
+        $sdSub = $this->unifiedSubDealsSubquery();
         $revenue = DB::select("
-            SELECT DATE_FORMAT(FROM_UNIXTIME(cr_time), '%Y-%m') AS period,
-                   ROUND(SUM(r_paid + delivery_paid), 2)        AS revenue_total
-            FROM rent_deals_arch
-            WHERE cr_time BETWEEN ? AND ?
+            SELECT DATE_FORMAT(FROM_UNIXTIME(sd.acc_date), '%Y-%m') AS period,
+                   ROUND(SUM(sd.r_paid + sd.delivery_paid), 2) AS revenue_total
+            FROM {$sdSub} sd
+            WHERE sd.acc_date BETWEEN ? AND ?
             GROUP BY period
         ", [$from, $to]);
 
@@ -236,58 +217,29 @@ class ExportController extends BaseController
         ", [$from, $to]);
 
         $byPeriod = [];
+        $skel = [
+            'revenue_total' => 0.0, 'cogs_repairs' => 0.0, 'cogs_courier_fuel' => 0.0,
+            'cogs_capex' => 0.0, 'opex_rent' => 0.0, 'opex_payroll' => 0.0,
+            'opex_marketing' => 0.0, 'opex_telephony' => 0.0, 'opex_admin' => 0.0,
+        ];
         foreach ($revenue as $r) {
-            $byPeriod[$r->period] = [
-                'revenue_total'     => (float) $r->revenue_total,
-                'cogs_repairs'      => 0.0,
-                'cogs_courier_fuel' => 0.0,
-                'cogs_capex'        => 0.0,
-                'opex_rent'         => 0.0,
-                'opex_payroll'      => 0.0,
-                'opex_marketing'    => 0.0,
-                'opex_telephony'    => 0.0,
-                'opex_admin'        => 0.0,
-            ];
+            $byPeriod[$r->period] = $skel;
+            $byPeriod[$r->period]['revenue_total'] = (float) $r->revenue_total;
         }
         foreach ($expenses as $e) {
-            if (!isset($byPeriod[$e->period])) {
-                $byPeriod[$e->period] = [
-                    'revenue_total'     => 0.0,
-                    'cogs_repairs'      => 0.0,
-                    'cogs_courier_fuel' => 0.0,
-                    'cogs_capex'        => 0.0,
-                    'opex_rent'         => 0.0,
-                    'opex_payroll'      => 0.0,
-                    'opex_marketing'    => 0.0,
-                    'opex_telephony'    => 0.0,
-                    'opex_admin'        => 0.0,
-                ];
-            }
+            if (!isset($byPeriod[$e->period])) { $byPeriod[$e->period] = $skel; }
             $amt = (float) $e->amount;
             switch ($e->type2) {
-                case 'remont_tov':
-                    $byPeriod[$e->period]['cogs_repairs'] += $amt;
-                    break;
+                case 'remont_tov': $byPeriod[$e->period]['cogs_repairs']     += $amt; break;
                 case 'fuel': case 'double_benz': case 'car':
-                    $byPeriod[$e->period]['cogs_courier_fuel'] += $amt;
-                    break;
-                case 'tovar':
-                    $byPeriod[$e->period]['cogs_capex'] += $amt;
-                    break;
+                                   $byPeriod[$e->period]['cogs_courier_fuel']+= $amt; break;
+                case 'tovar':      $byPeriod[$e->period]['cogs_capex']       += $amt; break;
                 case 'of1_rent': case 'of2_rent': case 'r3_rent':
-                    $byPeriod[$e->period]['opex_rent'] += $amt;
-                    break;
-                case 'zpl':
-                    $byPeriod[$e->period]['opex_payroll'] += $amt;
-                    break;
-                case 'adv':
-                    $byPeriod[$e->period]['opex_marketing'] += $amt;
-                    break;
-                case 'connect':
-                    $byPeriod[$e->period]['opex_telephony'] += $amt;
-                    break;
-                default:
-                    $byPeriod[$e->period]['opex_admin'] += $amt;
+                                   $byPeriod[$e->period]['opex_rent']        += $amt; break;
+                case 'zpl':        $byPeriod[$e->period]['opex_payroll']     += $amt; break;
+                case 'adv':        $byPeriod[$e->period]['opex_marketing']   += $amt; break;
+                case 'connect':    $byPeriod[$e->period]['opex_telephony']   += $amt; break;
+                default:           $byPeriod[$e->period]['opex_admin']       += $amt;
             }
         }
 
@@ -303,11 +255,10 @@ class ExportController extends BaseController
             fputcsv($out, [
                 $period,
                 round($b['revenue_total'], 2),
-                0,                              // cogs_park_amortization — not tracked
-                0,                              // cogs_cleaning — not tracked
+                0, 0,
                 round($b['cogs_repairs'], 2),
                 round($b['cogs_courier_fuel'], 2),
-                0,                              // cogs_courier_salary — not separable
+                0,
                 round($direct, 2),
                 round($grossMargin, 2),
                 round($b['opex_rent'], 2),
@@ -316,7 +267,7 @@ class ExportController extends BaseController
                 round($b['opex_telephony'], 2),
                 round($b['opex_admin'], 2),
                 round($ebitda, 2),
-                round($b['cogs_capex'], 2),     // capex_new_park ≈ tovar purchases
+                round($b['cogs_capex'], 2),
                 round($netCashFlow, 2),
             ]);
         }
@@ -324,8 +275,6 @@ class ExportController extends BaseController
 
     private function streamTrafficStub($out): void
     {
-        // Header-only file — traffic data lives in Yandex Metrika; see
-        // 04_analytics/queries/metrika_basic_queries.sh.
         fputcsv($out, [
             'period', 'segment', 'region', 'category', 'source',
             'visits', 'users', 'pageviews', 'bounce_rate',

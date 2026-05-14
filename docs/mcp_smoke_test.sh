@@ -127,21 +127,29 @@ hit "/meta/income-items"  'len(r["data"]) > 0'
 hit "/meta/data-freshness" "'rent_deals_arch' in r['data']['tables']"
 
 echo
-echo "── Finance (acceptance: 2019 EBITDA ≈ +34909, 2024 EBITDA ≈ -15071, 2025 has fy2025 warning) ──"
-hit "/finance/pnl?from=2019-01-01&to=2019-12-31&granularity=year" 'round(r["data"][0]["revenue_byn"]) == 433656 and round(r["data"][0]["ebitda_byn"]) == 34909'
-hit "/finance/pnl?from=2024-01-01&to=2024-12-31&granularity=year" 'round(r["data"][0]["ebitda_byn"]) == -15071'
+echo "── Finance (acceptance: legacy-parity numbers, 2025 has fy2025 warning) ──"
+# 2019 baseline (matches /bb/dohrash2.php exactly): revenue 424231.72 / ebitda 25484.82
+hit "/finance/pnl?from=2019-01-01&to=2019-12-31&granularity=year" 'round(r["data"][0]["revenue_byn"]) == 424232 and round(r["data"][0]["ebitda_byn"]) == 25485'
+# carnival/non-carnival split must sum to total
+hit "/finance/pnl?from=2019-01-01&to=2019-12-31&granularity=year" 'abs(r["data"][0]["revenue_non_carnival_byn"] + r["data"][0]["revenue_carnival_byn"] - r["data"][0]["revenue_byn"]) < 0.5'
+# 2024 baseline: revenue 293189.25 / ebitda -12950.45
+hit "/finance/pnl?from=2024-01-01&to=2024-12-31&granularity=year" 'round(r["data"][0]["revenue_byn"]) == 293189 and round(r["data"][0]["ebitda_byn"]) == -12950'
 hit "/finance/pnl?from=2025-01-01&to=2025-12-31&granularity=year" "any(w['code'] == 'fy2025_bank_channel_gap' for w in r['meta']['warnings'])"
 hit "/finance/revenue?from=2024-01-01&to=2024-12-31&granularity=quarter"
+# include_carnival=false zeroes the carnival column
+hit "/finance/pnl?from=2019-01-01&to=2019-12-31&granularity=year&include_carnival=false" 'r["data"][0]["revenue_carnival_byn"] == 0'
 hit "/finance/expenses?from=2024-01-01&to=2024-12-31&channel=bank"
 hit "/finance/cash-flow?from=2024-01-01&to=2024-12-31&granularity=quarter"
 
 echo
-echo "── Operations (acceptance: 2019 location 3 top, post-2022 location 3 absent) ──"
+echo "── Operations (acceptance: office 3 visible in 2019 via sub_deal.place, residual after closure) ──"
 hit "/operations/funnel?from=2024-01-01&to=2024-12-31"
 hit "/operations/timeline?from=2024-01-01&to=2024-12-31&granularity=quarter"
 hit "/operations/by-category?from=2024-01-01&to=2024-12-31"
-hit "/operations/by-location?from=2019-01-01&to=2019-12-31" 'r["data"][0]["office_id"] == 3'
-hit "/operations/by-location?from=2022-08-01&to=2026-04-30" '3 not in [d["office_id"] for d in r["data"]]'
+# Office 3 (Pobediteley) was the top revenue office in 2019
+hit "/operations/by-location?from=2019-01-01&to=2019-12-31" '3 in [d["office_id"] for d in r["data"]]'
+# After closure: only residual cl_payment subdeals — should be tiny (< 10k BYN)
+hit "/operations/by-location?from=2022-08-01&to=2026-04-30" 'sum(d["revenue_byn"] for d in r["data"] if d["office_id"] == 3) < 10000'
 
 echo
 echo "── Inventory ──"
@@ -170,9 +178,7 @@ hit "/carnival/seasonality?years=5" 'max(d["seasonality_index"] for d in r["data
 hit "/carnival/revenue?from=2024-01-01&to=2024-12-31&granularity=quarter"
 
 echo
-echo "── Legacy + Export ──"
-hit "/orders/stats?date_from=2024-01-01&date_to=2024-01-31&group_by=day"
-hit "/deals/list?date_from=2024-01-01&date_to=2024-01-31&limit=5"
+echo "── Export ──"
 hit "/export/monthly/pnl?from=2019-01-01&to=2019-12-31"
 hit "/export/monthly/revenue?from=2024-01-01&to=2024-12-31"
 hit "/export/monthly/operations?from=2024-01-01&to=2024-12-31"

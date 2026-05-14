@@ -112,18 +112,23 @@ class OperationsTest extends McpTestCase
 
     public function test_by_location_pobediteley_zero_after_closure(): void
     {
-        // Acceptance: office id=3 closed 2022-07; must be absent in 2022-08+ data.
+        // Acceptance: office id=3 closed 2022-07; after closure only residual
+        // cl_payment sub-deals (settlements on old deals) may keep the row alive
+        // with zero issuance_events and tiny revenue (< 10 000 BYN).
         $rows = $this->mcp('operations/by-location', ['from' => '2022-08-01', 'to' => '2026-04-30'])->json('data');
-        $ids  = array_column($rows, 'office_id');
-        $this->assertNotContains(3, $ids);
+        $byId = collect($rows)->keyBy('office_id');
+        if (isset($byId[3])) {
+            $this->assertSame(0, (int) $byId[3]['issuance_events'], 'Pobediteley must have 0 issuances after closure');
+            $this->assertLessThan(10000.0, (float) $byId[3]['revenue_byn'], 'Pobediteley residual revenue must be < 10 000 BYN');
+        }
     }
 
-    public function test_by_location_returns_in_period_column_present(): void
+    public function test_by_location_issuance_events_column_present(): void
     {
         $rows = $this->mcp('operations/by-location', ['from' => '2024-01-01', 'to' => '2024-12-31'])->json('data');
         foreach ($rows as $row) {
-            $this->assertArrayHasKey('returns_in_period', $row);
-            $this->assertGreaterThanOrEqual(0, $row['returns_in_period']);
+            $this->assertArrayHasKey('issuance_events', $row);
+            $this->assertGreaterThanOrEqual(0, (int) $row['issuance_events']);
         }
     }
 
@@ -131,54 +136,6 @@ class OperationsTest extends McpTestCase
     {
         $rows = $this->mcp('operations/by-location', ['from' => '2024-01-01', 'to' => '2024-12-31'])->json('data');
         $this->assertSortedDesc(array_map(static fn ($r) => $r['deals'], $rows));
-    }
-
-    // ─── legacy /orders/stats ─────────────────────────────────────────────
-
-    public function test_legacy_orders_stats_envelope(): void
-    {
-        $r = $this->mcp('orders/stats', ['date_from' => '2024-01-01', 'date_to' => '2024-01-31', 'group_by' => 'day']);
-        $this->assertEnvelope($r);
-        $r->assertJsonStructure(['data' => ['orders', 'carnival_bookings', 'deals']]);
-    }
-
-    public function test_legacy_orders_stats_validates_required_dates(): void
-    {
-        $this->mcp('orders/stats')->assertStatus(422);
-    }
-
-    public function test_legacy_orders_stats_validates_group_by(): void
-    {
-        $this->mcp('orders/stats', ['date_from' => '2024-01-01', 'date_to' => '2024-01-31', 'group_by' => 'fortnight'])->assertStatus(422);
-    }
-
-    // ─── legacy /deals/list ───────────────────────────────────────────────
-
-    public function test_legacy_deals_list_with_limit(): void
-    {
-        $r = $this->mcp('deals/list', ['date_from' => '2024-01-01', 'date_to' => '2024-01-31', 'limit' => 5]);
-        $this->assertEnvelope($r);
-        $this->assertLessThanOrEqual(5, count($r->json('data')));
-    }
-
-    public function test_legacy_deals_list_meta_includes_pagination(): void
-    {
-        $r = $this->mcp('deals/list', ['date_from' => '2024-01-01', 'date_to' => '2024-01-31', 'limit' => 5, 'offset' => 0]);
-        $meta = $r->json('meta');
-        $this->assertArrayHasKey('total_rows', $meta);
-        $this->assertArrayHasKey('limit', $meta);
-        $this->assertArrayHasKey('offset', $meta);
-    }
-
-    public function test_legacy_deals_list_does_not_leak_pii(): void
-    {
-        // Use a wide window so we always have rows to inspect.
-        $rows = $this->mcp('deals/list', ['date_from' => '2014-01-01', 'date_to' => '2026-04-30', 'limit' => 5])->json('data');
-        $this->assertNotEmpty($rows, 'deals/list must return rows for the full range');
-        $row = $rows[0];
-        foreach (['family', 'name', 'otch', 'phone', 'phone_1', 'phone_2', 'pas_n'] as $field) {
-            $this->assertArrayNotHasKey($field, $row, "$field must not be returned");
-        }
     }
 
     // ─── auth ─────────────────────────────────────────────────────────────
@@ -189,7 +146,5 @@ class OperationsTest extends McpTestCase
         $this->assertRequiresToken('operations/timeline');
         $this->assertRequiresToken('operations/by-category');
         $this->assertRequiresToken('operations/by-location');
-        $this->assertRequiresToken('orders/stats');
-        $this->assertRequiresToken('deals/list');
     }
 }

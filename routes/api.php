@@ -87,10 +87,6 @@ Route::prefix('mcp/v1')
         Route::get('carnival/seasonality',  [CarnivalController::class, 'seasonality'])->name('carnival.seasonality');
         Route::get('carnival/revenue',      [CarnivalController::class, 'revenue'])->name('carnival.revenue');
 
-        // Legacy operations endpoints (kept for clients integrated before refactor)
-        Route::get('orders/stats', [OperationsController::class, 'ordersStats'])->name('orders.stats');
-        Route::get('deals/list',   [OperationsController::class, 'dealsList'])->name('deals.list');
-
         // Export (A.12)
         Route::get('export/monthly/{topic}', [ExportController::class, 'monthly'])
             ->where('topic', '[a-z_-]+')

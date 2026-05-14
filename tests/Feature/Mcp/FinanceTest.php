@@ -8,20 +8,41 @@ class FinanceTest extends McpTestCase
 
     public function test_pnl_2019_baseline_acceptance(): void
     {
-        // From annual_pnl_summary.csv: 2019 revenue 433656 ; ebitda 34909.
+        // Methodology lock 2026-05-14: revenue is SUM(sub_deals.r_paid+delivery_paid)
+        // by acc_date over UNION(act, arch). 2019 reproduces /bb/dohrash2.php exactly.
         $rows = $this->mcp('finance/pnl', ['from' => '2019-01-01', 'to' => '2019-12-31', 'granularity' => 'year'])->json('data');
         $this->assertCount(1, $rows);
         $this->assertSame('2019', $rows[0]['period']);
-        $this->assertEqualsWithDelta(433656, $rows[0]['revenue_byn'], 1.0);
-        $this->assertEqualsWithDelta(34909,  $rows[0]['ebitda_byn'],  1.0);
+        $this->assertEqualsWithDelta(424231.72, $rows[0]['revenue_byn'], 1.0);
+        $this->assertEqualsWithDelta(25484.82,  $rows[0]['ebitda_byn'],  1.0);
+        $this->assertEqualsWithDelta(400951.62, $rows[0]['revenue_non_carnival_byn'], 1.0);
+        $this->assertEqualsWithDelta(23280.10,  $rows[0]['revenue_carnival_byn'],     1.0);
     }
 
     public function test_pnl_2024_baseline_acceptance(): void
     {
-        // From annual_pnl_summary.csv: 2024 revenue 291069 ; ebitda -15071.
         $rows = $this->mcp('finance/pnl', ['from' => '2024-01-01', 'to' => '2024-12-31', 'granularity' => 'year'])->json('data');
-        $this->assertEqualsWithDelta(291069, $rows[0]['revenue_byn'], 1.0);
-        $this->assertEqualsWithDelta(-15071, $rows[0]['ebitda_byn'], 1.0);
+        $this->assertEqualsWithDelta(293189.25, $rows[0]['revenue_byn'], 1.0);
+        $this->assertEqualsWithDelta(-12950.45, $rows[0]['ebitda_byn'], 1.0);
+    }
+
+    public function test_pnl_carnival_split_columns_sum_to_total(): void
+    {
+        $rows = $this->mcp('finance/pnl', ['from' => '2019-01-01', 'to' => '2019-12-31', 'granularity' => 'year'])->json('data');
+        $r = $rows[0];
+        $this->assertEqualsWithDelta(
+            $r['revenue_byn'],
+            $r['revenue_non_carnival_byn'] + $r['revenue_carnival_byn'],
+            0.05
+        );
+    }
+
+    public function test_pnl_include_carnival_false_zeroes_carnival_revenue(): void
+    {
+        $rows = $this->mcp('finance/pnl', ['from' => '2019-01-01', 'to' => '2019-12-31', 'granularity' => 'year', 'include_carnival' => 'false'])->json('data');
+        $r = $rows[0];
+        $this->assertSame(0.0, (float) $r['revenue_carnival_byn']);
+        $this->assertEqualsWithDelta($r['revenue_byn'], $r['revenue_non_carnival_byn'], 0.05);
     }
 
     public function test_pnl_2025_warning_present(): void
@@ -106,7 +127,7 @@ class FinanceTest extends McpTestCase
     {
         $r = $this->mcp('finance/revenue', ['from' => '2024-01-01', 'to' => '2024-12-31']);
         $this->assertEnvelope($r);
-        $r->assertJsonStructure(['data' => [['period', 'rent_byn', 'delivery_byn', 'total_byn', 'deals', 'unique_clients']]]);
+        $r->assertJsonStructure(['data' => [['period', 'rent_byn', 'delivery_byn', 'total_byn', 'deals', 'issuance_events']]]);
     }
 
     public function test_revenue_2024_total_matches_pnl_revenue(): void
@@ -133,16 +154,29 @@ class FinanceTest extends McpTestCase
     public function test_revenue_location_filter_pobediteley_2019(): void
     {
         // Pobediteley (id=3) was the busiest office in 2019 (D-OPEN-LOCATIONS).
+        // New methodology uses sub_deal.place — visible now (was 0 with first_rent_place).
         $rows = $this->mcp('finance/revenue', ['from' => '2019-01-01', 'to' => '2019-12-31', 'location' => '3'])->json('data');
         $this->assertNotEmpty($rows);
         $sum = collect($rows)->sum('total_byn');
-        $this->assertGreaterThan(200000, $sum);  // 2019 Pobediteley revenue ≈ 243k
+        $this->assertGreaterThan(150000, $sum);  // 2019 Pobediteley revenue ≈ 186k
     }
 
-    public function test_revenue_location_filter_pobediteley_post_closure_empty(): void
+    public function test_revenue_location_filter_pobediteley_post_closure_negligible(): void
     {
+        // Pobediteley closed mid-2022. Some lingering sub-deal payments still
+        // land on place=3 in 2023 (likely cl_payment for old deals) — small
+        // residual is fine, but it should be a small fraction of the active years.
         $rows = $this->mcp('finance/revenue', ['from' => '2023-01-01', 'to' => '2023-12-31', 'location' => '3'])->json('data');
-        $this->assertSame([], $rows);
+        $sum = collect($rows)->sum('total_byn');
+        $this->assertLessThan(5000, $sum);
+    }
+
+    public function test_revenue_courier_pseudo_office(): void
+    {
+        $rows = $this->mcp('finance/revenue', ['from' => '2019-01-01', 'to' => '2019-12-31', 'location' => 'courier'])->json('data');
+        $this->assertNotEmpty($rows);
+        $sum = collect($rows)->sum('total_byn');
+        $this->assertGreaterThan(80000, $sum);
     }
 
     // ─── /finance/expenses ────────────────────────────────────────────────

@@ -10,22 +10,22 @@ use Illuminate\Support\Facades\DB;
 /**
  * Inventory state and profitability endpoints under /api/mcp/v1/inventory/*.
  *
- * Existing endpoints (migrated from McpAnalyticsController):
- *   - GET /inventory/free-tree
- *   - GET /inventory/profitability
- * Stage 1 additions (A.6):
- *   - GET /inventory/utilization
- *   - GET /inventory/turnover
- *   - GET /inventory/idle
+ * Methodology (matches legacy /bb/cat_analysis.php + tovar::*):
+ *   - Inventory at date X counts BOTH `tovar_rent_items` (currently active)
+ *     AND `tovar_rent_items_arch` items that were alive at X
+ *     (buy_date <= X AND arch_time >= X).
+ *   - Rental windows use `start_date`..`return_date` (not cr_time).
+ *     Open deals (return_date = 0) are clipped at NOW().
+ *   - Utilization denominator uses the average of units at the period start
+ *     and units at the period end — same as cat_analysis.php.
  */
 class InventoryController extends BaseController
 {
     /**
      * GET /inventory/free-tree?as_of=YYYY-MM-DD
      *
-     * Tree razdel → sub_razdel → category → models with current free-unit
-     * counts. "Free" = tovar_rent_items.active_deal_id = 0 AND status not in
-     * ('в аренде','бронь','ремонт','списан').
+     * Current catalog tree with free-unit counts. "Free" = active_deal_id=0
+     * AND status NOT IN ('в аренде','бронь','ремонт','списан').
      */
     public function freeTree(Request $request): JsonResponse
     {
@@ -70,11 +70,7 @@ class InventoryController extends BaseController
 
             $tree = [];
             foreach ($rows as $row) {
-                $sid = $row->section_id;
-                $ssid = $row->subsection_id;
-                $cid = $row->cat_id;
-                $mid = $row->model_id;
-
+                $sid = $row->section_id; $ssid = $row->subsection_id; $cid = $row->cat_id; $mid = $row->model_id;
                 if (!isset($tree[$sid])) {
                     $tree[$sid] = [
                         'section_id'   => $sid,
@@ -99,7 +95,6 @@ class InventoryController extends BaseController
                         'models'   => [],
                     ];
                 }
-
                 $freeCount = $freeMap->get($mid)->free_count ?? 0;
                 $tree[$sid]['subsections'][$ssid]['categories'][$cid]['models'][] = [
                     'model_id'   => $mid,
@@ -121,18 +116,13 @@ class InventoryController extends BaseController
             }, $tree));
         });
 
-        return $this->envelope(
-            ['as_of' => $asOf->toDateString()],
-            $data
-        );
+        return $this->envelope(['as_of' => $asOf->toDateString()], $data);
     }
 
     /**
      * GET /inventory/profitability?cat_id&model_id&min_deals
      *
-     * Per-physical-item profitability: total revenue from rent_deals_act minus
-     * the BYN purchase cost. cat_id / model_id narrow the result; min_deals
-     * filters out items that have never been rented out enough times to matter.
+     * Per-physical-item profitability across UNION(rent_deals_act, rent_deals_arch).
      */
     public function profitability(Request $request): JsonResponse
     {
@@ -151,6 +141,8 @@ class InventoryController extends BaseController
         if ($request->filled('model_id')) { $params[] = $request->integer('model_id'); }
         $params[] = $minDeals;
 
+        $daSub = $this->unifiedDealsSubquery();
+
         $rows = DB::select("
             SELECT
                 tri.item_id,
@@ -162,22 +154,22 @@ class InventoryController extends BaseController
                 tri.buy_date,
                 ROUND(tri.buy_price * COALESCE(tri.exch_to_byr, 1), 2) AS buy_price_byn,
                 FROM_UNIXTIME(tri.buy_date, '%Y-%m-%d') AS buy_date_fmt,
-                COUNT(rda.deal_id) AS total_deals,
-                COALESCE(SUM(rda.r_to_pay + rda.delivery_to_pay), 0) AS total_revenue_byn,
+                COUNT(da.deal_id) AS total_deals,
+                COALESCE(SUM(da.r_to_pay + da.delivery_to_pay), 0) AS total_revenue_byn,
                 ROUND(
-                    COALESCE(SUM(rda.r_to_pay + rda.delivery_to_pay), 0)
+                    COALESCE(SUM(da.r_to_pay + da.delivery_to_pay), 0)
                     - ROUND(tri.buy_price * COALESCE(tri.exch_to_byr, 1), 2),
                 2) AS profit_byn,
                 tri.status AS current_status
             FROM tovar_rent_items tri
-            LEFT JOIN rent_deals_act rda ON rda.item_inv_n = tri.item_inv_n
+            LEFT JOIN {$daSub} da ON da.item_inv_n = tri.item_inv_n
             LEFT JOIN rent_model_web rmw ON rmw.model_id = tri.model_id AND rmw.lang = 'ru'
             LEFT JOIN tovar_rent_cat tc  ON tc.tovar_rent_cat_id = tri.cat_id
             WHERE 1=1
               {$catFilter}
               {$modelFilter}
             GROUP BY tri.item_id, tri.item_inv_n, tri.model_id, tri.cat_id, rmw.l2_name, tc.rent_cat_name, tri.buy_date, tri.buy_price, tri.exch_to_byr, tri.status
-            HAVING COUNT(rda.deal_id) >= ?
+            HAVING COUNT(da.deal_id) >= ?
             ORDER BY profit_byn DESC
         ", $params);
 
@@ -189,24 +181,29 @@ class InventoryController extends BaseController
     }
 
     /**
-     * GET /inventory/utilization?from&to&category
+     * GET /inventory/utilization?from&to&category&include_carnival
      *
-     * Per-model utilization = rented_days / (unit_count * period_days).
-     * rented_days is computed by clipping each deal's [cr_time .. return_date]
-     * window to the requested period and summing across all units of the model.
-     * Deals that haven't returned yet (return_date = 0) are clipped at NOW().
+     * Per-model utilization = rented_days / (avg_units × period_days).
+     *
+     *   - rented_days uses [start_date..return_date] clipped to [from..to].
+     *     Open deals (return_date=0) are clipped at NOW().
+     *   - units = (units_at_from + units_at_to) / 2 — matches cat_analysis.php.
+     *     Units are counted across BOTH tovar_rent_items (current) and
+     *     tovar_rent_items_arch (sold/lost) — an item that was sold in
+     *     2023 still belongs to 2022's denominator.
      */
     public function utilization(RangeRequest $request): JsonResponse
     {
         $from     = $request->fromTimestamp();
         $to       = $request->toTimestamp();
         $category = $request->input('category', 'all');
+        $incCarn  = $request->includeCarnival();
 
         $key = $this->cacheKey('inventory.utilization', [
-            'from' => $from, 'to' => $to, 'cat' => $category,
+            'from' => $from, 'to' => $to, 'cat' => $category, 'inc' => $incCarn ? 1 : 0,
         ]);
 
-        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category) {
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category, $incCarn) {
             $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
             if ($category !== 'all' && $razdel === null) {
                 return [];
@@ -215,73 +212,93 @@ class InventoryController extends BaseController
             $periodSeconds = max(1, $to - $from);
             $now           = time();
 
-            $catJoin   = '';
-            $catWhere  = '';
-            $catParams = [];
+            $daSub   = $this->unifiedDealsSubquery();
+            $itSub   = $this->unifiedItemsSubquery();
+            $carnIds = $this->carnivalCatIds();
+            $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
+
+            // Per-model historical inventory at $from and $to.
+            $unitsAtFrom = $this->modelInventoryAtDate($from, $razdel, $incCarn);
+            $unitsAtTo   = $this->modelInventoryAtDate($to,   $razdel, $incCarn);
+
+            $allModelIds = array_unique(array_merge(array_keys($unitsAtFrom), array_keys($unitsAtTo)));
+
+            // Rented seconds per model. razdel filter goes via itemsInRazdelSubquery()
+            // join (avoids M:N inflation of SUM(rented_seconds)). Param order:
+            // join params (razdel), then SELECT params (now), then WHERE params.
+            $joinParams  = [];
+            $selectParams = [$now, $to, $from];                       // IF + LEAST + GREATEST
+            $whereParams  = [$now, $to, $from, $to];                  // start_date < ?, return_date > ?, etc.
+            $joins  = "
+                JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
+                LEFT JOIN rent_model_web rmw ON rmw.model_id = ti.model_id AND rmw.lang = 'ru'
+            ";
+            $where  = ['ti.model_id IS NOT NULL',
+                       'da.start_date < ?',
+                       '(da.return_date > ? OR (da.return_date = 0 AND da.start_date < ?))'];
+
             if ($razdel !== null) {
-                $catJoin = '
-                    JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
-                    JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
-                ';
-                $catWhere   = 'AND rs.id_razdel = ?';
-                $catParams[] = $razdel;
+                $razdelSub    = $this->itemsInRazdelSubquery();
+                $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
+                $joinParams[] = $razdel;
             }
-
-            // Number of physical units per model (independent of the period).
-            $unitsByModel = [];
-            $unitRows = DB::select("
-                SELECT tri.model_id, COUNT(*) AS unit_count
-                FROM tovar_rent_items tri
-                {$catJoin}
-                WHERE tri.model_id IS NOT NULL
-                  {$catWhere}
-                GROUP BY tri.model_id
-            ", $catParams);
-            foreach ($unitRows as $u) {
-                $unitsByModel[$u->model_id] = (int) $u->unit_count;
+            if (!$incCarn && $carnPh) {
+                $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
+                $whereParams = array_merge($whereParams, $carnIds);
             }
+            $whereSql = implode(' AND ', $where);
 
-            // Rented seconds per model = sum of clipped [cr_time .. return_date or now] intervals.
-            $rentedSql = "
-                SELECT tri.model_id,
+            // Params order matches `?` order: SELECT (`IF`, `LEAST`, `GREATEST`),
+            // then JOIN (razdelSub), then WHERE.
+            $sql = "
+                SELECT ti.model_id,
                        rmw.l2_name AS model_name,
                        SUM(
                            GREATEST(0,
                                LEAST(IF(da.return_date > 0, da.return_date, ?), ?)
-                               - GREATEST(da.cr_time, ?)
+                               - GREATEST(da.start_date, ?)
                            )
                        ) AS rented_seconds,
                        COUNT(DISTINCT da.deal_id) AS deals
-                FROM rent_deals_arch da
-                JOIN tovar_rent_items tri ON tri.item_inv_n = da.item_inv_n
-                LEFT JOIN rent_model_web rmw ON rmw.model_id = tri.model_id AND rmw.lang = 'ru'
-                {$catJoin}
-                WHERE da.cr_time < ?
-                  AND (da.return_date = 0 OR da.return_date > ?)
-                  {$catWhere}
-                GROUP BY tri.model_id, rmw.l2_name
-                ORDER BY rented_seconds DESC
+                FROM {$daSub} da
+                {$joins}
+                WHERE {$whereSql}
+                GROUP BY ti.model_id, rmw.l2_name
             ";
-            $rentedRows = DB::select($rentedSql, array_merge([$now, $to, $from, $to, $from], $catParams));
+            $rentedRows = DB::select($sql, array_merge($selectParams, $joinParams, $whereParams));
+
+            $rentMap = [];
+            foreach ($rentedRows as $r) {
+                $rentMap[$r->model_id] = [
+                    'model_name'     => $r->model_name,
+                    'rented_seconds' => (float) ($r->rented_seconds ?? 0),
+                    'deals'          => (int) $r->deals,
+                ];
+            }
 
             $out = [];
-            foreach ($rentedRows as $r) {
-                $units    = $unitsByModel[$r->model_id] ?? 0;
-                $rentSecs = (float) ($r->rented_seconds ?? 0);
-                if ($units <= 0) {
-                    continue;
-                }
-                $rentedDays = round($rentSecs / 86400, 2);
-                $util       = round($rentSecs / ($units * $periodSeconds), 4);
+            foreach ($allModelIds as $mid) {
+                $uFrom = $unitsAtFrom[$mid] ?? 0;
+                $uTo   = $unitsAtTo[$mid]   ?? 0;
+                $avgU  = ($uFrom + $uTo) / 2;
+                if ($avgU <= 0) continue;
+
+                $entry = $rentMap[$mid] ?? ['model_name' => null, 'rented_seconds' => 0.0, 'deals' => 0];
+                $rentDays = round($entry['rented_seconds'] / 86400, 2);
+                $util     = round($entry['rented_seconds'] / ($avgU * $periodSeconds), 4);
+
                 $out[] = [
-                    'model_id'        => (int) $r->model_id,
-                    'model_name'      => $r->model_name,
-                    'units'           => $units,
-                    'deals_in_period' => (int) $r->deals,
-                    'rented_days'     => $rentedDays,
+                    'model_id'        => (int) $mid,
+                    'model_name'      => $entry['model_name'],
+                    'units_at_from'   => $uFrom,
+                    'units_at_to'     => $uTo,
+                    'avg_units'       => $avgU,
+                    'deals_in_period' => $entry['deals'],
+                    'rented_days'     => $rentDays,
                     'utilization'     => min(1.0, $util),
                 ];
             }
+            usort($out, fn($a, $b) => $b['utilization'] <=> $a['utilization']);
             return $out;
         });
 
@@ -289,26 +306,113 @@ class InventoryController extends BaseController
     }
 
     /**
-     * GET /inventory/turnover?from&to&category
+     * Per-model inventory at a given timestamp. Sums tovar_rent_items
+     * (buy_date <= ts) + tovar_rent_items_arch (buy_date <= ts AND arch_time >= ts).
      *
-     * Per-model turnover = deals_in_period / unit_count. A turnover of 4 means
-     * each unit was rented out four times on average during the period.
+     * @return array<int,int>  model_id => unit_count
+     */
+    private function modelInventoryAtDate(int $ts, ?int $razdel, bool $incCarn): array
+    {
+        $key = $this->cacheKey('inventory.per_model_at_date', [
+            'ts' => $ts, 'razdel' => $razdel ?? 'all', 'inc' => $incCarn ? 1 : 0,
+        ]);
+        return $this->cacheRemember($key, self::TTL_HEAVY, function () use ($ts, $razdel, $incCarn) {
+            $carnIds = $this->carnivalCatIds();
+            $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
+
+            // active items. razdel → join via items-in-razdel derived table to
+            // avoid M:N inflation of COUNT(*) per model_id.
+            $aJoinParams  = [];
+            $aWhereParams = [$ts];
+            $aWhere  = ['tri.buy_date <= ?'];
+            $aJoin   = '';
+            if ($razdel !== null) {
+                $aJoin = "
+                    JOIN (
+                        SELECT DISTINCT ti.item_inv_n
+                        FROM tovar_rent_items ti
+                        JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = ti.cat_id
+                        JOIN razdel_subrazdel rs   ON rs.id_sub_razdel    = sc.id_sub_razdel
+                        WHERE rs.id_razdel = ?
+                    ) irz ON irz.item_inv_n = tri.item_inv_n
+                ";
+                $aJoinParams[] = $razdel;
+            }
+            if (!$incCarn && $carnPh) {
+                $aWhere[]     = "(tri.cat_id IS NULL OR tri.cat_id NOT IN ({$carnPh}))";
+                $aWhereParams = array_merge($aWhereParams, $carnIds);
+            }
+            $aWhereSql = implode(' AND ', $aWhere);
+
+            $active = DB::select("
+                SELECT tri.model_id, COUNT(*) AS units
+                FROM tovar_rent_items tri
+                {$aJoin}
+                WHERE {$aWhereSql} AND tri.model_id IS NOT NULL
+                GROUP BY tri.model_id
+            ", array_merge($aJoinParams, $aWhereParams));
+
+            // archived items — same de-duplication pattern.
+            $hJoinParams  = [];
+            $hWhereParams = [$ts, $ts];
+            $hWhere  = ['tria.buy_date <= ?', 'tria.arch_time >= ?'];
+            $hJoin   = '';
+            if ($razdel !== null) {
+                $hJoin = "
+                    JOIN (
+                        SELECT DISTINCT ti.item_inv_n
+                        FROM tovar_rent_items_arch ti
+                        JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = ti.cat_id
+                        JOIN razdel_subrazdel rs   ON rs.id_sub_razdel    = sc.id_sub_razdel
+                        WHERE rs.id_razdel = ?
+                    ) irz ON irz.item_inv_n = tria.item_inv_n
+                ";
+                $hJoinParams[] = $razdel;
+            }
+            if (!$incCarn && $carnPh) {
+                $hWhere[]     = "(tria.cat_id IS NULL OR tria.cat_id NOT IN ({$carnPh}))";
+                $hWhereParams = array_merge($hWhereParams, $carnIds);
+            }
+            $hWhereSql = implode(' AND ', $hWhere);
+
+            $archived = DB::select("
+                SELECT tria.model_id, COUNT(*) AS units
+                FROM tovar_rent_items_arch tria
+                {$hJoin}
+                WHERE {$hWhereSql} AND tria.model_id IS NOT NULL
+                GROUP BY tria.model_id
+            ", array_merge($hJoinParams, $hWhereParams));
+
+            $out = [];
+            foreach ($active as $r)   { $out[(int) $r->model_id] = ($out[(int) $r->model_id] ?? 0) + (int) $r->units; }
+            foreach ($archived as $r) { $out[(int) $r->model_id] = ($out[(int) $r->model_id] ?? 0) + (int) $r->units; }
+            return $out;
+        });
+    }
+
+    /**
+     * GET /inventory/turnover?from&to&category&include_carnival
      */
     public function turnover(RangeRequest $request): JsonResponse
     {
         $from     = $request->fromTimestamp();
         $to       = $request->toTimestamp();
         $category = $request->input('category', 'all');
+        $incCarn  = $request->includeCarnival();
 
         $key = $this->cacheKey('inventory.turnover', [
-            'from' => $from, 'to' => $to, 'cat' => $category,
+            'from' => $from, 'to' => $to, 'cat' => $category, 'inc' => $incCarn ? 1 : 0,
         ]);
 
-        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category) {
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category, $incCarn) {
             $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
             if ($category !== 'all' && $razdel === null) {
                 return [];
             }
+
+            $daSub   = $this->unifiedDealsSubquery();
+            $carnIds = $this->carnivalCatIds();
+            $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
 
             $catJoin   = '';
             $catWhere  = '';
@@ -318,8 +422,13 @@ class InventoryController extends BaseController
                     JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
                     JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
                 ';
-                $catWhere   = 'AND rs.id_razdel = ?';
+                $catWhere    = 'AND rs.id_razdel = ?';
                 $catParams[] = $razdel;
+            }
+            $carnWhere = '';
+            if (!$incCarn && $carnPh) {
+                $carnWhere = "AND (tri.cat_id IS NULL OR tri.cat_id NOT IN ({$carnPh}))";
+                $catParams  = array_merge($catParams, $carnIds);
             }
 
             return DB::select("
@@ -332,13 +441,14 @@ class InventoryController extends BaseController
                        ROUND(SUM(da.r_paid + da.delivery_paid), 2) AS revenue_byn,
                        ROUND(COUNT(DISTINCT da.deal_id) / NULLIF(COUNT(DISTINCT tri.item_id), 0), 2) AS turnover
                 FROM tovar_rent_items tri
-                LEFT JOIN rent_deals_arch da ON da.item_inv_n = tri.item_inv_n
-                                               AND da.cr_time BETWEEN ? AND ?
+                LEFT JOIN {$daSub} da ON da.item_inv_n = tri.item_inv_n
+                                         AND da.cr_time BETWEEN ? AND ?
                 LEFT JOIN rent_model_web rmw ON rmw.model_id          = tri.model_id AND rmw.lang = 'ru'
                 LEFT JOIN tovar_rent_cat tc  ON tc.tovar_rent_cat_id  = tri.cat_id
                 {$catJoin}
                 WHERE 1=1
                   {$catWhere}
+                  {$carnWhere}
                 GROUP BY tri.model_id, rmw.l2_name, tri.cat_id, tc.rent_cat_name
                 ORDER BY turnover DESC
             ", array_merge([$from, $to], $catParams));
@@ -348,29 +458,35 @@ class InventoryController extends BaseController
     }
 
     /**
-     * GET /inventory/idle?days=90&category
-     *
-     * Models whose last rental cr_time is older than `days` days ago (or that
-     * have never been rented at all). Useful for ассортимент cleanup.
+     * GET /inventory/idle?days=90&category&include_carnival
      */
     public function idle(Request $request): JsonResponse
     {
         $request->validate([
-            'days'     => 'integer|min:1|max:3650',
-            'category' => 'nullable|string|in:' . implode(',', \App\Http\Requests\Mcp\RangeRequest::CATEGORIES),
+            'days'             => 'integer|min:1|max:3650',
+            'category'         => 'nullable|string|in:' . implode(',', RangeRequest::CATEGORIES),
+            'include_carnival' => 'nullable',
         ]);
 
         $days     = (int) $request->get('days', 90);
         $category = $request->get('category', 'all');
         $cutoff   = time() - $days * 86400;
+        $incRaw   = $request->input('include_carnival');
+        $incCarn  = $incRaw === null
+            ? true
+            : !in_array(strtolower(trim((string) $incRaw)), ['0','false','no','off','n',''], true);
 
-        $key = $this->cacheKey('inventory.idle', ['days' => $days, 'cat' => $category]);
+        $key = $this->cacheKey('inventory.idle', ['days' => $days, 'cat' => $category, 'inc' => $incCarn ? 1 : 0]);
 
-        $rows = $this->cacheRemember($key, self::TTL_DEFAULT, function () use ($cutoff, $days, $category) {
+        $rows = $this->cacheRemember($key, self::TTL_DEFAULT, function () use ($cutoff, $category, $incCarn) {
             $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
             if ($category !== 'all' && $razdel === null) {
                 return [];
             }
+
+            $daSub   = $this->unifiedDealsSubquery();
+            $carnIds = $this->carnivalCatIds();
+            $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
 
             $catJoin   = '';
             $catWhere  = '';
@@ -380,8 +496,13 @@ class InventoryController extends BaseController
                     JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
                     JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
                 ';
-                $catWhere   = 'AND rs.id_razdel = ?';
+                $catWhere    = 'AND rs.id_razdel = ?';
                 $catParams[] = $razdel;
+            }
+            $carnWhere = '';
+            if (!$incCarn && $carnPh) {
+                $carnWhere = "AND (tri.cat_id IS NULL OR tri.cat_id NOT IN ({$carnPh}))";
+                $catParams  = array_merge($catParams, $carnIds);
             }
 
             return DB::select("
@@ -394,12 +515,13 @@ class InventoryController extends BaseController
                        FROM_UNIXTIME(MAX(da.cr_time), '%Y-%m-%d') AS last_deal_date,
                        FLOOR((? - MAX(da.cr_time)) / 86400) AS days_idle
                 FROM tovar_rent_items tri
-                LEFT JOIN rent_deals_arch da ON da.item_inv_n = tri.item_inv_n
+                LEFT JOIN {$daSub} da ON da.item_inv_n = tri.item_inv_n
                 LEFT JOIN rent_model_web rmw ON rmw.model_id         = tri.model_id AND rmw.lang = 'ru'
                 LEFT JOIN tovar_rent_cat tc  ON tc.tovar_rent_cat_id = tri.cat_id
                 {$catJoin}
                 WHERE 1=1
                   {$catWhere}
+                  {$carnWhere}
                 GROUP BY tri.model_id, rmw.l2_name, tri.cat_id, tc.rent_cat_name
                 HAVING (MAX(da.cr_time) IS NULL OR MAX(da.cr_time) < ?)
                 ORDER BY (MAX(da.cr_time) IS NULL) DESC, MAX(da.cr_time) ASC
@@ -407,29 +529,10 @@ class InventoryController extends BaseController
         });
 
         return $this->envelope([
-            'days'     => $days,
-            'category' => $category,
-            'cutoff_iso' => gmdate('Y-m-d\TH:i:s\Z', $cutoff),
+            'days'             => $days,
+            'category'         => $category,
+            'include_carnival' => $incCarn,
+            'cutoff_iso'       => gmdate('Y-m-d\TH:i:s\Z', $cutoff),
         ], $rows);
-    }
-
-    private function categoryToRazdelId(string $category): ?int
-    {
-        $map = $this->cacheRemember('mcp.category_razdel_map', self::TTL_META, function () {
-            $rows = DB::select("SELECT id_razdel, url_razdel_name FROM razdel");
-            $byUrl = [];
-            foreach ($rows as $r) {
-                $byUrl[$r->url_razdel_name] = (int) $r->id_razdel;
-            }
-            return [
-                'children' => $byUrl['prokat-detskih-tovarov'] ?? null,
-                'costumes' => $byUrl['karnavalnye-kostyumy']   ?? null,
-                'medical'  => $byUrl['medical-prokat']         ?? null,
-                'cleaning' => $byUrl['prokat-uborka']          ?? null,
-                'sports'   => $byUrl['prokat-sports']          ?? null,
-                'tools'    => null,
-            ];
-        });
-        return $map[$category] ?? null;
     }
 }

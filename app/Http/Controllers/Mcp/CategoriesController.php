@@ -10,25 +10,85 @@ use Illuminate\Support\Facades\DB;
 /**
  * Category-level analytics under /api/mcp/v1/categories/*.
  *
- * Existing endpoint (migrated from McpAnalyticsController):
- *   - GET /categories/performance
- * Stage 1 addition (A.10):
- *   - GET /categories/seasonality
+ * Methodology (matches legacy /bb/sales_breakdown.php category split):
+ *   - Revenue = SUM(r_paid + delivery_paid) over UNION(sub_deals_act, sub_deals_arch)
+ *     by acc_date, joined to deals → items → categories.
+ *   - `include_carnival` (default true) toggles carnival categories
+ *     (tovar_rent_cat.cat_type=1).
  */
 class CategoriesController extends BaseController
 {
     /**
-     * GET /categories/performance?date_from=&date_to=
+     * GET /categories/performance?date_from=&date_to=&include_carnival
      */
     public function performance(Request $request): JsonResponse
     {
         $request->validate([
-            'date_from' => 'required|date',
-            'date_to'   => 'required|date|after_or_equal:date_from',
+            'date_from'        => 'required|date',
+            'date_to'          => 'required|date|after_or_equal:date_from',
+            'include_carnival' => 'nullable',
         ]);
 
         $dateFrom = $request->date('date_from')->startOfDay()->timestamp;
         $dateTo   = $request->date('date_to')->endOfDay()->timestamp;
+        $incRaw   = $request->input('include_carnival');
+        $incCarn  = $incRaw === null
+            ? true
+            : !in_array(strtolower(trim((string) $incRaw)), ['0','false','no','off','n',''], true);
+
+        $sdSub   = $this->unifiedSubDealsSubquery();
+        $daSub   = $this->unifiedDealsSubquery();
+        $itSub   = $this->unifiedItemsSubquery();
+        $carnIds = $this->carnivalCatIds();
+        $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
+
+        // Pre-aggregate SUM-prone metrics (revenue, issuance_events) at cat_id
+        // level via a derived per-item table so the M:N expansion of
+        // subrazdel_category × razdel_subrazdel cannot inflate them.
+        // COUNT(DISTINCT *) and AVG() are unaffected by the expansion (DISTINCT
+        // cancels duplication; AVG of uniformly duplicated rows is unchanged).
+        $perItemWhere  = ['sd.acc_date BETWEEN ? AND ?'];
+        $perItemParams = [$dateFrom, $dateTo];
+        if (!$incCarn && $carnPh) {
+            $perItemWhere[]  = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
+            $perItemParams   = array_merge($perItemParams, $carnIds);
+        }
+        $perItemWhereSql = implode(' AND ', $perItemWhere);
+
+        // SUM-prone metrics grouped by cat_id (no M:N inflation).
+        $sumsByCat = DB::select("
+            SELECT per_item.cat_id,
+                   ROUND(SUM(per_item.rev), 2)        AS total_revenue_byn,
+                   SUM(per_item.issuance_events)      AS issuance_events
+            FROM (
+                SELECT ti.cat_id,
+                       SUM(sd.r_paid + sd.delivery_paid) AS rev,
+                       SUM(CASE WHEN sd.`type` IN ('first_rent','takeaway_plan') THEN 1 ELSE 0 END) AS issuance_events
+                FROM {$sdSub} sd
+                JOIN {$daSub} da ON da.deal_id = sd.deal_id
+                JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
+                WHERE {$perItemWhereSql}
+                GROUP BY da.item_inv_n, ti.cat_id
+            ) per_item
+            GROUP BY per_item.cat_id
+        ", $perItemParams);
+        $sumsMap = [];
+        foreach ($sumsByCat as $s) {
+            $sumsMap[(int) $s->cat_id] = [
+                'total_revenue_byn' => (float) $s->total_revenue_byn,
+                'issuance_events'   => (int)   $s->issuance_events,
+            ];
+        }
+
+        // COUNT(DISTINCT *) / AVG() metrics — safe to query with the legacy
+        // M:N join chain because the inflation factor cancels.
+        $where  = ['sd.acc_date BETWEEN ? AND ?'];
+        $params = [$dateFrom, $dateTo];
+        if (!$incCarn && $carnPh) {
+            $where[] = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
+            $params  = array_merge($params, $carnIds);
+        }
+        $whereSql = implode(' AND ', $where);
 
         $rows = DB::select("
             SELECT
@@ -37,85 +97,111 @@ class CategoriesController extends BaseController
                 tc.cat_url,
                 sr.name_sub_razdel_text AS subsection_name,
                 r.name_razdel_text      AS section_name,
-                COUNT(rda.deal_id)                                 AS total_deals,
-                COUNT(DISTINCT rda.client_id)                      AS unique_clients,
-                ROUND(SUM(rda.r_to_pay + rda.delivery_to_pay), 2)  AS total_revenue_byn,
-                ROUND(AVG(rda.r_to_pay), 2)                        AS avg_deal_byn,
-                COUNT(DISTINCT tri.model_id)                       AS active_models,
-                COUNT(DISTINCT tri.item_inv_n)                     AS total_units
-            FROM rent_deals_act rda
-            JOIN tovar_rent_items tri      ON tri.item_inv_n = rda.item_inv_n
-            JOIN tovar_cats tc             ON tc.cat_id = tri.cat_id
+                COUNT(DISTINCT sd.deal_id)                              AS total_deals,
+                COUNT(DISTINCT da.client_id)                            AS unique_clients,
+                ROUND(AVG(sd.r_paid),                       2)          AS avg_payment_byn,
+                COUNT(DISTINCT ti.model_id)                             AS active_models,
+                COUNT(DISTINCT ti.item_inv_n)                           AS units_rented
+            FROM {$sdSub} sd
+            JOIN {$daSub} da ON da.deal_id = sd.deal_id
+            JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
+            JOIN tovar_cats tc              ON tc.cat_id = ti.cat_id
             LEFT JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tc.cat_id
             LEFT JOIN sub_razdel sr         ON sr.id_sub_razdel = sc.id_sub_razdel
             LEFT JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sr.id_sub_razdel
             LEFT JOIN razdel r              ON r.id_razdel = rs.id_razdel
-            WHERE rda.cr_time BETWEEN ? AND ?
+            WHERE {$whereSql}
             GROUP BY tc.cat_id, tc.cat_name, tc.cat_url, sr.name_sub_razdel_text, r.name_razdel_text
-            ORDER BY total_revenue_byn DESC
-        ", [$dateFrom, $dateTo]);
+        ", $params);
+
+        // Merge SUM metrics in PHP; one (cat × subsection × section) row gets
+        // the cat-level totals (intentional — same item appears in multiple
+        // (subsection, section) cells but its revenue is logically the same).
+        $rows = array_map(function ($r) use ($sumsMap) {
+            $cid = (int) $r->cat_id;
+            $r->total_revenue_byn = $sumsMap[$cid]['total_revenue_byn'] ?? 0.0;
+            $r->issuance_events   = $sumsMap[$cid]['issuance_events']   ?? 0;
+            return $r;
+        }, $rows);
+        usort($rows, fn($a, $b) => $b->total_revenue_byn <=> $a->total_revenue_byn);
 
         return $this->envelope([
-            'date_from' => $request->get('date_from'),
-            'date_to'   => $request->get('date_to'),
+            'date_from'        => $request->get('date_from'),
+            'date_to'          => $request->get('date_to'),
+            'include_carnival' => $incCarn,
         ], $rows);
     }
 
     /**
-     * GET /categories/seasonality?category=&years=5
+     * GET /categories/seasonality?category=&years=5&include_carnival
      *
-     * Monthly seasonality profile for a business category aggregated over
-     * the last `years` years. Each row is a month-of-year (1-12) with
-     * average deals + revenue, plus a seasonality_index where 1.0 means
-     * "average month". Driver question: when is each category busiest?
-     * (Costumes peak in December — this should show index ≈ 3-4 for Dec.)
+     * Monthly seasonality profile aggregated over the last `years` years.
      */
     public function seasonality(Request $request): JsonResponse
     {
         $request->validate([
-            'category' => 'nullable|string|in:' . implode(',', \App\Http\Requests\Mcp\RangeRequest::CATEGORIES),
-            'years'    => 'integer|min:1|max:11',
+            'category'         => 'nullable|string|in:' . implode(',', RangeRequest::CATEGORIES),
+            'years'            => 'integer|min:1|max:11',
+            'include_carnival' => 'nullable',
         ]);
 
         $category = $request->get('category', 'all');
         $years    = (int) $request->get('years', 5);
         $cutoff   = strtotime("-{$years} years");
+        $incRaw   = $request->input('include_carnival');
+        $incCarn  = $incRaw === null
+            ? true
+            : !in_array(strtolower(trim((string) $incRaw)), ['0','false','no','off','n',''], true);
 
         $key = $this->cacheKey('categories.seasonality', [
-            'cat' => $category, 'years' => $years,
+            'cat'   => $category,
+            'years' => $years,
+            'inc'   => $incCarn ? 1 : 0,
         ]);
 
-        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($category, $years, $cutoff) {
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($category, $cutoff, $incCarn) {
             $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
             if ($category !== 'all' && $razdel === null) {
                 return [];
             }
 
-            $catJoin   = '';
-            $catWhere  = '';
-            $catParams = [];
+            $sdSub   = $this->unifiedSubDealsSubquery();
+            $daSub   = $this->unifiedDealsSubquery();
+            $itSub   = $this->unifiedItemsSubquery();
+            $carnIds = $this->carnivalCatIds();
+            $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
+
+            // razdel param → JOIN via itemsInRazdelSubquery (avoids M:N inflation
+            // of SUM(r_paid+delivery_paid)). Split params: join then where.
+            $joinParams  = [];
+            $whereParams = [$cutoff];
+            $joins = "
+                LEFT JOIN {$daSub} da ON da.deal_id = sd.deal_id
+                LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
+            ";
+            $where  = ['sd.acc_date >= ?'];
             if ($razdel !== null) {
-                $catJoin = "
-                    JOIN tovar_rent_items tri  ON tri.item_inv_n = da.item_inv_n
-                    JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
-                    JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
-                ";
-                $catWhere    = 'AND rs.id_razdel = ?';
-                $catParams[] = $razdel;
+                $razdelSub    = $this->itemsInRazdelSubquery();
+                $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
+                $joinParams[] = $razdel;
             }
+            if (!$incCarn && $carnPh) {
+                $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
+                $whereParams = array_merge($whereParams, $carnIds);
+            }
+            $whereSql = implode(' AND ', $where);
 
             $monthly = DB::select("
-                SELECT MONTH(FROM_UNIXTIME(da.cr_time))                AS month_num,
-                       COUNT(*)                                         AS deals,
-                       ROUND(SUM(da.r_paid + da.delivery_paid), 2)      AS revenue_byn,
-                       COUNT(DISTINCT YEAR(FROM_UNIXTIME(da.cr_time))) AS years_covered
-                FROM rent_deals_arch da
-                {$catJoin}
-                WHERE da.cr_time >= ?
-                  {$catWhere}
+                SELECT MONTH(FROM_UNIXTIME(sd.acc_date))                AS month_num,
+                       COUNT(DISTINCT sd.deal_id)                       AS deals,
+                       ROUND(SUM(sd.r_paid + sd.delivery_paid), 2)      AS revenue_byn,
+                       COUNT(DISTINCT YEAR(FROM_UNIXTIME(sd.acc_date))) AS years_covered
+                FROM {$sdSub} sd
+                {$joins}
+                WHERE {$whereSql}
                 GROUP BY month_num
                 ORDER BY month_num
-            ", array_merge([$cutoff], $catParams));
+            ", array_merge($joinParams, $whereParams));
 
             if (empty($monthly)) {
                 return [];
@@ -133,15 +219,15 @@ class CategoriesController extends BaseController
 
             $out = [];
             foreach ($monthly as $r) {
-                $deals  = (int) $r->deals;
-                $years  = max(1, (int) $r->years_covered);
-                $out[]  = [
+                $deals = (int) $r->deals;
+                $yrs   = max(1, (int) $r->years_covered);
+                $out[] = [
                     'month_num'         => (int) $r->month_num,
                     'month_name'        => $monthNames[(int) $r->month_num] ?? null,
                     'deals'             => $deals,
-                    'avg_deals_per_year' => round($deals / $years, 2),
+                    'avg_deals_per_year' => round($deals / $yrs, 2),
                     'revenue_byn'       => (float) $r->revenue_byn,
-                    'years_covered'     => $years,
+                    'years_covered'     => $yrs,
                     'seasonality_index' => round($deals / $avgPerSlot, 3),
                 ];
             }
@@ -149,28 +235,9 @@ class CategoriesController extends BaseController
         });
 
         return $this->envelope([
-            'category' => $category,
-            'years'    => $years,
+            'category'         => $category,
+            'years'            => $years,
+            'include_carnival' => $incCarn,
         ], $rows);
-    }
-
-    private function categoryToRazdelId(string $category): ?int
-    {
-        $map = $this->cacheRemember('mcp.category_razdel_map', self::TTL_META, function () {
-            $rows = DB::select("SELECT id_razdel, url_razdel_name FROM razdel");
-            $byUrl = [];
-            foreach ($rows as $r) {
-                $byUrl[$r->url_razdel_name] = (int) $r->id_razdel;
-            }
-            return [
-                'children' => $byUrl['prokat-detskih-tovarov'] ?? null,
-                'costumes' => $byUrl['karnavalnye-kostyumy']   ?? null,
-                'medical'  => $byUrl['medical-prokat']         ?? null,
-                'cleaning' => $byUrl['prokat-uborka']          ?? null,
-                'sports'   => $byUrl['prokat-sports']          ?? null,
-                'tools'    => null,
-            ];
-        });
-        return $map[$category] ?? null;
     }
 }
