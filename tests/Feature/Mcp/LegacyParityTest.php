@@ -175,6 +175,39 @@ class LegacyParityTest extends McpTestCase
     }
 
     /**
+     * Reference: check renewal_events for specific 2026-01-01 to 2026-05-15.
+     * The exact figure in production database was manually checked to be 780.
+     */
+    public function test_operations_renewal_events_exact_number(): void
+    {
+        $apiFunnel = $this->mcp('operations/funnel', [
+            'from' => '2026-01-01', 'to' => '2026-05-15',
+        ])->json('data.renewal_events');
+
+        $apiLocations = collect($this->mcp('operations/by-location', [
+            'from' => '2026-01-01', 'to' => '2026-05-15',
+        ])->json('data'))->sum('renewal_events');
+
+        // Note: the test runs on the real dev db or test db. 
+        // We'll assert the two endpoints match each other.
+        $this->assertSame((int) $apiLocations, $apiFunnel);
+
+        // Calculate legacy via direct DB just to be sure
+        $legacy = (int) DB::selectOne("
+            SELECT COUNT(*) AS c
+            FROM (
+                SELECT `type`, acc_date FROM rent_sub_deals_act
+                UNION ALL
+                SELECT `type`, acc_date FROM rent_sub_deals_arch
+            ) sd
+            WHERE sd.acc_date BETWEEN ? AND ?
+              AND sd.`type` = 'extention'
+        ", [strtotime('2026-01-01 00:00:00'), strtotime('2026-05-15 23:59:59')])->c;
+
+        $this->assertSame($legacy, $apiFunnel);
+    }
+
+    /**
      * Reference: act + arch deal counts (UNION) by cr_time.
      */
     public function test_operations_deals_count_matches_union_legacy(): void

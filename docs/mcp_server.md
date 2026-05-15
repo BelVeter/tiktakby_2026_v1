@@ -17,6 +17,7 @@ The API reproduces the calculations used by legacy admin reports
 | **Period filter** | `acc_date` (accounting date — when the payment landed). Not deal `cr_time`. |
 | **Deal counts** | `COUNT(DISTINCT deal_id)` over `UNION(rent_deals_act, rent_deals_arch)` |
 | **Issuance events** | `COUNT(*)` of sub-deals with `type IN ('first_rent','takeaway_plan')` — matches `/bb/reports.php` |
+| **Renewal events** | `COUNT(*)` of sub-deals with `type = 'extention'` |
 | **Office attribution** | `sub_deal.place` + `sub_deal.delivery_yn` (per-payment), NOT `deal.first_rent_place` (per-deal). Office 0 in responses = synthetic "Курьер" pseudo-office for `delivery_yn='1'` sub-deals. |
 | **Carnival detection** | `tovar_rent_cat.cat_type=1`. All endpoints accept `include_carnival` (default true). `/finance/pnl` returns both `revenue_carnival_byn` and `revenue_non_carnival_byn`. |
 | **Historical inventory** | At date X = `COUNT(tovar_rent_items WHERE buy_date<=X)` + `COUNT(tovar_rent_items_arch WHERE buy_date<=X AND arch_time>=X)`. Used by `/inventory/utilization`. |

@@ -11,7 +11,7 @@ class OperationsTest extends McpTestCase
         $r = $this->mcp('operations/funnel', ['from' => '2024-01-01', 'to' => '2024-12-31']);
         $this->assertEnvelope($r);
         $r->assertJsonStructure([
-            'data' => ['leads' => ['online_orders', 'phone_calls', 'total'], 'deals', 'sub_deals', 'returns', 'conversion_rates'],
+            'data' => ['leads' => ['online_orders', 'phone_calls', 'total'], 'deals', 'issuance_events', 'renewal_events', 'sub_deals', 'returns', 'conversion_rates'],
         ]);
     }
 
@@ -129,6 +129,8 @@ class OperationsTest extends McpTestCase
         foreach ($rows as $row) {
             $this->assertArrayHasKey('issuance_events', $row);
             $this->assertGreaterThanOrEqual(0, (int) $row['issuance_events']);
+            $this->assertArrayHasKey('renewal_events', $row);
+            $this->assertGreaterThanOrEqual(0, (int) $row['renewal_events']);
         }
     }
 

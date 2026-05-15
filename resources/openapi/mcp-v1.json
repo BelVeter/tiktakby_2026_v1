@@ -221,6 +221,7 @@
           },
           "deals":            { "type": "integer" },
           "issuance_events":  { "type": "integer" },
+          "renewal_events":   { "type": "integer" },
           "sub_deals":        { "type": "integer" },
           "returns":          { "type": "integer" },
           "conversion_rates": {
@@ -268,6 +269,7 @@
           "office_address":  { "type": ["string","null"] },
           "deals":           { "type": "integer" },
           "issuance_events": { "type": "integer" },
+          "renewal_events":  { "type": "integer" },
           "revenue_byn":     { "$ref": "#/components/schemas/AmountBYN" }
         }
       },
@@ -639,7 +641,7 @@
     "/operations/funnel":      { "get": { "operationId": "tiktak_operations_funnel", "summary": "Lead → deal → sub-deal → return funnel with conversion rates. issuance_events = sub_deal type IN first_rent/takeaway_plan (matches /bb/reports.php deal counts).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsFunnelEnvelope" } } } },
     "/operations/timeline":    { "get": { "operationId": "tiktak_operations_timeline", "summary": "Period-bucketed funnel.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsTimelineEnvelope" } } } },
     "/operations/by-category": { "get": { "operationId": "tiktak_operations_by_category", "summary": "Per-razdel orders + deals + revenue. Revenue is pre-aggregated per item to avoid M:N inflation.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsByCategoryEnvelope" } } } },
-    "/operations/by-location": { "get": { "operationId": "tiktak_operations_by_location", "summary": "Per-office deals + revenue + issuance_events. office_id=0 is the synthetic 'Курьер' row (delivery_yn='1' sub-deals).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsByLocationEnvelope" } } } },
+    "/operations/by-location": { "get": { "operationId": "tiktak_operations_by_location", "summary": "Per-office deals + revenue + issuance_events + renewal_events. office_id=0 is the synthetic 'Курьер' row (delivery_yn='1' sub-deals).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsByLocationEnvelope" } } } },
 
     "/inventory/free-tree":     { "get": { "operationId": "tiktak_inventory_free_tree", "summary": "Current catalog tree with free-unit counts.", "responses": { "200": { "$ref": "#/components/responses/InventoryFreeTreeEnvelope" } } } },
     "/inventory/profitability": { "get": { "operationId": "tiktak_inventory_profitability", "summary": "Per-physical-item profitability across UNION(deals_act, deals_arch).", "responses": { "200": { "$ref": "#/components/responses/InventoryProfitabilityEnvelope" } } } },
