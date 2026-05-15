@@ -45,6 +45,7 @@ class OperationsController extends BaseController
             $calls      = $this->countCalls($from, $to);
             $deals      = $this->countDeals($from, $to, $razdel, $location, $incCarn);
             $issuances  = $this->countIssuanceEvents($from, $to, $razdel, $location, $incCarn);
+            $renewals   = $this->countRenewalEvents($from, $to, $razdel, $location, $incCarn);
             $subDeals   = $this->countSubDeals($from, $to, $razdel, $incCarn);
             $returns    = $this->countReturns($from, $to, $razdel, $location, $incCarn);
 
@@ -57,6 +58,7 @@ class OperationsController extends BaseController
                 ],
                 'deals'            => $deals,
                 'issuance_events'  => $issuances,
+                'renewal_events'   => $renewals,
                 'sub_deals'        => $subDeals,
                 'returns'          => $returns,
                 'conversion_rates' => [
@@ -377,7 +379,7 @@ class OperationsController extends BaseController
             " : '';
 
             // Group by (place, delivery_yn): non-courier office row vs courier row.
-            return DB::select("
+            $results = DB::select("
                 SELECT
                     CASE WHEN sd.delivery_yn = '1' THEN 0 ELSE sd.place END AS office_id,
                     CASE WHEN sd.delivery_yn = '1' THEN 'Курьер' ELSE COALESCE(o.name, CONCAT('Place ', sd.place)) END AS office_name,
@@ -385,6 +387,7 @@ class OperationsController extends BaseController
                     o.short_address AS office_address,
                     COUNT(DISTINCT sd.deal_id) AS deals,
                     SUM(CASE WHEN sd.`type` IN ('first_rent','takeaway_plan') THEN 1 ELSE 0 END) AS issuance_events,
+                    SUM(CASE WHEN sd.`type` = 'extention' THEN 1 ELSE 0 END) AS renewal_events,
                     ROUND(SUM(sd.r_paid + sd.delivery_paid), 2) AS revenue_byn
                 FROM {$sdSub} sd
                 {$itJoin}
@@ -393,6 +396,12 @@ class OperationsController extends BaseController
                 GROUP BY office_id, office_name, office_type, office_address
                 ORDER BY revenue_byn DESC
             ", $params);
+
+            return array_map(function ($row) {
+                $row->issuance_events = (int) $row->issuance_events;
+                $row->renewal_events  = (int) $row->renewal_events;
+                return $row;
+            }, $results);
         });
 
         return $this->envelope($request->queryEcho(), $rows);
@@ -478,6 +487,50 @@ class OperationsController extends BaseController
         $joinParams  = [];
         $whereParams = [$from, $to];
         $where  = ['sd.acc_date BETWEEN ? AND ?', "sd.`type` IN ('first_rent','takeaway_plan')"];
+        $joins  = '';
+
+        if ($location === 'courier') {
+            $where[] = "sd.delivery_yn = '1'";
+        } elseif ($location !== 'all' && is_numeric($location)) {
+            $where[]       = 'sd.place = ?';
+            $where[]       = "sd.delivery_yn != '1'";
+            $whereParams[] = (int) $location;
+        }
+
+        if ($razdel !== null || !$incCarn) {
+            $joins = "
+                LEFT JOIN {$daSub} da ON da.deal_id = sd.deal_id
+                LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
+            ";
+            if ($razdel !== null) {
+                $razdelSub    = $this->itemsInRazdelSubquery();
+                $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
+                $joinParams[] = $razdel;
+            }
+            if (!$incCarn && $carnPh) {
+                $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
+                $whereParams = array_merge($whereParams, $carnIds);
+            }
+        }
+        $whereSql = implode(' AND ', $where);
+        $row = DB::selectOne(
+            "SELECT COUNT(*) AS c FROM {$sdSub} sd {$joins} WHERE {$whereSql}",
+            array_merge($joinParams, $whereParams)
+        );
+        return (int) ($row->c ?? 0);
+    }
+
+    private function countRenewalEvents(int $from, int $to, ?int $razdel, $location, bool $incCarn): int
+    {
+        $sdSub  = $this->unifiedSubDealsSubquery();
+        $daSub  = $this->unifiedDealsSubquery();
+        $itSub  = $this->unifiedItemsSubquery();
+        $carnIds = $this->carnivalCatIds();
+        $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
+
+        $joinParams  = [];
+        $whereParams = [$from, $to];
+        $where  = ['sd.acc_date BETWEEN ? AND ?', "sd.`type` = 'extention'"];
         $joins  = '';
 
         if ($location === 'courier') {
