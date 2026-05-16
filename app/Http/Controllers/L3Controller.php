@@ -26,6 +26,9 @@ class L3Controller extends Controller
 
     $p = L3Page::getPageByUrlName($model, $lang, \request()->razdel, \request()->subrazdel);
 
+    if ($p === null) {
+      return redirect("/{$lang}/{$razdel}/{$subrazdel}/{$category}", 301);
+    }
 
     if ($razd = Razdel::getByUrlName($razdel, $lang)) {
       $p->addBreadCrumbs($razd->getNameRazdelText(), $razd->getUrlForPage($lang));
@@ -38,7 +41,7 @@ class L3Controller extends Controller
     }
 
     if (!tovar::getByModelId($p->getModelId())) {
-      return view('l3_not_found', ['p' => $p]);
+      return response()->view('l3_not_found', ['p' => $p], 404);
     }
 
     return view('l3', ['p' => $p]);
@@ -116,6 +119,9 @@ class L3Controller extends Controller
 
 
     $p = L3Page::getPageByUrlName($model, $lang, \request()->razdel, \request()->subrazdel);
+    if ($p === null) {
+      return redirect("/{$lang}/{$razdel}/{$subrazdel}/{$category}", 301);
+    }
     $p->addMessage($message);
 
     if ($razd = Razdel::getByUrlName($razdel, $lang)) {

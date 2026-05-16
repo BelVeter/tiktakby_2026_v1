@@ -12,6 +12,14 @@ echo \bb\Base::pageStartB5('Перенаправления (Redirects).');
 $db = \bb\Db::getInstance();
 $mysqli = $db->getConnection();
 
+function clearRedirectsCache() {
+    $artisan = $_SERVER['DOCUMENT_ROOT'] . '/artisan';
+    if (file_exists($artisan)) {
+        exec("php " . escapeshellarg($artisan) . " cache:forget redirects_exact_map 2>/dev/null");
+        exec("php " . escapeshellarg($artisan) . " cache:forget redirects_regex_list 2>/dev/null");
+    }
+}
+
 // --- Обработка действий ---
 $message = '';
 
@@ -71,6 +79,9 @@ if (isset($_POST['action'])) {
                 ? '<div class="alert alert-success">Счётчик сброшен.</div>'
                 : '<div class="alert alert-danger">Ошибка: ' . $mysqli->error . '</div>';
             break;
+    }
+    if (strpos($message, 'alert-success') !== false) {
+        clearRedirectsCache();
     }
 }
 
