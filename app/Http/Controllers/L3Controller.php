@@ -177,6 +177,9 @@ class L3Controller extends Controller
     if (!$p || !$p->isRealPage()) {
       $p = MainPage::getRazdelPageForWeb($lang, $razdel, 1, []);
     }
+    if (!$p || !$p->isRealPage()) {
+      return response()->view('errors.404', [], 404);
+    }
 
     $notice = 'Этот товар снят с проката. Посмотрите другие товары в этой категории.';
     return response()->view('catpage', ['p' => $p, 'notice' => $notice], 404);
