@@ -19,7 +19,7 @@
       "from":        { "in": "query", "name": "from",        "schema": { "type": "string", "format": "date" }, "description": "Period start (ISO date). Default: 12 months ago." },
       "to":          { "in": "query", "name": "to",          "schema": { "type": "string", "format": "date" }, "description": "Period end (ISO date). Default: today." },
       "granularity": { "in": "query", "name": "granularity", "schema": { "type": "string", "enum": ["day","week","month","quarter","year"], "default": "month" } },
-      "category":    { "in": "query", "name": "category",    "schema": { "type": "string", "enum": ["all","children","costumes","medical","cleaning","sports","tools"], "default": "all" } },
+      "category":    { "in": "query", "name": "category",    "schema": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] }, "description": "Single category slug, or comma-separated list/array of slugs (e.g. 'children,medical'). Default: 'all'." },
       "segment":     { "in": "query", "name": "segment",     "schema": { "type": "string", "enum": ["all","b2c","b2b"], "default": "all" } },
       "region":      { "in": "query", "name": "region",      "schema": { "type": "string", "enum": ["all","belarus","minsk","vitebsk","grodno","mogilev","gomel","brest"], "default": "all" } },
       "location":    { "in": "query", "name": "location",    "schema": { "type": "string" }, "description": "Office id (1..) for non-courier sub-deals (sub_deal.place=N AND delivery_yn != '1'), 'courier' for delivery_yn='1', or 'all'." },

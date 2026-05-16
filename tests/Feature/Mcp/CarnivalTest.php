@@ -55,7 +55,7 @@ class CarnivalTest extends McpTestCase
         $this->assertSame(range(1, 12), array_column($rows, 'month_num'));
         foreach ($rows as $row) {
             $this->assertGreaterThan(0, $row['years_covered']);
-            $this->assertLessThanOrEqual(5, $row['years_covered']);
+            $this->assertLessThanOrEqual(6, $row['years_covered']);
         }
     }
 

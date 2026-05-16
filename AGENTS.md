@@ -55,7 +55,7 @@ See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoi
 
 ### Form Requests (`app/Http/Requests/Mcp/`)
 
-- `RangeRequest` — common parameters for range-based MCP endpoints. Default range is the last 12 months; `granularity=month`; all dimensional filters (`category`/`segment`/`region`/`location`) default to `all`; `include_carnival` defaults to `true`. Provides `granularityFormatFor($column)` to build the matching MySQL `DATE_FORMAT()` expression and `includeCarnival()` for the boolean flag.
+- `RangeRequest` — common parameters for range-based MCP endpoints. Default range is the last 12 months; `granularity=month`; dimensional filters `category` (razdel alias) and `detailed_category` (tovar_rent_cat alias) default to `all` and support **multiple comma-separated values**; `include_carnival` defaults to `true`. Provides `categories()` to retrieve normalized array of category slugs, `granularityFormatFor($column)` for MySQL `DATE_FORMAT()`, and `includeCarnival()` flag.
 
 ### MyClasses (`app/MyClasses/`)
 
@@ -94,6 +94,7 @@ Blade templates. Main layout: `layouts/app.blade.php` (contains version number f
   **Methodology (locked 2026-05-14, reproduces legacy admin reports — see `docs/mcp_server.md`):**
   - Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` by `acc_date` (not deal `cr_time`).
   - Deal/return counts read `UNION(rent_deals_act, rent_deals_arch)`. `_act` holds ~430 open deals.
+  - Issuance and **renewal** counts use `UNION(rent_sub_deals_act, rent_sub_deals_arch)` filtered by sub-deal type (`first_rent`/`takeaway_plan` for issuance, `extention` for renewal).
   - Office attribution uses `sub_deal.place + delivery_yn` per-payment, not `deal.first_rent_place` per-deal. office_id=0 = Курьер pseudo-office.
   - Carnival = `tovar_rent_cat.cat_type=1`. `include_carnival` toggle (default true). `/finance/pnl` always splits into carnival/non-carnival columns.
   - Inventory at date X = `tovar_rent_items (buy_date≤X)` + `tovar_rent_items_arch (buy_date≤X AND arch_time≥X)`. Used by `/inventory/utilization`.
