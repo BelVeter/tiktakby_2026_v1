@@ -100,10 +100,12 @@ class GenerateSitemap extends Command
         }
 
         $xml = $this->buildXml($urls);
-        $path = public_path('sitemap.xml');
-        file_put_contents($path, $xml);
+        $paths = [base_path('sitemap.xml'), public_path('sitemap.xml')];
+        foreach ($paths as $path) {
+            file_put_contents($path, $xml);
+        }
 
-        $this->info('Sitemap generated: ' . count($urls) . ' URLs → ' . $path);
+        $this->info('Sitemap generated: ' . count($urls) . ' URLs → ' . implode(', ', $paths));
         return 0;
     }
 

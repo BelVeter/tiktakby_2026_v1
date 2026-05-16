@@ -77,7 +77,7 @@ class L3Page
 
   public function getCanonicalUrlBy()
   {
-    return $this->modelWeb->getUrlPageAddress('ru');
+    return 'https://tiktak.by' . $this->modelWeb->getUrlPageAddress('ru');
   }
 
   /**
