@@ -41,7 +41,8 @@ class RangeRequest extends FormRequest
             'from'             => ['nullable', 'date'],
             'to'               => ['nullable', 'date', 'after_or_equal:from'],
             'granularity'      => ['nullable', 'string', 'in:' . implode(',', self::GRANULARITIES)],
-            'category'         => ['nullable', 'string', 'in:' . implode(',', self::CATEGORIES)],
+            'category'         => ['nullable', 'array'],
+            'category.*'       => ['string', 'in:' . implode(',', self::CATEGORIES)],
             'segment'          => ['nullable', 'string', 'in:' . implode(',', self::SEGMENTS)],
             'region'           => ['nullable', 'string', 'in:' . implode(',', self::REGIONS)],
             'location'         => ['nullable'], // string 'all' or numeric office id - validated below
@@ -60,7 +61,15 @@ class RangeRequest extends FormRequest
             $merged['from'] = Carbon::now()->subMonthsNoOverflow(12)->startOfMonth()->toDateString();
             $merged['to']   = Carbon::now()->endOfDay()->toDateString();
         }
-        foreach (['granularity' => 'month', 'category' => 'all', 'segment' => 'all', 'region' => 'all', 'location' => 'all', 'include_carnival' => 'true'] as $k => $default) {
+
+        $cat = $this->input('category');
+        if ($cat === null || $cat === '') {
+            $merged['category'] = ['all'];
+        } elseif (is_string($cat)) {
+            $merged['category'] = array_map('trim', explode(',', $cat));
+        }
+
+        foreach (['granularity' => 'month', 'segment' => 'all', 'region' => 'all', 'location' => 'all', 'include_carnival' => 'true'] as $k => $default) {
             if (!$this->filled($k) && $this->input($k) === null) {
                 $merged[$k] = $default;
             }
@@ -69,6 +78,25 @@ class RangeRequest extends FormRequest
         if ($merged) {
             $this->merge($merged);
         }
+    }
+
+    /**
+     * Get validated categories as an array of valid slugs.
+     * Fallback to ['all'] if empty or invalid.
+     */
+    public function categories(): array
+    {
+        $cats = $this->input('category');
+        if (!is_array($cats)) {
+            return ['all'];
+        }
+        
+        $valid = array_intersect($cats, self::CATEGORIES);
+        if (empty($valid) || in_array('all', $valid, true)) {
+            return ['all'];
+        }
+        
+        return array_values(array_unique($valid));
     }
 
     /**
@@ -106,7 +134,7 @@ class RangeRequest extends FormRequest
             'from'             => $this->input('from'),
             'to'               => $this->input('to'),
             'granularity'      => $this->input('granularity'),
-            'category'         => $this->input('category'),
+            'category'         => implode(',', $this->categories()),
             'segment'          => $this->input('segment'),
             'region'           => $this->input('region'),
             'location'         => $this->input('location'),

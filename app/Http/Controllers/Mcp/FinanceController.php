@@ -178,20 +178,20 @@ class FinanceController extends BaseController
     {
         $from            = $request->fromTimestamp();
         $to              = $request->toTimestamp();
-        $category        = $request->input('category', 'all');
+        $categories      = $request->categories();
         $location        = $request->input('location', 'all');
         $includeCarnival = $request->includeCarnival();
 
         $key = $this->cacheKey('finance.revenue', [
             'from' => $from, 'to' => $to,
             'g'    => $request->input('granularity'),
-            'cat'  => $category, 'loc' => $location,
+            'cat'  => implode(',', $categories), 'loc' => $location,
             'inc'  => $includeCarnival ? 1 : 0,
         ]);
 
-        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category, $location, $includeCarnival, $request) {
-            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
-            if ($category !== 'all' && $razdel === null) {
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $categories, $location, $includeCarnival, $request) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
                 return [];
             }
             $period = $request->granularityFormatFor('sd.acc_date');
@@ -223,17 +223,17 @@ class FinanceController extends BaseController
             // Category + carnival filters require joining through items.
             // Use itemsInRazdelSubquery() rather than joining subrazdel_category
             // directly — the latter is many-to-many and would inflate sums.
-            $needsItemJoin = $razdel !== null || !$includeCarnival;
+            $needsItemJoin = !empty($razdelIds) || !$includeCarnival;
             $joins = '';
             if ($needsItemJoin) {
                 $joins = "
                     LEFT JOIN {$daSub} da ON da.deal_id = sd.deal_id
                     LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
                 ";
-                if ($razdel !== null) {
-                    $razdelSub    = $this->itemsInRazdelSubquery();
+                if (!empty($razdelIds)) {
+                    $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                     $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                    $joinParams[] = $razdel;
+                    $joinParams = array_merge($joinParams, $razdelIds);
                 }
                 if (!$includeCarnival) {
                     [$carnFrag, $carnParams] = $this->carnivalFilterClause(false, 'ti.cat_id');

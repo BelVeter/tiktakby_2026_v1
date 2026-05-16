@@ -52,10 +52,29 @@ abstract class BaseController extends Controller
             'warnings'       => [],
         ];
 
+        if (isset($query['category']) && is_string($query['category'])) {
+            $categories = array_map('trim', explode(',', $query['category']));
+            $razdelIds  = $this->categoryToRazdelIds($categories);
+            $isOperations = strpos(request()->path(), 'operations') !== false;
+            
+            $catWarnings = $this->categoryWarnings($categories, $razdelIds, $isOperations);
+            if (!empty($catWarnings)) {
+                $defaultMeta['warnings'] = array_merge($defaultMeta['warnings'], $catWarnings);
+            }
+        }
+
+        $mergedMeta = array_merge($defaultMeta, $meta);
+        // Ensure warnings from $meta are appended rather than overwritten
+        if (isset($meta['warnings']) && is_array($meta['warnings'])) {
+            $mergedMeta['warnings'] = array_merge($defaultMeta['warnings'], $meta['warnings']);
+            // remove duplicates if any
+            $mergedMeta['warnings'] = array_unique($mergedMeta['warnings'], SORT_REGULAR);
+        }
+
         return response()->json([
             'query' => $query,
             'data'  => $data,
-            'meta'  => array_merge($defaultMeta, $meta),
+            'meta'  => $mergedMeta,
         ]);
     }
 
@@ -236,17 +255,17 @@ abstract class BaseController extends Controller
      *   archived items: buy_date <= ts AND arch_time >= ts
      *
      * @param  int       $ts
-     * @param  ?int      $razdel           id_razdel filter, null = all
+     * @param  array     $razdelIds        Array of id_razdel filter, empty = all
      * @param  bool      $includeCarnival
      * @return int
      */
-    protected function inventoryCountAtDate(int $ts, ?int $razdel = null, bool $includeCarnival = true): int
+    protected function inventoryCountAtDate(int $ts, array $razdelIds = [], bool $includeCarnival = true): int
     {
         $key = $this->cacheKey('inventory.count_at_date', [
-            'ts' => $ts, 'razdel' => $razdel ?? 'all', 'carn' => $includeCarnival ? 1 : 0,
+            'ts' => $ts, 'razdels' => empty($razdelIds) ? 'all' : implode(',', $razdelIds), 'carn' => $includeCarnival ? 1 : 0,
         ]);
-        return (int) $this->cacheRemember($key, self::TTL_HEAVY, function () use ($ts, $razdel, $includeCarnival) {
-            [$razdelJoin, $razdelWhere, $razdelParams] = $this->razdelFilterFragment($razdel, 'cat_id');
+        return (int) $this->cacheRemember($key, self::TTL_HEAVY, function () use ($ts, $razdelIds, $includeCarnival) {
+            [$razdelJoin, $razdelWhere, $razdelParams] = $this->razdelFilterFragment($razdelIds, 'cat_id');
             [$carnWhere, $carnParams] = $this->carnivalFilterClause($includeCarnival, 'cat_id');
 
             $activeSql = "
@@ -264,13 +283,13 @@ abstract class BaseController extends Controller
                 LEFT JOIN razdel_subrazdel rs   ON rs.id_sub_razdel    = sc.id_sub_razdel
                 WHERE tria.buy_date <= ?
                   AND tria.arch_time >= ?
-                  " . ($razdel !== null ? "AND rs.id_razdel = ? " : "") . "
+                  " . (!empty($razdelIds) ? "AND rs.id_razdel IN (" . implode(',', array_fill(0, count($razdelIds), '?')) . ") " : "") . "
                   " . ($carnWhere ? "AND (tria.cat_id IS NULL OR tria.cat_id NOT IN ("
                         . implode(',', array_fill(0, count($carnParams), '?')) . "))" : '') . "
             ";
 
             $activeParams = array_merge([$ts], $razdelParams, $carnParams);
-            $archParams   = array_merge([$ts, $ts], $razdel !== null ? [$razdel] : [], $carnParams);
+            $archParams   = array_merge([$ts, $ts], $razdelIds, $carnParams);
 
             $a = DB::selectOne($activeSql, $activeParams);
             $b = DB::selectOne($archSql,   $archParams);
@@ -285,17 +304,18 @@ abstract class BaseController extends Controller
      *
      * @return array{0:string,1:string,2:array<int>}
      */
-    protected function razdelFilterFragment(?int $razdel, string $catIdColumn): array
+    protected function razdelFilterFragment(array $razdelIds, string $catIdColumn): array
     {
-        if ($razdel === null) {
+        if (empty($razdelIds)) {
             return ['', '', []];
         }
         $join  = "
             LEFT JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = {$catIdColumn}
             LEFT JOIN razdel_subrazdel rs   ON rs.id_sub_razdel    = sc.id_sub_razdel
         ";
-        $where = ' AND rs.id_razdel = ? ';
-        return [$join, $where, [$razdel]];
+        $placeholders = implode(',', array_fill(0, count($razdelIds), '?'));
+        $where = " AND rs.id_razdel IN ({$placeholders}) ";
+        return [$join, $where, $razdelIds];
     }
 
     /**
@@ -308,15 +328,16 @@ abstract class BaseController extends Controller
      *
      * Caller still supplies the razdel id as the only bound parameter.
      */
-    protected function itemsInRazdelSubquery(): string
+    protected function itemsInRazdelSubquery(array $razdelIds): string
     {
         $itSub = $this->unifiedItemsSubquery();
+        $placeholders = implode(',', array_fill(0, count($razdelIds), '?'));
         return "(
             SELECT DISTINCT ti.item_inv_n
             FROM {$itSub} ti
             JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = ti.cat_id
             JOIN razdel_subrazdel rs   ON rs.id_sub_razdel    = sc.id_sub_razdel
-            WHERE rs.id_razdel = ?
+            WHERE rs.id_razdel IN ({$placeholders})
         )";
     }
 
@@ -343,5 +364,45 @@ abstract class BaseController extends Controller
             ];
         });
         return $map[$category] ?? null;
+    }
+    protected function categoryToRazdelIds(array $categories): array
+    {
+        if (in_array('all', $categories, true) || empty($categories)) {
+            return [];
+        }
+        $ids = [];
+        foreach (array_unique($categories) as $cat) {
+            $id = $this->categoryToRazdelId($cat);
+            if ($id !== null) {
+                $ids[] = $id;
+            }
+        }
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Generate common category-related warnings.
+     */
+    protected function categoryWarnings(array $categories, array $razdelIds, bool $isOperations = false): array
+    {
+        $warnings = [];
+
+        // Unknown category warning
+        if (!in_array('all', $categories, true) && empty($razdelIds)) {
+            $warnings[] = [
+                'code'    => 'unknown_category',
+                'message' => 'None of the requested categories could be mapped to active catalog sections. Returning empty results.'
+            ];
+        }
+
+        // Costumes warning for operations endpoints
+        if ($isOperations && in_array('costumes', $categories, true)) {
+            $warnings[] = [
+                'code'    => 'costumes_in_operations',
+                'message' => 'costumes in /operations/* reflects only catalog items. Costume bookings (karn_brons) are tracked in /carnival/*.'
+            ];
+        }
+
+        return $warnings;
     }
 }

@@ -196,16 +196,17 @@ class InventoryController extends BaseController
     {
         $from     = $request->fromTimestamp();
         $to       = $request->toTimestamp();
-        $category = $request->input('category', 'all');
+        $categories = $request->categories();
+        $catStr     = implode(',', $categories);
         $incCarn  = $request->includeCarnival();
 
         $key = $this->cacheKey('inventory.utilization', [
-            'from' => $from, 'to' => $to, 'cat' => $category, 'inc' => $incCarn ? 1 : 0,
+            'from' => $from, 'to' => $to, 'cat' => $catStr, 'inc' => $incCarn ? 1 : 0,
         ]);
 
-        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category, $incCarn) {
-            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
-            if ($category !== 'all' && $razdel === null) {
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $categories, $incCarn) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
                 return [];
             }
 
@@ -218,8 +219,8 @@ class InventoryController extends BaseController
             $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
 
             // Per-model historical inventory at $from and $to.
-            $unitsAtFrom = $this->modelInventoryAtDate($from, $razdel, $incCarn);
-            $unitsAtTo   = $this->modelInventoryAtDate($to,   $razdel, $incCarn);
+            $unitsAtFrom = $this->modelInventoryAtDate($from, $razdelIds, $incCarn);
+            $unitsAtTo   = $this->modelInventoryAtDate($to,   $razdelIds, $incCarn);
 
             $allModelIds = array_unique(array_merge(array_keys($unitsAtFrom), array_keys($unitsAtTo)));
 
@@ -237,10 +238,10 @@ class InventoryController extends BaseController
                        'da.start_date < ?',
                        '(da.return_date > ? OR (da.return_date = 0 AND da.start_date < ?))'];
 
-            if ($razdel !== null) {
-                $razdelSub    = $this->itemsInRazdelSubquery();
+            if (!empty($razdelIds)) {
+                $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                 $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                $joinParams[] = $razdel;
+                $joinParams = array_merge($joinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
@@ -311,12 +312,12 @@ class InventoryController extends BaseController
      *
      * @return array<int,int>  model_id => unit_count
      */
-    private function modelInventoryAtDate(int $ts, ?int $razdel, bool $incCarn): array
+    private function modelInventoryAtDate(int $ts, array $razdelIds, bool $incCarn): array
     {
         $key = $this->cacheKey('inventory.per_model_at_date', [
-            'ts' => $ts, 'razdel' => $razdel ?? 'all', 'inc' => $incCarn ? 1 : 0,
+            'ts' => $ts, 'razdel' => empty($razdelIds) ? 'all' : implode(',', $razdelIds), 'inc' => $incCarn ? 1 : 0,
         ]);
-        return $this->cacheRemember($key, self::TTL_HEAVY, function () use ($ts, $razdel, $incCarn) {
+        return $this->cacheRemember($key, self::TTL_HEAVY, function () use ($ts, $razdelIds, $incCarn) {
             $carnIds = $this->carnivalCatIds();
             $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
 
@@ -326,17 +327,18 @@ class InventoryController extends BaseController
             $aWhereParams = [$ts];
             $aWhere  = ['tri.buy_date <= ?'];
             $aJoin   = '';
-            if ($razdel !== null) {
+            if (!empty($razdelIds)) {
+                $placeholders = implode(',', array_fill(0, count($razdelIds), '?'));
                 $aJoin = "
                     JOIN (
                         SELECT DISTINCT ti.item_inv_n
                         FROM tovar_rent_items ti
                         JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = ti.cat_id
                         JOIN razdel_subrazdel rs   ON rs.id_sub_razdel    = sc.id_sub_razdel
-                        WHERE rs.id_razdel = ?
+                        WHERE rs.id_razdel IN ({$placeholders})
                     ) irz ON irz.item_inv_n = tri.item_inv_n
                 ";
-                $aJoinParams[] = $razdel;
+                $aJoinParams = array_merge($aJoinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $aWhere[]     = "(tri.cat_id IS NULL OR tri.cat_id NOT IN ({$carnPh}))";
@@ -357,17 +359,18 @@ class InventoryController extends BaseController
             $hWhereParams = [$ts, $ts];
             $hWhere  = ['tria.buy_date <= ?', 'tria.arch_time >= ?'];
             $hJoin   = '';
-            if ($razdel !== null) {
+            if (!empty($razdelIds)) {
+                $placeholders = implode(',', array_fill(0, count($razdelIds), '?'));
                 $hJoin = "
                     JOIN (
                         SELECT DISTINCT ti.item_inv_n
                         FROM tovar_rent_items_arch ti
                         JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = ti.cat_id
                         JOIN razdel_subrazdel rs   ON rs.id_sub_razdel    = sc.id_sub_razdel
-                        WHERE rs.id_razdel = ?
+                        WHERE rs.id_razdel IN ({$placeholders})
                     ) irz ON irz.item_inv_n = tria.item_inv_n
                 ";
-                $hJoinParams[] = $razdel;
+                $hJoinParams = array_merge($hJoinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $hWhere[]     = "(tria.cat_id IS NULL OR tria.cat_id NOT IN ({$carnPh}))";
@@ -397,16 +400,17 @@ class InventoryController extends BaseController
     {
         $from     = $request->fromTimestamp();
         $to       = $request->toTimestamp();
-        $category = $request->input('category', 'all');
+        $categories = $request->categories();
+        $catStr     = implode(',', $categories);
         $incCarn  = $request->includeCarnival();
 
         $key = $this->cacheKey('inventory.turnover', [
-            'from' => $from, 'to' => $to, 'cat' => $category, 'inc' => $incCarn ? 1 : 0,
+            'from' => $from, 'to' => $to, 'cat' => $catStr, 'inc' => $incCarn ? 1 : 0,
         ]);
 
-        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category, $incCarn) {
-            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
-            if ($category !== 'all' && $razdel === null) {
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $categories, $incCarn) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
                 return [];
             }
 
@@ -417,13 +421,13 @@ class InventoryController extends BaseController
             $catJoin   = '';
             $catWhere  = '';
             $catParams = [];
-            if ($razdel !== null) {
+            if (!empty($razdelIds)) {
                 $catJoin = '
                     JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
                     JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
                 ';
                 $catWhere    = 'AND rs.id_razdel = ?';
-                $catParams[] = $razdel;
+                $catParams = array_merge($catParams, $razdelIds);
             }
             $carnWhere = '';
             if (!$incCarn && $carnPh) {
@@ -462,25 +466,39 @@ class InventoryController extends BaseController
      */
     public function idle(Request $request): JsonResponse
     {
+        $catInput = $request->input('category');
+        if ($catInput === null || $catInput === '') {
+            $categories = ['all'];
+        } elseif (is_string($catInput)) {
+            $categories = array_map('trim', explode(',', $catInput));
+        } else {
+            $categories = (array) $catInput;
+        }
+
+        $request->merge(['category' => $categories]);
+
         $request->validate([
             'days'             => 'integer|min:1|max:3650',
-            'category'         => 'nullable|string|in:' . implode(',', RangeRequest::CATEGORIES),
+            'category'         => 'nullable|array',
+            'category.*'       => 'string|in:' . implode(',', RangeRequest::CATEGORIES),
             'include_carnival' => 'nullable',
         ]);
 
+        $categories = empty($categories) || in_array('all', $categories, true) ? ['all'] : array_values(array_unique($categories));
+        $catStr = implode(',', $categories);
+
         $days     = (int) $request->get('days', 90);
-        $category = $request->get('category', 'all');
         $cutoff   = time() - $days * 86400;
         $incRaw   = $request->input('include_carnival');
         $incCarn  = $incRaw === null
             ? true
             : !in_array(strtolower(trim((string) $incRaw)), ['0','false','no','off','n',''], true);
 
-        $key = $this->cacheKey('inventory.idle', ['days' => $days, 'cat' => $category, 'inc' => $incCarn ? 1 : 0]);
+        $key = $this->cacheKey('inventory.idle', ['days' => $days, 'cat' => $catStr, 'inc' => $incCarn ? 1 : 0]);
 
-        $rows = $this->cacheRemember($key, self::TTL_DEFAULT, function () use ($cutoff, $category, $incCarn) {
-            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
-            if ($category !== 'all' && $razdel === null) {
+        $rows = $this->cacheRemember($key, self::TTL_DEFAULT, function () use ($cutoff, $categories, $incCarn) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
                 return [];
             }
 
@@ -491,13 +509,13 @@ class InventoryController extends BaseController
             $catJoin   = '';
             $catWhere  = '';
             $catParams = [];
-            if ($razdel !== null) {
+            if (!empty($razdelIds)) {
                 $catJoin = '
                     JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tri.cat_id
                     JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
                 ';
                 $catWhere    = 'AND rs.id_razdel = ?';
-                $catParams[] = $razdel;
+                $catParams = array_merge($catParams, $razdelIds);
             }
             $carnWhere = '';
             if (!$incCarn && $carnPh) {
@@ -530,7 +548,7 @@ class InventoryController extends BaseController
 
         return $this->envelope([
             'days'             => $days,
-            'category'         => $category,
+            'category'         => $catStr,
             'include_carnival' => $incCarn,
             'cutoff_iso'       => gmdate('Y-m-d\TH:i:s\Z', $cutoff),
         ], $rows);

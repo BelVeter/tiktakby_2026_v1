@@ -139,13 +139,27 @@ class CategoriesController extends BaseController
      */
     public function seasonality(Request $request): JsonResponse
     {
+        $catInput = $request->input('category');
+        if ($catInput === null || $catInput === '') {
+            $categories = ['all'];
+        } elseif (is_string($catInput)) {
+            $categories = array_map('trim', explode(',', $catInput));
+        } else {
+            $categories = (array) $catInput;
+        }
+
+        $request->merge(['category' => $categories]);
+        
         $request->validate([
-            'category'         => 'nullable|string|in:' . implode(',', RangeRequest::CATEGORIES),
+            'category'         => 'nullable|array',
+            'category.*'       => 'string|in:' . implode(',', RangeRequest::CATEGORIES),
             'years'            => 'integer|min:1|max:11',
             'include_carnival' => 'nullable',
         ]);
 
-        $category = $request->get('category', 'all');
+        $categories = empty($categories) || in_array('all', $categories, true) ? ['all'] : array_values(array_unique($categories));
+        $catStr = implode(',', $categories);
+
         $years    = (int) $request->get('years', 5);
         $cutoff   = strtotime("-{$years} years");
         $incRaw   = $request->input('include_carnival');
@@ -154,14 +168,14 @@ class CategoriesController extends BaseController
             : !in_array(strtolower(trim((string) $incRaw)), ['0','false','no','off','n',''], true);
 
         $key = $this->cacheKey('categories.seasonality', [
-            'cat'   => $category,
+            'cat'   => $catStr,
             'years' => $years,
             'inc'   => $incCarn ? 1 : 0,
         ]);
 
-        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($category, $cutoff, $incCarn) {
-            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
-            if ($category !== 'all' && $razdel === null) {
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($categories, $cutoff, $incCarn) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
                 return [];
             }
 
@@ -180,10 +194,10 @@ class CategoriesController extends BaseController
                 LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
             ";
             $where  = ['sd.acc_date >= ?'];
-            if ($razdel !== null) {
-                $razdelSub    = $this->itemsInRazdelSubquery();
+            if (!empty($razdelIds)) {
+                $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                 $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                $joinParams[] = $razdel;
+                $joinParams   = array_merge($joinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
@@ -235,7 +249,7 @@ class CategoriesController extends BaseController
         });
 
         return $this->envelope([
-            'category'         => $category,
+            'category'         => $catStr,
             'years'            => $years,
             'include_carnival' => $incCarn,
         ], $rows);

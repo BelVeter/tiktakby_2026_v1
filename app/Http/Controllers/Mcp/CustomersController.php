@@ -266,16 +266,17 @@ class CustomersController extends BaseController
     {
         $from     = $request->fromTimestamp();
         $to       = $request->toTimestamp();
-        $category = $request->input('category', 'all');
+        $categories = $request->categories();
+        $catStr     = implode(',', $categories);
         $incCarn  = $request->includeCarnival();
 
         $key = $this->cacheKey('customers.repeat_intervals', [
-            'from' => $from, 'to' => $to, 'cat' => $category, 'inc' => $incCarn ? 1 : 0,
+            'from' => $from, 'to' => $to, 'cat' => $catStr, 'inc' => $incCarn ? 1 : 0,
         ]);
 
-        $payload = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category, $incCarn) {
-            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
-            if ($category !== 'all' && $razdel === null) {
+        $payload = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $categories, $incCarn) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
                 return null;
             }
 
@@ -291,12 +292,12 @@ class CustomersController extends BaseController
             $joins  = '';
             $where  = ['da.cr_time BETWEEN ? AND ?'];
 
-            if ($razdel !== null || !$incCarn) {
+            if (!empty($razdelIds) || !$incCarn) {
                 $joins = " LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n ";
-                if ($razdel !== null) {
-                    $razdelSub    = $this->itemsInRazdelSubquery();
+                if (!empty($razdelIds)) {
+                    $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                     $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                    $joinParams[] = $razdel;
+                    $joinParams   = array_merge($joinParams, $razdelIds);
                 }
                 if (!$incCarn && $carnPh) {
                     $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";

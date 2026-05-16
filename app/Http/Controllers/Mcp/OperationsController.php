@@ -26,28 +26,29 @@ class OperationsController extends BaseController
     {
         $from     = $request->fromTimestamp();
         $to       = $request->toTimestamp();
-        $category = $request->input('category', 'all');
+        $categories = $request->categories();
+        $catStr     = implode(',', $categories);
         $location = $request->input('location', 'all');
         $incCarn  = $request->includeCarnival();
 
         $key = $this->cacheKey('operations.funnel', [
-            'from' => $from, 'to' => $to, 'cat' => $category, 'loc' => $location,
+            'from' => $from, 'to' => $to, 'cat' => $catStr, 'loc' => $location,
             'inc'  => $incCarn ? 1 : 0,
         ]);
 
-        $payload = $this->cacheRemember($key, self::TTL_DEFAULT, function () use ($from, $to, $category, $location, $incCarn) {
-            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
-            if ($category !== 'all' && $razdel === null) {
+        $payload = $this->cacheRemember($key, self::TTL_DEFAULT, function () use ($from, $to, $categories, $location, $incCarn) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
                 return null;
             }
 
-            $orders     = $this->countOrders($from, $to, $razdel);
+            $orders     = $this->countOrders($from, $to, $razdelIds);
             $calls      = $this->countCalls($from, $to);
-            $deals      = $this->countDeals($from, $to, $razdel, $location, $incCarn);
-            $issuances  = $this->countIssuanceEvents($from, $to, $razdel, $location, $incCarn);
-            $renewals   = $this->countRenewalEvents($from, $to, $razdel, $location, $incCarn);
-            $subDeals   = $this->countSubDeals($from, $to, $razdel, $incCarn);
-            $returns    = $this->countReturns($from, $to, $razdel, $location, $incCarn);
+            $deals      = $this->countDeals($from, $to, $razdelIds, $location, $incCarn);
+            $issuances  = $this->countIssuanceEvents($from, $to, $razdelIds, $location, $incCarn);
+            $renewals   = $this->countRenewalEvents($from, $to, $razdelIds, $location, $incCarn);
+            $subDeals   = $this->countSubDeals($from, $to, $razdelIds, $incCarn);
+            $returns    = $this->countReturns($from, $to, $razdelIds, $location, $incCarn);
 
             $leadsTotal = $orders + $calls;
             return [
@@ -70,11 +71,11 @@ class OperationsController extends BaseController
         });
 
         $meta = [];
-        if ($category !== 'all' && $payload !== null) {
-            $meta['warnings'] = [[
+        if (!in_array('all', $categories, true) && $payload !== null) {
+            $meta['warnings'][] = [
                 'code'    => 'phone_calls_not_filtered',
                 'message' => 'zvonki has no category column; phone_calls counts are NOT filtered by category',
-            ]];
+            ];
         }
         return $this->envelope($request->queryEcho(), $payload ?? [], $meta);
     }
@@ -83,19 +84,21 @@ class OperationsController extends BaseController
     {
         $from     = $request->fromTimestamp();
         $to       = $request->toTimestamp();
-        $category = $request->input('category', 'all');
+        $categories = $request->categories();
+        $catStr     = implode(',', $categories);
+        $razdelIds = $this->categoryToRazdelIds($categories);
         $location = $request->input('location', 'all');
         $incCarn  = $request->includeCarnival();
 
         $key = $this->cacheKey('operations.timeline', [
-            'from' => $from, 'to' => $to, 'cat' => $category, 'loc' => $location,
+            'from' => $from, 'to' => $to, 'cat' => $catStr, 'loc' => $location,
             'g'    => $request->input('granularity'),
             'inc'  => $incCarn ? 1 : 0,
         ]);
 
-        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $category, $location, $incCarn, $request) {
-            $razdel = $category !== 'all' ? $this->categoryToRazdelId($category) : null;
-            if ($category !== 'all' && $razdel === null) {
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $categories, $location, $incCarn, $request) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
                 return [];
             }
 
@@ -111,13 +114,13 @@ class OperationsController extends BaseController
             $orderJoins  = '';
             $orderWhere  = ['o.cr_time BETWEEN ? AND ?'];
             $orderParams = [$from, $to];
-            if ($razdel !== null) {
+            if (!empty($razdelIds)) {
                 $orderJoins = '
                     JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = o.cat_id
                     JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
                 ';
                 $orderWhere[]  = 'rs.id_razdel = ?';
-                $orderParams[] = $razdel;
+                $orderParams = array_merge($orderParams, $razdelIds);
             }
             $orderWhereSql = implode(' AND ', $orderWhere);
             foreach (DB::select("SELECT {$orderPeriod} AS period, COUNT(*) AS cnt FROM rent_orders_arch o {$orderJoins} WHERE {$orderWhereSql} GROUP BY period", $orderParams) as $r) {
@@ -138,12 +141,12 @@ class OperationsController extends BaseController
             $dealWhere       = ['da.cr_time BETWEEN ? AND ?'];
             $dealJoinParams  = [];
             $dealWhereParams = [$from, $to];
-            if ($razdel !== null || !$incCarn) {
+            if (!empty($razdelIds) || !$incCarn) {
                 $dealJoins = " LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n ";
-                if ($razdel !== null) {
-                    $razdelSub        = $this->itemsInRazdelSubquery();
+                if (!empty($razdelIds)) {
+                    $razdelSub        = $this->itemsInRazdelSubquery($razdelIds);
                     $dealJoins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                    $dealJoinParams[] = $razdel;
+                    $dealJoinParams = array_merge($dealJoinParams, $razdelIds);
                 }
                 if (!$incCarn && $carnPh) {
                     $dealWhere[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
@@ -166,13 +169,13 @@ class OperationsController extends BaseController
             $subWhere       = ['sd.cr_time BETWEEN ? AND ?'];
             $subJoinParams  = [];
             $subWhereParams = [$from, $to];
-            if ($razdel !== null || !$incCarn) {
+            if (!empty($razdelIds) || !$incCarn) {
                 $subJoins = "
                     LEFT JOIN {$daSub} da ON da.deal_id = sd.deal_id
                     LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
                 ";
-                if ($razdel !== null) {
-                    $razdelSub        = $this->itemsInRazdelSubquery();
+                if (!empty($razdelIds)) {
+                    $razdelSub        = $this->itemsInRazdelSubquery($razdelIds);
                     $subJoins        .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
                     $subJoinParams[]  = $razdel;
                 }
@@ -193,10 +196,10 @@ class OperationsController extends BaseController
             $retWhere       = ['da.return_date BETWEEN ? AND ?', 'da.return_date > 0'];
             $retJoinParams  = [];
             $retWhereParams = [$from, $to];
-            if ($razdel !== null || !$incCarn) {
+            if (!empty($razdelIds) || !$incCarn) {
                 $retJoins = " LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n ";
-                if ($razdel !== null) {
-                    $razdelSub        = $this->itemsInRazdelSubquery();
+                if (!empty($razdelIds)) {
+                    $razdelSub        = $this->itemsInRazdelSubquery($razdelIds);
                     $retJoins        .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
                     $retJoinParams[]  = $razdel;
                 }
@@ -409,18 +412,19 @@ class OperationsController extends BaseController
 
     // ─── Funnel helpers ───────────────────────────────────────────────────
 
-    private function countOrders(int $from, int $to, ?int $razdel): int
+    private function countOrders(int $from, int $to, array $razdelIds): int
     {
-        if ($razdel === null) {
+        if (empty($razdelIds)) {
             $row = DB::selectOne("SELECT COUNT(*) AS c FROM rent_orders_arch WHERE cr_time BETWEEN ? AND ?", [$from, $to]);
         } else {
+            $placeholders = implode(',', array_fill(0, count($razdelIds), '?'));
             $row = DB::selectOne("
                 SELECT COUNT(*) AS c
                 FROM rent_orders_arch o
                 JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = o.cat_id
                 JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
-                WHERE o.cr_time BETWEEN ? AND ? AND rs.id_razdel = ?
-            ", [$from, $to, $razdel]);
+                WHERE o.cr_time BETWEEN ? AND ? AND rs.id_razdel IN ({$placeholders})
+            ", array_merge([$from, $to], $razdelIds));
         }
         return (int) ($row->c ?? 0);
     }
@@ -431,7 +435,7 @@ class OperationsController extends BaseController
         return (int) ($row->c ?? 0);
     }
 
-    private function countDeals(int $from, int $to, ?int $razdel, $location, bool $incCarn): int
+    private function countDeals(int $from, int $to, array $razdelIds, $location, bool $incCarn): int
     {
         $daSub  = $this->unifiedDealsSubquery();
         $itSub  = $this->unifiedItemsSubquery();
@@ -444,12 +448,12 @@ class OperationsController extends BaseController
         $where  = ['da.cr_time BETWEEN ? AND ?'];
         $joins  = '';
 
-        if ($razdel !== null || !$incCarn) {
+        if (!empty($razdelIds) || !$incCarn) {
             $joins = " LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n ";
-            if ($razdel !== null) {
-                $razdelSub    = $this->itemsInRazdelSubquery();
+            if (!empty($razdelIds)) {
+                $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                 $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                $joinParams[] = $razdel;
+                $joinParams = array_merge($joinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $where[]      = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
@@ -475,7 +479,7 @@ class OperationsController extends BaseController
      * higher than countDeals() if a deal has multiple takeaway_plan events
      * (e.g. set rentals where parts are picked up separately).
      */
-    private function countIssuanceEvents(int $from, int $to, ?int $razdel, $location, bool $incCarn): int
+    private function countIssuanceEvents(int $from, int $to, array $razdelIds, $location, bool $incCarn): int
     {
         $sdSub  = $this->unifiedSubDealsSubquery();
         $daSub  = $this->unifiedDealsSubquery();
@@ -497,15 +501,15 @@ class OperationsController extends BaseController
             $whereParams[] = (int) $location;
         }
 
-        if ($razdel !== null || !$incCarn) {
+        if (!empty($razdelIds) || !$incCarn) {
             $joins = "
                 LEFT JOIN {$daSub} da ON da.deal_id = sd.deal_id
                 LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
             ";
-            if ($razdel !== null) {
-                $razdelSub    = $this->itemsInRazdelSubquery();
+            if (!empty($razdelIds)) {
+                $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                 $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                $joinParams[] = $razdel;
+                $joinParams = array_merge($joinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
@@ -520,7 +524,7 @@ class OperationsController extends BaseController
         return (int) ($row->c ?? 0);
     }
 
-    private function countRenewalEvents(int $from, int $to, ?int $razdel, $location, bool $incCarn): int
+    private function countRenewalEvents(int $from, int $to, array $razdelIds, $location, bool $incCarn): int
     {
         $sdSub  = $this->unifiedSubDealsSubquery();
         $daSub  = $this->unifiedDealsSubquery();
@@ -541,15 +545,15 @@ class OperationsController extends BaseController
             $whereParams[] = (int) $location;
         }
 
-        if ($razdel !== null || !$incCarn) {
+        if (!empty($razdelIds) || !$incCarn) {
             $joins = "
                 LEFT JOIN {$daSub} da ON da.deal_id = sd.deal_id
                 LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
             ";
-            if ($razdel !== null) {
-                $razdelSub    = $this->itemsInRazdelSubquery();
+            if (!empty($razdelIds)) {
+                $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                 $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                $joinParams[] = $razdel;
+                $joinParams = array_merge($joinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
@@ -564,7 +568,7 @@ class OperationsController extends BaseController
         return (int) ($row->c ?? 0);
     }
 
-    private function countSubDeals(int $from, int $to, ?int $razdel, bool $incCarn): int
+    private function countSubDeals(int $from, int $to, array $razdelIds, bool $incCarn): int
     {
         $sdSub = $this->unifiedSubDealsSubquery();
         $daSub = $this->unifiedDealsSubquery();
@@ -577,15 +581,15 @@ class OperationsController extends BaseController
         $whereParams = [$from, $to];
         $where  = ['sd.cr_time BETWEEN ? AND ?'];
         $joins  = '';
-        if ($razdel !== null || !$incCarn) {
+        if (!empty($razdelIds) || !$incCarn) {
             $joins = "
                 LEFT JOIN {$daSub} da ON da.deal_id = sd.deal_id
                 LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
             ";
-            if ($razdel !== null) {
-                $razdelSub    = $this->itemsInRazdelSubquery();
+            if (!empty($razdelIds)) {
+                $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                 $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                $joinParams[] = $razdel;
+                $joinParams = array_merge($joinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
@@ -600,7 +604,7 @@ class OperationsController extends BaseController
         return (int) ($row->c ?? 0);
     }
 
-    private function countReturns(int $from, int $to, ?int $razdel, $location, bool $incCarn): int
+    private function countReturns(int $from, int $to, array $razdelIds, $location, bool $incCarn): int
     {
         $daSub = $this->unifiedDealsSubquery();
         $itSub = $this->unifiedItemsSubquery();
@@ -613,12 +617,12 @@ class OperationsController extends BaseController
         $where  = ['da.return_date BETWEEN ? AND ?', 'da.return_date > 0'];
         $joins  = '';
 
-        if ($razdel !== null || !$incCarn) {
+        if (!empty($razdelIds) || !$incCarn) {
             $joins = " LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n ";
-            if ($razdel !== null) {
-                $razdelSub    = $this->itemsInRazdelSubquery();
+            if (!empty($razdelIds)) {
+                $razdelSub    = $this->itemsInRazdelSubquery($razdelIds);
                 $joins       .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                $joinParams[] = $razdel;
+                $joinParams = array_merge($joinParams, $razdelIds);
             }
             if (!$incCarn && $carnPh) {
                 $where[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
