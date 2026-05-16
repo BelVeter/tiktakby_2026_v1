@@ -30,10 +30,32 @@
 | `RedirectController` | All redirect routes (created for `route:cache` compatibility) |
 | `FavoritesController` | Favorites functionality (added by Kristina) |
 | `CartController` | Shopping cart: display cart page, tariff retrieval, availability check, checkout with booking creation |
+| `Mcp/HealthController` | `/health` + `/openapi.json` |
+| `Mcp/MetaController` | `/meta/*` — categories, locations, expense-items, income-items, data-freshness |
+| `Mcp/FinanceController` | `/finance/{pnl,revenue,expenses,cash-flow}` — P&L injects 2025 bank-channel warning |
+| `Mcp/OperationsController` | `/operations/*` (funnel/timeline/by-category/by-location) + legacy `/orders/stats`, `/deals/list` |
+| `Mcp/InventoryController` | `/inventory/{free-tree,profitability,utilization,turnover,idle}` |
+| `Mcp/CustomersController` | `/customers/{timeline,cohorts,repeat-intervals}` + legacy `/clients/ltv` |
+| `Mcp/GeoController` | `/geo/clients-by-city` (Minsk-district resolution deferred to Stage 2) |
+| `Mcp/LocationsController` | `/locations/{performance,lifecycle}` |
+| `Mcp/CategoriesController` | `/categories/{seasonality,performance}` |
+| `Mcp/CarnivalController` | `/carnival/{funnel,seasonality,revenue}` (UNION of `karn_brons` + `karn_brons_arch`) |
+| `Mcp/ExportController` | `/export/monthly/{topic}` — CSV streams matching `data/monthly/_schema.md` |
+| `Mcp/BaseController` | abstract — `envelope()`, `cacheRemember()`, `dataFreshness()`, TTL constants |
+
+See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoint catalog.
 
 ### Middleware (`app/Http/Middleware/`)
 
 - `CheckRedirects` — global middleware (in `$middleware` in `Kernel.php`). Intercepts requests and checks the `redirects` table for 301/302 redirects
+- `McpForceJsonMiddleware` — route middleware (`mcp.json`). Sets `Accept: application/json` so validation failures return 422 JSON instead of 302 HTML redirects
+- `McpTokenMiddleware` — route middleware (`mcp.token`). Validates Bearer token from `MCP_API_TOKEN` env var for MCP API
+- `McpGeoCountryMiddleware` — route middleware (`mcp.geo`). Restricts access by country (BY+RU) using GeoLite2 database at `storage/app/geoip/GeoLite2-Country.mmdb`
+- `McpAuditLogMiddleware` — route middleware (`mcp.audit`). Writes each MCP API request to the `mcp_api_log` table
+
+### Form Requests (`app/Http/Requests/Mcp/`)
+
+- `RangeRequest` — common parameters for range-based MCP endpoints. Default range is the last 12 months; `granularity=month`; dimensional filters `category` (razdel alias) and `detailed_category` (tovar_rent_cat alias) default to `all` and support **multiple comma-separated values**; `include_carnival` defaults to `true`. Provides `categories()` to retrieve normalized array of category slugs, `granularityFormatFor($column)` for MySQL `DATE_FORMAT()`, and `includeCarnival()` flag.
 
 ### MyClasses (`app/MyClasses/`)
 
@@ -61,12 +83,23 @@ Separate PHP admin panel (not Laravel-based), accessible at `/bb/`. Key files:
 
 Blade templates. Main layout: `layouts/app.blade.php` (contains version number for vendor CSS/JS cache-busting).
 
-### Routes (`routes/web.php`)
+### Routes (`routes/web.php` and `routes/api.php`)
 
 - All routes use controllers (no closures!) — required for `route:cache`
 - Language redirects `/en/*`, `/lt/*` → `/ru/*`
 - Catalog: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
 - Fallback → 404 page
+- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 31 analytics endpoints + `/health` + `/openapi.json`, middleware chain `mcp.json → mcp.token → mcp.geo → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+.
+
+  **Methodology (locked 2026-05-14, reproduces legacy admin reports — see `docs/mcp_server.md`):**
+  - Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` by `acc_date` (not deal `cr_time`).
+  - Deal/return counts read `UNION(rent_deals_act, rent_deals_arch)`. `_act` holds ~430 open deals.
+  - Issuance and **renewal** counts use `UNION(rent_sub_deals_act, rent_sub_deals_arch)` filtered by sub-deal type (`first_rent`/`takeaway_plan` for issuance, `extention` for renewal).
+  - Office attribution uses `sub_deal.place + delivery_yn` per-payment, not `deal.first_rent_place` per-deal. office_id=0 = Курьер pseudo-office.
+  - Carnival = `tovar_rent_cat.cat_type=1`. `include_carnival` toggle (default true). `/finance/pnl` always splits into carnival/non-carnival columns.
+  - Inventory at date X = `tovar_rent_items (buy_date≤X)` + `tovar_rent_items_arch (buy_date≤X AND arch_time≥X)`. Used by `/inventory/utilization`.
+  - `subrazdel_category × razdel_subrazdel` joins inflate SUM aggregates M×N. Use `BaseController::itemsInRazdelSubquery()` instead.
+  - `tests/Feature/Mcp/LegacyParityTest.php` enforces parity with direct legacy-style SQL.
 
 ## Deploy (`Deploy.php`)
 
@@ -85,7 +118,7 @@ Sequence:
 
 | Group | Tables |
 |-------|--------|
-| Catalog | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_cats`, `tovar_list`, `tovar_properties` |
+| Catalog | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_rent_cat`, `tovar_list`, `tovar_properties` |
 | Rental | `rent_deals_act`, `rent_orders`, `rent_model_web`, `rent_tarif_act`, `rent_sub_deals_act`, `deals` |
 | Clients | `clients`, `clients_arch`, `users`, `logpass` |
 | Handbooks | `rash_items`, `doh_items` (contain `is_active` column for entry form filtering) |
@@ -93,6 +126,7 @@ Sequence:
 | Content | `pages`, `video_links`, `dop_photos` |
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
+| MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent); plus `idx_mcp_*` performance indexes on `rent_deals_arch`, `rent_sub_deals_arch`, `doh_rash`, `clients`, `karn_brons`, `karn_brons_arch`, `rent_orders`, `rent_orders_arch`, `rent_deals_act` (migration `2026_05_09_000001_add_mcp_analytics_indexes`) |
 
 ## Data Access Strategy
 
@@ -114,6 +148,9 @@ The project uses two distinct methods for database interaction due to its hybrid
 3. **Legacy code**: the project root contains many old .htm files and folders (pre-Laravel era)
 4. **Carnival costumes**: separate section with special routes and booking logic
 5. **No npm on production**: frontend is built locally (`npm run prod`), output in `public/` + `mix-manifest.json`, then committed to git
+6. **PHP version**: Container runs **PHP 7.4** — avoid PHP 8.0+ syntax (`match`, named arguments, nullsafe operator `?->`, etc.) in Laravel code
+7. **MCP Analytics API**: A GET-only analytics API lives at `/api/mcp/v1/` and is consumed by a Node.js MCP wrapper at `/home/dmitry/sites/mcp-tiktak/`. The wrapper uses `@modelcontextprotocol/sdk` and Node.js 20 (installed via fnm at `/home/dmitry/.fnm`). See `mcp-tiktak/README.md` for Claude Desktop config. The Bearer token is in `.env` as `MCP_API_TOKEN`. GeoLite2 DB is at `storage/app/geoip/GeoLite2-Country.mmdb` (not in git — downloaded at setup time).
+8. **Local dev environment**: Docker-based on Linux (not Laragon/Windows). Containers: `tiktakby-app` (Apache+PHP 7.4, port 80), `db` (MySQL). Run commands via `docker exec tiktakby-app php artisan ...`
 
 ## Rules for AI Agents
 

@@ -100,5 +100,5 @@ Deploy.php
 !/bb/**/*.PNG
 !/bb/**/*.GIF
 
-# Database dumps
-tiktakby.sql
+# Ignore database dumps
+*.sql
