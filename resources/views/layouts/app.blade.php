@@ -10,7 +10,7 @@
 
 <head>
   <!-- Global site tag (gtag.js) - Yandex webmaster -->
-  <meta name="yandex-verification" content="61541709f8b93408" />
+  <meta name="yandex-verification" content="7348006d2698d8b8" />
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-15543442-1"></script>
 
