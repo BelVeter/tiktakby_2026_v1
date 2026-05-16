@@ -22,14 +22,15 @@ if (isset($_POST['action'])) {
             $source = trim($mysqli->real_escape_string($_POST['source_url']));
             $target = trim($mysqli->real_escape_string($_POST['target_url']));
             $code = intval($_POST['status_code']);
+            $is_regex = isset($_POST['is_regex']) ? 1 : 0;
             $comment = trim($mysqli->real_escape_string($_POST['comment'] ?? ''));
             if ($source === '' || $target === '') {
                 $message = '<div class="alert alert-danger">Заполните оба поля URL.</div>';
             } else {
-                if ($source[0] !== '/')
+                if (!$is_regex && $source[0] !== '/')
                     $source = '/' . $source;
-                $sql = "INSERT INTO redirects (source_url, target_url, status_code, comment)
-                        VALUES ('$source', '$target', $code, '$comment')";
+                $sql = "INSERT INTO redirects (source_url, target_url, status_code, is_regex, comment)
+                        VALUES ('$source', '$target', $code, $is_regex, '$comment')";
                 if ($mysqli->query($sql)) {
                     $message = '<div class="alert alert-success">Перенаправление добавлено.</div>';
                 } else {
@@ -44,10 +45,11 @@ if (isset($_POST['action'])) {
             $source = trim($mysqli->real_escape_string($_POST['source_url']));
             $target = trim($mysqli->real_escape_string($_POST['target_url']));
             $code = intval($_POST['status_code']);
+            $is_regex = isset($_POST['is_regex']) ? 1 : 0;
             $comment = trim($mysqli->real_escape_string($_POST['comment'] ?? ''));
-            if ($source[0] !== '/')
+            if (!$is_regex && $source[0] !== '/')
                 $source = '/' . $source;
-            $message = $mysqli->query("UPDATE redirects SET source_url='$source', target_url='$target', status_code=$code, comment='$comment' WHERE id=$id")
+            $message = $mysqli->query("UPDATE redirects SET source_url='$source', target_url='$target', status_code=$code, is_regex=$is_regex, comment='$comment' WHERE id=$id")
                 ? '<div class="alert alert-success">Обновлено.</div>'
                 : '<div class="alert alert-danger">Ошибка: ' . $mysqli->error . '</div>';
             break;
@@ -850,6 +852,12 @@ if ($result) {
                         <option value="307">307 — Временный (сохр.)</option>
                         <option value="308">308 — Постоянный (сохр.)</option>
                     </select>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="is_regex" id="add-is-regex" value="1" onchange="onAddRegexChange(this)">
+                        <label class="form-check-label" for="add-is-regex" title="Источник — PCRE-паттерн (#^/old/(.+)$#), цель — строка замены (/new/$1)">
+                            REGEX <span class="text-muted" style="font-size:11px">(?)</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-bold">Комментарий</label>
@@ -869,6 +877,7 @@ if ($result) {
                     <th><?= sortLink('source', 'Откуда', $sortKey, $dir) ?></th>
                     <th><?= sortLink('target', 'Куда', $sortKey, $dir) ?></th>
                     <th><?= sortLink('code', 'Код', $sortKey, $dir) ?></th>
+                    <th>Тип</th>
                     <th><?= sortLink('status', 'Статус', $sortKey, $dir) ?></th>
                     <th><?= sortLink('hits', 'Переходы', $sortKey, $dir) ?></th>
                     <th><?= sortLink('last', 'Посл.', $sortKey, $dir) ?></th>
@@ -879,7 +888,7 @@ if ($result) {
             <tbody>
                 <?php if (empty($redirects)): ?>
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">Пока нет перенаправлений.</td>
+                        <td colspan="10" class="text-center text-muted py-4">Пока нет перенаправлений.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($redirects as $r): ?>
@@ -889,6 +898,7 @@ if ($result) {
                             <td class="target-url"><?= htmlspecialchars($r['target_url']) ?></td>
                             <td><span class="status-code status-<?= $r['status_code'] ?>"><?= $r['status_code'] ?></span>
                             </td>
+                            <td><?= $r['is_regex'] ? '<span class="badge bg-warning text-dark" title="Регулярное выражение PCRE">REGEX</span>' : '<span class="badge bg-light text-secondary">exact</span>' ?></td>
                             <td><span
                                     class="badge <?= $r['is_active'] ? 'badge-active' : 'badge-inactive' ?>"><?= $r['is_active'] ? 'Вкл' : 'Выкл' ?></span>
                             </td>
@@ -925,7 +935,7 @@ if ($result) {
                         </tr>
                         <!-- Строка редактирования -->
                         <tr class="edit-row" id="edit-<?= $r['id'] ?>">
-                            <td colspan="9">
+                            <td colspan="10">
                                 <form method="post" class="ef">
                                     <input type="hidden" name="action" value="update">
                                     <input type="hidden" name="id" value="<?= $r['id'] ?>">
@@ -977,6 +987,10 @@ if ($result) {
                                             <option value="307" <?= $r['status_code'] == 307 ? 'selected' : '' ?>>307</option>
                                             <option value="308" <?= $r['status_code'] == 308 ? 'selected' : '' ?>>308</option>
                                         </select>
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input" type="checkbox" name="is_regex" id="er-regex-<?= $r['id'] ?>" value="1" <?= $r['is_regex'] ? 'checked' : '' ?>>
+                                            <label class="form-check-label" for="er-regex-<?= $r['id'] ?>" style="font-size:11px">REGEX</label>
+                                        </div>
                                     </div>
                                     <div class="fg"><label>Комм.</label>
                                         <input type="text" class="form-control form-control-sm" name="comment"
@@ -1064,8 +1078,16 @@ if ($result) {
         if (el) el.classList.remove('visible');
     }
 
+    function onAddRegexChange(cb) {
+        const src = document.querySelector('#addForm [name="source_url"]');
+        if (src) src.placeholder = cb.checked ? '#^/old/(.+)$#' : '/old-page';
+        // В режиме regex скрываем режимы выбора target (только ручной ввод)
+        if (cb.checked) setTargetMode('manual', 'add', document.querySelector('.target-mode-btns .btn'));
+    }
+
     function validateRedirectForm(form, prefix) {
         let ok = true;
+        const isRegex = form.querySelector('[name="is_regex"]')?.checked || false;
 
         // Проверка source_url
         hideFieldError(prefix + '-source-error');
@@ -1075,6 +1097,12 @@ if ($result) {
             if (!src) {
                 showFieldError(prefix + '-source-error', 'Заполните исходный URL.');
                 ok = false;
+            } else if (isRegex) {
+                // Для regex-паттернов только базовая проверка
+                if (/\s/.test(src)) {
+                    showFieldError(prefix + '-source-error', 'Паттерн не должен содержать пробелов.');
+                    ok = false;
+                }
             } else if (!src.startsWith('/')) {
                 showFieldError(prefix + '-source-error', 'Исходный URL должен начинаться с /');
                 ok = false;
@@ -1117,7 +1145,7 @@ if ($result) {
             if (/\s/.test(tgt)) {
                 showFieldError(prefix + '-target-error', 'URL не должен содержать пробелов.');
                 ok = false;
-            } else if (!URL_PATH_RE.test(tgt) && !URL_FULL_RE.test(tgt)) {
+            } else if (!isRegex && !URL_PATH_RE.test(tgt) && !URL_FULL_RE.test(tgt)) {
                 showFieldError(prefix + '-target-error', 'Некорректный URL. Допускается путь /... или полный адрес https://...');
                 ok = false;
             }

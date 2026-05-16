@@ -78,10 +78,10 @@ class CheckRedirects
 
         try {
             // 3. Database Redirects — с кэшированием всей таблицы
-            // Загружаем все активные редиректы один раз и кэшируем их.
-            // Поиск идёт по ключу массива — O(1), без SQL на каждый запрос.
-            $redirectMap = Cache::remember('redirects_active_map', self::CACHE_TTL, function () {
-                $rows = DB::table('redirects')->where('is_active', 1)->get();
+
+            // Сначала точное совпадение — O(1) поиск по ключу массива.
+            $exactMap = Cache::remember('redirects_exact_map', self::CACHE_TTL, function () {
+                $rows = DB::table('redirects')->where('is_active', 1)->where('is_regex', 0)->get();
                 $map = [];
                 foreach ($rows as $row) {
                     $map[$row->source_url] = $row;
@@ -89,18 +89,34 @@ class CheckRedirects
                 return $map;
             });
 
-            if (isset($redirectMap[$path])) {
-                $redirect = $redirectMap[$path];
-
-                // Инкрементируем счётчик напрямую в БД (без кэша — точность важна).
+            if (isset($exactMap[$path])) {
+                $redirect = $exactMap[$path];
                 DB::table('redirects')
                     ->where('id', $redirect->id)
-                    ->update([
-                        'hit_count' => DB::raw('hit_count + 1'),
-                        'last_hit_at' => now(),
-                    ]);
-
+                    ->update(['hit_count' => DB::raw('hit_count + 1'), 'last_hit_at' => now()]);
                 return redirect($redirect->target_url, $redirect->status_code);
+            }
+
+            // Затем regex-паттерны — перебор по списку (их немного).
+            // source_url хранит полный PCRE-паттерн (например: #^/[^/]+/(prokat-.+)$#).
+            // target_url — строка замены с backreferences (например: /ru/$1).
+            $regexList = Cache::remember('redirects_regex_list', self::CACHE_TTL, function () {
+                return DB::table('redirects')
+                    ->where('is_active', 1)
+                    ->where('is_regex', 1)
+                    ->orderBy('id')
+                    ->get()
+                    ->toArray();
+            });
+
+            foreach ($regexList as $regex) {
+                if (@preg_match($regex->source_url, $path)) {
+                    $target = preg_replace($regex->source_url, $regex->target_url, $path);
+                    DB::table('redirects')
+                        ->where('id', $regex->id)
+                        ->update(['hit_count' => DB::raw('hit_count + 1'), 'last_hit_at' => now()]);
+                    return redirect($target, $regex->status_code);
+                }
             }
         } catch (\Exception $e) {
             // Таблица может не существовать в dev-среде — пропускаем молча.

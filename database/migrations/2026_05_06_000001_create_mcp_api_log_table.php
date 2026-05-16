@@ -8,6 +8,10 @@ class CreateMcpApiLogTable extends Migration
 {
     public function up()
     {
+        if (Schema::hasTable('mcp_api_log')) {
+            return;
+        }
+
         Schema::create('mcp_api_log', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->dateTime('created_at')->index();
@@ -20,7 +24,6 @@ class CreateMcpApiLogTable extends Migration
             $table->string('user_agent', 255)->nullable();
         });
 
-        // Индекс для автоматической очистки старых записей (>90 дней)
         Schema::table('mcp_api_log', function (Blueprint $table) {
             $table->index(['created_at']);
         });
