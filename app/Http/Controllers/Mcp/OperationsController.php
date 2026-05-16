@@ -119,7 +119,7 @@ class OperationsController extends BaseController
                     JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = o.cat_id
                     JOIN razdel_subrazdel rs   ON rs.id_sub_razdel = sc.id_sub_razdel
                 ';
-                $orderWhere[]  = 'rs.id_razdel = ?';
+                $orderWhere[]  = 'rs.id_razdel IN (' . implode(',', array_fill(0, count($razdelIds), '?')) . ')';
                 $orderParams = array_merge($orderParams, $razdelIds);
             }
             $orderWhereSql = implode(' AND ', $orderWhere);
@@ -177,7 +177,7 @@ class OperationsController extends BaseController
                 if (!empty($razdelIds)) {
                     $razdelSub        = $this->itemsInRazdelSubquery($razdelIds);
                     $subJoins        .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                    $subJoinParams[]  = $razdel;
+                    $subJoinParams = array_merge($subJoinParams, $razdelIds);
                 }
                 if (!$incCarn && $carnPh) {
                     $subWhere[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
@@ -201,7 +201,7 @@ class OperationsController extends BaseController
                 if (!empty($razdelIds)) {
                     $razdelSub        = $this->itemsInRazdelSubquery($razdelIds);
                     $retJoins        .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
-                    $retJoinParams[]  = $razdel;
+                    $retJoinParams = array_merge($retJoinParams, $razdelIds);
                 }
                 if (!$incCarn && $carnPh) {
                     $retWhere[]     = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
