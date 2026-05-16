@@ -124,7 +124,7 @@ Sequence:
 | Handbooks | `rash_items`, `doh_items` (contain `is_active` column for entry form filtering) |
 | Orders | `rent_orders`, `rent_orders_arch`, `karn_brons`, `karn_brons_arch` |
 | Content | `pages`, `video_links`, `dop_photos` |
-| Redirects | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
+| Redirects | `redirects` (source_url, target_url, status_code, is_active, is_regex, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
 | MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent); plus `idx_mcp_*` performance indexes on `rent_deals_arch`, `rent_sub_deals_arch`, `doh_rash`, `clients`, `karn_brons`, `karn_brons_arch`, `rent_orders`, `rent_orders_arch`, `rent_deals_act` (migration `2026_05_09_000001_add_mcp_analytics_indexes`) |
 
