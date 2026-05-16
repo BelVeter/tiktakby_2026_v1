@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\MyClasses\L3Page;
-use bb\Base;
+use App\MyClasses\MainPage;
 use bb\classes\bron;
 use bb\classes\Category;
 use bb\classes\Model;
@@ -15,6 +15,7 @@ use bb\classes\Zvonok;
 use bb\models\Office;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use PhpParser\Node\Expr\AssignOp\Mod;
 use DateTime;
 
@@ -27,7 +28,8 @@ class L3Controller extends Controller
     $p = L3Page::getPageByUrlName($model, $lang, \request()->razdel, \request()->subrazdel);
 
     if ($p === null) {
-      return redirect("/{$lang}/{$razdel}/{$subrazdel}/{$category}", 301);
+      $this->logNotFoundUrl();
+      return $this->showCategoryWithNotice($lang, $razdel, $subrazdel, $category);
     }
 
     if ($razd = Razdel::getByUrlName($razdel, $lang)) {
@@ -45,6 +47,22 @@ class L3Controller extends Controller
     }
 
     return view('l3', ['p' => $p]);
+  }
+
+  public function l3ShowPageLegacy($lang, $r1, $r2, $r3, $r4, $model, Request $req)
+  {
+    $p = L3Page::getPageByUrlName($model, $lang, $r1, $r2);
+
+    if ($p !== null) {
+      if (!tovar::getByModelId($p->getModelId())) {
+        $this->logNotFoundUrl();
+        return response()->view('l3_not_found', ['p' => $p], 404);
+      }
+      return view('l3', ['p' => $p]);
+    }
+
+    $this->logNotFoundUrl();
+    return $this->showCategoryWithNotice($lang, $r1, $r2, $r3);
   }
 
   public function l3Order2($lang, $razdel, $subrazdel, $category, $model, Request $req)
@@ -134,5 +152,33 @@ class L3Controller extends Controller
       }
     }
     return view('l3', ['p' => $p]);
+  }
+
+  private function logNotFoundUrl(): void
+  {
+    try {
+      DB::table('not_found_log')->insert([
+        'url'        => \Illuminate\Support\Facades\Request::url(),
+        'referrer'   => \Illuminate\Support\Facades\Request::header('referer'),
+        'ip'         => \Illuminate\Support\Facades\Request::ip(),
+        'created_at' => now(),
+      ]);
+    } catch (\Exception $e) {
+      // не прерываем рендеринг страницы если логирование упало
+    }
+  }
+
+  private function showCategoryWithNotice(string $lang, string $razdel, string $subrazdel, string $category)
+  {
+    $p = MainPage::getWebPageByCategoryAndSubRazdelAndRazdel($lang, $razdel, $subrazdel, $category, 1, []);
+    if (!$p || !$p->isRealPage()) {
+      $p = MainPage::getWebPageBySubRazdelAndRazdel($lang, $razdel, $subrazdel, 1, []);
+    }
+    if (!$p || !$p->isRealPage()) {
+      $p = MainPage::getRazdelPageForWeb($lang, $razdel, 1, []);
+    }
+
+    $notice = 'Этот товар снят с проката. Посмотрите другие товары в этой категории.';
+    return response()->view('catpage', ['p' => $p, 'notice' => $notice], 404);
   }
 }
