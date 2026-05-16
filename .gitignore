@@ -99,3 +99,6 @@ Deploy.php
 !/bb/**/*.JPEG
 !/bb/**/*.PNG
 !/bb/**/*.GIF
+
+# Database dumps
+tiktakby.sql
