@@ -151,6 +151,7 @@ The project uses two distinct methods for database interaction due to its hybrid
 6. **PHP version**: Container runs **PHP 7.4** — avoid PHP 8.0+ syntax (`match`, named arguments, nullsafe operator `?->`, etc.) in Laravel code
 7. **MCP Analytics API**: A GET-only analytics API lives at `/api/mcp/v1/` and is consumed by a Node.js MCP wrapper at `/home/dmitry/sites/mcp-tiktak/`. The wrapper uses `@modelcontextprotocol/sdk` and Node.js 20 (installed via fnm at `/home/dmitry/.fnm`). See `mcp-tiktak/README.md` for Claude Desktop config. The Bearer token is in `.env` as `MCP_API_TOKEN`. GeoLite2 DB is at `storage/app/geoip/GeoLite2-Country.mmdb` (not in git — downloaded at setup time).
 8. **Local dev environment**: Docker-based on Linux (not Laragon/Windows). Containers: `tiktakby-app` (Apache+PHP 7.4, port 80), `db` (MySQL). Run commands via `docker exec tiktakby-app php artisan ...`
+9. **Sitemap Generation**: A cron job runs `php artisan sitemap:generate` daily to update `public/sitemap.xml`. The command iterates through all active catalog categories and products.
 
 ## Rules for AI Agents
 
