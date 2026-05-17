@@ -164,8 +164,9 @@ $a1StatusLabels = [
 $a1Calls       = [];
 $a1NewCount    = 0;
 $a1LastUpdated = null;
+$a1FileExists  = file_exists($a1StorageFile);
 
-if (file_exists($a1StorageFile)) {
+if ($a1FileExists) {
     $a1LastUpdated = filemtime($a1StorageFile);
     $a1Raw = json_decode(file_get_contents($a1StorageFile), true);
     if (is_array($a1Raw)) {
@@ -211,8 +212,10 @@ echo '</div>';
 
 echo '<div id="a1-calls-body" style="margin-top:10px;">';
 
-if (empty($a1Calls)) {
+if (!$a1FileExists) {
     echo '<p style="color:#888;font-style:italic;">Нет данных. Запустите: <code>php artisan a1:fetch-missed-calls</code></p>';
+} elseif (empty($a1Calls)) {
+    echo '<p style="color:#198754;font-style:italic;">Пропущенных звонков нет — всё чисто.</p>';
 } elseif (empty($a1VisibleCalls)) {
     echo '<p style="color:#888;font-style:italic;">Нет новых пропущенных звонков.</p>';
 } else {
