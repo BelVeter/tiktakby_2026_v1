@@ -20,7 +20,26 @@ $action='';
 $limit=50;
 $message='';
 
-//Проверка входящей информации
+// ── A1 ВАТС: обработка отметки "перезвонили" ─────────────────────────────────
+$a1StorageFile = $_SERVER['DOCUMENT_ROOT'] . '/storage/app/a1_missed_calls.json';
+if (isset($_POST['a1_action']) && $_POST['a1_action'] === 'mark_processed') {
+    $uuid = trim($_POST['a1_uuid'] ?? '');
+    if ($uuid && file_exists($a1StorageFile)) {
+        $a1Data = json_decode(file_get_contents($a1StorageFile), true);
+        if (is_array($a1Data) && isset($a1Data[$uuid])) {
+            $a1Data[$uuid]['processed_at']    = date('d.m.Y H:i');
+            $a1Data[$uuid]['processed_at_ts'] = time();
+            $a1Data[$uuid]['processed_by']    = $_SESSION['user_fio'] ?? 'unknown';
+            file_put_contents($a1StorageFile, json_encode($a1Data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            @chmod($a1StorageFile, 0666); // сохранить права для Apache после записи artisan-командой
+        }
+    }
+    header('Location: /bb/zv_ch.php');
+    exit;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+
 //	echo "Poluzhenniye filom danniye: <br> ---------------------- <br><br>";
 //	foreach ($_POST as $key => $value) {
 //		echo "<strong>".$key."</strong> imeet znacheniye: <strong>".$value."</strong><br>";
@@ -62,6 +81,19 @@ else {
 	die();
 }
 }//end of action if
+
+if ($action=='a1_check') {
+    $count = 0;
+    if (file_exists($a1StorageFile)) {
+        $a1Data = json_decode(file_get_contents($a1StorageFile), true);
+        if (is_array($a1Data)) {
+            $count = count(array_filter($a1Data, function($c) { return empty($c['processed_at']); }));
+        }
+    }
+    echo $count;
+    die();
+}
+
 
 if ($action=='звонок сделан') {
     $mysqli=\bb\Db::getInstance()->getConnection();
@@ -117,12 +149,214 @@ echo '
 </form>
 ';
 
+// ══════════════════════════════════════════════════════════════════════════════
+// A1 ВАТС — пропущенные звонки
+// ══════════════════════════════════════════════════════════════════════════════
+
+$a1StatusLabels = [
+    'NOT_ANSWERED_COMMON'            => 'Нет ответа',
+    'CANCELLED_BY_CALLER'            => 'Сброшен',
+    'DENIED_DUE_TO_NOT_WORK_TIME'    => 'Вне рабочего времени',
+    'DENIED_DUE_TO_MAX_SESSION'      => 'Перегрузка',
+    'DENIED_DUE_TO_MAX_CHANNEL_LIMIT'=> 'Перегрузка каналов',
+];
+
+$a1Calls       = [];
+$a1NewCount    = 0;
+$a1LastUpdated = null;
+
+if (file_exists($a1StorageFile)) {
+    $a1LastUpdated = filemtime($a1StorageFile);
+    $a1Raw = json_decode(file_get_contents($a1StorageFile), true);
+    if (is_array($a1Raw)) {
+        // Сортировка: новые сначала
+        uasort($a1Raw, function ($a, $b) {
+            return ($b['callTimestamp'] ?? 0) - ($a['callTimestamp'] ?? 0);
+        });
+        $a1Calls    = $a1Raw;
+        $a1NewCount = count(array_filter($a1Raw, function ($c) { return empty($c['processed_at']); }));
+    }
+}
+
+// Скрывать обработанные звонки старше 10 минут
+$a1AutoHideAfter = 10 * 60;
+$a1Now           = time();
+$a1VisibleCalls  = [];
+foreach ($a1Calls as $uuid => $call) {
+    if (!empty($call['processed_at'])) {
+        $ts = (int)($call['processed_at_ts'] ?? 0);
+        if ($ts === 0 || ($a1Now - $ts) >= $a1AutoHideAfter) {
+            continue;
+        }
+    }
+    $a1VisibleCalls[$uuid] = $call;
+}
+
+// Состояние блока по умолчанию: свёрнут, если нет необработанных
+$a1DefaultCollapsed = $a1NewCount === 0 ? '1' : '0';
+
+echo '<div id="a1-calls-box" data-default-collapsed="'.$a1DefaultCollapsed.'" style="background:#f0f4fa;border:2px solid #4a90d9;border-radius:6px;padding:12px 16px;margin-bottom:18px;">';
+echo '<div style="display:flex;align-items:center;gap:12px;">';
+echo '<button type="button" id="a1-calls-toggle" aria-expanded="true" style="cursor:pointer;background:#ffc107;color:#000;border:1px solid #d39e00;border-radius:4px;font-size:14px;font-weight:bold;padding:4px 12px;line-height:1;display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(0,0,0,0.15);" title="Свернуть / развернуть"><span class="a1-toggle-arrow">▼</span><span class="a1-toggle-label">Свернуть</span></button>';
+echo '<strong style="font-size:16px;">📵 Пропущенные звонки A1 ВАТС</strong>';
+if ($a1NewCount > 0) {
+    echo '<span style="background:#dc3545;color:#fff;padding:2px 10px;border-radius:12px;font-size:13px;font-weight:bold;">'.$a1NewCount.' не обработано</span>';
+} else {
+    echo '<span style="background:#198754;color:#fff;padding:2px 10px;border-radius:12px;font-size:13px;">Все обработаны</span>';
+}
+if ($a1LastUpdated) {
+    echo '<span style="color:#666;font-size:12px;margin-left:auto;">Обновлено: '.date('d.m.Y H:i', $a1LastUpdated).'</span>';
+}
+echo '</div>';
+
+echo '<div id="a1-calls-body" style="margin-top:10px;">';
+
+if (empty($a1Calls)) {
+    echo '<p style="color:#888;font-style:italic;">Нет данных. Запустите: <code>php artisan a1:fetch-missed-calls</code></p>';
+} elseif (empty($a1VisibleCalls)) {
+    echo '<p style="color:#888;font-style:italic;">Нет новых пропущенных звонков.</p>';
+} else {
+    echo '<table border="1" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:13px;">';
+    echo '<tr style="background:#d0e4f7;">';
+    echo '<th style="width:80px;padding:5px;">Дата / Время</th>';
+    echo '<th style="padding:5px;">Номер звонящего</th>';
+    echo '<th style="padding:5px;">Статус</th>';
+    echo '<th style="padding:5px;">Клиент / Аренды</th>';
+    echo '<th style="width:120px;padding:5px;">Обработка</th>';
+    echo '</tr>';
+
+    foreach ($a1VisibleCalls as $uuid => $call) {
+        $isProcessed = !empty($call['processed_at']);
+        $processedTs = (int)($call['processed_at_ts'] ?? 0);
+        $caller      = $call['callerNumber']    ?? '—';
+        $callTs      = $call['callTimestamp']   ?? 0;
+        $status      = $call['callStatus']      ?? '';
+        $crmClient   = $call['crm_client']      ?? null;
+        $activeDeals = $call['crm_active_deals'] ?? [];
+        $lastReturn  = $call['crm_last_return']  ?? null;
+        $totalDeals  = $call['crm_total_deals']  ?? 0;
+        $statusLabel = $a1StatusLabels[$status] ?? $status;
+
+        $rowBg = $isProcessed ? '#f6fff6' : '#fff8dc';
+        $borderLeft = $isProcessed ? 'border-left:4px solid #198754;' : 'border-left:4px solid #dc3545;';
+
+        $rowAttrs = ' class="a1-call-row"';
+        if ($isProcessed && $processedTs > 0) {
+            $rowAttrs .= ' data-processed-ts="'.$processedTs.'"';
+        }
+        echo '<tr'.$rowAttrs.' style="background:'.$rowBg.';'.$borderLeft.'">';
+
+        // Дата / время
+        echo '<td style="padding:5px;text-align:center;">';
+        echo ($callTs ? date('d.m.y', $callTs).'<br>'.date('H:i', $callTs) : '—');
+        echo '</td>';
+
+        // Номер
+        echo '<td style="padding:5px;font-weight:bold;">';
+        echo htmlspecialchars($caller);
+        echo '</td>';
+
+        // Статус
+        echo '<td style="padding:5px;color:#555;">'.htmlspecialchars($statusLabel).'</td>';
+
+        // CRM-блок
+        echo '<td style="padding:5px;">';
+        if ($crmClient) {
+            echo '<strong>'.htmlspecialchars($crmClient['fio']).'</strong>';
+            if ($totalDeals > 0) {
+                echo ' <span style="color:#888;font-size:11px;">('.$totalDeals.' сд.)</span>';
+            }
+            if (!empty($activeDeals)) {
+                echo '<div style="color:#0a5c36;margin-top:3px;">';
+                foreach ($activeDeals as $deal) {
+                    echo '📦 '.htmlspecialchars($deal['model']);
+                    echo ' <span style="color:#888;">'.htmlspecialchars($deal['rented_from']).'–'.htmlspecialchars($deal['return_due']).'</span><br>';
+                }
+                echo '</div>';
+            } elseif ($lastReturn) {
+                echo '<div style="color:#888;font-size:12px;margin-top:2px;">возврат: '.$lastReturn.'</div>';
+            } else {
+                echo '<div style="color:#bbb;font-size:12px;">нет аренд</div>';
+            }
+        } else {
+            echo '<span style="color:#aaa;font-style:italic;">не в базе</span>';
+        }
+        echo '</td>';
+
+        // Кнопка
+        echo '<td style="padding:5px;text-align:center;">';
+        if ($isProcessed) {
+            echo '<span style="color:#198754;">✓</span><br>';
+            echo '<small style="color:#888;">'.htmlspecialchars($call['processed_at']).'<br>'.htmlspecialchars($call['processed_by'] ?? '').'</small>';
+        } else {
+            echo '<form method="post" action="zv_ch.php" style="margin:0;">';
+            echo '<input type="hidden" name="a1_action" value="mark_processed">';
+            echo '<input type="hidden" name="a1_uuid"   value="'.htmlspecialchars($uuid).'">';
+            echo '<input type="submit" value="Перезвонили" style="cursor:pointer;padding:3px 8px;background:#198754;color:#fff;border:none;border-radius:4px;">';
+            echo '</form>';
+        }
+        echo '</td>';
+
+        echo '</tr>';
+    }
+    echo '</table>';
+}
+echo '</div>'; // #a1-calls-body
+echo '</div>'; // #a1-calls-box
+
+echo '<script>
+(function(){
+  var box    = document.getElementById("a1-calls-box");
+  if (!box) return;
+  var body   = document.getElementById("a1-calls-body");
+  var btn    = document.getElementById("a1-calls-toggle");
+  var arrow  = btn.querySelector(".a1-toggle-arrow");
+  var label  = btn.querySelector(".a1-toggle-label");
+  var KEY    = "a1_calls_collapsed";
+  var stored = localStorage.getItem(KEY);
+  var collapsed = stored === null
+    ? (box.dataset.defaultCollapsed === "1")
+    : (stored === "1");
+
+  function apply() {
+    body.style.display = collapsed ? "none" : "";
+    arrow.textContent  = collapsed ? "▶" : "▼";
+    label.textContent  = collapsed ? "Развернуть" : "Свернуть";
+    btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  }
+  apply();
+
+  btn.addEventListener("click", function(){
+    collapsed = !collapsed;
+    localStorage.setItem(KEY, collapsed ? "1" : "0");
+    apply();
+  });
+
+  // Авто-скрытие обработанных строк через 10 минут после отметки
+  var TTL = 10 * 60 * 1000;
+  document.querySelectorAll(".a1-call-row[data-processed-ts]").forEach(function(row){
+    var ts = parseInt(row.dataset.processedTs, 10) * 1000;
+    if (!ts) return;
+    var remaining = ts + TTL - Date.now();
+    if (remaining <= 0) {
+      row.remove();
+    } else {
+      setTimeout(function(){ row.remove(); }, remaining);
+    }
+  });
+})();
+</script>';
+
+// ══════════════════════════════════════════════════════════════════════════════
+
+
 if ($action=='показать только примерки') {
 	//echo '1';
 	$pr_today=time()-24*60*60;
 	$query_zv = "SELECT * FROM zvonki WHERE tema='примерка' AND pr_time > $pr_today ORDER BY `pr_time`";
 	$result_zv = $mysqli->query($query_zv);
 	if (!$result_zv) die('Сбой при доступе к базе данных: '.$query_zv.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
+
 
 }
 else {
