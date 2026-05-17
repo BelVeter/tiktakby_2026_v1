@@ -1353,4 +1353,31 @@ require_once ($_SERVER[\'DOCUMENT_ROOT\'].\'/' . $addr . '\'); // включае
         return $strResult;
     }
 
+    /**
+     * +375 (29) 564-66-99 / +7 (903) 123-45-67 — для отображения телефонов.
+     * Если формат не распознан — возвращает исходную строку.
+     */
+    public static function formatPhone($raw): string
+    {
+        $raw = (string)$raw;
+        $digits = preg_replace('/\D+/', '', $raw);
+        $len = strlen($digits);
+
+        if ($len === 12 && strpos($digits, '375') === 0) {
+            return '+375 (' . substr($digits, 3, 2) . ') '
+                . substr($digits, 5, 3) . '-'
+                . substr($digits, 8, 2) . '-'
+                . substr($digits, 10, 2);
+        }
+
+        if ($len === 11 && ($digits[0] === '7' || $digits[0] === '8')) {
+            return '+7 (' . substr($digits, 1, 3) . ') '
+                . substr($digits, 4, 3) . '-'
+                . substr($digits, 7, 2) . '-'
+                . substr($digits, 9, 2);
+        }
+
+        return $raw;
+    }
+
 }
