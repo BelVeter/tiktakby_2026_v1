@@ -16,6 +16,19 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('sitemap:generate')->weekly();
+
+        // A1 ВАТС: пропущенные звонки
+        // В рабочее время (9:00-19:00) — каждые 10 минут (период выборки 15 мин с перекрытием)
+        $schedule->command('a1:fetch-missed-calls', ['--period' => 15])
+            ->everyTenMinutes()
+            ->between('9:00', '19:00')
+            ->withoutOverlapping();
+
+        // Вне рабочего времени — раз в час
+        $schedule->command('a1:fetch-missed-calls', ['--period' => 70])
+            ->hourly()
+            ->unlessBetween('9:00', '19:00')
+            ->withoutOverlapping();
     }
 
     /**

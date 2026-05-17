@@ -67,6 +67,31 @@ function zv_check () {
         mainDiv.appendChild(rezDiv);
       });
 
+  // A1 ВАТС: проверка пропущенных необработанных звонков
+  var a1Http = getXmlHttp();
+  a1Http.open("POST", '/bb/zv_ch.php', true);
+  a1Http.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  a1Http.send('&action=a1_check');
+  a1Http.onreadystatechange = function() {
+    if (a1Http.readyState == 4 && a1Http.status == 200) {
+      var a1Count = parseInt(a1Http.responseText, 10);
+      var a1Div = document.getElementById('a1_zv_div');
+      if (!a1Div) {
+        a1Div = document.createElement('div');
+        a1Div.id = 'a1_zv_div';
+        a1Div.className = 'col-12 h2 text-center';
+        a1Div.style.cssText = 'background:#dc3545;color:#fff;padding:8px 0;';
+        mainDiv.appendChild(a1Div);
+      }
+      if (a1Count >= 1) {
+        a1Div.style.display = '';
+        a1Div.innerHTML = '📵 Пропущенные A1: ' + a1Count + ' шт. <a href="/bb/zv_ch.php" class="btn btn-lg btn-light" style="margin-left:20px;color:#dc3545;">Перейти к звонкам</a>';
+      } else {
+        a1Div.style.display = 'none';
+      }
+    }
+  };
+
 }// end of zv_ch
 
 zv_check();
