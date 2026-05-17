@@ -180,7 +180,7 @@ echo \bb\Base::pageStartB5('A1 ВАТС — Пропущенные звонки'
         <div class="flex-grow-1">
           <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
             <span class="a1-phone">
-              📲 <?= htmlspecialchars($caller) ?>
+              📲 <?= htmlspecialchars(\bb\Base::formatPhone($caller)) ?>
             </span>
             <span class="badge <?= $statusInfo['class'] ?> badge-status">
               <?= htmlspecialchars($statusInfo['label']) ?>
@@ -191,7 +191,7 @@ echo \bb\Base::pageStartB5('A1 ВАТС — Пропущенные звонки'
           </div>
 
           <div class="text-muted small">
-            Назначение: <?= htmlspecialchars($callee) ?>
+            Назначение: <?= htmlspecialchars(\bb\Base::formatPhone($callee)) ?>
           </div>
 
           <!-- CRM-блок -->

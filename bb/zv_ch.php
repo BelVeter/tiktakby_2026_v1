@@ -256,7 +256,7 @@ if (!$a1FileExists) {
 
         // Номер
         echo '<td style="padding:5px;font-weight:bold;">';
-        echo htmlspecialchars($caller);
+        echo htmlspecialchars(\bb\Base::formatPhone($caller));
         echo '</td>';
 
         // Статус
