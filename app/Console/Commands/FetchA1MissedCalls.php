@@ -54,9 +54,21 @@ class FetchA1MissedCalls extends Command
         $end   = time();
         $start = $end - ($periodMinutes * 60);
 
-        // 3. Получить CDR
+        // 3. Получить CDR. При 401/403 (токен инвалидирован — например, параллельным логином)
+        // сбрасываем сохранённые токены, форсируем полную re-auth и пробуем ещё раз.
         try {
             $records = $this->fetchCdr($accessToken, $companyId, $start, $end);
+
+            if ($records === null) {
+                Log::warning('A1 MissedCalls: токен отклонён (401/403), форсируем re-auth');
+                $this->forgetTokens();
+                $accessToken = $this->getAccessToken($companyId, $apiKey);
+                $records = $this->fetchCdr($accessToken, $companyId, $start, $end);
+            }
+
+            if ($records === null) {
+                throw new \RuntimeException('CDR: токен отклонён даже после re-auth (401/403)');
+            }
         } catch (\Exception $e) {
             Log::error('A1 MissedCalls: ошибка CDR — ' . $e->getMessage());
             $this->error('A1: ошибка CDR: ' . $e->getMessage());
@@ -158,8 +170,8 @@ class FetchA1MissedCalls extends Command
             'Authorization' => 'Bearer ' . $refreshToken,
         ])->put(self::BASE_URL . '/auth/tokens');
 
-        if ($response->status() === 403) {
-            throw new \RuntimeException('refresh_token отклонён (403)');
+        if (in_array($response->status(), [401, 403], true)) {
+            throw new \RuntimeException('refresh_token отклонён (HTTP ' . $response->status() . ')');
         }
 
         if (!$response->successful()) {
@@ -176,7 +188,7 @@ class FetchA1MissedCalls extends Command
     // CDR
     // ─────────────────────────────────────────────────────────────
 
-    private function fetchCdr(string $accessToken, string $companyId, int $start, int $end): array
+    private function fetchCdr(string $accessToken, string $companyId, int $start, int $end): ?array
     {
         // ⚠️ Заголовок называется Authentication, а НЕ Authorization. Без Bearer.
         $response = Http::withHeaders([
@@ -186,6 +198,12 @@ class FetchA1MissedCalls extends Command
             'start'      => $start,
             'end'        => $end,
         ]);
+
+        // Токен инвалидирован (например, параллельным логином в другом приложении).
+        // Возвращаем null — вызывающий код сделает re-auth и повторит.
+        if (in_array($response->status(), [401, 403], true)) {
+            return null;
+        }
 
         if ($response->status() === 429) {
             throw new \RuntimeException('Rate limit A1 API (429)');
@@ -343,6 +361,11 @@ class FetchA1MissedCalls extends Command
         }
         $data = json_decode(file_get_contents($path), true);
         return is_array($data) ? $data : [];
+    }
+
+    private function forgetTokens(): void
+    {
+        @unlink($this->tokensPath());
     }
 
     private function saveTokens(array $data): void
