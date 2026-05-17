@@ -27,8 +27,9 @@ if (isset($_POST['a1_action']) && $_POST['a1_action'] === 'mark_processed') {
     if ($uuid && file_exists($a1StorageFile)) {
         $a1Data = json_decode(file_get_contents($a1StorageFile), true);
         if (is_array($a1Data) && isset($a1Data[$uuid])) {
-            $a1Data[$uuid]['processed_at'] = date('d.m.Y H:i');
-            $a1Data[$uuid]['processed_by'] = $_SESSION['user_fio'] ?? 'unknown';
+            $a1Data[$uuid]['processed_at']    = date('d.m.Y H:i');
+            $a1Data[$uuid]['processed_at_ts'] = time();
+            $a1Data[$uuid]['processed_by']    = $_SESSION['user_fio'] ?? 'unknown';
             file_put_contents($a1StorageFile, json_encode($a1Data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
             @chmod($a1StorageFile, 0666); // сохранить права для Apache после записи artisan-командой
         }
@@ -177,8 +178,26 @@ if (file_exists($a1StorageFile)) {
     }
 }
 
-echo '<div style="background:#f0f4fa;border:2px solid #4a90d9;border-radius:6px;padding:12px 16px;margin-bottom:18px;">';
-echo '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">';
+// Скрывать обработанные звонки старше 10 минут
+$a1AutoHideAfter = 10 * 60;
+$a1Now           = time();
+$a1VisibleCalls  = [];
+foreach ($a1Calls as $uuid => $call) {
+    if (!empty($call['processed_at'])) {
+        $ts = (int)($call['processed_at_ts'] ?? 0);
+        if ($ts === 0 || ($a1Now - $ts) >= $a1AutoHideAfter) {
+            continue;
+        }
+    }
+    $a1VisibleCalls[$uuid] = $call;
+}
+
+// Состояние блока по умолчанию: свёрнут, если нет необработанных
+$a1DefaultCollapsed = $a1NewCount === 0 ? '1' : '0';
+
+echo '<div id="a1-calls-box" data-default-collapsed="'.$a1DefaultCollapsed.'" style="background:#f0f4fa;border:2px solid #4a90d9;border-radius:6px;padding:12px 16px;margin-bottom:18px;">';
+echo '<div style="display:flex;align-items:center;gap:12px;">';
+echo '<button type="button" id="a1-calls-toggle" aria-expanded="true" style="cursor:pointer;background:#ffc107;color:#000;border:1px solid #d39e00;border-radius:4px;font-size:14px;font-weight:bold;padding:4px 12px;line-height:1;display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(0,0,0,0.15);" title="Свернуть / развернуть"><span class="a1-toggle-arrow">▼</span><span class="a1-toggle-label">Свернуть</span></button>';
 echo '<strong style="font-size:16px;">📵 Пропущенные звонки A1 ВАТС</strong>';
 if ($a1NewCount > 0) {
     echo '<span style="background:#dc3545;color:#fff;padding:2px 10px;border-radius:12px;font-size:13px;font-weight:bold;">'.$a1NewCount.' не обработано</span>';
@@ -190,8 +209,12 @@ if ($a1LastUpdated) {
 }
 echo '</div>';
 
+echo '<div id="a1-calls-body" style="margin-top:10px;">';
+
 if (empty($a1Calls)) {
     echo '<p style="color:#888;font-style:italic;">Нет данных. Запустите: <code>php artisan a1:fetch-missed-calls</code></p>';
+} elseif (empty($a1VisibleCalls)) {
+    echo '<p style="color:#888;font-style:italic;">Нет новых пропущенных звонков.</p>';
 } else {
     echo '<table border="1" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:13px;">';
     echo '<tr style="background:#d0e4f7;">';
@@ -202,8 +225,9 @@ if (empty($a1Calls)) {
     echo '<th style="width:120px;padding:5px;">Обработка</th>';
     echo '</tr>';
 
-    foreach ($a1Calls as $uuid => $call) {
+    foreach ($a1VisibleCalls as $uuid => $call) {
         $isProcessed = !empty($call['processed_at']);
+        $processedTs = (int)($call['processed_at_ts'] ?? 0);
         $caller      = $call['callerNumber']    ?? '—';
         $callTs      = $call['callTimestamp']   ?? 0;
         $status      = $call['callStatus']      ?? '';
@@ -216,7 +240,11 @@ if (empty($a1Calls)) {
         $rowBg = $isProcessed ? '#f6fff6' : '#fff8dc';
         $borderLeft = $isProcessed ? 'border-left:4px solid #198754;' : 'border-left:4px solid #dc3545;';
 
-        echo '<tr style="background:'.$rowBg.';'.$borderLeft.'">';
+        $rowAttrs = ' class="a1-call-row"';
+        if ($isProcessed && $processedTs > 0) {
+            $rowAttrs .= ' data-processed-ts="'.$processedTs.'"';
+        }
+        echo '<tr'.$rowAttrs.' style="background:'.$rowBg.';'.$borderLeft.'">';
 
         // Дата / время
         echo '<td style="padding:5px;text-align:center;">';
@@ -273,7 +301,51 @@ if (empty($a1Calls)) {
     }
     echo '</table>';
 }
-echo '</div>';
+echo '</div>'; // #a1-calls-body
+echo '</div>'; // #a1-calls-box
+
+echo '<script>
+(function(){
+  var box    = document.getElementById("a1-calls-box");
+  if (!box) return;
+  var body   = document.getElementById("a1-calls-body");
+  var btn    = document.getElementById("a1-calls-toggle");
+  var arrow  = btn.querySelector(".a1-toggle-arrow");
+  var label  = btn.querySelector(".a1-toggle-label");
+  var KEY    = "a1_calls_collapsed";
+  var stored = localStorage.getItem(KEY);
+  var collapsed = stored === null
+    ? (box.dataset.defaultCollapsed === "1")
+    : (stored === "1");
+
+  function apply() {
+    body.style.display = collapsed ? "none" : "";
+    arrow.textContent  = collapsed ? "▶" : "▼";
+    label.textContent  = collapsed ? "Развернуть" : "Свернуть";
+    btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  }
+  apply();
+
+  btn.addEventListener("click", function(){
+    collapsed = !collapsed;
+    localStorage.setItem(KEY, collapsed ? "1" : "0");
+    apply();
+  });
+
+  // Авто-скрытие обработанных строк через 10 минут после отметки
+  var TTL = 10 * 60 * 1000;
+  document.querySelectorAll(".a1-call-row[data-processed-ts]").forEach(function(row){
+    var ts = parseInt(row.dataset.processedTs, 10) * 1000;
+    if (!ts) return;
+    var remaining = ts + TTL - Date.now();
+    if (remaining <= 0) {
+      row.remove();
+    } else {
+      setTimeout(function(){ row.remove(); }, remaining);
+    }
+  });
+})();
+</script>';
 
 // ══════════════════════════════════════════════════════════════════════════════
 
