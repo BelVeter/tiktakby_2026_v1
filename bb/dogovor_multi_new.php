@@ -10,10 +10,105 @@ if ($_SESSION['svoi'] != 8941) {
 
 $mysqli = \bb\Db::getInstance()->getConnection();
 
-// ── POST handler placeholder (filled in Task 7) ───────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save') {
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['status' => 'not_implemented']);
+
+    $client_id   = intval($_POST['client_id'] ?? 0);
+    $inv_ns      = array_map('intval',   $_POST['inv_n']       ?? []);
+    $start_dates = array_map('strval',   $_POST['start_date']  ?? []);
+    $ret_dates   = array_map('strval',   $_POST['return_date'] ?? []);
+    $tarif_ids   = array_map('intval',   $_POST['tarif_id']    ?? []);
+    $tarif_steps = array_map('strval',   $_POST['tarif_step']  ?? []);
+    $tarif_vals  = array_map('floatval', $_POST['tarif_value'] ?? []);
+    $r_to_pays   = array_map('floatval', $_POST['r_to_pay']    ?? []);
+    $pay_amounts = array_map('floatval', $_POST['pay_amount']  ?? []);
+    $pay_type    = preg_replace('/[^a-z_]/', '', $_POST['pay_type'] ?? '');
+
+    $n = count($inv_ns);
+    if ($client_id <= 0 || $n < 1) {
+        echo json_encode(['status' => 'error', 'msg' => 'invalid input']);
+        exit;
+    }
+
+    $rc = $mysqli->query("SELECT client_id FROM clients WHERE client_id = $client_id");
+    if (!$rc || $rc->num_rows === 0) {
+        echo json_encode(['status' => 'error', 'msg' => 'client not found']);
+        exit;
+    }
+
+    for ($i = 0; $i < $n; $i++) {
+        $inv = $inv_ns[$i];
+        $rr = $mysqli->query("SELECT status, br_time FROM tovar_rent_items WHERE item_inv_n = $inv");
+        if (!$rr || $rr->num_rows === 0) {
+            echo json_encode(['status' => 'error', 'msg' => "item $inv not found"]);
+            exit;
+        }
+        $it = $rr->fetch_assoc();
+        $ok = ($it['status'] === 'to_rent')
+           || (in_array($it['status'], ['bron', 't_bron']) && $it['br_time'] < time());
+        if (!$ok) {
+            echo json_encode(['status' => 'error', 'msg' => "item $inv not available: {$it['status']}"]);
+            exit;
+        }
+    }
+
+    $office  = intval($_SESSION['office']);
+    $user_id = intval($_SESSION['user_id']);
+    $now     = time();
+    $created_deals = [];
+
+    for ($i = 0; $i < $n; $i++) {
+        $inv      = $inv_ns[$i];
+        $start_ts = strtotime($start_dates[$i] . ' 00:00:00');
+        $ret_ts   = strtotime($ret_dates[$i]   . ' 23:59:00');
+        $rtp      = number_format($r_to_pays[$i], 2, '.', '');
+        $tid      = $tarif_ids[$i];
+        $tstep    = $mysqli->real_escape_string($tarif_steps[$i]);
+        $tval     = number_format($tarif_vals[$i], 2, '.', '');
+        $days     = max(1, intval(round(($ret_ts - $start_ts) / 86400)));
+        $pay_a    = number_format($pay_amounts[$i] ?? 0, 2, '.', '');
+
+        $ri = $mysqli->query("SELECT item_set, item_place FROM tovar_rent_items WHERE item_inv_n = $inv");
+        $itRow     = $ri->fetch_assoc();
+        $deal_set  = $mysqli->real_escape_string($itRow['item_set'] ?? '');
+        $sub_place = intval($itRow['item_place'] ?? $office);
+
+        $mysqli->query("INSERT INTO rent_deals_act VALUES(
+            '', '$client_id', '$inv', '$start_ts', '$ret_ts',
+            '0', '0.00', '0.00', '$rtp', '0.00',
+            '0.00', 'BYN', 'active', '',
+            '$user_id', '$user_id', '$now', '$now', '$start_ts',
+            '$deal_set', '$sub_place')");
+        $deal_id = $mysqli->insert_id;
+
+        $mysqli->query("INSERT INTO rent_sub_deals_act VALUES(
+            '', '$deal_id', 'first_rent', '10',
+            '$start_ts', '$ret_ts',
+            '$tid', '$tstep', '$tval', '$days', '$rtp',
+            '0', '0.00', '0',
+            '', '', '', '', 'active', '',
+            '$now', '$user_id', '', '', '', '$start_ts', '$sub_place',
+            '', '', '', '')");
+        $sub_id = $mysqli->insert_id;
+
+        if (($pay_amounts[$i] ?? 0) > 0) {
+            $pt = $mysqli->real_escape_string($pay_type);
+            $mysqli->query("INSERT INTO rent_sub_deals_act VALUES(
+                '', '$deal_id', 'payment', '30',
+                '$start_ts', '', '', '', '', '', '',
+                '0', '0.00', '0',
+                '$pay_a', '0.00', '$pt', '', 'pure_payment', '',
+                '$now', '$user_id', '', '', '$sub_id', '$start_ts', '$sub_place',
+                '', '', '', '')");
+            $mysqli->query("UPDATE rent_deals_act SET r_paid = '$pay_a' WHERE deal_id = '$deal_id'");
+        }
+
+        $mysqli->query("UPDATE tovar_rent_items SET status = 'rented', active_deal_id = '$deal_id' WHERE item_inv_n = $inv");
+
+        $created_deals[] = $deal_id;
+    }
+
+    echo json_encode(['status' => 'ok', 'deal_ids' => $created_deals]);
     exit;
 }
 
@@ -427,7 +522,63 @@ function updatePayDiff() {
     diffEl.className   = (diff === 0) ? 'exact' : (diff > 0 ? 'over' : 'under');
 }
 
-function submitForm() { /* Task 7 */ alert('Save not yet implemented'); }
+function submitForm() {
+    var clientId = document.getElementById('client_id').value;
+    if (!clientId) { alert('Выберите клиента'); return; }
+
+    var rows = document.getElementById('items-tbody').querySelectorAll('tr');
+    if (rows.length === 0) { alert('Добавьте хотя бы один товар'); return; }
+
+    var data = new URLSearchParams();
+    data.append('action', 'save');
+    data.append('client_id', clientId);
+    data.append('pay_type', document.getElementById('pay-type').value);
+
+    var ok = true;
+    rows.forEach(function(tr) {
+        var id    = tr.id.replace('row-', '');
+        var inv   = (document.getElementById('inv_n_' + id)      || {}).value || '';
+        var start = (document.getElementById('start_date_' + id)  || {}).value || '';
+        var ret   = (document.getElementById('return_date_' + id) || {}).value || '';
+        var tid   = (document.getElementById('tarif_id_' + id)    || {}).value || '';
+        var tstep = (document.getElementById('tarif_step_' + id)  || {}).value || '';
+        var tval  = (document.getElementById('tarif_value_' + id) || {}).value || '0';
+        var rtp   = parseFloat((document.getElementById('r_to_pay_' + id) || {}).textContent) || 0;
+        var payA  = parseFloat((document.getElementById('pay_amount_' + id) || {}).value) || 0;
+
+        if (!inv || !start || !ret || !tid) { ok = false; return; }
+
+        data.append('inv_n[]',       inv);
+        data.append('start_date[]',  start);
+        data.append('return_date[]', ret);
+        data.append('tarif_id[]',    tid);
+        data.append('tarif_step[]',  tstep);
+        data.append('tarif_value[]', tval);
+        data.append('r_to_pay[]',    rtp.toFixed(2));
+        data.append('pay_amount[]',  payA.toFixed(2));
+    });
+
+    if (!ok) { alert('Заполните инв. №, даты выдачи и возврата для каждого товара'); return; }
+
+    var btn = document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.textContent = 'Сохраняется…';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/bb/dogovor_multi_new.php', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        btn.disabled = false;
+        btn.textContent = 'Сохранить и распечатать';
+        if (xhr.status !== 200) { alert('Ошибка сервера'); return; }
+        var resp;
+        try { resp = JSON.parse(xhr.responseText); } catch(e) { alert('Ответ сервера не распознан'); return; }
+        if (resp.status !== 'ok') { alert('Ошибка: ' + (resp.msg || resp.status)); return; }
+        window.location.href = '/bb/dogovor_multi_new.php?print=1&ids=' + resp.deal_ids.join(',');
+    };
+    xhr.send(data.toString());
+}
 </script>
 
 <?php if ($prefill_client): ?>
