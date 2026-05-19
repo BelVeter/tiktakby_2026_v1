@@ -19,14 +19,13 @@ if ($inv_n <= 0) {
 
 $mysqli = \bb\Db::getInstance()->getConnection();
 
-$inv_n_safe = $mysqli->real_escape_string($inv_n);
 $q = "SELECT i.item_inv_n, i.model_id, i.item_set, i.item_place, i.status, i.br_time,
              m.model, m.agr_price, m.agr_price_cur, m.model_addr, m.producer,
              c.dog_name
       FROM tovar_rent_items i
       JOIN tovar_rent m ON m.tovar_rent_id = i.model_id
       JOIN tovar_rent_cat c ON c.tovar_rent_cat_id = m.tovar_rent_cat_id
-      WHERE i.item_inv_n = '$inv_n_safe'";
+      WHERE i.item_inv_n = $inv_n";
 
 $res = $mysqli->query($q);
 if (!$res || $res->num_rows === 0) {
@@ -45,9 +44,13 @@ if (!$available) {
 $model_id = intval($item['model_id']);
 $q_t = "SELECT tarif_id, step, kol_vo, kol_vo_min, rent_amount, rent_per_step, sort_num
         FROM rent_tarif_act
-        WHERE model_id = '$model_id'
+        WHERE model_id = $model_id
         ORDER BY sort_num, kol_vo";
 $res_t = $mysqli->query($q_t);
+if (!$res_t) {
+    echo json_encode(['status' => 'error', 'msg' => 'tarif query failed']);
+    exit;
+}
 
 $tarifs = [];
 while ($t = $res_t->fetch_assoc()) {
@@ -59,7 +62,7 @@ while ($t = $res_t->fetch_assoc()) {
         'rent_amount'   => (float)$t['rent_amount'],
         'rent_per_step' => (float)$t['rent_per_step'],
         'sort_num'      => (int)$t['sort_num'],
-        'days'          => (int)$t['sort_num'] * (int)$t['kol_vo'],
+        'days'          => $t['sort_num'] * $t['kol_vo'],
     ];
 }
 
