@@ -20,19 +20,20 @@ $action='';
 $limit=50;
 $message='';
 
-// ── A1 ВАТС: обработка отметки "перезвонили" ─────────────────────────────────
-$a1StorageFile = $_SERVER['DOCUMENT_ROOT'] . '/storage/app/a1_missed_calls.json';
-if (isset($_POST['a1_action']) && $_POST['a1_action'] === 'mark_processed') {
-    $uuid = trim($_POST['a1_uuid'] ?? '');
-    if ($uuid && file_exists($a1StorageFile)) {
-        $a1Data = json_decode(file_get_contents($a1StorageFile), true);
-        if (is_array($a1Data) && isset($a1Data[$uuid])) {
-            $a1Data[$uuid]['processed_at']    = date('d.m.Y H:i');
-            $a1Data[$uuid]['processed_at_ts'] = time();
-            $a1Data[$uuid]['processed_by']    = $_SESSION['user_fio'] ?? 'unknown';
-            file_put_contents($a1StorageFile, json_encode($a1Data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-            @chmod($a1StorageFile, 0666); // сохранить права для Apache после записи artisan-командой
-        }
+// ── A1 ВАТС: обработка действий ──────────────────────────────────────────────
+if (isset($_POST['a1_action']) && in_array($_POST['a1_action'], ['called_back', 'false_call'], true)) {
+    $a1Db    = \bb\Db::getInstance()->getConnection();
+    $a1Id    = (int)($_POST['a1_id'] ?? 0);
+    $a1Type  = $_POST['a1_action'];
+    $a1Fio   = $_SESSION['user_fio'] ?? 'unknown';
+    $a1Uid   = (int)($_SESSION['user_id'] ?? 0);
+    if ($a1Id > 0) {
+        $a1Stmt = $a1Db->prepare(
+            "UPDATE a1_missed_calls SET action_type=?, action_user_id=?, action_user_name=?, action_at=NOW() WHERE id=? AND action_type='none'"
+        );
+        $a1Stmt->bind_param('ssis', $a1Type, $a1Uid, $a1Fio, $a1Id);
+        $a1Stmt->execute();
+        $a1Stmt->close();
     }
     header('Location: /bb/zv_ch.php');
     exit;
@@ -83,13 +84,9 @@ else {
 }//end of action if
 
 if ($action=='a1_check') {
-    $count = 0;
-    if (file_exists($a1StorageFile)) {
-        $a1Data = json_decode(file_get_contents($a1StorageFile), true);
-        if (is_array($a1Data)) {
-            $count = count(array_filter($a1Data, function($c) { return empty($c['processed_at']); }));
-        }
-    }
+    $a1DbCheck = \bb\Db::getInstance()->getConnection();
+    $a1ChkRes  = $a1DbCheck->query("SELECT COUNT(*) as n FROM a1_missed_calls WHERE action_type='none'");
+    $count = $a1ChkRes ? (int)$a1ChkRes->fetch_assoc()['n'] : 0;
     echo $count;
     die();
 }
@@ -150,50 +147,84 @@ echo '
 ';
 
 // ══════════════════════════════════════════════════════════════════════════════
-// A1 ВАТС — пропущенные звонки
+// A1 ВАТС — пропущенные звонки (MySQL)
 // ══════════════════════════════════════════════════════════════════════════════
 
 $a1StatusLabels = [
-    'NOT_ANSWERED_COMMON'            => 'Нет ответа',
-    'CANCELLED_BY_CALLER'            => 'Сброшен',
-    'DENIED_DUE_TO_NOT_WORK_TIME'    => 'Вне рабочего времени',
-    'DENIED_DUE_TO_MAX_SESSION'      => 'Перегрузка',
-    'DENIED_DUE_TO_MAX_CHANNEL_LIMIT'=> 'Перегрузка каналов',
+    'NOT_ANSWERED_COMMON'             => 'Нет ответа',
+    'CANCELLED_BY_CALLER'             => 'Сброшен',
+    'DENIED_DUE_TO_NOT_WORK_TIME'     => 'Вне рабочего времени',
+    'DENIED_DUE_TO_MAX_SESSION'       => 'Перегрузка',
+    'DENIED_DUE_TO_MAX_CHANNEL_LIMIT' => 'Перегрузка каналов',
 ];
 
-$a1Calls       = [];
-$a1NewCount    = 0;
+$a1Db2       = \bb\Db::getInstance()->getConnection();
+$a1CurUser   = \bb\models\User::getCurrentUser();
+$a1IsDima    = $a1CurUser && $a1CurUser->isDima();
+
+// Статистика для Димы
+$a1DimaStats = null;
+if ($a1IsDima) {
+    $a1StDate  = date('Y-m-d');
+    $a1StRow   = $a1Db2->query(
+        "SELECT COUNT(*) AS total, SUM(action_type='called_back') AS called_back,
+                SUM(action_type='false_call') AS false_call, SUM(action_type='none') AS pending
+         FROM a1_missed_calls WHERE DATE(FROM_UNIXTIME(call_timestamp))='$a1StDate'"
+    );
+    $a1ApiRow  = $a1Db2->query(
+        "SELECT COUNT(*) AS total_fetches, SUM(status='success') AS ok, SUM(status='error') AS errors
+         FROM a1_api_fetch_log WHERE DATE(fetched_at)='$a1StDate'"
+    );
+    $a1LastErr = null;
+    $a1ErrRes  = $a1Db2->query(
+        "SELECT error_message, fetched_at FROM a1_api_fetch_log
+         WHERE DATE(fetched_at)='$a1StDate' AND status='error' ORDER BY fetched_at DESC LIMIT 1"
+    );
+    if ($a1ErrRes && ($a1ErrRow = $a1ErrRes->fetch_assoc())) {
+        $a1LastErr = $a1ErrRow;
+    }
+    if ($a1StRow && $a1ApiRow) {
+        $st = $a1StRow->fetch_assoc();
+        $ap = $a1ApiRow->fetch_assoc();
+        $a1DimaStats = [
+            'total'       => (int)$st['total'],
+            'called_back' => (int)$st['called_back'],
+            'false_call'  => (int)$st['false_call'],
+            'pending'     => (int)$st['pending'],
+            'api_total'   => (int)$ap['total_fetches'],
+            'api_ok'      => (int)$ap['ok'],
+            'api_errors'  => (int)$ap['errors'],
+            'last_error'  => $a1LastErr,
+        ];
+    }
+}
+
+// Считаем необработанные
+$a1NewCount = 0;
+$a1NcRes = $a1Db2->query("SELECT COUNT(*) as n FROM a1_missed_calls WHERE action_type='none'");
+if ($a1NcRes) $a1NewCount = (int)$a1NcRes->fetch_assoc()['n'];
+
+// Загружаем: необработанные + обработанные за последние 10 минут
+$a1VisibleRes = $a1Db2->query(
+    "SELECT * FROM a1_missed_calls
+     WHERE action_type = 'none'
+        OR (action_type != 'none' AND action_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))
+     ORDER BY call_timestamp DESC
+     LIMIT 100"
+);
+$a1VisibleCalls = [];
+while ($a1Row = $a1VisibleRes->fetch_assoc()) {
+    $a1Row['crm_active_deals'] = json_decode($a1Row['crm_active_deals'] ?? '[]', true) ?: [];
+    $a1VisibleCalls[] = $a1Row;
+}
+
+// Последнее обновление = последний добавленный звонок
 $a1LastUpdated = null;
-$a1FileExists  = file_exists($a1StorageFile);
-
-if ($a1FileExists) {
-    $a1LastUpdated = filemtime($a1StorageFile);
-    $a1Raw = json_decode(file_get_contents($a1StorageFile), true);
-    if (is_array($a1Raw)) {
-        // Сортировка: новые сначала
-        uasort($a1Raw, function ($a, $b) {
-            return ($b['callTimestamp'] ?? 0) - ($a['callTimestamp'] ?? 0);
-        });
-        $a1Calls    = $a1Raw;
-        $a1NewCount = count(array_filter($a1Raw, function ($c) { return empty($c['processed_at']); }));
-    }
+$a1LuRes = $a1Db2->query("SELECT MAX(created_at) as lu FROM a1_missed_calls");
+if ($a1LuRow = $a1LuRes->fetch_assoc()) {
+    $a1LastUpdated = $a1LuRow['lu'] ? strtotime($a1LuRow['lu']) : null;
 }
 
-// Скрывать обработанные звонки старше 10 минут
-$a1AutoHideAfter = 10 * 60;
-$a1Now           = time();
-$a1VisibleCalls  = [];
-foreach ($a1Calls as $uuid => $call) {
-    if (!empty($call['processed_at'])) {
-        $ts = (int)($call['processed_at_ts'] ?? 0);
-        if ($ts === 0 || ($a1Now - $ts) >= $a1AutoHideAfter) {
-            continue;
-        }
-    }
-    $a1VisibleCalls[$uuid] = $call;
-}
-
-// Состояние блока по умолчанию: свёрнут, если нет необработанных
 $a1DefaultCollapsed = $a1NewCount === 0 ? '1' : '0';
 
 echo '<div id="a1-calls-box" data-default-collapsed="'.$a1DefaultCollapsed.'" style="background:#f0f4fa;border:2px solid #4a90d9;border-radius:6px;padding:12px 16px;margin-bottom:18px;">';
@@ -210,13 +241,40 @@ if ($a1LastUpdated) {
 }
 echo '</div>';
 
+// Статистика для Димы
+if ($a1IsDima && $a1DimaStats) {
+    $ds = $a1DimaStats;
+    echo '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 14px;margin-top:10px;font-size:13px;">';
+    echo '<strong>📊 Сегодня ('.date('d.m').'):</strong>&nbsp;&nbsp;';
+    echo 'всего <strong>'.$ds['total'].'</strong>&nbsp;&nbsp;';
+    echo '<span style="color:#198754;">✓ перезвонили: <strong>'.$ds['called_back'].'</strong></span>&nbsp;&nbsp;';
+    echo '<span style="color:#6c757d;">🚫 ложных: <strong>'.$ds['false_call'].'</strong></span>&nbsp;&nbsp;';
+    if ($ds['pending'] > 0) {
+        echo '<span style="color:#dc3545;">⏳ не обработано: <strong>'.$ds['pending'].'</strong></span>&nbsp;&nbsp;';
+    }
+    echo '&nbsp;|&nbsp;&nbsp;';
+    if ($ds['api_total'] === 0) {
+        echo '<span style="color:#888;">API: нет данных</span>';
+    } else {
+        echo 'API: '.$ds['api_total'].' запросов&nbsp;';
+        echo '<span style="color:#198754;">✓'.$ds['api_ok'].'</span>&nbsp;';
+        if ($ds['api_errors'] > 0) {
+            echo '<span style="color:#dc3545;">✗'.$ds['api_errors'].'</span>';
+            if ($ds['last_error']) {
+                $errTime = substr($ds['last_error']['fetched_at'], 11, 5);
+                $errMsg  = mb_substr($ds['last_error']['error_message'] ?? '', 0, 80);
+                echo ' <span style="color:#dc3545;font-size:11px;">('.$errTime.': '.htmlspecialchars($errMsg).')</span>';
+            }
+        } else {
+            echo '<span style="color:#198754;"> — всё OK</span>';
+        }
+    }
+    echo '</div>';
+}
+
 echo '<div id="a1-calls-body" style="margin-top:10px;">';
 
-if (!$a1FileExists) {
-    echo '<p style="color:#888;font-style:italic;">Нет данных. Запустите: <code>php artisan a1:fetch-missed-calls</code></p>';
-} elseif (empty($a1Calls)) {
-    echo '<p style="color:#198754;font-style:italic;">Пропущенных звонков нет — всё чисто.</p>';
-} elseif (empty($a1VisibleCalls)) {
+if (empty($a1VisibleCalls)) {
     echo '<p style="color:#888;font-style:italic;">Нет новых пропущенных звонков.</p>';
 } else {
     echo '<table border="1" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:13px;">';
@@ -225,55 +283,52 @@ if (!$a1FileExists) {
     echo '<th style="padding:5px;">Номер звонящего</th>';
     echo '<th style="padding:5px;">Статус</th>';
     echo '<th style="padding:5px;">Клиент / Аренды</th>';
-    echo '<th style="width:120px;padding:5px;">Обработка</th>';
+    echo '<th style="width:150px;padding:5px;">Обработка</th>';
     echo '</tr>';
 
-    foreach ($a1VisibleCalls as $uuid => $call) {
-        $isProcessed = !empty($call['processed_at']);
-        $processedTs = (int)($call['processed_at_ts'] ?? 0);
-        $caller      = $call['callerNumber']    ?? '—';
-        $callTs      = $call['callTimestamp']   ?? 0;
-        $status      = $call['callStatus']      ?? '';
-        $crmClient   = $call['crm_client']      ?? null;
-        $activeDeals = $call['crm_active_deals'] ?? [];
+    foreach ($a1VisibleCalls as $call) {
+        $callId      = (int)$call['id'];
+        $actionType  = $call['action_type'] ?? 'none';
+        $isPending   = ($actionType === 'none');
+        $isCalledBack = ($actionType === 'called_back');
+        $caller      = $call['caller_number']  ?? '—';
+        $callTs      = $call['call_timestamp'] ?? 0;
+        $status      = $call['call_status']    ?? '';
+        $crmFio      = $call['crm_client_fio'] ?? null;
+        $activeDeals = $call['crm_active_deals'];
         $lastReturn  = $call['crm_last_return']  ?? null;
         $totalDeals  = $call['crm_total_deals']  ?? 0;
         $statusLabel = $a1StatusLabels[$status] ?? $status;
 
-        $rowBg = $isProcessed ? '#f6fff6' : '#fff8dc';
-        $borderLeft = $isProcessed ? 'border-left:4px solid #198754;' : 'border-left:4px solid #dc3545;';
+        if ($isCalledBack)        { $rowBg = '#f6fff6'; $borderLeft = 'border-left:4px solid #198754;'; }
+        elseif (!$isPending)      { $rowBg = '#f8f9fa'; $borderLeft = 'border-left:4px solid #6c757d;'; }
+        else                      { $rowBg = '#fff8dc'; $borderLeft = 'border-left:4px solid #dc3545;'; }
 
         $rowAttrs = ' class="a1-call-row"';
-        if ($isProcessed && $processedTs > 0) {
-            $rowAttrs .= ' data-processed-ts="'.$processedTs.'"';
+        if (!$isPending && $call['action_at']) {
+            $rowAttrs .= ' data-processed-ts="'.strtotime($call['action_at']).'"';
         }
         echo '<tr'.$rowAttrs.' style="background:'.$rowBg.';'.$borderLeft.'">';
 
-        // Дата / время
         echo '<td style="padding:5px;text-align:center;">';
         echo ($callTs ? date('d.m.y', $callTs).'<br>'.date('H:i', $callTs) : '—');
         echo '</td>';
 
-        // Номер
         echo '<td style="padding:5px;font-weight:bold;">';
         echo htmlspecialchars(\bb\Base::formatPhone($caller));
         echo '</td>';
 
-        // Статус
         echo '<td style="padding:5px;color:#555;">'.htmlspecialchars($statusLabel).'</td>';
 
-        // CRM-блок
         echo '<td style="padding:5px;">';
-        if ($crmClient) {
-            echo '<strong>'.htmlspecialchars($crmClient['fio']).'</strong>';
-            if ($totalDeals > 0) {
-                echo ' <span style="color:#888;font-size:11px;">('.$totalDeals.' сд.)</span>';
-            }
+        if ($crmFio) {
+            echo '<strong>'.htmlspecialchars($crmFio).'</strong>';
+            if ($totalDeals > 0) echo ' <span style="color:#888;font-size:11px;">('.$totalDeals.' сд.)</span>';
             if (!empty($activeDeals)) {
                 echo '<div style="color:#0a5c36;margin-top:3px;">';
                 foreach ($activeDeals as $deal) {
-                    echo '📦 '.htmlspecialchars($deal['model']);
-                    echo ' <span style="color:#888;">'.htmlspecialchars($deal['rented_from']).'–'.htmlspecialchars($deal['return_due']).'</span><br>';
+                    echo '📦 '.htmlspecialchars($deal['model'] ?? '');
+                    echo ' <span style="color:#888;">'.htmlspecialchars($deal['rented_from'] ?? '').'–'.htmlspecialchars($deal['return_due'] ?? '').'</span><br>';
                 }
                 echo '</div>';
             } elseif ($lastReturn) {
@@ -286,17 +341,19 @@ if (!$a1FileExists) {
         }
         echo '</td>';
 
-        // Кнопка
         echo '<td style="padding:5px;text-align:center;">';
-        if ($isProcessed) {
-            echo '<span style="color:#198754;">✓</span><br>';
-            echo '<small style="color:#888;">'.htmlspecialchars($call['processed_at']).'<br>'.htmlspecialchars($call['processed_by'] ?? '').'</small>';
-        } else {
-            echo '<form method="post" action="zv_ch.php" style="margin:0;">';
-            echo '<input type="hidden" name="a1_action" value="mark_processed">';
-            echo '<input type="hidden" name="a1_uuid"   value="'.htmlspecialchars($uuid).'">';
-            echo '<input type="submit" value="Перезвонили" style="cursor:pointer;padding:3px 8px;background:#198754;color:#fff;border:none;border-radius:4px;">';
+        if ($isPending) {
+            echo '<form method="post" action="zv_ch.php" style="margin:0;display:flex;flex-direction:column;gap:4px;">';
+            echo '<input type="hidden" name="a1_id" value="'.$callId.'">';
+            echo '<input type="submit" name="a1_action" value="called_back" style="cursor:pointer;padding:3px 8px;background:#198754;color:#fff;border:none;border-radius:4px;" onclick="return confirm(\'Перезвонили?\')"> ';
+            echo '<input type="submit" name="a1_action" value="false_call"  style="cursor:pointer;padding:3px 8px;background:#6c757d;color:#fff;border:none;border-radius:4px;" onclick="return confirm(\'Ложный вызов?\')">';
             echo '</form>';
+        } elseif ($isCalledBack) {
+            echo '<span style="color:#198754;font-weight:bold;">✓ Перезвонили</span><br>';
+            echo '<small style="color:#888;">'.htmlspecialchars(substr($call['action_at'] ?? '', 0, 16)).'<br>'.htmlspecialchars($call['action_user_name'] ?? '').'</small>';
+        } else {
+            echo '<span style="color:#6c757d;">🚫 Ложный</span><br>';
+            echo '<small style="color:#888;">'.htmlspecialchars(substr($call['action_at'] ?? '', 0, 16)).'<br>'.htmlspecialchars($call['action_user_name'] ?? '').'</small>';
         }
         echo '</td>';
 
@@ -335,17 +392,13 @@ echo '<script>
     apply();
   });
 
-  // Авто-скрытие обработанных строк через 10 минут после отметки
   var TTL = 10 * 60 * 1000;
   document.querySelectorAll(".a1-call-row[data-processed-ts]").forEach(function(row){
     var ts = parseInt(row.dataset.processedTs, 10) * 1000;
     if (!ts) return;
     var remaining = ts + TTL - Date.now();
-    if (remaining <= 0) {
-      row.remove();
-    } else {
-      setTimeout(function(){ row.remove(); }, remaining);
-    }
+    if (remaining <= 0) { row.remove(); }
+    else { setTimeout(function(){ row.remove(); }, remaining); }
   });
 })();
 </script>';
