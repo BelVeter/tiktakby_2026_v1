@@ -168,7 +168,8 @@ if ($a1IsDima) {
     $a1StDate  = date('Y-m-d');
     $a1StRow   = $a1Db2->query(
         "SELECT COUNT(*) AS total, SUM(action_type='called_back') AS called_back,
-                SUM(action_type='false_call') AS false_call, SUM(action_type='none') AS pending
+                SUM(action_type='false_call') AS false_call, SUM(action_type='none') AS pending,
+                SUM(action_type='client_called_back') AS client_called_back
          FROM a1_missed_calls WHERE DATE(FROM_UNIXTIME(call_timestamp))='$a1StDate'"
     );
     $a1ApiRow  = $a1Db2->query(
@@ -190,7 +191,8 @@ if ($a1IsDima) {
             'total'       => (int)$st['total'],
             'called_back' => (int)$st['called_back'],
             'false_call'  => (int)$st['false_call'],
-            'pending'     => (int)$st['pending'],
+            'pending'            => (int)$st['pending'],
+            'client_called_back' => (int)$st['client_called_back'],
             'api_total'   => (int)$ap['total_fetches'],
             'api_ok'      => (int)$ap['ok'],
             'api_errors'  => (int)$ap['errors'],
@@ -248,6 +250,7 @@ if ($a1IsDima && $a1DimaStats) {
     echo '<strong>📊 Сегодня ('.date('d.m').'):</strong>&nbsp;&nbsp;';
     echo 'всего <strong>'.$ds['total'].'</strong>&nbsp;&nbsp;';
     echo '<span style="color:#198754;">✓ перезвонили: <strong>'.$ds['called_back'].'</strong></span>&nbsp;&nbsp;';
+    echo '<span style="color:#0dcaf0;">↩ сам перезвонил: <strong>'.$ds['client_called_back'].'</strong></span>&nbsp;&nbsp;';
     echo '<span style="color:#6c757d;">🚫 ложных: <strong>'.$ds['false_call'].'</strong></span>&nbsp;&nbsp;';
     if ($ds['pending'] > 0) {
         echo '<span style="color:#dc3545;">⏳ не обработано: <strong>'.$ds['pending'].'</strong></span>&nbsp;&nbsp;';
@@ -289,8 +292,9 @@ if (empty($a1VisibleCalls)) {
     foreach ($a1VisibleCalls as $call) {
         $callId      = (int)$call['id'];
         $actionType  = $call['action_type'] ?? 'none';
-        $isPending   = ($actionType === 'none');
-        $isCalledBack = ($actionType === 'called_back');
+        $isPending      = ($actionType === 'none');
+        $isCalledBack   = ($actionType === 'called_back');
+        $isAutoCallback = ($actionType === 'client_called_back');
         $caller      = $call['caller_number']  ?? '—';
         $callTs      = $call['call_timestamp'] ?? 0;
         $status      = $call['call_status']    ?? '';
@@ -301,6 +305,7 @@ if (empty($a1VisibleCalls)) {
         $statusLabel = $a1StatusLabels[$status] ?? $status;
 
         if ($isCalledBack)        { $rowBg = '#f6fff6'; $borderLeft = 'border-left:4px solid #198754;'; }
+        elseif ($isAutoCallback)  { $rowBg = '#f0fbff'; $borderLeft = 'border-left:4px solid #0dcaf0;'; }
         elseif (!$isPending)      { $rowBg = '#f8f9fa'; $borderLeft = 'border-left:4px solid #6c757d;'; }
         else                      { $rowBg = '#fff8dc'; $borderLeft = 'border-left:4px solid #dc3545;'; }
 
@@ -348,6 +353,11 @@ if (empty($a1VisibleCalls)) {
             echo '<input type="submit" name="a1_action" value="called_back" style="cursor:pointer;padding:3px 8px;background:#198754;color:#fff;border:none;border-radius:4px;" onclick="return confirm(\'Перезвонили?\')"> ';
             echo '<input type="submit" name="a1_action" value="false_call"  style="cursor:pointer;padding:3px 8px;background:#6c757d;color:#fff;border:none;border-radius:4px;" onclick="return confirm(\'Ложный вызов?\')">';
             echo '</form>';
+        } elseif ($isAutoCallback) {
+            $cbMin = (int)($call['callback_minutes'] ?? 0);
+            $cbLabel = $cbMin >= 60 ? floor($cbMin/60).' ч '.($cbMin%60).' мин' : ($cbMin > 0 ? $cbMin.' мин' : '< 1 мин');
+            echo '<span style="color:#0dcaf0;font-weight:bold;">↩ Сам перезвонил</span><br>';
+            echo '<small style="color:#888;">через '.$cbLabel.'</small>';
         } elseif ($isCalledBack) {
             echo '<span style="color:#198754;font-weight:bold;">✓ Перезвонили</span><br>';
             echo '<small style="color:#888;">'.htmlspecialchars(substr($call['action_at'] ?? '', 0, 16)).'<br>'.htmlspecialchars($call['action_user_name'] ?? '').'</small>';

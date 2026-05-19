@@ -95,7 +95,8 @@ if ($isDima) {
            COUNT(*)                                                      AS total,
            SUM(action_type = 'called_back')                             AS called_back,
            SUM(action_type = 'false_call')                              AS false_call,
-           SUM(action_type = 'none')                                    AS pending
+           SUM(action_type = 'none')                                    AS pending,
+           SUM(action_type = 'client_called_back')                      AS client_called_back
          FROM a1_missed_calls
          WHERE DATE(FROM_UNIXTIME(call_timestamp)) = '" . $mysqli->real_escape_string($statsDate) . "'"
     )->fetch_assoc();
@@ -125,7 +126,8 @@ if ($isDima) {
         'total'         => (int)$stRow['total'],
         'called_back'   => (int)$stRow['called_back'],
         'false_call'    => (int)$stRow['false_call'],
-        'pending'       => (int)$stRow['pending'],
+        'pending'            => (int)$stRow['pending'],
+        'client_called_back' => (int)$stRow['client_called_back'],
         'api_total'     => (int)$apiRow['total_fetches'],
         'api_ok'        => (int)$apiRow['ok'],
         'api_errors'    => (int)$apiRow['errors'],
@@ -148,6 +150,7 @@ echo \bb\Base::pageStartB5('A1 ВАТС — Пропущенные звонки'
   .a1-card { border-radius: 8px; margin-bottom: 10px; padding: 12px 16px; border: 1px solid #dee2e6; background: #fff; }
   .a1-card.unread { border-left: 4px solid #dc3545; background: #fff8f8; }
   .a1-card.false-call { border-left: 4px solid #6c757d; background: #f8f9fa; opacity: .75; }
+  .a1-card.auto-callback { border-left: 4px solid #0dcaf0; background: #f0fbff; opacity: .9; }
   .a1-card.processed { border-left: 4px solid #198754; opacity: .85; }
   .a1-phone { font-size: 1.15rem; font-weight: 700; letter-spacing: .03em; }
   .a1-time  { color: #6c757d; font-size: .85rem; }
@@ -203,6 +206,7 @@ echo \bb\Base::pageStartB5('A1 ВАТС — Пропущенные звонки'
         <div class="text-muted small mb-1">Звонки</div>
         <span class="stat-item"><strong><?= $dimaStats['total'] ?></strong> всего</span>
         <span class="stat-item text-success"><strong><?= $dimaStats['called_back'] ?></strong> перезвонили</span>
+        <span class="stat-item" style="color:#0dcaf0"><strong><?= $dimaStats['client_called_back'] ?></strong> сам перезвонил</span>
         <span class="stat-item text-secondary"><strong><?= $dimaStats['false_call'] ?></strong> ложных</span>
         <span class="stat-item text-danger"><strong><?= $dimaStats['pending'] ?></strong> не обработано</span>
       </div>
@@ -257,14 +261,16 @@ echo \bb\Base::pageStartB5('A1 ВАТС — Пропущенные звонки'
     </div>
   <?php else: ?>
     <?php foreach ($calls as $call):
-      $actionType  = $call['action_type'] ?? 'none';
-      $isCalledBack = ($actionType === 'called_back');
-      $isFalse      = ($actionType === 'false_call');
-      $isPending    = ($actionType === 'none');
+      $actionType       = $call['action_type'] ?? 'none';
+      $isCalledBack     = ($actionType === 'called_back');
+      $isFalse          = ($actionType === 'false_call');
+      $isPending        = ($actionType === 'none');
+      $isAutoCallback   = ($actionType === 'client_called_back');
 
-      if ($isCalledBack)    $cardClass = 'processed';
-      elseif ($isFalse)     $cardClass = 'false-call';
-      else                  $cardClass = 'unread';
+      if ($isCalledBack)      $cardClass = 'processed';
+      elseif ($isFalse)       $cardClass = 'false-call';
+      elseif ($isAutoCallback) $cardClass = 'auto-callback';
+      else                    $cardClass = 'unread';
 
       $caller      = $call['caller_number']  ?? '—';
       $callee      = $call['callee_number']  ?? '—';
@@ -286,6 +292,8 @@ echo \bb\Base::pageStartB5('A1 ВАТС — Пропущенные звонки'
             <div style="font-size:1.6rem">✅</div>
           <?php elseif ($isFalse): ?>
             <div style="font-size:1.6rem">🚫</div>
+          <?php elseif ($isAutoCallback): ?>
+            <div style="font-size:1.6rem">↩️</div>
           <?php else: ?>
             <div style="font-size:1.6rem">📵</div>
           <?php endif; ?>
@@ -364,6 +372,15 @@ echo \bb\Base::pageStartB5('A1 ВАТС — Пропущенные звонки'
                 </button>
               </div>
             </form>
+          <?php elseif ($isAutoCallback): ?>
+            <?php
+              $cbMin = (int)($call['callback_minutes'] ?? 0);
+              $cbLabel = $cbMin >= 60
+                ? floor($cbMin / 60) . ' ч ' . ($cbMin % 60) . ' мин'
+                : ($cbMin > 0 ? $cbMin . ' мин' : '< 1 мин');
+            ?>
+            <div style="color:#0dcaf0" class="small fw-bold">↩ Сам перезвонил</div>
+            <div class="processed-by">через <?= $cbLabel ?></div>
           <?php elseif ($isCalledBack): ?>
             <div class="text-success small fw-bold">✓ Перезвонили</div>
             <div class="processed-by"><?= htmlspecialchars($call['action_at'] ? substr($call['action_at'], 0, 16) : '') ?></div>

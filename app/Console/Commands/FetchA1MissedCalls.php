@@ -22,6 +22,11 @@ class FetchA1MissedCalls extends Command
         'DENIED_DUE_TO_MAX_CHANNEL_LIMIT',
     ];
 
+    private const ANSWERED_STATUSES = [
+        'ANSWERED_COMMON',
+        'ANSWERED_BY_ORIGINAL_CLIENT',
+    ];
+
     private const BASE_URL = 'https://vats.a1.by/crm-api/open-api/v1';
 
     public function handle(): int
@@ -93,6 +98,9 @@ class FetchA1MissedCalls extends Command
             $this->insertCall($uuid, $enriched);
             $added++;
         }
+
+        // 5. Автоопределение: клиент сам перезвонил
+        $this->detectCallbacks($records);
 
         $this->logFetch('success', count($records), $added, null, $start, $end);
         $this->info("A1: добавлено новых пропущенных: {$added}.");
@@ -238,6 +246,62 @@ class FetchA1MissedCalls extends Command
         }
 
         return $data;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Автоопределение обратных звонков
+    // ─────────────────────────────────────────────────────────────
+
+    private function detectCallbacks(array $allRecords): void
+    {
+        // Build map: normalized_phone → sorted timestamps of answered calls in this CDR batch
+        $answeredByPhone = [];
+        foreach ($allRecords as $r) {
+            if (!in_array($r['callStatus'] ?? '', self::ANSWERED_STATUSES, true)) {
+                continue;
+            }
+            $phone = $this->normalizeLast9($r['callerNumber'] ?? '');
+            if ($phone) {
+                $answeredByPhone[$phone][] = (int)($r['callTimestamp'] ?? 0);
+            }
+        }
+
+        if (empty($answeredByPhone)) {
+            return;
+        }
+
+        foreach ($answeredByPhone as &$ts) {
+            sort($ts);
+        }
+        unset($ts);
+
+        // Check all unresolved missed calls from last 30 days
+        $unresolved = DB::table('a1_missed_calls')
+            ->where('action_type', 'none')
+            ->where('call_timestamp', '>=', time() - 30 * 86400)
+            ->get(['id', 'call_timestamp', 'caller_number']);
+
+        foreach ($unresolved as $missed) {
+            $phone = $this->normalizeLast9($missed->caller_number);
+            if (!$phone || !isset($answeredByPhone[$phone])) {
+                continue;
+            }
+
+            // Find the earliest answered call that came AFTER this missed call
+            foreach ($answeredByPhone[$phone] as $answeredTs) {
+                if ($answeredTs > $missed->call_timestamp) {
+                    $minutes = (int)(($answeredTs - $missed->call_timestamp) / 60);
+                    DB::table('a1_missed_calls')
+                        ->where('id', $missed->id)
+                        ->where('action_type', 'none')
+                        ->update([
+                            'action_type'      => 'client_called_back',
+                            'callback_minutes' => $minutes,
+                        ]);
+                    break;
+                }
+            }
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
