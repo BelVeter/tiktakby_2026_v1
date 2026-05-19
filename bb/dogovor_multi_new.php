@@ -430,9 +430,18 @@ function updatePayDiff() {
 function submitForm() { /* Task 7 */ alert('Save not yet implemented'); }
 </script>
 
-<?php if ($prefill_client): /* Task 6 prefill placeholder */ ?>
+<?php if ($prefill_client): ?>
 <script>
-/* Task 6 will add pre-fill here */
+document.addEventListener('DOMContentLoaded', function() {
+    selectClient(
+        <?= (int)$prefill_client['client_id'] ?>,
+        <?= json_encode($prefill_client['family'], JSON_UNESCAPED_UNICODE) ?>,
+        <?= json_encode($prefill_client['name'],   JSON_UNESCAPED_UNICODE) ?>,
+        <?= json_encode($prefill_client['otch'],   JSON_UNESCAPED_UNICODE) ?>,
+        <?= json_encode($prefill_client['phone_1'],JSON_UNESCAPED_UNICODE) ?>,
+        <?= json_encode($prefill_client['phone_2'],JSON_UNESCAPED_UNICODE) ?>
+    );
+});
 </script>
 <?php endif; ?>
 
