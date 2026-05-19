@@ -201,16 +201,232 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// ── Item rows (Tasks 4–5 will fill these) ────────────────────────────────
-function addRow() { /* Task 4 */ }
-function removeRow(i) { /* Task 4 */ }
-function updateRowNumbers() { /* Task 4 */ }
-function loadItemTarifs(i) { /* Task 4 */ }
-function calculateRow(i) { /* Task 4 */ }
-function calculateTotal() { /* Task 4 */ }
-function updatePayRows() { /* Task 5 */ }
-function distributePayment() { /* Task 5 */ }
-function updatePayDiff() { /* Task 5 */ }
+// ── Item row management (Task 4) ─────────────────────────────────────────
+function addRow() {
+    var i = rowCount++;
+    var today = new Date().toISOString().slice(0, 10);
+    var tbody = document.getElementById('items-tbody');
+    var tr = document.createElement('tr');
+    tr.id = 'row-' + i;
+    tr.innerHTML =
+        '<td style="text-align:center;" class="row-num">' + (i + 1) + '</td>' +
+        '<td>' +
+            '<input type="text" id="inv_n_' + i + '" style="width:90px;"' +
+            ' onblur="loadItemTarifs(' + i + ')"' +
+            ' onkeypress="if(event.keyCode==13){loadItemTarifs(' + i + ');return false;}"/>' +
+            '<div class="row-status" id="status_' + i + '"></div>' +
+        '</td>' +
+        '<td id="item_name_' + i + '" style="font-size:12px;color:#555;">—</td>' +
+        '<td><input type="date" id="start_date_' + i + '" value="' + today + '"' +
+            ' onchange="calculateRow(' + i + ')"/></td>' +
+        '<td><input type="date" id="return_date_' + i + '" value=""' +
+            ' onchange="calculateRow(' + i + ')"/></td>' +
+        '<td id="days_' + i + '" style="text-align:center;">—</td>' +
+        '<td id="r_to_pay_' + i + '" style="text-align:right;font-weight:bold;">—</td>' +
+        '<td><button type="button" onclick="removeRow(' + i + ')">✕</button></td>' +
+        '<td style="display:none;">' +
+            '<input type="hidden" id="tarif_id_' + i + '" value=""/>' +
+            '<input type="hidden" id="tarif_step_' + i + '" value=""/>' +
+            '<input type="hidden" id="tarif_value_' + i + '" value=""/>' +
+            '<input type="hidden" id="tarifs_json_' + i + '" value=""/>' +
+        '</td>';
+    tbody.appendChild(tr);
+    updateRowNumbers();
+}
+
+function removeRow(i) {
+    var tr = document.getElementById('row-' + i);
+    if (tr) tr.remove();
+    calculateTotal();
+    updatePayRows();
+}
+
+function updateRowNumbers() {
+    var rows = document.getElementById('items-tbody').querySelectorAll('tr');
+    rows.forEach(function(tr, idx) {
+        var numCell = tr.querySelector('.row-num');
+        if (numCell) numCell.textContent = idx + 1;
+    });
+}
+
+function loadItemTarifs(i) {
+    var inv = document.getElementById('inv_n_' + i).value.trim();
+    if (!inv) return;
+    var statusEl = document.getElementById('status_' + i);
+    statusEl.className = 'row-status';
+    statusEl.textContent = '…';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/bb/get_item_tarifs.php?inv_n=' + encodeURIComponent(inv), true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4 || xhr.status !== 200) return;
+        var data;
+        try { data = JSON.parse(xhr.responseText); } catch(e) {
+            statusEl.className = 'row-status err';
+            statusEl.textContent = 'ошибка ответа';
+            return;
+        }
+        if (data.status === 'not_found') {
+            statusEl.className = 'row-status err';
+            statusEl.textContent = 'не найден';
+            document.getElementById('item_name_' + i).textContent = '—';
+            document.getElementById('tarifs_json_' + i).value = '';
+            return;
+        }
+        if (data.status === 'not_available') {
+            statusEl.className = 'row-status err';
+            statusEl.textContent = 'занят (' + data.item_status + ')';
+            return;
+        }
+        statusEl.className = 'row-status ok';
+        statusEl.textContent = '✓';
+        document.getElementById('item_name_' + i).textContent = data.item_name;
+        document.getElementById('tarifs_json_' + i).value = JSON.stringify(data.tarifs);
+        calculateRow(i);
+    };
+    xhr.send();
+}
+
+function getDayDiff(d1str, d2str) {
+    var d1 = new Date(d1str), d2 = new Date(d2str);
+    return Math.round((d2 - d1) / 86400000);
+}
+
+function getRentToPayFromTarifs(days, tarifs) {
+    if (!tarifs || tarifs.length === 0 || days < 1) return 0;
+    var asc  = tarifs.slice().sort(function(a, b) { return a.days - b.days; });
+    var desc = tarifs.slice().sort(function(a, b) { return b.days - a.days; });
+
+    var theTarif = asc[0];
+    asc.forEach(function(t) { if (days >= t.days) theTarif = t; });
+
+    var perDay = Math.round((theTarif.rent_amount / theTarif.days) * 100) / 100;
+    var amount = Math.round(days * perDay * 100) / 100;
+
+    var ceiling = null;
+    desc.forEach(function(t) { if (t.days > theTarif.days && ceiling === null) ceiling = t.rent_amount * 1; });
+    if (ceiling !== null && amount > ceiling) amount = ceiling;
+
+    return amount;
+}
+
+function calculateRow(i) {
+    var startEl  = document.getElementById('start_date_' + i);
+    var returnEl = document.getElementById('return_date_' + i);
+    var tarifsEl = document.getElementById('tarifs_json_' + i);
+    if (!startEl || !returnEl || !tarifsEl) return;
+
+    var startVal  = startEl.value;
+    var returnVal = returnEl.value;
+    var tarifsRaw = tarifsEl.value;
+    if (!startVal || !returnVal || !tarifsRaw) return;
+
+    var days   = getDayDiff(startVal, returnVal);
+    var tarifs = JSON.parse(tarifsRaw);
+    var amount = getRentToPayFromTarifs(days, tarifs);
+
+    document.getElementById('days_' + i).textContent    = days > 0 ? days : '—';
+    document.getElementById('r_to_pay_' + i).textContent = days > 0 ? amount.toFixed(2) : '—';
+
+    if (tarifs.length > 0 && days > 0) {
+        var asc  = tarifs.slice().sort(function(a, b) { return a.days - b.days; });
+        var best = asc[0];
+        asc.forEach(function(t) { if (days >= t.days) best = t; });
+        document.getElementById('tarif_id_' + i).value    = best.tarif_id;
+        document.getElementById('tarif_step_' + i).value  = best.step;
+        document.getElementById('tarif_value_' + i).value = (amount / days).toFixed(2);
+    }
+
+    calculateTotal();
+    updatePayRows();
+}
+
+function calculateTotal() {
+    var total = 0;
+    document.getElementById('items-tbody').querySelectorAll('tr').forEach(function(tr) {
+        var id   = tr.id.replace('row-', '');
+        var cell = document.getElementById('r_to_pay_' + id);
+        if (cell) {
+            var v = parseFloat(cell.textContent);
+            if (!isNaN(v)) total += v;
+        }
+    });
+    total = Math.round(total * 100) / 100;
+    document.getElementById('grand-total').textContent       = total.toFixed(2);
+    document.getElementById('pay-total-input').value         = total.toFixed(2);
+    document.getElementById('pay-total-display').textContent = total.toFixed(2);
+    updatePayDiff();
+}
+
+// ── Payment block (Task 5) ────────────────────────────────────────────────
+function updatePayRows() {
+    var container = document.getElementById('pay-rows-container');
+    container.innerHTML = '';
+    document.getElementById('items-tbody').querySelectorAll('tr').forEach(function(tr) {
+        var id     = tr.id.replace('row-', '');
+        var nameEl = document.getElementById('item_name_' + id);
+        var name   = (nameEl && nameEl.textContent !== '—') ? nameEl.textContent : 'Товар ' + (parseInt(id) + 1);
+        var rToPayEl = document.getElementById('r_to_pay_' + id);
+        var rToPay   = rToPayEl ? (parseFloat(rToPayEl.textContent) || 0) : 0;
+
+        var div = document.createElement('div');
+        div.className = 'pay-row';
+        div.id = 'pay-row-' + id;
+        div.innerHTML =
+            '<span style="min-width:260px;display:inline-block;">' + name + '</span>' +
+            '<span>к оплате: <strong>' + rToPay.toFixed(2) + '</strong></span>' +
+            '<span>оплата: <input type="number" step="0.01" id="pay_amount_' + id + '"' +
+                ' value="' + rToPay.toFixed(2) + '" style="width:90px;"' +
+                ' oninput="updatePayDiff()"/></span>';
+        container.appendChild(div);
+    });
+    updatePayDiff();
+}
+
+function distributePayment() {
+    var totalPay   = parseFloat(document.getElementById('pay-total-input').value) || 0;
+    var grandTotal = parseFloat(document.getElementById('grand-total').textContent) || 0;
+    if (grandTotal <= 0) return;
+
+    var ids = [];
+    document.getElementById('items-tbody').querySelectorAll('tr').forEach(function(tr) {
+        ids.push(tr.id.replace('row-', ''));
+    });
+    if (ids.length === 0) return;
+
+    var distributed = 0;
+    ids.forEach(function(id, idx) {
+        var rToPay = parseFloat((document.getElementById('r_to_pay_' + id) || {}).textContent) || 0;
+        var rounded;
+        if (idx < ids.length - 1) {
+            rounded = Math.round(totalPay * (rToPay / grandTotal) * 100) / 100;
+            distributed += rounded;
+        } else {
+            rounded = Math.round((totalPay - distributed) * 100) / 100;
+        }
+        var inp = document.getElementById('pay_amount_' + id);
+        if (inp) inp.value = rounded.toFixed(2);
+    });
+    updatePayDiff();
+}
+
+function updatePayDiff() {
+    var totalPay = parseFloat(document.getElementById('pay-total-input').value) || 0;
+    var sumPaid  = 0;
+    document.getElementById('items-tbody').querySelectorAll('tr').forEach(function(tr) {
+        var id  = tr.id.replace('row-', '');
+        var inp = document.getElementById('pay_amount_' + id);
+        if (inp) sumPaid += parseFloat(inp.value) || 0;
+    });
+    sumPaid = Math.round(sumPaid * 100) / 100;
+    var diff = Math.round((sumPaid - totalPay) * 100) / 100;
+
+    document.getElementById('pay-sum-display').textContent = sumPaid.toFixed(2);
+    var diffEl = document.getElementById('pay-diff');
+    diffEl.textContent = diff.toFixed(2);
+    diffEl.className   = (diff === 0) ? 'exact' : (diff > 0 ? 'over' : 'under');
+}
+
 function submitForm() { /* Task 7 */ alert('Save not yet implemented'); }
 </script>
 
