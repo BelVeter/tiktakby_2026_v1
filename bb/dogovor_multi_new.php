@@ -10,6 +10,58 @@ if ($_SESSION['svoi'] != 8941) {
 
 $mysqli = \bb\Db::getInstance()->getConnection();
 
+// ── RTF helpers (Task 8) ──────────────────────────────────────────────────
+class RTF_Template_Multi {
+    private $content;
+    public function __construct($filename) {
+        $this->content = file_get_contents($filename);
+        if (strpos($this->content, '\ansicpg1251') === false) {
+            $this->content = preg_replace('/\\\\ansicpg[0-9]+/', '', $this->content);
+            $this->content = preg_replace('/\{\\\\rtf1\\\\ansi/', '{\\\\rtf1\\\\ansi\\\\ansicpg1251', $this->content, 1);
+        }
+    }
+    public function parse($block_name, $value) {
+        $this->content = str_ireplace($block_name, $value, $this->content);
+    }
+    public function out_h($filename) {
+        ob_clean();
+        header('Content-type: plaintext/rtf');
+        header("Content-Disposition: attachment; filename=$filename");
+        echo $this->content;
+    }
+    public function out() { return $this->content; }
+}
+
+function encode_rtf_multi(string $str): string {
+    $out = '';
+    $len = mb_strlen($str, 'UTF-8');
+    for ($i = 0; $i < $len; $i++) {
+        $char = mb_substr($str, $i, 1, 'UTF-8');
+        $ord  = mb_ord($char, 'UTF-8');
+        if ($ord <= 127) {
+            $out .= $char;
+        } else {
+            if ($ord > 32767) $ord -= 65536;
+            $out .= '\u' . $ord . '?';
+        }
+    }
+    return $out;
+}
+
+function generate_rtf_item_rows(array $items): string {
+    $rows = '';
+    foreach ($items as $k => $item) {
+        $n    = $k + 1;
+        $line = $n . '. ' . $item['name']
+              . ': с ' . date('d.m.Y', $item['start_ts'])
+              . ' по ' . date('d.m.Y', $item['return_ts'])
+              . ' - ' . number_format($item['r_to_pay'], 2, ',', ' ')
+              . ' руб.';
+        $rows .= '\par ' . encode_rtf_multi($line);
+    }
+    return $rows;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save') {
     header('Content-Type: application/json; charset=utf-8');
 
@@ -112,9 +164,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// ── GET ?print placeholder (filled in Task 8) ─────────────────────────────
-if (isset($_GET['print']) && $_GET['print'] == '1') {
-    echo '<p>RTF generation not yet implemented (Task 8)</p>';
+// ── GET ?print=1&ids=N,N,N — RTF download (Task 8) ───────────────────────
+if (isset($_GET['print']) && $_GET['print'] == '1' && isset($_GET['ids'])) {
+    require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Signature.php');
+
+    $raw_ids  = explode(',', $_GET['ids']);
+    $deal_ids = array_values(array_filter(array_map('intval', $raw_ids), fn($id) => $id > 0));
+    if (empty($deal_ids)) { echo 'No valid deal IDs'; exit; }
+
+    $ids_sql = implode(',', $deal_ids);
+
+    $q = "SELECT d.deal_id, d.client_id, d.item_inv_n,
+                 s.r_to_pay as sd_r_to_pay, s.from as from_ts, s.to as to_ts,
+                 m.model, m.agr_price, m.agr_price_cur, m.model_addr, m.producer,
+                 c_cat.dog_name
+          FROM rent_deals_act d
+          JOIN rent_sub_deals_act s ON s.deal_id = d.deal_id AND s.type = 'first_rent'
+          JOIN tovar_rent_items i ON i.item_inv_n = d.item_inv_n
+          JOIN tovar_rent m ON m.tovar_rent_id = i.model_id
+          JOIN tovar_rent_cat c_cat ON c_cat.tovar_rent_cat_id = m.tovar_rent_cat_id
+          WHERE d.deal_id IN ($ids_sql)
+          ORDER BY d.deal_id";
+    $res = $mysqli->query($q);
+    if (!$res || $res->num_rows === 0) { echo 'Deals not found'; exit; }
+
+    $deals = [];
+    $client_id_chk = null;
+    while ($row = $res->fetch_assoc()) {
+        if ($client_id_chk === null) $client_id_chk = $row['client_id'];
+        if ($row['client_id'] != $client_id_chk) { echo 'Mixed client IDs'; exit; }
+        $deals[] = $row;
+    }
+
+    $rc = $mysqli->query("SELECT * FROM clients WHERE client_id = " . intval($client_id_chk));
+    $cl = $rc->fetch_assoc();
+
+    $items = [];
+    $total = 0.0;
+    $last_return_ts = 0;
+    foreach ($deals as $d) {
+        $r_to_pay = floatval($d['sd_r_to_pay']);
+        $total   += $r_to_pay;
+        if ($d['to_ts'] > $last_return_ts) $last_return_ts = $d['to_ts'];
+        $inv_n = $d['item_inv_n'];
+        $inv_fmt = strlen($inv_n) > 3
+            ? substr($inv_n, 0, 3) . '-' . substr($inv_n, 3)
+            : $inv_n;
+        $name = ($d['model_addr'] !== '' ? $d['model_addr'] : $d['dog_name'])
+              . ': ' . $d['model']
+              . ' (Инв.№' . $inv_fmt . ')';
+        $items[] = [
+            'name'      => $name,
+            'inv_n'     => $inv_n,
+            'start_ts'  => intval($d['from_ts']),
+            'return_ts' => intval($d['to_ts']),
+            'r_to_pay'  => $r_to_pay,
+        ];
+    }
+
+    $fio = trim($cl['family'] . ' ' . $cl['name'] . ' ' . $cl['otch']);
+    $address = implode(', ', array_filter([
+        'г.' . $cl['city'],
+        'ул.' . $cl['str'],
+        'д.' . $cl['dom'],
+        $cl['kv'] ? 'кв.' . $cl['kv'] : '',
+    ]));
+    $reg_address = implode(', ', array_filter([
+        'г.' . ($cl['reg_city'] ?? $cl['city']),
+        'ул.' . ($cl['reg_str'] ?? $cl['str']),
+        'д.' . ($cl['reg_dom'] ?? $cl['dom']),
+        ($cl['reg_kv'] ?? $cl['kv']) ? 'кв.' . ($cl['reg_kv'] ?? $cl['kv']) : '',
+    ]));
+    $pln = mb_substr($cl['family'], 0, 1, 'UTF-8') . '.'
+         . mb_substr($cl['name'],   0, 1, 'UTF-8') . '.'
+         . mb_substr($cl['otch'],   0, 1, 'UTF-8') . '.';
+    $fmt_phone = function($ph) {
+        $d = preg_replace('/\D/', '', $ph);
+        return $d ? '+375' . ltrim($d, '375') : '';
+    };
+    $nomer = implode(', ', array_column($deals, 'deal_id'));
+
+    $user_id = intval($_SESSION['user_id']);
+    $sgn = \bb\Signature::GetSignature($user_id);
+
+    $rtf = new RTF_Template_Multi($_SERVER['DOCUMENT_ROOT'] . '/bb/ndk_multi.rtf');
+    $rtf->parse('fioone',              encode_rtf_multi($fio));
+    $rtf->parse('fiotwo',              encode_rtf_multi($fio));
+    $rtf->parse('nomer_dogovora',      encode_rtf_multi($nomer));
+    $rtf->parse('actaddress',          encode_rtf_multi($address));
+    $rtf->parse('reg_address',         encode_rtf_multi($reg_address));
+    $rtf->parse('pas_n',               encode_rtf_multi($cl['pas_n'] ?? ''));
+    $rtf->parse('pas_date',            encode_rtf_multi(
+        empty($cl['pas_date']) ? '_________' : date('d.m.Y', intval($cl['pas_date']))
+    ));
+    $rtf->parse('pas_who',             encode_rtf_multi($cl['pas_who'] ?? ''));
+    $rtf->parse('phone_1',             encode_rtf_multi($fmt_phone($cl['phone_1'] ?? '')));
+    $rtf->parse('phone_2',             encode_rtf_multi($fmt_phone($cl['phone_2'] ?? '')));
+    $rtf->parse('pasln',               encode_rtf_multi($pln));
+    $rtf->parse('acc_date',            encode_rtf_multi(date('d.m.Y')));
+    $rtf->parse('start_date',          encode_rtf_multi(date('d.m.Y', $items[0]['start_ts'])));
+    $rtf->parse('start_hour',          '');
+    $rtf->parse('return_date',         encode_rtf_multi(date('d.m.Y', $last_return_ts)));
+    $rtf->parse('return_hour',         '');
+    $rtf->parse('tenor',               '');
+    $rtf->parse('items_rows',          generate_rtf_item_rows($items));
+    $rtf->parse('rto_pay_total',       encode_rtf_multi(number_format($total, 2, ',', ' ')));
+    $rtf->parse('rto_pay_total_words', encode_rtf_multi(\bb\Base::sum2words($total)));
+    foreach (['itemname','itsize','itset','agr_price','agrcur','tarif'] as $ph) {
+        $rtf->parse($ph, '');
+    }
+    $rtf->parse('signaturestart', encode_rtf_multi($sgn->StartText()));
+    $rtf->parse('signatureend',   encode_rtf_multi($sgn->ShortSignature()));
+
+    $rtf->out_h('ndk_multi.rtf');
     exit;
 }
 
