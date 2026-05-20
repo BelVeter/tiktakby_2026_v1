@@ -142,7 +142,12 @@ class FetchA1Recordings extends Command
             $folder   = 'a1_recordings/' . date('Y-m', strtotime($callDate));
             Storage::disk('local')->makeDirectory($folder);
             $filePath = $folder . '/' . $filename . '.mp3';
-            Storage::disk('local')->put($filePath, $bytes);
+            $written = Storage::disk('local')->put($filePath, $bytes);
+            if ($written === false) {
+                Log::error('A1 Recordings: не удалось записать файл: ' . $filePath);
+                $this->logFetch('error', $start, $end, $recordsFound, $recordsNew, $filesDownloaded, $filesDeleted, $bytesDownloaded, $bytesFreed, 'Storage::put failed: ' . $filePath);
+                return 1;
+            }
             $fileSize = strlen($bytes);
 
             // Insert DB record
