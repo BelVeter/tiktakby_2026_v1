@@ -115,7 +115,7 @@ class CallsController extends BaseController
         $diskPath = storage_path('app/' . $recording->file_path);
 
         // Path traversal guard: resolved path must stay inside a1_recordings/
-        $allowed  = storage_path('app/a1_recordings');
+        $allowed  = storage_path('app/a1_recordings') . DIRECTORY_SEPARATOR;
         $resolved = realpath($diskPath);
         if ($resolved === false || strpos($resolved, $allowed) !== 0) {
             abort(404, 'Recording not found');

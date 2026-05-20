@@ -209,7 +209,7 @@ class FetchA1Recordings extends Command
 
     private function fetchRecordingsList(string $token, string $companyId, int $start, int $end): ?array
     {
-        sleep(1); // rate limit: 1 req/sec
+        usleep(1_100_000); // rate limit: 1 req/sec (1.1s matches Python client)
         $response = Http::withHeaders([
             'Authentication' => $token,
         ])->get(self::BASE_URL . '/record/list', [
@@ -244,7 +244,7 @@ class FetchA1Recordings extends Command
 
     private function downloadRecording(string $token, string $companyId, string $recordName): string
     {
-        sleep(1); // rate limit: 1 req/sec
+        usleep(1_100_000); // rate limit: 1 req/sec (1.1s matches Python client)
         $response = Http::withHeaders([
             'Authentication' => $token,
         ])->timeout(60)->get(self::BASE_URL . '/record', [

@@ -4,6 +4,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/app/a1_recordings/
 Homestead.json
 Homestead.yaml
 npm-debug.log
