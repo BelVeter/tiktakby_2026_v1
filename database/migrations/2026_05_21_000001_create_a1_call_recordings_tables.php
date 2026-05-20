@@ -18,7 +18,7 @@ class CreateA1CallRecordingsTables extends Migration
             $table->unsignedSmallInteger('call_duration')->default(0);
             $table->string('file_path', 500);
             $table->unsignedInteger('file_size')->default(0);
-            $table->dateTime('downloaded_at');
+            $table->dateTime('downloaded_at')->nullable();
             $table->timestamp('created_at')->useCurrent();
         });
 
