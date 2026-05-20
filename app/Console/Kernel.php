@@ -29,6 +29,11 @@ class Kernel extends ConsoleKernel
             ->hourly()
             ->unlessBetween('9:00', '19:00')
             ->withoutOverlapping();
+
+        // Записи звонков — каждый час в :05 (не пересекается с пропущенными :00,:10,...,:50)
+        $schedule->command('a1:fetch-recordings')
+            ->hourlyAt(5)
+            ->withoutOverlapping();
     }
 
     /**
