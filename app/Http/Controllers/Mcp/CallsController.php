@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Mcp;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * GET /api/mcp/v1/calls/recordings         — list recordings
@@ -54,7 +55,9 @@ class CallsController extends BaseController
             ->limit($perPage)
             ->get(['uuid', 'record_name', 'call_date', 'caller_part', 'callee_part', 'call_duration', 'file_size', 'downloaded_at']);
 
-        $totalSizeBytes = (int) DB::table('a1_call_recordings')->sum('file_size');
+        $totalSizeBytes = (int) Cache::remember('a1.recordings.total_size', 300, function () {
+            return DB::table('a1_call_recordings')->sum('file_size');
+        });
 
         $lastFetch = DB::table('a1_recordings_fetch_log')
             ->where('status', 'success')
@@ -76,21 +79,19 @@ class CallsController extends BaseController
 
         return $this->envelope(
             [
-                'from'     => $from,
-                'to'       => $to,
-                'caller'   => $caller,
-                'callee'   => $callee,
-                'page'     => $page,
-                'per_page' => $perPage,
+                'from'   => $from,
+                'to'     => $to,
+                'caller' => $caller,
+                'callee' => $callee,
             ],
             $data,
             [
-                'total_rows'        => $total,
-                'page'              => $page,
-                'per_page'          => $perPage,
-                'total_size_bytes'  => $totalSizeBytes,
-                'quota_bytes'       => 1_073_741_824,
-                'data_freshness'    => $lastFetch,
+                'total_rows'       => $total,
+                'page'             => $page,
+                'per_page'         => $perPage,
+                'total_size_bytes' => $totalSizeBytes,
+                'quota_bytes'      => 1_073_741_824,
+                'data_freshness'   => $lastFetch,
             ]
         );
     }
@@ -98,10 +99,10 @@ class CallsController extends BaseController
     /**
      * GET /api/mcp/v1/calls/recordings/{uuid}/file
      *
-     * Streams the mp3 binary. Does NOT return the standard JSON envelope.
+     * Streams the mp3 binary via BinaryFileResponse (chunked, Range-aware).
      * Returns 404 if the DB record is missing or the file is gone from disk.
      */
-    public function streamFile(string $uuid): Response
+    public function streamFile(string $uuid): BinaryFileResponse
     {
         $recording = DB::table('a1_call_recordings')
             ->where('uuid', $uuid)
@@ -113,6 +114,13 @@ class CallsController extends BaseController
 
         $diskPath = storage_path('app/' . $recording->file_path);
 
+        // Path traversal guard: resolved path must stay inside a1_recordings/
+        $allowed  = storage_path('app/a1_recordings');
+        $resolved = realpath($diskPath);
+        if ($resolved === false || strpos($resolved, $allowed) !== 0) {
+            abort(404, 'Recording not found');
+        }
+
         if (!file_exists($diskPath)) {
             abort(404, 'Recording file not found on disk');
         }
@@ -120,10 +128,6 @@ class CallsController extends BaseController
         $parts    = explode('/', $recording->file_path);
         $filename = end($parts);
 
-        return response(file_get_contents($diskPath), 200, [
-            'Content-Type'        => 'audio/mpeg',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Content-Length'      => filesize($diskPath),
-        ]);
+        return response()->download($diskPath, $filename, ['Content-Type' => 'audio/mpeg']);
     }
 }
