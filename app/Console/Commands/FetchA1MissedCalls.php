@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class FetchA1MissedCalls extends Command
 {
@@ -30,6 +31,20 @@ class FetchA1MissedCalls extends Command
     private const BASE_URL = 'https://vats.a1.by/crm-api/open-api/v1';
 
     public function handle(): int
+    {
+        $lock = Cache::lock('a1_api_mutex', 120);
+        if (!$lock->get()) {
+            Log::warning('A1 MissedCalls: не удалось захватить a1_api_mutex, пропускаем запуск');
+            return 0;
+        }
+        try {
+            return $this->doHandle();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function doHandle(): int
     {
         $companyId = config('services.a1.company_id');
         $apiKey    = config('services.a1.api_key');
