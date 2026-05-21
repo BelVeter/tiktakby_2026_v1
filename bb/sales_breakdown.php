@@ -87,6 +87,7 @@ $sales_all_2 = \bb\classes\Deal::getSalesRentDeliv($from2, $to2);
         <a class="nav-item nav-link" href="/bb/dohrash2.php">Свод доходов и расходов</a>
         <a class="nav-item nav-link" href="/bb/cat_analysis.php">Анализ выдач по категориям</a>
         <a class="nav-item nav-link" href="/bb/tovar_report.php">Товары (динамика)</a>
+        <a class="nav-item nav-link" href="/bb/rash_analysis.php">Анализ расходов</a>
       </div>
     </div>
   </nav>
