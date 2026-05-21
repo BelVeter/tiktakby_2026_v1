@@ -76,6 +76,7 @@ Separate PHP admin panel (not Laravel-based), accessible at `/bb/`. Key files:
 - `bb/redirects.php` — redirect management
 - `bb/redirects_api.php` — API for cascading URL selection (by site structure)
 - `bb/items_manage.php` — Management of expense and income categories (added by Antigravity)
+- `bb/rash_analysis.php` — Interactive expense analysis with breakdown charts (added by Antigravity)
 - `bb/webp_converter.php` — batch image conversion tool (GD library, WebP)
 - `bb/a1_missed_calls.php` — A1 VATS missed calls viewer (reads from `storage/app/a1_missed_calls.json`)
 - Order, client, product, and rental management

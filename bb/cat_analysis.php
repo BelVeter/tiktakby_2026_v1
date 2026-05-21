@@ -140,6 +140,7 @@ foreach ($models as $m) {
         <a class="nav-item nav-link" href="/bb/sales_breakdown.php">Динамика выручки</a>
         <a class="nav-item nav-link" href="/bb/dohrash2.php">Свод доходов и расходов</a>
         <a class="nav-item nav-link" href="/bb/tovar_report.php">Товары (динамика)</a>
+        <a class="nav-item nav-link" href="/bb/rash_analysis.php">Анализ расходов</a>
       </div>
     </div>
   </nav>
