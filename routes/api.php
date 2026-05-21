@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Mcp\CallsController;
 use App\Http\Controllers\Mcp\CarnivalController;
 use App\Http\Controllers\Mcp\CategoriesController;
 use App\Http\Controllers\Mcp\CustomersController;
@@ -91,4 +92,8 @@ Route::prefix('mcp/v1')
         Route::get('export/monthly/{topic}', [ExportController::class, 'monthly'])
             ->where('topic', '[a-z_-]+')
             ->name('export.monthly');
+
+        // A1 Call Recordings
+        Route::get('calls/recordings', [CallsController::class, 'index'])->name('calls.recordings');
+        Route::get('calls/recordings/{uuid}/file', [CallsController::class, 'streamFile'])->name('calls.recordings.file');
     });
