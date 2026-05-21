@@ -80,6 +80,12 @@
           </div>
         </div>
 
+        @if(isset($notice))
+          <div class="col-12" style="margin-bottom: 12px;">
+            <div class="alert alert-warning mb-0">{{ $notice }}</div>
+          </div>
+        @endif
+
         @if($p->isKarnaval())
           <!-- Filter form -->
           <div class="l3k-filter-container">

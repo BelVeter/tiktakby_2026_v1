@@ -162,5 +162,10 @@ Route::get(
     'App\Http\Controllers\L3Controller@l3ShowPage2'
 )->name('l3page');
 
+Route::get(
+    '/{lang}/{r1}/{r2}/{r3}/{r4}/{model}',
+    'App\Http\Controllers\L3Controller@l3ShowPageLegacy'
+);
+
 // --- Fallback (404) ---
 Route::fallback('App\Http\Controllers\RedirectController@notFound');

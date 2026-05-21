@@ -77,7 +77,7 @@ class L3Page
 
   public function getCanonicalUrlBy()
   {
-    return $this->modelWeb->getUrlPageAddress('ru');
+    return 'https://tiktak.by' . $this->modelWeb->getUrlPageAddress('ru');
   }
 
   /**
@@ -296,9 +296,8 @@ class L3Page
 
     $p->modelWeb = ModelWeb::getByUrlNameLangSafe($urlName, $lang);
 
-    // Если модель не найдена (устаревший URL, бот, ошибочный запрос) — 404
     if (!$p->modelWeb) {
-      abort(404);
+      return null;
     }
 
     $p->tariffs = TariffModel::getTarifModelForModelId($p->modelWeb->model_id);

@@ -1,0 +1,224 @@
+# MCP Analytics API
+
+Read-only HTTP analytics API powering the local MCP server (`tiktak-mcp`).
+Lives on `https://tiktak.by/api/mcp/v1/*` behind a token + GeoIP gate, returns
+a uniform `{query, data, meta}` envelope, and exposes its own OpenAPI 3.0
+description for client tooling.
+
+## Methodology (locked 2026-05-14)
+
+The API reproduces the calculations used by legacy admin reports
+`/bb/reports.php`, `/bb/sales_breakdown.php`, `/bb/dohrash2.php`,
+`/bb/cat_analysis.php`:
+
+| Concern | Convention |
+|---|---|
+| **Revenue source** | `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` |
+| **Period filter** | `acc_date` (accounting date — when the payment landed). Not deal `cr_time`. |
+| **Deal counts** | `COUNT(DISTINCT deal_id)` over `UNION(rent_deals_act, rent_deals_arch)` |
+| **Issuance events** | `COUNT(*)` of sub-deals with `type IN ('first_rent','takeaway_plan')` — matches `/bb/reports.php` |
+| **Renewal events** | `COUNT(*)` of sub-deals with `type = 'extention'` |
+| **Office attribution** | `sub_deal.place` + `sub_deal.delivery_yn` (per-payment), NOT `deal.first_rent_place` (per-deal). Office 0 in responses = synthetic "Курьер" pseudo-office for `delivery_yn='1'` sub-deals. |
+| **Carnival detection** | `tovar_rent_cat.cat_type=1`. All endpoints accept `include_carnival` (default true). `/finance/pnl` returns both `revenue_carnival_byn` and `revenue_non_carnival_byn`. |
+| **Historical inventory** | At date X = `COUNT(tovar_rent_items WHERE buy_date<=X)` + `COUNT(tovar_rent_items_arch WHERE buy_date<=X AND arch_time>=X)`. Used by `/inventory/utilization`. |
+| **Razdel filter dedup** | Joins through `subrazdel_category × razdel_subrazdel` are many-to-many and would inflate `SUM` aggregates. Use `BaseController::itemsInRazdelSubquery()` which returns DISTINCT `item_inv_n` for a razdel. |
+
+### Common pitfalls for API consumers
+
+- **Don't sum `/finance/revenue` with `/carnival/revenue`.** The carnival
+  endpoint reads `karn_brons` (pre-booking system) — these bookings,
+  once issued, also live in `rent_sub_deals_*`. Summing both is a
+  double-count. To compare, use `/finance/pnl.revenue_carnival_byn` for
+  realized carnival revenue and `/carnival/revenue` for pre-booking
+  pipeline.
+- **`include_carnival=false`** zeroes carnival contribution in every
+  numeric field including `/finance/pnl.revenue_carnival_byn` (which is
+  always zero in that mode by construction).
+- **`location=courier`** is the new way to filter delivery_yn='1'
+  sub-deals. Numeric `location=1|2|3` filters `place=N AND delivery_yn!='1'`.
+- **`/inventory/utilization`** denominator is historical: `(units_at_from + units_at_to)/2`,
+  not the current catalog count. For very old periods the inventory may
+  be larger than today (items archived since).
+
+## Architecture
+
+```
+┌──────────────────────────┐  HTTP  ┌──────────────────────────┐  MCP  ┌─────────────┐
+│  Production tiktak.by    │◀──────│  Local tiktak-mcp server  │──────▶│ Claude Code │
+│  Laravel + MariaDB       │        │  (Node.js, Phase B)       │        │             │
+│  /api/mcp/v1/*           │        │                           │        │             │
+└──────────────────────────┘        └──────────────────────────┘        └─────────────┘
+```
+
+The HTTP layer (this document) is Phase A. Phase B is the local MCP-protocol
+server that wraps Phase A; it auto-generates its tool definitions from
+`/api/mcp/v1/openapi.json`.
+
+## Layout
+
+| Concern | Path |
+|---|---|
+| Domain controllers | `app/Http/Controllers/Mcp/*Controller.php` (11 files) |
+| Shared helpers | `app/Http/Controllers/Mcp/BaseController.php` (envelope, cache, data-freshness, TTL constants) |
+| Form Request | `app/Http/Requests/Mcp/RangeRequest.php` (defaults, validation, `granularityFormatFor()`) |
+| Middleware | `app/Http/Middleware/Mcp{ForceJson,Token,GeoCountry,AuditLog}Middleware.php` |
+| Routes | `routes/api.php` under `Route::prefix('mcp/v1')` |
+| OpenAPI spec | `resources/openapi/mcp-v1.json` (served via `HealthController::openapi()`) |
+| DB performance indexes | migration `2026_05_09_000001_add_mcp_analytics_indexes` |
+| Audit log table | `mcp_api_log` (created by `2026_05_06_000001_create_mcp_api_log_table`) |
+| Feature tests | `tests/Feature/Mcp/*Test.php` (46 tests, ~3 sec) |
+| Smoke test (prod) | `docs/mcp_smoke_test.sh` |
+
+## Response envelope
+
+Every endpoint except `/openapi.json` and `/export/monthly/*` returns:
+
+```json
+{
+  "query":  { /* echoed parameters with defaults filled in */ },
+  "data":   /* endpoint-specific payload */,
+  "meta": {
+    "total_rows":     123,
+    "currency":       "BYN",
+    "data_freshness": "2026-04-23T20:49:28Z",
+    "warnings":       [ /* see below */ ]
+  }
+}
+```
+
+`/finance/pnl` injects a warning when the requested period overlaps 2025+:
+
+```json
+{
+  "code":    "fy2025_bank_channel_gap",
+  "message": "С 2025-01 банковские расходы (налоги, аренда, банковские комиссии) перестали вводиться в doh_rash...",
+  "ref":     "D-OPEN-FY2025"
+}
+```
+
+This is mandated by the analytics workspace decisions log (D-OPEN-FY2025) —
+do not remove it without coordinating with `/home/dmitry/Documents/прокат/`.
+
+## Endpoint catalog
+
+All endpoints accept `?from=&to=` (default: last 12 months) plus
+`?granularity=day|week|month|quarter|year` (default: month) where applicable.
+Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
+`tools` has no current razdel and resolves to an empty result. Locations are
+`offices.id` integers or `all`.
+
+| Group | Endpoint | Purpose |
+|---|---|---|
+| Health | `GET /health` | Liveness, no DB |
+|        | `GET /openapi.json` | Full OpenAPI 3.0 spec |
+| Meta   | `GET /meta/categories` | Business categories + detailed `tovar_cats` |
+|        | `GET /meta/locations` | Offices/couriers + computed first/last deal + revenue |
+|        | `GET /meta/expense-items` | Active `rash_items` |
+|        | `GET /meta/income-items` | Active `doh_items` |
+|        | `GET /meta/data-freshness` | Per-table max(cr_time/acc_date) ISO UTC |
+| Finance| `GET /finance/pnl` | Revenue + 7-bucket expenses + EBITDA, with 2025 warning |
+|        | `GET /finance/revenue` | Period × category × location revenue |
+|        | `GET /finance/expenses` | doh_rash by `type2` × channel (cash/bank/etc.) |
+|        | `GET /finance/cash-flow` | Inflow/outflow/net per till (`kassa`) |
+| Operations | `GET /operations/funnel` | leads → deals → sub-deals → returns + CR |
+|        | `GET /operations/timeline` | Period-bucketed funnel |
+|        | `GET /operations/by-category` | Per-razdel orders + deals + revenue |
+|        | `GET /operations/by-location` | Per-office deals + clients + revenue + returns |
+| Inventory | `GET /inventory/free-tree` | Catalog tree with free-unit counts |
+|        | `GET /inventory/profitability` | Per-physical-item profitability |
+|        | `GET /inventory/utilization` | Per-model rented_seconds / (units × period) |
+|        | `GET /inventory/turnover` | deals / units per model |
+|        | `GET /inventory/idle?days=` | Models without rentals for ≥ N days |
+| Customers | `GET /customers/timeline` | new / active / returning / new_active per period |
+|        | `GET /customers/cohorts` | Monthly cohort × observed retention matrix |
+|        | `GET /customers/repeat-intervals` | mean/p25/median/p75 + 6-bucket histogram |
+|        | `GET /clients/ltv` | Top-N clients by LTV (no PII) |
+| Geo    | `GET /geo/clients-by-city` | Trimmed/lower-cased city grouping |
+| Locations | `GET /locations/performance` | Per-period × per-office revenue + tickets |
+|        | `GET /locations/lifecycle` | Full office history (open/close/total) |
+| Categories | `GET /categories/seasonality` | Month-of-year × seasonality_index |
+|        | `GET /categories/performance` | Per-category deals + revenue (legacy) |
+| Carnival | `GET /carnival/funnel` | bookings → approved → issued → returned |
+|        | `GET /carnival/seasonality` | December peak verification (idx ≈ 6.7+) |
+|        | `GET /carnival/revenue` | k1/k2/terminal/bank revenue split |
+| Legacy | `GET /orders/stats` | Original combined orders+brons+deals stats |
+|        | `GET /deals/list` | Paginated recent deals with addresses (no PII) |
+| Export | `GET /export/monthly/{topic}` | CSV stream for `operations`, `revenue`, `pnl`; `traffic` is a header-only stub (Y.Metrika lives elsewhere) |
+
+## Caching
+
+`Cache::remember`-based, file driver in production. TTL constants on `BaseController`:
+
+| Class of endpoint | TTL | Constant |
+|---|---|---|
+| Meta / static reference | 24 h | `TTL_META` |
+| Heavy aggregations (P&L, cohorts, seasonality, exports) | 1 h | `TTL_HEAVY` |
+| Default | 5 min | `TTL_DEFAULT` |
+| Disabled | — | `TTL_NONE` |
+
+`BaseController::dataFreshness()` is itself cached for 5 minutes so the
+envelope timestamp is cheap on every response.
+
+## Authentication
+
+Bearer token via the `Authorization` header, validated against
+`config('mcp.api_token')` (`MCP_API_TOKEN` env var). Generate a fresh value
+with `openssl rand -hex 32`.
+
+GeoIP allow-list is `MCP_GEO_ALLOWED_COUNTRIES=BY,RU` (private/loopback IPs
+are exempt). The GeoLite2 DB lives at `storage/app/geoip/GeoLite2-Country.mmdb`
+and the middleware fails open with a logged warning if it's missing.
+
+## Tests
+
+```bash
+docker exec tiktakby-app ./vendor/bin/phpunit tests/Feature/Mcp/
+```
+
+`McpTestCase` injects a token, disables geo + audit middleware, and exposes
+`mcp(path, query)` + `assertEnvelope($response)`. 46 tests verify happy
+paths, validation, the 2025 warning, the location-3 acceptance criteria,
+December peaks for costumes/carnival, and CSV header layout.
+
+## Smoke test (prod)
+
+After deploy, run from any machine that can reach prod:
+
+```bash
+MCP_API_BASE=https://tiktak.by/api/mcp/v1 \
+MCP_API_TOKEN=<token> \
+./docs/mcp_smoke_test.sh
+```
+
+The script hits every endpoint and asserts:
+
+- `{query, data, meta}` envelope shape
+- `meta.currency == "BYN"`
+- 2019 P&L: `revenue ≈ 433 656`, `EBITDA ≈ +34 909`
+- 2024 P&L: `EBITDA ≈ −15 071`
+- 2025 P&L: contains the `fy2025_bank_channel_gap` warning
+- 2019 ops `by-location`: office id 3 (Pobediteley) is top
+- 2022-08 → 2026 ops `by-location`: office id 3 absent
+- December has the highest `seasonality_index` for both `categories=costumes`
+  and `carnival/seasonality`
+
+Exit code = number of failed endpoints. Requires `python3` (no `jq` needed).
+
+## Deployment
+
+Production deploy is via `https://tiktak.by/Deploy.php?key=...` which already
+runs `migrate --force`, `route:cache`, `view:cache`. After deploy:
+
+1. Run `docs/mcp_smoke_test.sh` against the prod base URL — should report
+   `passed: 41, failed: 0`.
+2. Verify `GET /api/mcp/v1/openapi.json` returns the spec; this is the
+   contract Phase B's MCP server reads.
+3. Tail `mcp_api_log` (table) for the first hour to spot anomalies.
+
+## Phase B (out of scope here)
+
+The local MCP server lives at `/home/dmitry/.mcp-servers/connectors/tiktak-mcp/`
+and consumes this API. It registers ~33 tools 1:1 with the endpoints,
+auto-generated from `/openapi.json`. See
+`/home/dmitry/Documents/прокат/99_meta/api_stage1_implementation.md` for the
+B-side plan.

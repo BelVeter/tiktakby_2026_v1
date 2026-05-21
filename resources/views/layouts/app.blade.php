@@ -1,5 +1,8 @@
 @php
-  $v = 177;
+  $v_css_bootstrap = file_exists(public_path('css/bootstrap.min.css')) ? filemtime(public_path('css/bootstrap.min.css')) : 1;
+  $v_js_popper = file_exists(public_path('js/popper.min.js')) ? filemtime(public_path('js/popper.min.js')) : 1;
+  $v_js_bootstrap = file_exists(public_path('js/bootstrap.min.js')) ? filemtime(public_path('js/bootstrap.min.js')) : 1;
+  $v_js_app = file_exists(public_path('js/app.js')) ? filemtime(public_path('js/app.js')) : 1;
 @endphp
 
 <!DOCTYPE html>
@@ -7,7 +10,7 @@
 
 <head>
   <!-- Global site tag (gtag.js) - Yandex webmaster -->
-  <meta name="yandex-verification" content="61541709f8b93408" />
+  <meta name="yandex-verification" content="7348006d2698d8b8" />
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-15543442-1"></script>
 
@@ -44,7 +47,7 @@
   {{--
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">--}}
-  <link href="/public/css/bootstrap.min.css?v={{$v}}" rel="stylesheet" crossorigin="anonymous">
+  <link href="/public/css/bootstrap.min.css?v={{$v_css_bootstrap}}" rel="stylesheet" crossorigin="anonymous">
 
   <link rel="stylesheet" href="/public{{ mix('/css/app.css') }}">
 
@@ -130,15 +133,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
       integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p"
       crossorigin="anonymous"></script>--}}
-    <script src="/public/js/popper.min.js?v={{$v}}" crossorigin="anonymous"></script>
+    <script src="/public/js/popper.min.js?v={{$v_js_popper}}" crossorigin="anonymous"></script>
     {{--
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
       integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF"
       crossorigin="anonymous"></script>--}}
-    <script src="/public/js/bootstrap.min.js?v={{$v}}" crossorigin="anonymous"></script>
+    <script src="/public/js/bootstrap.min.js?v={{$v_js_bootstrap}}" crossorigin="anonymous"></script>
 
 
-    <script src="/public/js/app.js?v={{$v}}"></script>
+    <script src="/public/js/app.js?v={{$v_js_app}}"></script>
 
     {{-- Favorites Manager (localStorage-based, session-scope) --}}
     <style>

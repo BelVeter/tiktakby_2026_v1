@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    image: tiktakby-app
+    container_name: tiktakby-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:10.6
+    container_name: tiktakby-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: tiktakby_tiktak
+      MYSQL_USER: tiktakby_tiktak
+      MYSQL_PASSWORD: Vai7evahch
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "33060:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+#      - ./tiktakby.sql:/docker-entrypoint-initdb.d/tiktakby.sql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --sql-mode=""
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: tiktakby-pma
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_USER: tiktakby_tiktak
+      PMA_PASSWORD: Vai7evahch
+    ports:
+      - "8088:80"
+    depends_on:
+      - db
+
+volumes:
+  db-data:

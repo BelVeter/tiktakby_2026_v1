@@ -81,6 +81,7 @@ echo '
 .z_btn_save { background-color: #28a745; }
 .z_btn_del { background-color: #dc3545; }
 .z_btn_missed { background-color: #ffc107; color: #333; }
+.zayavk_btn svg, .zayavk_btn path, .zayavk_btn polyline, .zayavk_btn line { pointer-events: none; }
 </style>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ' . Base::getBarCodeReaderScript() . '
@@ -444,7 +445,7 @@ while ($ord = $result_or->fetch_assoc()) {
 
 				<button type="button" name="action" class="zayavk_btn z_btn_save" data-tooltip="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
 				<button type="submit" name="action" class="zayavk_btn z_btn_save" data-tooltip="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
-      	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return obnov(\'' . $br_line->order_id . '\');">' . $svg_phone_off . '</button>
+      	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return confirm(\'Отметить недозвон?\');">' . $svg_phone_off . '</button>
 				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
 			</div>
 			</form>

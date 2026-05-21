@@ -12,11 +12,16 @@ session_start();
 ini_set("display_errors", 1);
 error_reporting(E_ALL);
 
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 //require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php'); // включаем подключение к базе данных
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/tovar.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Tariff.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/ModelWeb.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/TariffModel.php'); // включаем класс
+require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Model.php'); // включаем класс
+require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Client.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/bron.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Category.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Razdel.php'); // включаем класс
@@ -107,6 +112,47 @@ if(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && !empty($_SERVER['HTTP_X_REQUESTED
             $result=json_encode($res);
             echo $result;
 
+            break;
+
+          case 'search_clients':
+            $q = Base::GetPost('q');
+            $clients = [];
+            if (strlen($q) >= 2) {
+                $found = preg_match('/^[\d\+\(\)\-\s]+$/', $q)
+                    ? \bb\classes\Client::getClientsByPhoneNumber(preg_replace('/[^0-9]/', '', $q))
+                    : \bb\classes\Client::getClientsByFioString($q);
+                if ($found) {
+                    foreach (array_slice($found, 0, 10) as $cl) {
+                        $clients[] = [
+                            'family' => $cl->family,
+                            'name'   => $cl->name,
+                            'otch'   => $cl->otch,
+                            'phone'  => $cl->phone_1,
+                            'label'  => trim($cl->family.' '.$cl->name.' '.$cl->otch).' — '.$cl->phone_1,
+                        ];
+                    }
+                }
+            }
+            echo json_encode(['status' => 'ok', 'clients' => $clients]);
+            break;
+
+          case 'create_zayavka':
+            $model_id_z = Base::GetPost('model_id');
+            $phone_z    = preg_replace('/[^0-9]/', '', Base::GetPost('phone'));
+            $family_z   = Base::GetPost('family');
+            $name_z     = Base::GetPost('name');
+            $otch_z     = Base::GetPost('otch');
+            $validity_s = Base::GetPost('validity');
+            $info_z     = Base::GetPost('info');
+
+            $validity_dt = \DateTime::createFromFormat('Y-m-d', $validity_s);
+            if (!$validity_dt) $validity_dt = new \DateTime('+30 days');
+
+            \bb\classes\bron::createZayavka($model_id_z, $phone_z, $family_z, $name_z, $otch_z, $validity_dt, $info_z, 0);
+
+            $res['status'] = 'ok';
+            $res['message'] = 'Заявка создана';
+            echo json_encode($res);
             break;
         }
 
@@ -747,6 +793,7 @@ if ($item_def['status']=='to_rent' || ($item_def['status']=='t_bron')) {    //!!
     }
 	$buttons.='
 		</form>
+		<button type="button" class="btn btn-sm btn-warning zayavka_btn" data-modelid="'.$item_def['model_id'].'">заявка</button>
 					';
     if (in_array($item_def['tovar_rent_cat_id'], $karnaval_models)) {
         $buttons.=KBronForm::StartButton($item_def['item_inv_n']);
@@ -1119,4 +1166,170 @@ function step_translate ($step) {
 
     form.submit();
   }
+
+  // Кнопка "заявка" — инициализация после полной загрузки DOM (модал рендерится ниже скрипта)
+  document.addEventListener('DOMContentLoaded', function() {
+
+    function zModalShow() {
+      var m = document.getElementById('zayavkaModal');
+      m.style.display = 'block';
+      m.classList.add('show');
+      document.body.classList.add('modal-open');
+      var bd = document.createElement('div');
+      bd.className = 'modal-backdrop fade show';
+      bd.id = 'z-modal-backdrop';
+      document.body.appendChild(bd);
+    }
+
+    function zModalHide() {
+      var m = document.getElementById('zayavkaModal');
+      m.style.display = 'none';
+      m.classList.remove('show');
+      document.body.classList.remove('modal-open');
+      var bd = document.getElementById('z-modal-backdrop');
+      if (bd) bd.parentNode.removeChild(bd);
+    }
+
+    document.querySelectorAll('.zayavka_btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.getElementById('z_model_id').value = this.dataset.modelid;
+        document.getElementById('z_client_search').value = '';
+        document.getElementById('z_client_results').style.display = 'none';
+        document.getElementById('z_family').value = '';
+        document.getElementById('z_name').value = '';
+        document.getElementById('z_otch').value = '';
+        document.getElementById('z_phone').value = '';
+        document.getElementById('z_validity').value = '';
+        document.getElementById('z_info').value = '';
+        zModalShow();
+      });
+    });
+
+    document.getElementById('z-modal-close').addEventListener('click', zModalHide);
+    document.getElementById('z-modal-cancel').addEventListener('click', zModalHide);
+
+    // Поиск клиента
+    var searchTimer = null;
+    document.getElementById('z_client_search').addEventListener('input', function() {
+      clearTimeout(searchTimer);
+      var q = this.value.trim();
+      var results = document.getElementById('z_client_results');
+      if (q.length < 2) { results.style.display = 'none'; return; }
+      searchTimer = setTimeout(function() {
+        $.ajax({
+          type: 'POST',
+          url: '/bb/kr_baza_new.php',
+          data: { action: 'search_clients', q: q },
+          success: function(data) {
+            var res = JSON.parse(data);
+            results.innerHTML = '';
+            if (!res.clients.length) {
+              results.innerHTML = '<div style="padding:6px 10px; color:#999;">Не найдено</div>';
+            } else {
+              res.clients.forEach(function(cl) {
+                var div = document.createElement('div');
+                div.textContent = cl.label;
+                div.style.cssText = 'padding:6px 10px; cursor:pointer;';
+                div.addEventListener('mouseenter', function(){ this.style.background='#f0f0f0'; });
+                div.addEventListener('mouseleave', function(){ this.style.background=''; });
+                div.addEventListener('click', function() {
+                  document.getElementById('z_family').value = cl.family;
+                  document.getElementById('z_name').value = cl.name;
+                  document.getElementById('z_otch').value = cl.otch;
+                  document.getElementById('z_phone').value  = cl.phone;
+                  document.getElementById('z_client_search').value = cl.label;
+                  results.style.display = 'none';
+                });
+                results.appendChild(div);
+              });
+            }
+            results.style.display = 'block';
+          }
+        });
+      }, 300);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#z_client_search') && !e.target.closest('#z_client_results')) {
+        document.getElementById('z_client_results').style.display = 'none';
+      }
+    });
+
+    document.getElementById('zayavka_submit').addEventListener('click', function() {
+      var modelId  = document.getElementById('z_model_id').value;
+      var family   = document.getElementById('z_family').value.trim();
+      var name     = document.getElementById('z_name').value.trim();
+      var otch     = document.getElementById('z_otch').value.trim();
+      var phone    = document.getElementById('z_phone').value.trim();
+      var validity = document.getElementById('z_validity').value;
+      var info     = document.getElementById('z_info').value.trim();
+
+      if (!phone)    { alert('Укажите телефон'); document.getElementById('z_phone').focus(); return; }
+      if (!validity) { alert('Укажите срок действия'); document.getElementById('z_validity').focus(); return; }
+
+      $.ajax({
+        type: 'POST',
+        url: '/bb/kr_baza_new.php',
+        data: { action: 'create_zayavka', model_id: modelId, family: family, name: name, otch: otch, phone: phone, validity: validity, info: info },
+        success: function(data) {
+          var res = JSON.parse(data);
+          if (res.status === 'ok') {
+            zModalHide();
+            alert('Заявка создана');
+          }
+        }
+      });
+    });
+
+  }); // DOMContentLoaded
 </script>
+
+<!-- Модал создания заявки -->
+<div class="modal" id="zayavkaModal" tabindex="-1" role="dialog" style="display:none;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Создать заявку</h5>
+        <button type="button" class="close" id="z-modal-close"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="z_model_id" value="">
+        <div class="form-group">
+          <label>Поиск клиента (ФИО или телефон)</label>
+          <input type="text" id="z_client_search" class="form-control" placeholder="Иванова или +375...">
+          <div id="z_client_results" style="border:1px solid #ccc; border-top:none; display:none; max-height:180px; overflow-y:auto; background:#fff; position:absolute; z-index:2000; width:calc(100% - 30px);"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label>Фамилия</label>
+            <input type="text" id="z_family" class="form-control" placeholder="Фамилия">
+          </div>
+          <div class="form-group col-md-4">
+            <label>Имя</label>
+            <input type="text" id="z_name" class="form-control" placeholder="Имя">
+          </div>
+          <div class="form-group col-md-4">
+            <label>Отчество</label>
+            <input type="text" id="z_otch" class="form-control" placeholder="Отчество">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Телефон <span class="text-danger">*</span></label>
+          <input type="text" id="z_phone" class="form-control" placeholder="+375...">
+        </div>
+        <div class="form-group">
+          <label>Срок действия заявки до <span class="text-danger">*</span></label>
+          <input type="date" id="z_validity" class="form-control" min="<?= date('Y-m-d') ?>">
+        </div>
+        <div class="form-group">
+          <label>Комментарий</label>
+          <textarea id="z_info" class="form-control" rows="3" placeholder="Нужен в феврале, звонить после 18:00..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="z-modal-cancel">Отмена</button>
+        <button type="button" class="btn btn-warning" id="zayavka_submit">Создать заявку</button>
+      </div>
+    </div>
+  </div>
+</div>
