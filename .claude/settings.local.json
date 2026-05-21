@@ -2,7 +2,21 @@
   "permissions": {
     "allow": [
       "Bash(php -l:*)",
-      "Bash(mysql:*)"
+      "Bash(mysql:*)",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by \"tail -50 ~/logs/errors.log 2>/dev/null || tail -50 ~/access-logs/errors.log 2>/dev/null || echo 'no log found'\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by \"cd ~/public_html && php artisan a1:fetch-recordings --help 2>&1 | head -10\")",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by \"cd ~/public_html && php artisan tinker --execute=\\\\\"echo json_encode\\(['recordings_count' => DB::table\\('a1_call_recordings'\\)->count\\(\\), 'fetch_log_count' => DB::table\\('a1_recordings_fetch_log'\\)->count\\(\\), 'last_fetch' => DB::table\\('a1_recordings_fetch_log'\\)->orderBy\\('fetched_at','desc'\\)->first\\(\\)], JSON_PRETTY_PRINT\\);\\\\\"\")",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by \"crontab -l 2>/dev/null\")",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by \"cd ~/public_html && php artisan a1:fetch-recordings 2>&1\")",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by \"cd ~/public_html && php artisan a1:fetch-recordings -v 2>&1\")",
+      "Bash(python3 -c ' *)",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by 'cd ~/public_html && php artisan tinker --execute=\" *)",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by 'cd ~/public_html && php -r \" *)",
+      "Bash(ssh -i ~/.ssh/hoster_claude tiktakby@vh104.hoster.by 'cd ~/public_html && php artisan tinker --execute=\"print_r\\(config\\(\\\\\"services.a1\\\\\"\\)\\);\"')",
+      "Bash(ssh -i *)",
+      "Bash(git push *)"
     ]
   }
 }
