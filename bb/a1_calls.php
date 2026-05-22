@@ -11,6 +11,12 @@ require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
 \bb\Base::loginCheck();
 
+// Only Дима (user_id=3) has access to this page
+if (!isset($_SESSION['user_id']) || (int)$_SESSION['user_id'] !== 3) {
+    http_response_code(403);
+    die('<p>Доступ запрещён.</p>');
+}
+
 $mysqli = \bb\Db::getInstance()->getConnection();
 
 // ─── Параметры ────────────────────────────────────────────────────────────
@@ -62,7 +68,12 @@ $result = $mysqli->query("
         ca.ai_summary,
         ca.ai_result,
         ca.ai_status,
-        ca.transcript
+        ca.transcript,
+        ca.discussed_items,
+        ca.missed_item,
+        ca.client_sentiment,
+        ca.consultant_sentiment,
+        ca.recording_uuid AS analysis_recording_uuid
     FROM a1_cdr cdr
     LEFT JOIN a1_call_analysis ca ON ca.recording_uuid = cdr.recording_uuid
     WHERE DATE(cdr.call_date) = '{$safeDate}'
@@ -291,9 +302,23 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <td>
                     <?php if ($call['transcript'] && $call['ai_status'] === 'done'): ?>
                     <button class="btn btn-sm btn-outline-secondary"
-                            onclick="showTranscript(<?= htmlspecialchars(json_encode($call['transcript'])) ?>)">T</button>
+                            onclick="showAnalysis(<?= htmlspecialchars(json_encode([
+                                'transcript'           => $call['transcript'],
+                                'ai_summary'           => $call['ai_summary'],
+                                'ai_result'            => $call['ai_result'],
+                                'discussed_items'      => json_decode($call['discussed_items'] ?? '[]', true),
+                                'missed_item'          => $call['missed_item'],
+                                'client_sentiment'     => $call['client_sentiment'],
+                                'consultant_sentiment' => $call['consultant_sentiment'],
+                            ]), ENT_QUOTES) ?>)">T</button>
+                    <?php elseif ($call['ai_status'] === 'error'): ?>
+                    <span class="text-muted">—</span>
                     <?php else: ?>
                     <span class="text-muted">—</span>
+                    <?php endif; ?>
+                    <?php if ($call['recording_uuid'] && in_array($call['ai_status'], ['done', 'error'], true)): ?>
+                    <button class="btn btn-sm btn-outline-warning ml-1" title="Сбросить и перезапустить"
+                            onclick="resetAnalysis('<?= htmlspecialchars($call['recording_uuid']) ?>')">↺</button>
                     <?php endif; ?>
                 </td>
                 <td>
@@ -320,7 +345,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
-                <pre id="transcriptContent" class="bg-light p-3 rounded"></pre>
+                <div id="analysisDetails" class="mb-3"></div>
+                <hr id="analysisDivider" style="display:none;">
+                <pre id="transcriptContent" class="bg-light p-3 rounded" style="white-space:pre-wrap;font-size:0.85rem;max-height:60vh;overflow-y:auto;"></pre>
             </div>
         </div>
     </div>
@@ -329,10 +356,61 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 <script>
-function showTranscript(text) {
-    document.getElementById('transcriptContent').textContent = text;
+var sentimentMap = {positive: '😊 Позитивный', neutral: '😐 Нейтральный', negative: '😟 Негативный'};
+var sentimentColor = {positive: 'success', neutral: 'secondary', negative: 'danger'};
+
+function showAnalysis(data) {
+    var html = '';
+
+    if (data.discussed_items && data.discussed_items.length > 0) {
+        html += '<div class="mb-2"><strong>Обсуждаемые товары:</strong> ';
+        data.discussed_items.forEach(function(item) {
+            html += '<span class="badge badge-light border mr-1">' + escHtml(item) + '</span>';
+        });
+        html += '</div>';
+    }
+
+    if (data.missed_item) {
+        html += '<div class="mb-2"><strong>Отсутствующий товар:</strong> <span class="badge badge-warning">' + escHtml(data.missed_item) + '</span></div>';
+    }
+
+    if (data.client_sentiment) {
+        html += '<div class="mb-1"><strong>Клиент:</strong> <span class="badge badge-' + (sentimentColor[data.client_sentiment] || 'secondary') + '">' + escHtml(sentimentMap[data.client_sentiment] || data.client_sentiment) + '</span></div>';
+    }
+    if (data.consultant_sentiment) {
+        html += '<div class="mb-2"><strong>Консультант:</strong> <span class="badge badge-' + (sentimentColor[data.consultant_sentiment] || 'secondary') + '">' + escHtml(sentimentMap[data.consultant_sentiment] || data.consultant_sentiment) + '</span></div>';
+    }
+
+    document.getElementById('analysisDetails').innerHTML = html;
+    document.getElementById('analysisDivider').style.display = html ? '' : 'none';
+    document.getElementById('transcriptContent').textContent = data.transcript || '';
     $('#transcriptModal').modal('show');
 }
+
+function resetAnalysis(uuid) {
+    if (!confirm('Сбросить анализ и поставить звонок в очередь на повторную обработку?')) return;
+    fetch('/bb/a1_calls_api.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=reset_analysis&uuid=' + encodeURIComponent(uuid)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(function() { alert('Ошибка соединения'); });
+}
+
+function escHtml(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(str));
+    return d.innerHTML;
+}
+
 function toggleSummary() {
     var el = document.getElementById('summary-body');
     if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
