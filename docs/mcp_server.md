@@ -1,6 +1,6 @@
-# MCP Analytics API
+# MCP Analytics & AI Calls API
 
-Read-only HTTP analytics API powering the local MCP server (`tiktak-mcp`).
+HTTP API (analytics + AI agent call processing) powering the local MCP server (`tiktak-mcp`).
 Lives on `https://tiktak.by/api/mcp/v1/*` behind a token + GeoIP gate, returns
 a uniform `{query, data, meta}` envelope, and exposes its own OpenAPI 3.0
 description for client tooling.
@@ -66,7 +66,7 @@ server that wraps Phase A; it auto-generates its tool definitions from
 | OpenAPI spec | `resources/openapi/mcp-v1.json` (served via `HealthController::openapi()`) |
 | DB performance indexes | migration `2026_05_09_000001_add_mcp_analytics_indexes` |
 | Audit log table | `mcp_api_log` (created by `2026_05_06_000001_create_mcp_api_log_table`) |
-| Feature tests | `tests/Feature/Mcp/*Test.php` (46 tests, ~3 sec) |
+| Feature tests | `tests/Feature/Mcp/*Test.php` (215 tests, analytics + calls) |
 | Smoke test (prod) | `docs/mcp_smoke_test.sh` |
 
 ## Response envelope
@@ -144,6 +144,15 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 | Legacy | `GET /orders/stats` | Original combined orders+brons+deals stats |
 |        | `GET /deals/list` | Paginated recent deals with addresses (no PII) |
 | Export | `GET /export/monthly/{topic}` | CSV stream for `operations`, `revenue`, `pnl`; `traffic` is a header-only stub (Y.Metrika lives elsewhere) |
+| Calls  | `GET /calls/recordings` | List A1 VATS recordings (uuid, dates, caller/callee, duration, file_size) |
+|        | `GET /calls/recordings/{uuid}/file` | Stream MP3 binary (Range-aware) |
+|        | `GET /calls/cdr` | CDR list — all calls (incoming/outgoing/missed) from A1 VATS |
+|        | `GET /calls/pending-analysis` | Pending AI analysis queue; auto-marks returned records as processing |
+|        | `GET /calls/recordings/{uuid}/analysis` | Get analysis result for a recording |
+|        | `POST /calls/recordings/{uuid}/analysis` | Submit analysis (transcript, ai_summary, ai_result, discussed_items, missed_item, sentiment) |
+|        | `GET /calls/daily-summary/{date}` | Get AI daily summary for YYYY-MM-DD |
+|        | `POST /calls/daily-summary/{date}` | Upsert daily summary; counts auto-filled from a1_cdr |
+|        | `POST /calls/recordings/{uuid}/reset-analysis` | Reset ai_status → pending for re-processing |
 
 ## Caching
 
@@ -176,9 +185,11 @@ docker exec tiktakby-app ./vendor/bin/phpunit tests/Feature/Mcp/
 ```
 
 `McpTestCase` injects a token, disables geo + audit middleware, and exposes
-`mcp(path, query)` + `assertEnvelope($response)`. 46 tests verify happy
+`mcp(path, query)` + `assertEnvelope($response)`. 215 tests verify happy
 paths, validation, the 2025 warning, the location-3 acceptance criteria,
-December peaks for costumes/carnival, and CSV header layout.
+December peaks for costumes/carnival, CSV header layout, and all calls
+endpoints (recordings, CDR, pending-analysis queue, analysis submit/get/reset,
+daily summaries).
 
 ## Smoke test (prod)
 
@@ -210,7 +221,7 @@ Production deploy is via `https://tiktak.by/Deploy.php?key=...` which already
 runs `migrate --force`, `route:cache`, `view:cache`. After deploy:
 
 1. Run `docs/mcp_smoke_test.sh` against the prod base URL — should report
-   `passed: 41, failed: 0`.
+   `passed: 50, failed: 0`.
 2. Verify `GET /api/mcp/v1/openapi.json` returns the spec; this is the
    contract Phase B's MCP server reads.
 3. Tail `mcp_api_log` (table) for the first hour to spot anomalies.
@@ -218,7 +229,7 @@ runs `migrate --force`, `route:cache`, `view:cache`. After deploy:
 ## Phase B (out of scope here)
 
 The local MCP server lives at `/home/dmitry/.mcp-servers/connectors/tiktak-mcp/`
-and consumes this API. It registers ~33 tools 1:1 with the endpoints,
+and consumes this API. It registers ~42 tools 1:1 with the endpoints,
 auto-generated from `/openapi.json`. See
 `/home/dmitry/Documents/прокат/99_meta/api_stage1_implementation.md` for the
 B-side plan.

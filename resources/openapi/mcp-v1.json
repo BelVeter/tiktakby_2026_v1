@@ -681,5 +681,167 @@
         }
       }
     }
+    ,
+
+    "/calls/recordings": {
+      "get": {
+        "operationId": "tiktak_calls_recordings_list",
+        "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_part, callee_part, call_duration, file_size. Binary file via /calls/recordings/{uuid}/file.",
+        "parameters": [
+          { "in": "query", "name": "from", "schema": { "type": "string", "format": "date" }, "description": "Start date YYYY-MM-DD (default: 30 days ago)" },
+          { "in": "query", "name": "to",   "schema": { "type": "string", "format": "date" }, "description": "End date YYYY-MM-DD (default: today)" },
+          { "in": "query", "name": "caller", "schema": { "type": "string" } },
+          { "in": "query", "name": "callee", "schema": { "type": "string" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "per_page", "schema": { "type": "integer", "default": 50, "maximum": 200 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated recordings list in {query, data, meta} envelope." }
+        }
+      }
+    },
+
+    "/calls/recordings/{uuid}/file": {
+      "get": {
+        "operationId": "tiktak_calls_recordings_file",
+        "summary": "Stream MP3 binary for a recording. Supports Range header. Returns audio/mpeg.",
+        "parameters": [
+          { "in": "path", "name": "uuid", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "MP3 audio stream.", "content": { "audio/mpeg": { "schema": { "type": "string", "format": "binary" } } } },
+          "404": { "description": "Recording not found or file missing from disk." }
+        }
+      }
+    },
+
+    "/calls/cdr": {
+      "get": {
+        "operationId": "tiktak_calls_cdr",
+        "summary": "CDR list — all calls (incoming/outgoing/missed) fetched from A1 VATS. Includes recording_uuid if a recording exists.",
+        "parameters": [
+          { "in": "query", "name": "from", "schema": { "type": "string", "format": "date" } },
+          { "in": "query", "name": "to",   "schema": { "type": "string", "format": "date" } },
+          { "in": "query", "name": "call_type", "schema": { "type": "string", "enum": ["all","incoming","outgoing","missed"], "default": "all" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "per_page", "schema": { "type": "integer", "default": 100, "maximum": 200 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated CDR rows in {query, data, meta} envelope." }
+        }
+      }
+    },
+
+    "/calls/pending-analysis": {
+      "get": {
+        "operationId": "tiktak_calls_pending_analysis",
+        "summary": "Returns recordings where ai_status='pending'. Auto-resets stale 'processing' records (>2h) to 'pending'. Marks returned records as 'processing'. Each row includes file_url for download.",
+        "parameters": [
+          { "in": "query", "name": "from",  "schema": { "type": "string", "format": "date" }, "description": "Default: yesterday" },
+          { "in": "query", "name": "to",    "schema": { "type": "string", "format": "date" }, "description": "Default: today" },
+          { "in": "query", "name": "limit", "schema": { "type": "integer", "default": 20, "maximum": 50 } }
+        ],
+        "responses": {
+          "200": { "description": "List of pending recordings with file_url in {query, data, meta} envelope." }
+        }
+      }
+    },
+
+    "/calls/recordings/{uuid}/analysis": {
+      "get": {
+        "operationId": "tiktak_calls_recordings_analysis_get",
+        "summary": "Get the AI analysis result for a recording.",
+        "parameters": [
+          { "in": "path", "name": "uuid", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Analysis record in {query, data, meta} envelope." },
+          "404": { "description": "No analysis found for this uuid." }
+        }
+      },
+      "post": {
+        "operationId": "tiktak_calls_recordings_analysis_submit",
+        "summary": "Submit AI analysis result. Body: {transcript, ai_summary, ai_result, ai_result_detail, discussed_items[], missed_item, client_sentiment, consultant_sentiment} for success, or {error} for failure. Sets ai_status=done or error.",
+        "parameters": [
+          { "in": "path", "name": "uuid", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transcript":           { "type": "string" },
+                  "ai_summary":           { "type": "string" },
+                  "ai_result":            { "type": "string", "enum": ["new_client","booking","complaint","info","other"] },
+                  "ai_result_detail":     { "type": "string" },
+                  "discussed_items":      { "type": "array", "items": { "type": "string" } },
+                  "missed_item":          { "type": "string" },
+                  "client_sentiment":     { "type": "string", "enum": ["positive","neutral","negative"] },
+                  "consultant_sentiment": { "type": "string", "enum": ["positive","neutral","negative"] },
+                  "error":               { "type": "string", "description": "Set this instead of the other fields to mark the analysis as failed." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated analysis record in {query, data, meta} envelope." },
+          "404": { "description": "Recording not found." }
+        }
+      }
+    },
+
+    "/calls/daily-summary/{date}": {
+      "get": {
+        "operationId": "tiktak_calls_daily_summary_get",
+        "summary": "Get the AI daily summary for a specific date.",
+        "parameters": [
+          { "in": "path", "name": "date", "required": true, "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": { "description": "Daily summary record in {query, data, meta} envelope." },
+          "404": { "description": "No summary for this date." }
+        }
+      },
+      "post": {
+        "operationId": "tiktak_calls_daily_summary_submit",
+        "summary": "Upsert AI daily summary. Body: {summary_text, key_themes[]}. Counts (total_calls, incoming_calls, outgoing_calls, missed_calls, calls_analyzed) are auto-filled from a1_cdr on the server.",
+        "parameters": [
+          { "in": "path", "name": "date", "required": true, "schema": { "type": "string", "format": "date" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "summary_text": { "type": "string" },
+                  "key_themes":   { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Upserted summary record in {query, data, meta} envelope." },
+          "422": { "description": "Invalid date format." }
+        }
+      }
+    },
+
+    "/calls/recordings/{uuid}/reset-analysis": {
+      "post": {
+        "operationId": "tiktak_calls_recordings_analysis_reset",
+        "summary": "Reset ai_status to 'pending' so the AI agent re-processes the recording. Returns 404 if no analysis record exists for this uuid.",
+        "parameters": [
+          { "in": "path", "name": "uuid", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated analysis record (ai_status=pending) in {query, data, meta} envelope." },
+          "404": { "description": "No analysis record found for this uuid." }
+        }
+      }
+    }
   }
 }
