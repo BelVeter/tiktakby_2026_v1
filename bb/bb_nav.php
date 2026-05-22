@@ -29,6 +29,7 @@ $_bb_nav_items = [
     ['label' => 'Курьер', 'href' => '/bb/cur_page2.php', 'icon' => '<img src="/bb/assets/images/png/menu-cur.png">', 'page' => 'cur_page2.php'],
     ['label' => 'Карнавал', 'href' => '/bb/kb.php', 'icon' => '<img src="/public/img/topmenu/mask.png">', 'page' => 'kb.php'],
     ['label' => 'Обработка', 'href' => '/bb/obrabotka.php', 'icon' => '<svg class="bb-icon-nav__home-icon" viewBox="0 0 24 24" fill="none" stroke="#3a4a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>', 'page' => 'obrabotka.php'],
+    ['label' => 'Звонки', 'href' => '/bb/a1_calls.php', 'icon' => '<svg class="bb-icon-nav__home-icon" viewBox="0 0 24 24" fill="none" stroke="#3a4a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.64A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>', 'page' => 'a1_calls.php', 'badge' => 'calls'],
     [
         'label' => 'Архив',
         'type' => 'dropdown',
@@ -114,6 +115,17 @@ $_bb_nav_items = [
                             badgeAvail.classList.add('bb-icon-nav__badge--visible');
                         } else {
                             badgeAvail.classList.remove('bb-icon-nav__badge--visible');
+                        }
+                    }
+
+                    // Calls badge: pending AI analysis
+                    var badgeCalls = document.getElementById('bb-nav-badge-calls');
+                    if (badgeCalls) {
+                        if (data.calls_pending > 0) {
+                            badgeCalls.textContent = data.calls_pending;
+                            badgeCalls.classList.add('bb-icon-nav__badge--visible');
+                        } else {
+                            badgeCalls.classList.remove('bb-icon-nav__badge--visible');
                         }
                     }
                 })
