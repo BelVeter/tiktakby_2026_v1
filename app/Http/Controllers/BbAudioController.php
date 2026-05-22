@@ -40,6 +40,13 @@ class BbAudioController extends Controller
         $parts    = explode('/', $recording->file_path);
         $filename = end($parts);
 
-        return response()->download($diskPath, $filename, ['Content-Type' => 'audio/mpeg']);
+        if (request()->has('download')) {
+            return response()->download($diskPath, $filename);
+        }
+
+        return response()->file($diskPath, [
+            'Content-Type' => 'audio/mpeg',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"'
+        ]);
     }
 }

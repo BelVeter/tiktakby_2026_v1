@@ -217,7 +217,7 @@ class CartController extends Controller
 
                         $fullInfo = $techInfo . ($info ? '<br>' . $info : '');
 
-                        bron::createBronStrong(
+                        $br = bron::createBronStrong(
                             $tovar->getInvN(),
                             $fio,
                             $phone,
@@ -226,6 +226,9 @@ class CartController extends Controller
                             1,
                             $fullInfo
                         );
+                        if ($br && $br->insert_id) {
+                            \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
+                        }
 
                         $results[] = [
                             'modelId' => $modelId,
@@ -244,7 +247,10 @@ class CartController extends Controller
                 } catch (\Exception $e) {
                     $allSuccess = false;
                     // Fallback: create a zvonok
-                    Zvonok::addLitZvonok($fio, $phone, $info . ' (ошибка корзины: ' . $e->getMessage() . ')', $modelId);
+                    $z = Zvonok::addLitZvonok($fio, $phone, $info . ' (ошибка корзины: ' . $e->getMessage() . ')', $modelId);
+                    if ($z && $z->id) {
+                        \App\Helpers\UtmTracker::track('zvonki', $z->id);
+                    }
                     $results[] = [
                         'modelId' => $modelId,
                         'name' => $item['name'] ?? '',
@@ -254,13 +260,19 @@ class CartController extends Controller
             } else {
                 // Item not available — create zayavka
                 $validityDays = $days;
-                Zvonok::addLitZvonok($fio, $phone, $info, $modelId, 'zayavka', $validityDays);
+                $z = Zvonok::addLitZvonok($fio, $phone, $info, $modelId, 'zayavka', $validityDays);
+                if ($z && $z->id) {
+                    \App\Helpers\UtmTracker::track('zvonki', $z->id);
+                }
 
                 $validityDateObj = new \DateTime();
                 if ($validityDays) {
                     $validityDateObj->modify('+' . intval($validityDays) . ' days');
                 }
-                bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $info, 1);
+                $zayavka = bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $info, 1);
+                if ($zayavka && $zayavka->insert_id) {
+                    \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
+                }
 
                 $results[] = [
                     'modelId' => $modelId,

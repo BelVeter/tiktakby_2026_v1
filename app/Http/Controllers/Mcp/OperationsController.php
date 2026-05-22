@@ -49,6 +49,7 @@ class OperationsController extends BaseController
             $renewals   = $this->countRenewalEvents($from, $to, $razdelIds, $location, $incCarn);
             $subDeals   = $this->countSubDeals($from, $to, $razdelIds, $incCarn);
             $returns    = $this->countReturns($from, $to, $razdelIds, $location, $incCarn);
+            $bySource   = $this->countDealsBySource($from, $to, $razdelIds, $location, $incCarn);
 
             $leadsTotal = $orders + $calls;
             return [
@@ -58,6 +59,7 @@ class OperationsController extends BaseController
                     'total'         => $leadsTotal,
                 ],
                 'deals'            => $deals,
+                'deals_by_source'  => $bySource,
                 'issuance_events'  => $issuances,
                 'renewal_events'   => $renewals,
                 'sub_deals'        => $subDeals,
@@ -78,6 +80,92 @@ class OperationsController extends BaseController
             ];
         }
         return $this->envelope($request->queryEcho(), $payload ?? [], $meta);
+    }
+
+    protected function countDealsBySource(int $from, int $to, array $razdelIds, string $location, bool $incCarn): array
+    {
+        $daSub   = $this->unifiedDealsSubquery();
+        $sdSub   = $this->unifiedSubDealsSubquery();
+        $itSub   = $this->unifiedItemsSubquery();
+        $carnIds = $this->carnivalCatIds();
+        $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
+
+        $joins = " LEFT JOIN clients c ON c.client_id = da.client_id ";
+        $where = ['da.cr_time BETWEEN ? AND ?'];
+        $joinParams  = [];
+        $whereParams = [$from, $to];
+
+        if (!empty($razdelIds) || !$incCarn) {
+            $joins .= " LEFT JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n ";
+            if (!empty($razdelIds)) {
+                $razdelSub = $this->itemsInRazdelSubquery($razdelIds);
+                $joins    .= " JOIN {$razdelSub} irz ON irz.item_inv_n = da.item_inv_n ";
+                $joinParams = array_merge($joinParams, $razdelIds);
+            }
+            if (!$incCarn && $carnPh) {
+                $where[] = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
+                $whereParams = array_merge($whereParams, $carnIds);
+            }
+        }
+        if ($location === 'courier') {
+            $joins .= " JOIN {$sdSub} sd ON sd.deal_id = da.deal_id ";
+            $where[] = "sd.delivery_yn = '1'";
+        } elseif ($location !== 'all' && is_numeric($location)) {
+            $where[]       = 'da.first_rent_place = ?';
+            $whereParams[] = (int) $location;
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $sql = "
+            SELECT
+                COALESCE(
+                    (SELECT u.utm_source
+                     FROM rent_orders ro
+                     JOIN tiktak_utms u ON u.entity_type = 'rent_orders' AND u.entity_id = ro.order_id
+                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT(REGEXP_REPLACE(ro.phone, '[^0-9]', ''), 7) AND c.phone_1 != '')
+                         OR (RIGHT(c.phone_2, 7) = RIGHT(REGEXP_REPLACE(ro.phone, '[^0-9]', ''), 7) AND c.phone_2 != ''))
+                     AND ro.phone != ''
+                     ORDER BY u.created_at ASC LIMIT 1),
+                    (SELECT u.utm_source
+                     FROM zvonki z
+                     JOIN tiktak_utms u ON u.entity_type = 'zvonki' AND u.entity_id = z.zv_id
+                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT(REGEXP_REPLACE(z.phone, '[^0-9]', ''), 7) AND c.phone_1 != '')
+                         OR (RIGHT(c.phone_2, 7) = RIGHT(REGEXP_REPLACE(z.phone, '[^0-9]', ''), 7) AND c.phone_2 != ''))
+                     AND z.phone != ''
+                     ORDER BY u.created_at ASC LIMIT 1),
+                    (SELECT u.utm_source
+                     FROM karn_brons kb
+                     JOIN tiktak_utms u ON u.entity_type = 'karn_brons' AND u.entity_id = kb.kb_id
+                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT(REGEXP_REPLACE(kb.phone1, '[^0-9]', ''), 7) AND c.phone_1 != '')
+                         OR (RIGHT(c.phone_2, 7) = RIGHT(REGEXP_REPLACE(kb.phone1, '[^0-9]', ''), 7) AND c.phone_2 != ''))
+                     AND kb.phone1 != ''
+                     ORDER BY u.created_at ASC LIMIT 1),
+                    (SELECT u.utm_source
+                     FROM kb_zayavki kz
+                     JOIN tiktak_utms u ON u.entity_type = 'kb_zayavki' AND u.entity_id = kz.id
+                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT(REGEXP_REPLACE(kz.phone, '[^0-9]', ''), 7) AND c.phone_1 != '')
+                         OR (RIGHT(c.phone_2, 7) = RIGHT(REGEXP_REPLACE(kz.phone, '[^0-9]', ''), 7) AND c.phone_2 != ''))
+                     AND kz.phone != ''
+                     ORDER BY u.created_at ASC LIMIT 1),
+                    'direct'
+                ) AS source,
+                COUNT(DISTINCT da.deal_id) AS cnt
+            FROM {$daSub} da
+            {$joins}
+            WHERE {$whereSql}
+            GROUP BY source
+        ";
+
+        $rows = DB::select($sql, array_merge($joinParams, $whereParams));
+
+        $out = [];
+        foreach ($rows as $r) {
+            $src = $r->source ?: 'direct';
+            $out[$src] = ($out[$src] ?? 0) + (int) $r->cnt;
+        }
+
+        return $out;
     }
 
     public function timeline(RangeRequest $request): JsonResponse

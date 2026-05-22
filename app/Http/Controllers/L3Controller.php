@@ -112,10 +112,16 @@ class L3Controller extends Controller
         $techInfo .= 'В брони клиент указал: с ' . $dateFrom->format("d.m.Y") . ' по ' . $dateTo->format("d.m.Y") . ' на ' . $req->input('days_num') . ' дня.';
         $info = $techInfo . '<br>' . $req->input('info');
 
-        bron::createBronStrong($tovar->getInvN(), $req->input('fio'), $req->input('phone'), $deliveryYN, $req->input('address'), 1, $info);
+        $br = bron::createBronStrong($tovar->getInvN(), $req->input('fio'), $req->input('phone'), $deliveryYN, $req->input('address'), 1, $info);
+        if ($br) {
+            \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
+        }
         $message = 'Бронь на товар принята. Оператор свяжется с Вами в ближайшее время.';
       } catch (\Exception $e) {
         $z = Zvonok::addLitZvonok($req->input('fio'), $req->input('phone'), $req->input('info') . '---' . $e->getMessage(), $req->input('model_id'));
+        if ($z && $z->id) {
+            \App\Helpers\UtmTracker::track('zvonki', $z->id);
+        }
         $message = 'Что-то пошло не так :( <br> Бронь не принята. Свяжитесь, пожалуйста с оператором по телефону.';
       }
     } else {//hav no items = create zayavka
@@ -124,6 +130,9 @@ class L3Controller extends Controller
 
       //create zvonok
       $z = Zvonok::addLitZvonok($req->input('fio'), $req->input('phone'), $req->input('info'), $req->input('model_id'), 'zayavka', $validityDaysNum);
+      if ($z && $z->id) {
+          \App\Helpers\UtmTracker::track('zvonki', $z->id);
+      }
 
       //create zayavka
       $validityDateObj = new \DateTime();
@@ -131,6 +140,9 @@ class L3Controller extends Controller
         $validityDateObj->modify('+' . intval($validityDaysNum) . ' days');
       }
       $zayavka = bron::createZayavka($req->input('model_id'), $req->input('phone'), $req->input('fio'), '', '', $validityDateObj, $req->input('info'), 1);
+      if ($zayavka) {
+          \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
+      }
 
       $message = 'Заявка на товар принята. При поступлении товара в указанный срок ожидания, оператор свяжется с вами по телефону.';
     }

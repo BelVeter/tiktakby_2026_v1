@@ -23,7 +23,7 @@ class ZvonokController extends Controller
   {
     $modelId = intval($req->input('model_id', 0));
 
-    Zvonok::addLitZvonok(
+    $z = Zvonok::addLitZvonok(
       $req->input('fio'),
       $req->input('phone'),
       $req->input('info'),
@@ -31,12 +31,16 @@ class ZvonokController extends Controller
       $modelId > 0 ? 'zayavka' : null
     );
 
+    if ($z && $z->id) {
+        \App\Helpers\UtmTracker::track('zvonki', $z->id);
+    }
+
     // If model_id present — also create a record in rent_orders so it appears in CRM
     if ($modelId > 0) {
       try {
         $validityDate = new \DateTime();
         $validityDate->modify('+14 days'); // default 2-week waiting period
-        bron::createZayavka(
+        $zayavka = bron::createZayavka(
           $modelId,
           $req->input('phone'),
           $req->input('fio'),
@@ -46,6 +50,9 @@ class ZvonokController extends Controller
           $req->input('info'),
           1
         );
+        if ($zayavka) {
+            \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
+        }
       } catch (\Exception $e) {
         // log but don't break the redirect
         \Illuminate\Support\Facades\Log::error('createZayavka failed: ' . $e->getMessage());
@@ -293,6 +300,10 @@ class ZvonokController extends Controller
             break;
           }
 
+          if ($newKB && isset($newKB->id_kb)) {
+              \App\Helpers\UtmTracker::track('karn_brons', $newKB->id_kb);
+          }
+
           $rez->status = 'kb_ok';
 
           $today = new \DateTime();
@@ -316,6 +327,11 @@ class ZvonokController extends Controller
           if (!$result_item_def) {
             die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
           }
+          $kbZayavkaId = $mysqli->insert_id;
+          if ($kbZayavkaId) {
+              \App\Helpers\UtmTracker::track('kb_zayavki', $kbZayavkaId);
+          }
+
           $rez->status = 'zayavka_ok';
           $message = 'Мы свяжемся с вами как только появится возможность удовлетворить вашу заявку';
           $rez->rez = view('kb_br_ok_message', ['message' => $message])->render();

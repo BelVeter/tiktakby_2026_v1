@@ -73,9 +73,11 @@ $result = $mysqli->query("
         ca.missed_item,
         ca.client_sentiment,
         ca.consultant_sentiment,
-        ca.recording_uuid AS analysis_recording_uuid
+        ca.recording_uuid AS analysis_recording_uuid,
+        rec.uuid AS local_file_uuid
     FROM a1_cdr cdr
     LEFT JOIN a1_call_analysis ca ON ca.recording_uuid = cdr.recording_uuid
+    LEFT JOIN a1_call_recordings rec ON rec.uuid = cdr.recording_uuid
     WHERE cdr.call_date >= '{$safeDate} 00:00:00' AND cdr.call_date <= '{$safeDate} 23:59:59'
     {$typeWhere}
     ORDER BY cdr.call_date DESC
@@ -171,7 +173,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .date-nav a { color: #495057; text-decoration: none; font-size: 1.2rem; padding: 2px 8px; border: 1px solid #dee2e6; border-radius: 4px; }
         .date-nav a:hover { background: #e9ecef; }
         .stat-tiles { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-        .stat-tile { flex: 1; min-width: 120px; background: #fff; border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,.08); text-align: center; }
+        .stat-tile { flex: 1; min-width: 120px; background: #fff; border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,.08); text-align: center; cursor: pointer; transition: all 0.2s ease-in-out; border: 2px solid transparent; }
+        .stat-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,.12); }
+        .stat-tile.active-filter { border-color: #007bff; background-color: #f8fbff; }
         .stat-tile .num { font-size: 2rem; font-weight: 700; }
         .stat-tile .lbl { font-size: 0.8rem; color: #6c757d; text-transform: uppercase; letter-spacing: .5px; }
         .stat-total   .num { color: #343a40; }
@@ -224,10 +228,18 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     <!-- Статистика -->
     <div class="stat-tiles">
-        <div class="stat-tile stat-total"><div class="num"><?= $total ?></div><div class="lbl">Всего</div></div>
-        <div class="stat-tile stat-in"><div class="num"><?= $incoming ?></div><div class="lbl">Входящие</div></div>
-        <div class="stat-tile stat-out"><div class="num"><?= $outgoing ?></div><div class="lbl">Исходящие</div></div>
-        <div class="stat-tile stat-missed"><div class="num"><?= $missed ?></div><div class="lbl">Пропущенные</div></div>
+        <div class="stat-tile stat-total <?= $typeFilter === 'all' ? 'active-filter' : '' ?>" onclick="window.location='?date=<?= $date ?>&type=all'">
+            <div class="num"><?= $total ?></div><div class="lbl">Всего</div>
+        </div>
+        <div class="stat-tile stat-in <?= $typeFilter === 'incoming' ? 'active-filter' : '' ?>" onclick="window.location='?date=<?= $date ?>&type=<?= $typeFilter === 'incoming' ? 'all' : 'incoming' ?>'">
+            <div class="num"><?= $incoming ?></div><div class="lbl">Входящие</div>
+        </div>
+        <div class="stat-tile stat-out <?= $typeFilter === 'outgoing' ? 'active-filter' : '' ?>" onclick="window.location='?date=<?= $date ?>&type=<?= $typeFilter === 'outgoing' ? 'all' : 'outgoing' ?>'">
+            <div class="num"><?= $outgoing ?></div><div class="lbl">Исходящие</div>
+        </div>
+        <div class="stat-tile stat-missed <?= $typeFilter === 'missed' ? 'active-filter' : '' ?>" onclick="window.location='?date=<?= $date ?>&type=<?= $typeFilter === 'missed' ? 'all' : 'missed' ?>'">
+            <div class="num"><?= $missed ?></div><div class="lbl">Пропущенные</div>
+        </div>
     </div>
 
     <!-- ИИ-сводка -->
@@ -292,6 +304,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         </span>
                     <?php elseif ($call['recording_uuid'] && $call['ai_status'] === 'processing'): ?>
                         <span class="text-muted small">обрабатывается…</span>
+                    <?php elseif ($call['recording_uuid'] && $call['ai_status'] === 'transcribed'): ?>
+                        <span class="text-muted small">транскрипт готов</span>
                     <?php elseif ($call['recording_uuid']): ?>
                         <span class="text-muted small">ожидает обработки</span>
                     <?php else: ?>
@@ -300,7 +314,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </td>
                 <td><?= aiResultBadge($call['ai_result'], $call['ai_status']) ?></td>
                 <td>
-                    <?php if ($call['transcript'] && $call['ai_status'] === 'done'): ?>
+                    <?php if ($call['transcript'] && in_array($call['ai_status'], ['transcribed', 'done', 'error'], true)): ?>
                     <button class="btn btn-sm btn-outline-secondary"
                             onclick="showAnalysis(<?= htmlspecialchars(json_encode([
                                 'transcript'           => $call['transcript'],
@@ -316,15 +330,27 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <?php else: ?>
                     <span class="text-muted">—</span>
                     <?php endif; ?>
-                    <?php if ($call['recording_uuid'] && in_array($call['ai_status'], ['done', 'error'], true)): ?>
+                    <?php if ($call['recording_uuid'] && in_array($call['ai_status'], ['transcribed', 'done', 'error'], true)): ?>
                     <button class="btn btn-sm btn-outline-warning ml-1" title="Сбросить и перезапустить"
                             onclick="resetAnalysis('<?= htmlspecialchars($call['recording_uuid']) ?>')">↺</button>
                     <?php endif; ?>
                 </td>
                 <td>
-                    <?php if ($call['recording_uuid']): ?>
-                    <audio class="audio-player" controls preload="none"
-                           src="/bb-internal/audio/<?= htmlspecialchars($call['recording_uuid']) ?>"></audio>
+                    <?php if ($call['local_file_uuid']): ?>
+                    <div class="d-flex align-items-center">
+                        <audio class="audio-player" controls preload="none"
+                               src="/bb-internal/audio/<?= htmlspecialchars($call['local_file_uuid']) ?>"></audio>
+                        <a href="/bb-internal/audio/<?= htmlspecialchars($call['local_file_uuid']) ?>?download=1"
+                           class="btn btn-sm btn-outline-secondary ml-2"
+                           title="Скачать аудиофайл" download>
+                           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                               <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                               <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                           </svg>
+                        </a>
+                    </div>
+                    <?php elseif ($call['recording_uuid']): ?>
+                    <span class="text-muted small" title="Файл ещё не загружен с A1">⏳</span>
                     <?php else: ?>
                     <span class="text-muted">—</span>
                     <?php endif; ?>

@@ -60,6 +60,7 @@ class Zvonok
             $this->messages="По техническим причинам Ваша заявка не была отправлена. <br /> Приносим свои извинения.<br /> Свяжитесь с нашими операторами по телефону.<br />";
         }
         else {
+            $this->id = $mysqli->insert_id;
             $this->messages="Заявка принята!<br /> Оператор свяжется с Вами в ближайшее время. <br />";
             $to = "anna.kuyumdzhi@gmail.com";
             $subject = "Заявка с tiktak.by";

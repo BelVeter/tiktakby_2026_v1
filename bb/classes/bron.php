@@ -511,7 +511,7 @@ class bron {
       $tovar->setStatusAsBron();
       $br->insert();
 
-      return true;
+      return $br;
   }
 
 	function insert() {
