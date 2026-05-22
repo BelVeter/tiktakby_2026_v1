@@ -124,6 +124,27 @@ function aiResultBadge(?string $result, ?string $status): string {
 $prevDate = date('Y-m-d', strtotime($date . ' -1 day'));
 $nextDate = date('Y-m-d', strtotime($date . ' +1 day'));
 $today    = date('Y-m-d');
+
+// ─── CSV-экспорт ──────────────────────────────────────────────────────────
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="calls_' . $date . '.csv"');
+    $out = fopen('php://output', 'w');
+    fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM for Excel
+    fputcsv($out, ['Время', 'Тип', 'Номер', 'Длительность', 'Краткое описание', 'Результат ИИ'], ';');
+    foreach ($calls as $call) {
+        fputcsv($out, [
+            date('H:i', strtotime($call['call_date'])),
+            $call['call_type'],
+            $call['call_type'] !== 'outgoing' ? $call['caller_number'] : $call['callee_number'],
+            formatDuration((int) $call['call_duration']),
+            $call['ai_summary'] ?? '',
+            $call['ai_result']  ?? '',
+        ], ';');
+    }
+    fclose($out);
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -185,6 +206,8 @@ $today    = date('Y-m-d');
                 </li>
                 <?php endforeach; ?>
             </ul>
+            <a href="?date=<?= $date ?>&type=<?= $typeFilter ?>&export=csv"
+               class="btn btn-sm btn-outline-secondary">↓ CSV</a>
         </div>
     </div>
 
