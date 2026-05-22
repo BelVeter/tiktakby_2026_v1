@@ -164,6 +164,20 @@ class FetchA1Recordings extends Command
                 'downloaded_at' => date('Y-m-d H:i:s'),
             ]);
 
+            // Create pending analysis record for AI agent
+            DB::table('a1_call_analysis')->insertOrIgnore([
+                'recording_uuid' => $uuid,
+                'ai_status'      => 'pending',
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s'),
+            ]);
+
+            // Link recording to CDR if already fetched
+            DB::table('a1_cdr')
+                ->where('uuid', $uuid)
+                ->whereNull('recording_uuid')
+                ->update(['recording_uuid' => $uuid]);
+
             $filesDownloaded++;
             $bytesDownloaded += $fileSize;
         }
