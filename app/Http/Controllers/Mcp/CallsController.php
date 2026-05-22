@@ -165,37 +165,61 @@ class CallsController extends BaseController
 
     /**
      * GET /api/mcp/v1/calls/pending-analysis
-     * Resets stale 'processing' records (>2h) back to 'pending'.
-     * Returns pending recordings and sets them to 'processing'.
+     *
+     * Query params:
+     *   status  pending|transcribed  (default: pending)
+     *   from    YYYY-MM-DD           (default: yesterday)
+     *   to      YYYY-MM-DD           (default: today)
+     *   limit   int                  (default: 20, max: 50)
+     *
+     * Resets stale 'processing' records (>2h) contextually (using transcript field).
+     * Returns matching recordings and sets them to 'processing' to prevent race conditions.
      */
     public function pendingAnalysis(Request $request): JsonResponse
     {
-        $from  = $request->get('from', date('Y-m-d', strtotime('-1 day')));
-        $to    = $request->get('to',   date('Y-m-d'));
-        $limit = min(50, max(1, (int) $request->get('limit', 20)));
+        $from   = $request->get('from', date('Y-m-d', strtotime('-1 day')));
+        $to     = $request->get('to',   date('Y-m-d'));
+        $limit  = min(50, max(1, (int) $request->get('limit', 20)));
+        $status = in_array($request->get('status'), ['pending', 'transcribed'], true)
+                  ? $request->get('status')
+                  : 'pending';
 
-        // Reset stale processing records (stuck > 2 hours)
+        // Context-aware timeout resets (>2h)
+        // 1. If transcript IS NULL, they timed out in Phase 1 -> reset to pending
         DB::table('a1_call_analysis')
             ->where('ai_status', 'processing')
             ->where('updated_at', '<', date('Y-m-d H:i:s', strtotime('-2 hours')))
+            ->whereNull('transcript')
             ->update(['ai_status' => 'pending', 'updated_at' => date('Y-m-d H:i:s')]);
 
-        // Find pending recordings in date range
+        // 2. If transcript IS NOT NULL, they timed out in Phase 2 -> reset to transcribed
+        DB::table('a1_call_analysis')
+            ->where('ai_status', 'processing')
+            ->where('updated_at', '<', date('Y-m-d H:i:s', strtotime('-2 hours')))
+            ->whereNotNull('transcript')
+            ->update(['ai_status' => 'transcribed', 'updated_at' => date('Y-m-d H:i:s')]);
+
+        $selectFields = ['r.uuid', 'r.call_date', 'r.caller_part', 'r.callee_part', 'r.call_duration', 'r.file_size'];
+        if ($status === 'transcribed') {
+            $selectFields[] = 'ca.transcript';
+        }
+
+        // Find recordings in requested status
         $rows = DB::table('a1_call_analysis as ca')
             ->join('a1_call_recordings as r', 'r.uuid', '=', 'ca.recording_uuid')
-            ->where('ca.ai_status', 'pending')
+            ->where('ca.ai_status', $status)
             ->whereBetween('r.call_date', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->orderBy('r.call_date', 'asc')
             ->limit($limit)
-            ->get(['r.uuid', 'r.call_date', 'r.caller_part', 'r.callee_part', 'r.call_duration', 'r.file_size']);
+            ->get($selectFields);
 
         if ($rows->isEmpty()) {
-            return $this->envelope(['from' => $from, 'to' => $to], [], ['total_rows' => 0]);
+            return $this->envelope(['from' => $from, 'to' => $to, 'status' => $status], [], ['total_rows' => 0]);
         }
 
         $uuids = $rows->pluck('uuid')->all();
 
-        // Mark as processing
+        // Lock them by setting to 'processing'
         DB::table('a1_call_analysis')
             ->whereIn('recording_uuid', $uuids)
             ->update(['ai_status' => 'processing', 'updated_at' => date('Y-m-d H:i:s')]);
@@ -208,7 +232,7 @@ class CallsController extends BaseController
         })->values()->all();
 
         return $this->envelope(
-            ['from' => $from, 'to' => $to],
+            ['from' => $from, 'to' => $to, 'status' => $status],
             $data,
             ['total_rows' => count($data)]
         );
@@ -241,9 +265,10 @@ class CallsController extends BaseController
                 'ai_error'   => $request->input('error'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
-        } else {
+        } elseif ($request->has('ai_summary')) {
+            // Phase 2: full analysis → done
             DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
-                'transcript'           => $request->input('transcript'),
+                'transcript'           => $request->input('transcript', ''),
                 'ai_summary'           => $request->input('ai_summary'),
                 'ai_result'            => $request->input('ai_result'),
                 'ai_result_detail'     => $request->input('ai_result_detail'),
@@ -254,6 +279,13 @@ class CallsController extends BaseController
                 'ai_status'            => 'done',
                 'ai_processed_at'      => date('Y-m-d H:i:s'),
                 'updated_at'           => date('Y-m-d H:i:s'),
+            ]);
+        } else {
+            // Phase 1: transcript only → transcribed (ready for Phase 2)
+            DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
+                'transcript' => $request->input('transcript'),
+                'ai_status'  => 'transcribed',
+                'updated_at' => date('Y-m-d H:i:s'),
             ]);
         }
 

@@ -116,22 +116,62 @@ class CallsTest extends McpTestCase
     public function test_pending_analysis_resets_stale_processing(): void
     {
         DB::table('a1_call_recordings')->insert([
-            'uuid' => 'rec-stale', 'record_name' => 'test/record3',
-            'call_date' => '2026-05-21 11:00:00', 'caller_part' => '+375291111111',
-            'callee_part' => '+375296303532', 'call_duration' => 60,
-            'file_path' => 'a1_recordings/2026-05/test3.mp3', 'file_size' => 512, 'created_at' => now(),
+            ['uuid' => 'rec-stale1', 'record_name' => 'test/1', 'call_date' => '2026-05-21 11:00:00', 'file_size' => 1, 'file_path' => 't', 'created_at' => now()],
+            ['uuid' => 'rec-stale2', 'record_name' => 'test/2', 'call_date' => '2026-05-21 11:10:00', 'file_size' => 1, 'file_path' => 't', 'created_at' => now()],
         ]);
-        // Stale processing record (updated 3 hours ago)
+        // Stale processing record (Phase 1, no transcript)
         DB::table('a1_call_analysis')->insert([
-            'recording_uuid' => 'rec-stale',
+            'recording_uuid' => 'rec-stale1',
             'ai_status'  => 'processing',
+            'transcript' => null,
+            'created_at' => now()->subHours(3),
+            'updated_at' => now()->subHours(3),
+        ]);
+        // Stale processing record (Phase 2, has transcript)
+        DB::table('a1_call_analysis')->insert([
+            'recording_uuid' => 'rec-stale2',
+            'ai_status'  => 'processing',
+            'transcript' => 'Some text',
             'created_at' => now()->subHours(3),
             'updated_at' => now()->subHours(3),
         ]);
 
         $response = $this->mcp('calls/pending-analysis', ['from' => '2026-05-21', 'to' => '2026-05-21']);
         $response->assertStatus(200);
-        $this->assertCount(1, $response->json('data'));
+
+        // rec-stale1 should be reset to pending and immediately picked up, so it becomes processing
+        $s1 = DB::table('a1_call_analysis')->where('recording_uuid', 'rec-stale1')->value('ai_status');
+        $this->assertEquals('processing', $s1);
+
+        // rec-stale2 should be reset to transcribed, so it won't be picked up by pending request
+        $s2 = DB::table('a1_call_analysis')->where('recording_uuid', 'rec-stale2')->value('ai_status');
+        $this->assertEquals('transcribed', $s2);
+    }
+
+    public function test_pending_analysis_fetches_transcribed_records(): void
+    {
+        DB::table('a1_call_recordings')->insert([
+            'uuid' => 'rec-transcribed', 'record_name' => 'test/trans', 'call_date' => '2026-05-21 12:00:00',
+            'file_path' => 'a1_recordings/test.mp3', 'file_size' => 10, 'created_at' => now(),
+        ]);
+        DB::table('a1_call_analysis')->insert([
+            'recording_uuid' => 'rec-transcribed',
+            'ai_status'  => 'transcribed',
+            'transcript' => 'Phase 1 done',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->mcp('calls/pending-analysis', ['from' => '2026-05-21', 'to' => '2026-05-21', 'status' => 'transcribed']);
+        $response->assertStatus(200);
+        
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+        $this->assertEquals('Phase 1 done', $data[0]['transcript']);
+
+        // Assert it was locked
+        $status = DB::table('a1_call_analysis')->where('recording_uuid', 'rec-transcribed')->value('ai_status');
+        $this->assertEquals('processing', $status);
     }
 
     // ── POST /calls/recordings/{uuid}/analysis ────────────────────
@@ -162,6 +202,41 @@ class CallsTest extends McpTestCase
         $this->assertEquals('done', $analysis->ai_status);
         $this->assertEquals('info', $analysis->ai_result);
         $this->assertNotNull($analysis->ai_processed_at);
+    }
+
+    public function test_submit_analysis_two_phase(): void
+    {
+        DB::table('a1_call_recordings')->insert([
+            'uuid' => 'rec-twophase', 'record_name' => 'test/twophase',
+            'call_date' => '2026-05-21 12:00:00', 'file_path' => 't.mp3', 'file_size' => 10, 'created_at' => now(),
+        ]);
+        DB::table('a1_call_analysis')->insert([
+            'recording_uuid' => 'rec-twophase', 'ai_status' => 'processing',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // Phase 1: Only transcript
+        $res1 = $this->postMcp('calls/recordings/rec-twophase/analysis', [
+            'transcript' => 'Only transcript here.',
+        ]);
+        $res1->assertStatus(200);
+        $analysis1 = DB::table('a1_call_analysis')->where('recording_uuid', 'rec-twophase')->first();
+        $this->assertEquals('transcribed', $analysis1->ai_status);
+        $this->assertEquals('Only transcript here.', $analysis1->transcript);
+        $this->assertNull($analysis1->ai_summary);
+
+        // Agent fetches transcribed (simulating second phase start)
+        DB::table('a1_call_analysis')->where('recording_uuid', 'rec-twophase')->update(['ai_status' => 'processing']);
+
+        // Phase 2: Summary provided
+        $res2 = $this->postMcp('calls/recordings/rec-twophase/analysis', [
+            'ai_summary' => 'Now we have summary.',
+            'ai_result'  => 'info',
+        ]);
+        $res2->assertStatus(200);
+        $analysis2 = DB::table('a1_call_analysis')->where('recording_uuid', 'rec-twophase')->first();
+        $this->assertEquals('done', $analysis2->ai_status);
+        $this->assertEquals('Now we have summary.', $analysis2->ai_summary);
     }
 
     public function test_submit_analysis_error_status(): void
@@ -332,6 +407,9 @@ class CallsTest extends McpTestCase
         ]);
 
         $response = $this->mcp('calls/daily-summary/2026-05-20');
+        if ($response->status() !== 200) {
+            $response->dd();
+        }
         $response->assertStatus(200);
         $this->assertEquals('Тихий день', $response->json('data.summary_text'));
     }
