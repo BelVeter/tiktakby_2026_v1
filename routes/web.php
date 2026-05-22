@@ -167,5 +167,10 @@ Route::get(
     'App\Http\Controllers\L3Controller@l3ShowPageLegacy'
 );
 
+// --- bb/ audio streaming (no MCP token required — uses bb/ cookie auth) ---
+Route::get('/bb-internal/audio/{uuid}', 'App\Http\Controllers\BbAudioController@stream')
+    ->where('uuid', '[a-zA-Z0-9_-]+')
+    ->name('bb.audio.stream');
+
 // --- Fallback (404) ---
 Route::fallback('App\Http\Controllers\RedirectController@notFound');
