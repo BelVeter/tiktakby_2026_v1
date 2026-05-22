@@ -219,6 +219,73 @@ class CallsTest extends McpTestCase
         $response->assertStatus(404);
     }
 
+    // ── POST /calls/recordings/{uuid}/reset-analysis ─────────────
+
+    public function test_submit_analysis_saves_new_fields(): void
+    {
+        // Insert a recording and pending analysis
+        DB::table('a1_call_recordings')->insert([
+            'record_name' => 'test/rec2.mp3', 'uuid' => 'uuid-new-fields',
+            'call_date' => '2026-05-22 10:00:00', 'caller_part' => '+375291234567',
+            'callee_part' => '+375172345678', 'call_duration' => 180,
+            'file_path' => 'a1_recordings/2026-05/rec2.mp3', 'file_size' => 1024,
+            'downloaded_at' => '2026-05-22 10:01:00',
+        ]);
+        DB::table('a1_call_analysis')->insert([
+            'recording_uuid' => 'uuid-new-fields', 'ai_status' => 'processing',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $response = $this->postMcp('calls/recordings/uuid-new-fields/analysis', [
+            'transcript'           => 'Test transcript',
+            'ai_summary'           => 'Test summary',
+            'ai_result'            => 'booking',
+            'ai_result_detail'     => 'Booked stroller',
+            'discussed_items'      => ['Chicco коляска', 'Joie самокат'],
+            'missed_item'          => 'Inglesina коляска',
+            'client_sentiment'     => 'positive',
+            'consultant_sentiment' => 'neutral',
+        ]);
+
+        $response->assertStatus(200);
+
+        $row = DB::table('a1_call_analysis')->where('recording_uuid', 'uuid-new-fields')->first();
+        $this->assertEquals('done', $row->ai_status);
+        $this->assertEquals('Inglesina коляска', $row->missed_item);
+        $this->assertEquals('positive', $row->client_sentiment);
+        $this->assertEquals('neutral', $row->consultant_sentiment);
+        $items = json_decode($row->discussed_items, true);
+        $this->assertContains('Chicco коляска', $items);
+    }
+
+    public function test_reset_analysis_sets_status_to_pending(): void
+    {
+        DB::table('a1_call_recordings')->insert([
+            'record_name' => 'test/rec3.mp3', 'uuid' => 'uuid-reset',
+            'call_date' => '2026-05-22 10:00:00', 'caller_part' => '+375291234567',
+            'callee_part' => '+375172345678', 'call_duration' => 120,
+            'file_path' => 'a1_recordings/2026-05/rec3.mp3', 'file_size' => 512,
+            'downloaded_at' => '2026-05-22 10:01:00',
+        ]);
+        DB::table('a1_call_analysis')->insert([
+            'recording_uuid' => 'uuid-reset', 'ai_status' => 'done',
+            'ai_summary' => 'Old summary', 'transcript' => 'Old transcript',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $response = $this->postMcp('calls/recordings/uuid-reset/reset-analysis');
+
+        $response->assertStatus(200);
+        $row = DB::table('a1_call_analysis')->where('recording_uuid', 'uuid-reset')->first();
+        $this->assertEquals('pending', $row->ai_status);
+    }
+
+    public function test_reset_analysis_returns_404_if_not_found(): void
+    {
+        $response = $this->postMcp('calls/recordings/nonexistent-uuid/reset-analysis');
+        $response->assertStatus(404);
+    }
+
     // ── GET/POST /calls/daily-summary/{date} ──────────────────────
 
     public function test_daily_summary_get_returns_404_when_missing(): void

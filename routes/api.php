@@ -102,6 +102,7 @@ Route::prefix('mcp/v1')
         Route::get('calls/pending-analysis', [CallsController::class, 'pendingAnalysis'])->name('calls.pending-analysis');
         Route::get('calls/recordings/{uuid}/analysis', [CallsController::class, 'getAnalysis'])->name('calls.recordings.analysis.get');
         Route::post('calls/recordings/{uuid}/analysis', [CallsController::class, 'submitAnalysis'])->name('calls.recordings.analysis.post');
+        Route::post('calls/recordings/{uuid}/reset-analysis', [CallsController::class, 'resetAnalysis'])->name('calls.recordings.analysis.reset');
         Route::get('calls/daily-summary/{date}', [CallsController::class, 'getDailySummary'])->name('calls.daily-summary.get');
         Route::post('calls/daily-summary/{date}', [CallsController::class, 'submitDailySummary'])->name('calls.daily-summary.post');
     });

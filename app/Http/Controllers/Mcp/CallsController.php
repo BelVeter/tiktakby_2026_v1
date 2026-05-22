@@ -243,15 +243,40 @@ class CallsController extends BaseController
             ]);
         } else {
             DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
-                'transcript'       => $request->input('transcript'),
-                'ai_summary'       => $request->input('ai_summary'),
-                'ai_result'        => $request->input('ai_result'),
-                'ai_result_detail' => $request->input('ai_result_detail'),
-                'ai_status'        => 'done',
-                'ai_processed_at'  => date('Y-m-d H:i:s'),
-                'updated_at'       => date('Y-m-d H:i:s'),
+                'transcript'           => $request->input('transcript'),
+                'ai_summary'           => $request->input('ai_summary'),
+                'ai_result'            => $request->input('ai_result'),
+                'ai_result_detail'     => $request->input('ai_result_detail'),
+                'discussed_items'      => json_encode($request->input('discussed_items', [])),
+                'missed_item'          => $request->input('missed_item'),
+                'client_sentiment'     => $request->input('client_sentiment'),
+                'consultant_sentiment' => $request->input('consultant_sentiment'),
+                'ai_status'            => 'done',
+                'ai_processed_at'      => date('Y-m-d H:i:s'),
+                'updated_at'           => date('Y-m-d H:i:s'),
             ]);
         }
+
+        $updated = DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->first();
+        return $this->envelope(['uuid' => $uuid], (array) $updated, []);
+    }
+
+    /**
+     * POST /api/mcp/v1/calls/recordings/{uuid}/reset-analysis
+     * Resets ai_status back to 'pending' so the AI agent re-processes the recording.
+     */
+    public function resetAnalysis(string $uuid): JsonResponse
+    {
+        $analysis = DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->first();
+
+        if (!$analysis) {
+            return response()->json(['error' => 'Analysis not found'], 404);
+        }
+
+        DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
+            'ai_status'  => 'pending',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
 
         $updated = DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->first();
         return $this->envelope(['uuid' => $uuid], (array) $updated, []);
