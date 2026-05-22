@@ -183,6 +183,20 @@
           "issuance_events": { "type": "integer" }
         }
       },
+      "FinanceRevenueByCategoryRow": {
+        "type": "object",
+        "properties": {
+          "period":          { "type": ["string","null"] },
+          "category_id":     { "type": ["integer","null"] },
+          "category_name":   { "type": ["string","null"] },
+          "category":        { "type": ["string","null"] },
+          "subcategory":     { "type": ["string","null"] },
+          "revenue_byn":     { "$ref": "#/components/schemas/AmountBYN" },
+          "deals":           { "type": "integer" },
+          "avg_deal_byn":    { "$ref": "#/components/schemas/AmountBYN" },
+          "avg_rental_days": { "type": ["number","null"] }
+        }
+      },
       "FinanceExpensesRow": {
         "type": "object",
         "properties": {
@@ -321,6 +335,24 @@
           }
         }
       },
+      "InventoryPricingRow": {
+        "type": "object",
+        "properties": {
+          "model_id":               { "type": "integer" },
+          "model_name":             { "type": ["string","null"] },
+          "model_url":              { "type": ["string","null"] },
+          "category_id":            { "type": ["integer","null"] },
+          "category_name":          { "type": ["string","null"] },
+          "section":                { "type": ["string","null"] },
+          "subsection":             { "type": ["string","null"] },
+          "price_per_day_byn":      { "$ref": "#/components/schemas/AmountBYN" },
+          "price_per_week_byn":     { "$ref": "#/components/schemas/AmountBYN" },
+          "price_per_month_byn":    { "$ref": "#/components/schemas/AmountBYN" },
+          "price_per_day_calc_byn": { "$ref": "#/components/schemas/AmountBYN" },
+          "min_rental_days":        { "type": ["integer","null"] },
+          "active_units":           { "type": "integer" }
+        }
+      },
       "InventoryProfitabilityRow": {
         "type": "object",
         "properties": {
@@ -349,7 +381,8 @@
           "avg_units":       { "type": "number", "description": "(units_at_from + units_at_to) / 2 — utilization denominator." },
           "deals_in_period": { "type": "integer" },
           "rented_days":     { "type": "number" },
-          "utilization":     { "type": "number", "minimum": 0, "maximum": 1 }
+          "utilization":     { "type": "number", "minimum": 0, "maximum": 1 },
+          "avg_rental_days_per_deal": { "type": ["number","null"] }
         }
       },
       "InventoryTurnoverRow": {
@@ -578,6 +611,7 @@
 
       "FinancePnlEnvelope":           { "description": "P&L envelope.",                   "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinancePnlRow" } } } }] } } } },
       "FinanceRevenueEnvelope":       { "description": "Revenue envelope.",               "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinanceRevenueRow" } } } }] } } } },
+      "FinanceRevenueByCategoryEnvelope": { "description": "Revenue by category envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinanceRevenueByCategoryRow" } } } }] } } } },
       "FinanceExpensesEnvelope":      { "description": "Expenses envelope.",              "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinanceExpensesRow" } } } }] } } } },
       "FinanceCashFlowEnvelope":      { "description": "Cash-flow envelope.",             "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/FinanceCashFlowRow" } } } }] } } } },
 
@@ -587,6 +621,7 @@
       "OperationsByLocationEnvelope": { "description": "Operations by-location envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/OperationsByLocationRow" } } } }] } } } },
 
       "InventoryFreeTreeEnvelope":     { "description": "Inventory free-tree envelope.",     "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/InventoryFreeTreeData" } } }] } } } },
+      "InventoryPricingEnvelope":      { "description": "Inventory pricing envelope.",       "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryPricingRow" } } } }] } } } },
       "InventoryProfitabilityEnvelope":{ "description": "Inventory profitability envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryProfitabilityRow" } } } }] } } } },
       "InventoryUtilizationEnvelope":  { "description": "Inventory utilization envelope.",   "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryUtilizationRow" } } } }] } } } },
       "InventoryTurnoverEnvelope":     { "description": "Inventory turnover envelope.",      "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryTurnoverRow" } } } }] } } } },
@@ -635,6 +670,7 @@
 
     "/finance/pnl":       { "get": { "operationId": "tiktak_finance_pnl", "summary": "Revenue (total + non-carnival + carnival), expenses (7 buckets), EBITDA. Adds 2025 bank-channel warning when range overlaps 2025+.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/FinancePnlEnvelope" }, "422": { "$ref": "#/components/responses/ValidationError" } } } },
     "/finance/revenue":   { "get": { "operationId": "tiktak_finance_revenue", "summary": "Rental revenue from UNION(sub_deals_act, sub_deals_arch) by acc_date.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/location" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/FinanceRevenueEnvelope" } } } },
+    "/finance/revenue-by-category": { "get": { "operationId": "tiktak_finance_revenue_by_category", "summary": "Rental revenue and duration by category.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/FinanceRevenueByCategoryEnvelope" } } } },
     "/finance/expenses":  { "get": { "operationId": "tiktak_finance_expenses", "summary": "doh_rash expenses by period × type2 × channel.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" }, { "$ref": "#/components/parameters/channel" } ], "responses": { "200": { "$ref": "#/components/responses/FinanceExpensesEnvelope" } } } },
     "/finance/cash-flow": { "get": { "operationId": "tiktak_finance_cash_flow", "summary": "Inflow/outflow/net per till (kassa).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/granularity" } ], "responses": { "200": { "$ref": "#/components/responses/FinanceCashFlowEnvelope" } } } },
 
@@ -644,8 +680,9 @@
     "/operations/by-location": { "get": { "operationId": "tiktak_operations_by_location", "summary": "Per-office deals + revenue + issuance_events + renewal_events. office_id=0 is the synthetic 'Курьер' row (delivery_yn='1' sub-deals).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/OperationsByLocationEnvelope" } } } },
 
     "/inventory/free-tree":     { "get": { "operationId": "tiktak_inventory_free_tree", "summary": "Current catalog tree with free-unit counts.", "responses": { "200": { "$ref": "#/components/responses/InventoryFreeTreeEnvelope" } } } },
+    "/inventory/pricing":       { "get": { "operationId": "tiktak_inventory_pricing", "summary": "Current active catalog models pricing with calculated daily rate.", "parameters": [ { "$ref": "#/components/parameters/category" } ], "responses": { "200": { "$ref": "#/components/responses/InventoryPricingEnvelope" } } } },
     "/inventory/profitability": { "get": { "operationId": "tiktak_inventory_profitability", "summary": "Per-physical-item profitability across UNION(deals_act, deals_arch).", "responses": { "200": { "$ref": "#/components/responses/InventoryProfitabilityEnvelope" } } } },
-    "/inventory/utilization":   { "get": { "operationId": "tiktak_inventory_utilization", "summary": "Per-model utilization = rented_seconds / (avg_units × period). Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/InventoryUtilizationEnvelope" } } } },
+    "/inventory/utilization":   { "get": { "operationId": "tiktak_inventory_utilization", "summary": "Per-model utilization = rented_seconds / (avg_units × period) + avg_rental_days_per_deal. Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/InventoryUtilizationEnvelope" } } } },
     "/inventory/turnover":      { "get": { "operationId": "tiktak_inventory_turnover", "summary": "Per-model turnover = deals / units.", "parameters": [ { "$ref": "#/components/parameters/from" }, { "$ref": "#/components/parameters/to" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/InventoryTurnoverEnvelope" } } } },
     "/inventory/idle":          { "get": { "operationId": "tiktak_inventory_idle", "summary": "Models without rentals for at least N days.", "parameters": [ { "$ref": "#/components/parameters/days" }, { "$ref": "#/components/parameters/category" }, { "$ref": "#/components/parameters/include_carnival" } ], "responses": { "200": { "$ref": "#/components/responses/InventoryIdleEnvelope" } } } },
 

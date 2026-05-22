@@ -48,9 +48,10 @@ Route::prefix('mcp/v1')
         Route::get('meta/data-freshness',  [MetaController::class, 'dataFreshnessEndpoint'])->name('meta.data-freshness');
 
         // Finance (A.4)
-        Route::get('finance/pnl',       [FinanceController::class, 'pnl'])->name('finance.pnl');
-        Route::get('finance/revenue',   [FinanceController::class, 'revenue'])->name('finance.revenue');
-        Route::get('finance/expenses',  [FinanceController::class, 'expenses'])->name('finance.expenses');
+        Route::get('finance/pnl',                 [FinanceController::class, 'pnl'])->name('finance.pnl');
+        Route::get('finance/revenue',             [FinanceController::class, 'revenue'])->name('finance.revenue');
+        Route::get('finance/revenue-by-category', [FinanceController::class, 'revenueByCategory'])->name('finance.revenue-by-category');
+        Route::get('finance/expenses',            [FinanceController::class, 'expenses'])->name('finance.expenses');
         Route::get('finance/cash-flow', [FinanceController::class, 'cashFlow'])->name('finance.cash-flow');
 
         // Operations (A.5)
@@ -61,6 +62,7 @@ Route::prefix('mcp/v1')
 
         // Inventory (A.6 + existing)
         Route::get('inventory/free-tree',      [InventoryController::class, 'freeTree'])->name('inventory.free-tree');
+        Route::get('inventory/pricing',        [InventoryController::class, 'pricing'])->name('inventory.pricing');
         Route::get('inventory/profitability',  [InventoryController::class, 'profitability'])->name('inventory.profitability');
         Route::get('inventory/utilization',    [InventoryController::class, 'utilization'])->name('inventory.utilization');
         Route::get('inventory/turnover',       [InventoryController::class, 'turnover'])->name('inventory.turnover');

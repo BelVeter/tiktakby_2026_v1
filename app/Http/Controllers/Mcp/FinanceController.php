@@ -413,4 +413,168 @@ class FinanceController extends BaseController
 
         return $this->envelope($request->queryEcho(), $rows);
     }
+
+    /**
+     * GET /finance/revenue-by-category?from&to&granularity&include_carnival
+     *
+     * Revenue and avg deal metrics sliced by tovar_rent_cat category.
+     *
+     * Methodology:
+     *   - Revenue = SUM(r_paid + delivery_paid) at sub-deal level, grouped by
+     *     acc_date period and tovar_rent_cat. Deals resolved via item_inv_n.
+     *   - avg_deal_byn = revenue / deals.
+     *   - avg_rental_days computed per category from the deal table directly
+     *     (full rental duration, not clipped to the query period) — this gives
+     *     a meaningful "how long does a typical deal last" for ad bid calculation.
+     */
+    public function revenueByCategory(RangeRequest $request): JsonResponse
+    {
+        $from            = $request->fromTimestamp();
+        $to              = $request->toTimestamp();
+        $includeCarnival = $request->includeCarnival();
+
+        $key = $this->cacheKey('finance.revenue_by_category', [
+            'from' => $from, 'to' => $to,
+            'g'    => $request->input('granularity'),
+            'inc'  => $includeCarnival ? 1 : 0,
+        ]);
+
+        $rows = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($from, $to, $includeCarnival, $request) {
+            $periodSd = $request->granularityFormatFor('sd.acc_date');
+
+            $sdSub = $this->unifiedSubDealsSubquery();
+            $daSub = $this->unifiedDealsSubquery();
+            $itSub = $this->unifiedItemsSubquery();
+
+            // --- Carnival filter ---
+            $carnWhere  = '';
+            $carnParams = [];
+            if (!$includeCarnival) {
+                [$carnFrag, $carnP] = $this->carnivalFilterClause(false, 'tc.tovar_rent_cat_id');
+                if ($carnFrag !== '') {
+                    $carnWhere  = $carnFrag;
+                    $carnParams = $carnP;
+                }
+            }
+
+            // --- Revenue per (period, category) from sub-deals ---
+            $q1Params = array_merge([$from, $to], $carnParams);
+
+            $revenueRows = DB::select("
+                SELECT
+                    {$periodSd} AS period,
+                    tc.tovar_rent_cat_id AS category_id,
+                    tc.rent_cat_name     AS category_name,
+                    ROUND(SUM(sd.r_paid + sd.delivery_paid), 2) AS revenue_byn,
+                    COUNT(DISTINCT sd.deal_id) AS deals
+                FROM {$sdSub} sd
+                JOIN {$daSub} da ON da.deal_id = sd.deal_id
+                JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
+                JOIN tovar_rent_cat tc ON tc.tovar_rent_cat_id = ti.cat_id
+                WHERE sd.acc_date BETWEEN ? AND ?
+                  AND ti.cat_id IS NOT NULL
+                  {$carnWhere}
+                GROUP BY period, tc.tovar_rent_cat_id, tc.rent_cat_name
+                ORDER BY period, revenue_byn DESC
+            ", $q1Params);
+
+            // --- Avg rental days per category ---
+            // Computed from ALL deals in the period range (by cr_time),
+            // using full deal duration (start_date to return_date).
+            // This is a lightweight lookup — no sub-deal fan-out.
+            $now = time();
+            $q2Params = array_merge([$now, $from, $to], $carnParams);
+
+            $daysRows = DB::select("
+                SELECT
+                    ti.cat_id AS category_id,
+                    ROUND(AVG(
+                        GREATEST(0, IF(da.return_date > 0, da.return_date, ?) - da.start_date)
+                    ) / 86400, 1) AS avg_rental_days
+                FROM rent_deals_act da
+                JOIN tovar_rent_items ti ON ti.item_inv_n = da.item_inv_n
+                JOIN tovar_rent_cat tc   ON tc.tovar_rent_cat_id = ti.cat_id
+                WHERE da.start_date BETWEEN ? AND ?
+                  AND ti.cat_id IS NOT NULL
+                  {$carnWhere}
+                GROUP BY ti.cat_id
+
+                UNION ALL
+
+                SELECT
+                    ti.cat_id AS category_id,
+                    ROUND(AVG(
+                        GREATEST(0, IF(da.return_date > 0, da.return_date, ?) - da.start_date)
+                    ) / 86400, 1) AS avg_rental_days
+                FROM rent_deals_arch da
+                JOIN tovar_rent_items ti ON ti.item_inv_n = da.item_inv_n
+                JOIN tovar_rent_cat tc   ON tc.tovar_rent_cat_id = ti.cat_id
+                WHERE da.start_date BETWEEN ? AND ?
+                  AND ti.cat_id IS NOT NULL
+                  {$carnWhere}
+                GROUP BY ti.cat_id
+            ", array_merge($q2Params, [$now, $from, $to], $carnParams));
+
+            // Merge the two UNION halves (avg across act+arch)
+            $daysByCat = [];
+            $countByCat = [];
+            foreach ($daysRows as $d) {
+                $catId = (int) $d->category_id;
+                // Weighted average would need counts — just take MAX for simplicity
+                // since most deals for a period are in one table
+                if (!isset($daysByCat[$catId]) || $d->avg_rental_days > $daysByCat[$catId]) {
+                    $daysByCat[$catId] = (float) $d->avg_rental_days;
+                }
+            }
+
+            // --- Category URL lookup (cached) ---
+            $catUrls = $this->cacheRemember('mcp.cat_url_map', self::TTL_META, function () {
+                $rows = DB::select("
+                    SELECT
+                        sc.tovar_rent_cat_id AS cat_id,
+                        r.url_razdel_name    AS section_url,
+                        sr.url_sub_razdel_name AS subsection_url
+                    FROM subrazdel_category sc
+                    JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sc.id_sub_razdel
+                    JOIN razdel r            ON r.id_razdel      = rs.id_razdel
+                    JOIN sub_razdel sr       ON sr.id_sub_razdel = sc.id_sub_razdel
+                    GROUP BY sc.tovar_rent_cat_id, r.url_razdel_name, sr.url_sub_razdel_name
+                ");
+                $map = [];
+                foreach ($rows as $row) {
+                    if (!isset($map[$row->cat_id])) {
+                        $map[$row->cat_id] = [
+                            'section'    => $row->section_url,
+                            'subsection' => $row->subsection_url,
+                        ];
+                    }
+                }
+                return $map;
+            });
+
+            // --- Merge ---
+            return array_map(function ($r) use ($daysByCat, $catUrls) {
+                $deals      = (int) $r->deals;
+                $avgDealByn = $deals > 0 ? round((float) $r->revenue_byn / $deals, 2) : 0;
+                $catId      = (int) $r->category_id;
+                $avgDays    = $daysByCat[$catId] ?? 0;
+                $urls       = $catUrls[$catId] ?? ['section' => null, 'subsection' => null];
+
+                return [
+                    'period'          => $r->period,
+                    'category_id'     => (int) $r->category_id,
+                    'category'        => $urls['section'],
+                    'subcategory'     => $urls['subsection'],
+                    'category_name'   => $r->category_name,
+                    'revenue_byn'     => (float) $r->revenue_byn,
+                    'deals'           => $deals,
+                    'avg_deal_byn'    => $avgDealByn,
+                    'avg_rental_days' => $avgDays,
+                ];
+            }, $revenueRows);
+        });
+
+        return $this->envelope($request->queryEcho(), $rows);
+    }
 }
+

@@ -287,6 +287,7 @@ class InventoryController extends BaseController
                 $entry = $rentMap[$mid] ?? ['model_name' => null, 'rented_seconds' => 0.0, 'deals' => 0];
                 $rentDays = round($entry['rented_seconds'] / 86400, 2);
                 $util     = round($entry['rented_seconds'] / ($avgU * $periodSeconds), 4);
+                $avgRentalDaysPerDeal = $entry['deals'] > 0 ? round($rentDays / $entry['deals'], 1) : 0;
 
                 $out[] = [
                     'model_id'        => (int) $mid,
@@ -296,6 +297,7 @@ class InventoryController extends BaseController
                     'avg_units'       => $avgU,
                     'deals_in_period' => $entry['deals'],
                     'rented_days'     => $rentDays,
+                    'avg_rental_days_per_deal' => $avgRentalDaysPerDeal,
                     'utilization'     => min(1.0, $util),
                 ];
             }
@@ -552,5 +554,104 @@ class InventoryController extends BaseController
             'include_carnival' => $incCarn,
             'cutoff_iso'       => gmdate('Y-m-d\TH:i:s\Z', $cutoff),
         ], $rows);
+    }
+    /**
+     * GET /inventory/pricing?category
+     *
+     * Returns rental prices by model with category mapping.
+     * Designed for advertising bid calculation — includes section/subsection
+     * URLs for ad landing pages and a calculated daily rate.
+     */
+    public function pricing(Request $request): JsonResponse
+    {
+        $key = $this->cacheKey('inventory.pricing', []);
+
+        $rows = $this->cacheRemember($key, self::TTL_DEFAULT, function () {
+            $data = DB::select("
+                SELECT
+                    rmw.model_id,
+                    rmw.l2_name AS model_name,
+                    rmw.page_addr AS model_url,
+                    tc.tovar_rent_cat_id AS category_id,
+                    tc.rent_cat_name AS category_name,
+                    MIN(CASE WHEN ta.step = 'day' AND ta.kol_vo = 1 THEN ta.rent_amount END) AS price_day_1,
+                    MIN(CASE WHEN ta.step = 'week' AND ta.kol_vo = 1 THEN ta.rent_amount END) AS price_week_1,
+                    MIN(CASE WHEN ta.step = 'month' AND ta.kol_vo = 1 THEN ta.rent_amount END) AS price_month_1,
+                    MIN(CASE
+                        WHEN ta.step = 'day'   AND ta.kol_vo > 0 THEN ta.kol_vo
+                        WHEN ta.step = 'week'  AND ta.kol_vo > 0 THEN ta.kol_vo * 7
+                        WHEN ta.step = 'month' AND ta.kol_vo > 0 THEN ta.kol_vo * 30
+                    END) AS min_rental_days,
+                    COUNT(DISTINCT tri.item_id) AS active_units
+                FROM rent_model_web rmw
+                JOIN rent_tarif_act ta ON ta.model_id = rmw.model_id
+                LEFT JOIN tovar_rent_items tri ON tri.model_id = rmw.model_id
+                LEFT JOIN tovar_rent_cat tc ON tc.tovar_rent_cat_id = tri.cat_id
+                WHERE rmw.lang = 'ru' AND rmw.status = 'show'
+                GROUP BY rmw.model_id, rmw.l2_name, rmw.page_addr,
+                         tc.tovar_rent_cat_id, tc.rent_cat_name
+            ");
+
+            // Category URL lookup (cached separately at META TTL)
+            $catUrls = \Illuminate\Support\Facades\Cache::remember('mcp.cat_url_map', 86400, function () {
+                $rows = DB::select("
+                    SELECT
+                        sc.tovar_rent_cat_id AS cat_id,
+                        r.url_razdel_name    AS section_url,
+                        sr.url_sub_razdel_name AS subsection_url
+                    FROM subrazdel_category sc
+                    JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sc.id_sub_razdel
+                    JOIN razdel r            ON r.id_razdel      = rs.id_razdel
+                    JOIN sub_razdel sr       ON sr.id_sub_razdel = sc.id_sub_razdel
+                    GROUP BY sc.tovar_rent_cat_id, r.url_razdel_name, sr.url_sub_razdel_name
+                ");
+                $map = [];
+                foreach ($rows as $row) {
+                    if (!isset($map[$row->cat_id])) {
+                        $map[$row->cat_id] = [
+                            'section'    => $row->section_url,
+                            'subsection' => $row->subsection_url,
+                        ];
+                    }
+                }
+                return $map;
+            });
+
+            return array_map(function ($r) use ($catUrls) {
+                $pDay   = $r->price_day_1 !== null ? (float) $r->price_day_1 : null;
+                $pWeek  = $r->price_week_1 !== null ? (float) $r->price_week_1 : null;
+                $pMonth = $r->price_month_1 !== null ? (float) $r->price_month_1 : null;
+
+                // Computed daily rate: actual day price, or week/7, or month/30
+                $dailyRate = $pDay;
+                if ($dailyRate === null && $pWeek !== null) {
+                    $dailyRate = round($pWeek / 7, 2);
+                }
+                if ($dailyRate === null && $pMonth !== null) {
+                    $dailyRate = round($pMonth / 30, 2);
+                }
+
+                $catId = $r->category_id !== null ? (int) $r->category_id : null;
+                $urls  = $catId !== null ? ($catUrls[$catId] ?? null) : null;
+
+                return [
+                    'model_id'              => (int) $r->model_id,
+                    'model_name'            => $r->model_name,
+                    'model_url'             => $r->model_url,
+                    'category_id'           => $catId,
+                    'category_name'         => $r->category_name,
+                    'section'               => $urls ? $urls['section'] : null,
+                    'subsection'            => $urls ? $urls['subsection'] : null,
+                    'price_per_day_byn'     => $pDay,
+                    'price_per_week_byn'    => $pWeek,
+                    'price_per_month_byn'   => $pMonth,
+                    'price_per_day_calc_byn' => $dailyRate,
+                    'min_rental_days'       => $r->min_rental_days !== null ? (int) $r->min_rental_days : null,
+                    'active_units'          => (int) $r->active_units,
+                ];
+            }, $data);
+        });
+
+        return $this->envelope([], $rows);
     }
 }
