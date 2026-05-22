@@ -32,9 +32,9 @@
 | `CartController` | Shopping cart: display cart page, tariff retrieval, availability check, checkout with booking creation |
 | `Mcp/HealthController` | `/health` + `/openapi.json` |
 | `Mcp/MetaController` | `/meta/*` — categories, locations, expense-items, income-items, data-freshness |
-| `Mcp/FinanceController` | `/finance/{pnl,revenue,expenses,cash-flow}` — P&L injects 2025 bank-channel warning |
+| `Mcp/FinanceController` | `/finance/{pnl,revenue,revenue-by-category,expenses,cash-flow}` — P&L injects 2025 bank-channel warning |
 | `Mcp/OperationsController` | `/operations/*` (funnel/timeline/by-category/by-location) + legacy `/orders/stats`, `/deals/list` |
-| `Mcp/InventoryController` | `/inventory/{free-tree,profitability,utilization,turnover,idle}` |
+| `Mcp/InventoryController` | `/inventory/{free-tree,pricing,profitability,utilization,turnover,idle}` |
 | `Mcp/CustomersController` | `/customers/{timeline,cohorts,repeat-intervals}` + legacy `/clients/ltv` |
 | `Mcp/GeoController` | `/geo/clients-by-city` (Minsk-district resolution deferred to Stage 2) |
 | `Mcp/LocationsController` | `/locations/{performance,lifecycle}` |
