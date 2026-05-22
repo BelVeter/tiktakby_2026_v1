@@ -93,7 +93,15 @@ Route::prefix('mcp/v1')
             ->where('topic', '[a-z_-]+')
             ->name('export.monthly');
 
-        // A1 Call Recordings
+        // A1 Calls: recordings (existing)
         Route::get('calls/recordings', [CallsController::class, 'index'])->name('calls.recordings');
         Route::get('calls/recordings/{uuid}/file', [CallsController::class, 'streamFile'])->name('calls.recordings.file');
+
+        // A1 Calls: CDR and AI analysis (new)
+        Route::get('calls/cdr', [CallsController::class, 'cdr'])->name('calls.cdr');
+        Route::get('calls/pending-analysis', [CallsController::class, 'pendingAnalysis'])->name('calls.pending-analysis');
+        Route::get('calls/recordings/{uuid}/analysis', [CallsController::class, 'getAnalysis'])->name('calls.recordings.analysis.get');
+        Route::post('calls/recordings/{uuid}/analysis', [CallsController::class, 'submitAnalysis'])->name('calls.recordings.analysis.post');
+        Route::get('calls/daily-summary/{date}', [CallsController::class, 'getDailySummary'])->name('calls.daily-summary.get');
+        Route::post('calls/daily-summary/{date}', [CallsController::class, 'submitDailySummary'])->name('calls.daily-summary.post');
     });
