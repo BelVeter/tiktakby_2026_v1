@@ -39,7 +39,7 @@ $statsRow = $mysqli->query("
         SUM(call_type = 'outgoing') AS outgoing,
         SUM(call_type = 'missed')   AS missed
     FROM a1_cdr
-    WHERE DATE(call_date) = '{$safeDate}'
+    WHERE call_date >= '{$safeDate} 00:00:00' AND call_date <= '{$safeDate} 23:59:59'
 ")->fetch_assoc();
 
 $total    = (int) ($statsRow['total']    ?? 0);
@@ -76,7 +76,7 @@ $result = $mysqli->query("
         ca.recording_uuid AS analysis_recording_uuid
     FROM a1_cdr cdr
     LEFT JOIN a1_call_analysis ca ON ca.recording_uuid = cdr.recording_uuid
-    WHERE DATE(cdr.call_date) = '{$safeDate}'
+    WHERE cdr.call_date >= '{$safeDate} 00:00:00' AND cdr.call_date <= '{$safeDate} 23:59:59'
     {$typeWhere}
     ORDER BY cdr.call_date DESC
     LIMIT 500
