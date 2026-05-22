@@ -350,8 +350,8 @@ if (empty($a1VisibleCalls)) {
         if ($isPending) {
             echo '<form method="post" action="zv_ch.php" style="margin:0;display:flex;flex-direction:column;gap:4px;">';
             echo '<input type="hidden" name="a1_id" value="'.$callId.'">';
-            echo '<input type="submit" name="a1_action" value="called_back" style="cursor:pointer;padding:3px 8px;background:#198754;color:#fff;border:none;border-radius:4px;" onclick="return confirm(\'Перезвонили?\')"> ';
-            echo '<input type="submit" name="a1_action" value="false_call"  style="cursor:pointer;padding:3px 8px;background:#6c757d;color:#fff;border:none;border-radius:4px;" onclick="return confirm(\'Ложный вызов?\')">';
+            echo '<button type="submit" name="a1_action" value="called_back" style="cursor:pointer;padding:3px 8px;background:#198754;color:#fff;border:none;border-radius:4px;" onclick="return confirm(\'Перезвонили?\')">Перезвонили</button> ';
+            echo '<button type="submit" name="a1_action" value="false_call"  style="cursor:pointer;padding:3px 8px;background:#6c757d;color:#fff;border:none;border-radius:4px;" onclick="return confirm(\'Ложный вызов?\')">Ложный вызов</button>';
             echo '</form>';
         } elseif ($isAutoCallback) {
             $cbMin = (int)($call['callback_minutes'] ?? 0);
