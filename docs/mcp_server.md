@@ -118,6 +118,7 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /meta/data-freshness` | Per-table max(cr_time/acc_date) ISO UTC |
 | Finance| `GET /finance/pnl` | Revenue + 7-bucket expenses + EBITDA, with 2025 warning |
 |        | `GET /finance/revenue` | Period × category × location revenue |
+|        | `GET /finance/revenue-by-category` | Period × category revenue with average deal and duration |
 |        | `GET /finance/expenses` | doh_rash by `type2` × channel (cash/bank/etc.) |
 |        | `GET /finance/cash-flow` | Inflow/outflow/net per till (`kassa`) |
 | Operations | `GET /operations/funnel` | leads → deals → sub-deals → returns + CR |
@@ -125,8 +126,9 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /operations/by-category` | Per-razdel orders + deals + revenue |
 |        | `GET /operations/by-location` | Per-office deals + clients + revenue + returns |
 | Inventory | `GET /inventory/free-tree` | Catalog tree with free-unit counts |
+|        | `GET /inventory/pricing` | Active catalog model pricing with calculated daily rate |
 |        | `GET /inventory/profitability` | Per-physical-item profitability |
-|        | `GET /inventory/utilization` | Per-model rented_seconds / (units × period) |
+|        | `GET /inventory/utilization` | Per-model utilization and avg_rental_days_per_deal |
 |        | `GET /inventory/turnover` | deals / units per model |
 |        | `GET /inventory/idle?days=` | Models without rentals for ≥ N days |
 | Customers | `GET /customers/timeline` | new / active / returning / new_active per period |
