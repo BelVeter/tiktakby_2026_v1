@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **CRITICAL**: Dual architecture:
 1. **Laravel app** (`app/`, `routes/`, `resources/`) - Public website
 2. **Legacy admin panel** (`bb/`) - Standalone PHP admin interface
-3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 31 read-only analytics endpoints under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
+3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 31 analytics + 9 AI-agent call endpoints under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
 
 **MCP API methodology (locked 2026-05-14)** — reproduces legacy admin reports `/bb/reports.php`, `/bb/sales_breakdown.php`, `/bb/dohrash2.php`, `/bb/cat_analysis.php`:
 - Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` filtered by `acc_date` (accounting date — when payment landed). NOT by deal `cr_time`.
@@ -189,6 +189,7 @@ All MCP controllers extend `BaseController` (envelope/cache/data-freshness helpe
 | `CategoriesController` | `/categories/*` | 2 — seasonality, performance (legacy) |
 | `CarnivalController` | `/carnival/*` | 3 — funnel, seasonality, revenue (UNION of `karn_brons` + `karn_brons_arch`) |
 | `ExportController` | `/export/monthly/{topic}` | 1 — streaming CSV for `operations`, `revenue`, `pnl`, `traffic` |
+| `CallsController` | `/calls/*` | 9 — recordings list, file stream, CDR, pending-analysis queue, get/submit/reset analysis, get/submit daily summary |
 
 ### Middleware (`app/Http/Middleware/`)
 
@@ -230,7 +231,7 @@ Standalone PHP application (not Laravel):
 **API routes** (`routes/api.php`):
 - **MCP Analytics API** (`GET /api/mcp/v1/*`)
   - Middleware chain: `mcp.json` → `mcp.token` → `mcp.geo` → `mcp.audit` → `throttle:60,1`
-  - 33 endpoints + `/health` + `/openapi.json` — see [docs/mcp_server.md](docs/mcp_server.md) and `resources/openapi/mcp-v1.json` for the full catalog
+  - 42 endpoints + `/health` + `/openapi.json` — see [docs/mcp_server.md](docs/mcp_server.md) and `resources/openapi/mcp-v1.json` for the full catalog
   - Response envelope: `{query, data, meta:{total_rows, currency:"BYN", data_freshness, warnings}}`
   - `/finance/pnl` injects a `meta.warnings` entry referring to `D-OPEN-FY2025` whenever the requested period overlaps 2025-01 or later — DO NOT remove this without coordinating with the analytics workspace at `/home/dmitry/Documents/прокат/`
 

@@ -34,6 +34,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('a1:fetch-recordings')
             ->hourlyAt(5)
             ->withoutOverlapping();
+
+        // CDR (история всех звонков) — каждый час в :15
+        $schedule->command('a1:fetch-cdr', ['--period' => 90])
+            ->hourlyAt(15)
+            ->withoutOverlapping();
     }
 
     /**

@@ -67,11 +67,10 @@ $sql = "SELECT * FROM a1_missed_calls WHERE $whereStr ORDER BY call_timestamp DE
 
 $calls = [];
 if ($types) {
-    $stmt = $mysqli->prepare($sql);
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $stmt->close();
+    // get_result() requires mysqlnd which is unavailable on this host — use real_escape_string instead
+    $safeDate = $mysqli->real_escape_string($filterDate);
+    $filledSql = str_replace('?', "'{$safeDate}'", $sql);
+    $result = $mysqli->query($filledSql);
 } else {
     $result = $mysqli->query($sql);
 }

@@ -41,7 +41,9 @@
 | `Mcp/CategoriesController` | `/categories/{seasonality,performance}` |
 | `Mcp/CarnivalController` | `/carnival/{funnel,seasonality,revenue}` (UNION of `karn_brons` + `karn_brons_arch`) |
 | `Mcp/ExportController` | `/export/monthly/{topic}` — CSV streams matching `data/monthly/_schema.md` |
+| `Mcp/CallsController` | `/calls/*` — A1 Call recordings, CDR, and AI call analysis |
 | `Mcp/BaseController` | abstract — `envelope()`, `cacheRemember()`, `dataFreshness()`, TTL constants |
+| `BbAudioController` | `/bb-internal/audio/{uuid}` — streams audio files to bb/ interface with cookie auth |
 
 See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoint catalog.
 
@@ -128,6 +130,7 @@ Sequence:
 | Content | `pages`, `video_links`, `dop_photos` |
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, is_regex, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
+| A1 API | `a1_call_recordings`, `a1_recordings_fetch_log`, `a1_cdr`, `a1_cdr_fetch_log`, `a1_call_analysis`, `a1_daily_summaries` |
 | MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent); plus `idx_mcp_*` performance indexes on `rent_deals_arch`, `rent_sub_deals_arch`, `doh_rash`, `clients`, `karn_brons`, `karn_brons_arch`, `rent_orders`, `rent_orders_arch`, `rent_deals_act` (migration `2026_05_09_000001_add_mcp_analytics_indexes`) |
 
 ## Data Access Strategy

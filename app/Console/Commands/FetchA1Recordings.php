@@ -151,17 +151,32 @@ class FetchA1Recordings extends Command
             $fileSize = strlen($bytes);
 
             // Insert DB record
+            // callerPart/calleePart are objects from A1 API — extract fullNumber
             DB::table('a1_call_recordings')->insert([
                 'record_name'   => $recordName,
                 'uuid'          => $uuid,
                 'call_date'     => date('Y-m-d H:i:s', strtotime($callDate)),
-                'caller_part'   => $rec['callerPart'] ?? '',
-                'callee_part'   => $rec['calleePart'] ?? '',
+                'caller_part'   => $this->extractNumber($rec['callerPart'] ?? ''),
+                'callee_part'   => $this->extractNumber($rec['calleePart'] ?? ''),
                 'call_duration' => (int) ($rec['callDuration'] ?? 0),
                 'file_path'     => $filePath,
                 'file_size'     => $fileSize,
                 'downloaded_at' => date('Y-m-d H:i:s'),
             ]);
+
+            // Create pending analysis record for AI agent
+            DB::table('a1_call_analysis')->insertOrIgnore([
+                'recording_uuid' => $uuid,
+                'ai_status'      => 'pending',
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s'),
+            ]);
+
+            // Link recording to CDR if already fetched
+            DB::table('a1_cdr')
+                ->where('uuid', $uuid)
+                ->whereNull('recording_uuid')
+                ->update(['recording_uuid' => $uuid]);
 
             $filesDownloaded++;
             $bytesDownloaded += $fileSize;
@@ -389,5 +404,14 @@ class FetchA1Recordings extends Command
             $this->tokensPath(),
             json_encode($tokens, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
         );
+    }
+
+    // A1 API returns callerPart/calleePart as objects — extract the phone number
+    private function extractNumber($part): string
+    {
+        if (is_array($part)) {
+            return (string) ($part['fullNumber'] ?? '');
+        }
+        return (string) $part;
     }
 }

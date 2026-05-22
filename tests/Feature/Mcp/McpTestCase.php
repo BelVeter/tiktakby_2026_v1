@@ -41,6 +41,14 @@ abstract class McpTestCase extends TestCase
         ]);
     }
 
+    protected function postMcp(string $path, array $body = []): TestResponse
+    {
+        $url = '/api/mcp/v1/' . ltrim($path, '/');
+        return $this->postJson($url, $body, [
+            'Authorization' => 'Bearer ' . config('mcp.api_token'),
+        ]);
+    }
+
     /**
      * Assert standard envelope shape { query, data, meta:{currency,warnings} }.
      */

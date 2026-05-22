@@ -46,4 +46,18 @@ if ($result_avail && $row = $result_avail->fetch_assoc()) {
     $count_zayavk_avail = (int) $row['cnt'];
 }
 
-echo json_encode(['count_bron' => $count_bron, 'count_zayavk_new' => $count_zayavk_new, 'count_zayavk_avail' => $count_zayavk_avail]);
+// Count pending AI analysis (last 7 days, excludes errors)
+$query_calls = "
+    SELECT COUNT(*) as cnt
+    FROM a1_call_analysis ca
+    JOIN a1_call_recordings r ON r.uuid = ca.recording_uuid
+    WHERE ca.ai_status = 'pending'
+      AND r.call_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+";
+$result_calls = $mysqli->query($query_calls);
+$calls_pending = 0;
+if ($result_calls && $row = $result_calls->fetch_assoc()) {
+    $calls_pending = (int) $row['cnt'];
+}
+
+echo json_encode(['count_bron' => $count_bron, 'count_zayavk_new' => $count_zayavk_new, 'count_zayavk_avail' => $count_zayavk_avail, 'calls_pending' => $calls_pending]);

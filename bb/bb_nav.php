@@ -41,6 +41,20 @@ $_bb_nav_items = [
         'pages' => ['deals_arch.php', 'rent_orders_arch.php', 'rent_zayavk_arch.php']
     ],
 ];
+
+// "Звонки" page is only visible to Дима (user_id=3)
+if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === 3) {
+    // Insert before the last item (Архив dropdown)
+    $archivItem = array_pop($_bb_nav_items);
+    $_bb_nav_items[] = [
+        'label' => 'Звонки',
+        'href'  => '/bb/a1_calls.php',
+        'icon'  => '<svg class="bb-icon-nav__home-icon" viewBox="0 0 24 24" fill="none" stroke="#3a4a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.64A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>',
+        'page'  => 'a1_calls.php',
+        'badge' => 'calls',
+    ];
+    $_bb_nav_items[] = $archivItem;
+}
 ?>
 <link rel="stylesheet" href="/bb/bb_nav.css?v=5">
 <nav class="bb-icon-nav">
@@ -114,6 +128,17 @@ $_bb_nav_items = [
                             badgeAvail.classList.add('bb-icon-nav__badge--visible');
                         } else {
                             badgeAvail.classList.remove('bb-icon-nav__badge--visible');
+                        }
+                    }
+
+                    // Calls badge: pending AI analysis
+                    var badgeCalls = document.getElementById('bb-nav-badge-calls');
+                    if (badgeCalls) {
+                        if (data.calls_pending > 0) {
+                            badgeCalls.textContent = data.calls_pending;
+                            badgeCalls.classList.add('bb-icon-nav__badge--visible');
+                        } else {
+                            badgeCalls.classList.remove('bb-icon-nav__badge--visible');
                         }
                     }
                 })

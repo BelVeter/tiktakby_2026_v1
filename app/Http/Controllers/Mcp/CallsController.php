@@ -130,4 +130,275 @@ class CallsController extends BaseController
 
         return response()->download($diskPath, $filename, ['Content-Type' => 'audio/mpeg']);
     }
+
+    /**
+     * GET /api/mcp/v1/calls/cdr
+     */
+    public function cdr(Request $request): JsonResponse
+    {
+        $from     = $request->get('from', date('Y-m-d', strtotime('-30 days')));
+        $to       = $request->get('to',   date('Y-m-d'));
+        $callType = $request->get('call_type', 'all');
+        $page     = max(1, (int) $request->get('page', 1));
+        $perPage  = min(200, max(1, (int) $request->get('per_page', 100)));
+
+        $query = DB::table('a1_cdr')
+            ->whereBetween('call_date', [$from . ' 00:00:00', $to . ' 23:59:59']);
+
+        if ($callType !== 'all' && in_array($callType, ['incoming', 'outgoing', 'missed'], true)) {
+            $query->where('call_type', $callType);
+        }
+
+        $total = $query->count();
+        $rows  = (clone $query)
+            ->orderBy('call_date', 'desc')
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage)
+            ->get(['uuid', 'call_date', 'call_type', 'caller_number', 'callee_number', 'call_duration', 'recording_uuid']);
+
+        return $this->envelope(
+            ['from' => $from, 'to' => $to, 'call_type' => $callType],
+            $rows->values()->all(),
+            ['total_rows' => $total, 'page' => $page, 'per_page' => $perPage]
+        );
+    }
+
+    /**
+     * GET /api/mcp/v1/calls/pending-analysis
+     *
+     * Query params:
+     *   status  pending|transcribed  (default: pending)
+     *   from    YYYY-MM-DD           (default: yesterday)
+     *   to      YYYY-MM-DD           (default: today)
+     *   limit   int                  (default: 20, max: 50)
+     *
+     * Resets stale 'processing' records (>2h) contextually (using transcript field).
+     * Returns matching recordings and sets them to 'processing' to prevent race conditions.
+     */
+    public function pendingAnalysis(Request $request): JsonResponse
+    {
+        $from   = $request->get('from', date('Y-m-d', strtotime('-1 day')));
+        $to     = $request->get('to',   date('Y-m-d'));
+        $limit  = min(50, max(1, (int) $request->get('limit', 20)));
+        $status = in_array($request->get('status'), ['pending', 'transcribed'], true)
+                  ? $request->get('status')
+                  : 'pending';
+
+        // Context-aware timeout resets (>2h)
+        // 1. If transcript IS NULL, they timed out in Phase 1 -> reset to pending
+        DB::table('a1_call_analysis')
+            ->where('ai_status', 'processing')
+            ->where('updated_at', '<', date('Y-m-d H:i:s', strtotime('-2 hours')))
+            ->whereNull('transcript')
+            ->update(['ai_status' => 'pending', 'updated_at' => date('Y-m-d H:i:s')]);
+
+        // 2. If transcript IS NOT NULL, they timed out in Phase 2 -> reset to transcribed
+        DB::table('a1_call_analysis')
+            ->where('ai_status', 'processing')
+            ->where('updated_at', '<', date('Y-m-d H:i:s', strtotime('-2 hours')))
+            ->whereNotNull('transcript')
+            ->update(['ai_status' => 'transcribed', 'updated_at' => date('Y-m-d H:i:s')]);
+
+        $selectFields = ['r.uuid', 'r.call_date', 'r.caller_part', 'r.callee_part', 'r.call_duration', 'r.file_size'];
+        if ($status === 'transcribed') {
+            $selectFields[] = 'ca.transcript';
+        }
+
+        // Find recordings in requested status
+        $rows = DB::table('a1_call_analysis as ca')
+            ->join('a1_call_recordings as r', 'r.uuid', '=', 'ca.recording_uuid')
+            ->where('ca.ai_status', $status)
+            ->whereBetween('r.call_date', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->orderBy('r.call_date', 'asc')
+            ->limit($limit)
+            ->get($selectFields);
+
+        if ($rows->isEmpty()) {
+            return $this->envelope(['from' => $from, 'to' => $to, 'status' => $status], [], ['total_rows' => 0]);
+        }
+
+        $uuids = $rows->pluck('uuid')->all();
+
+        // Lock them by setting to 'processing'
+        DB::table('a1_call_analysis')
+            ->whereIn('recording_uuid', $uuids)
+            ->update(['ai_status' => 'processing', 'updated_at' => date('Y-m-d H:i:s')]);
+
+        $baseUrl = config('app.url') . '/api/mcp/v1/calls/recordings/';
+        $data = $rows->map(function ($r) use ($baseUrl) {
+            return array_merge((array) $r, [
+                'file_url' => $baseUrl . $r->uuid . '/file',
+            ]);
+        })->values()->all();
+
+        return $this->envelope(
+            ['from' => $from, 'to' => $to, 'status' => $status],
+            $data,
+            ['total_rows' => count($data)]
+        );
+    }
+
+    /**
+     * POST /api/mcp/v1/calls/recordings/{uuid}/analysis
+     * Body: {transcript, ai_summary, ai_result, ai_result_detail} | {error}
+     */
+    public function submitAnalysis(Request $request, string $uuid): JsonResponse
+    {
+        $analysis = DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->first();
+
+        if (!$analysis) {
+            $recording = DB::table('a1_call_recordings')->where('uuid', $uuid)->first();
+            if (!$recording) {
+                return response()->json(['error' => 'Recording not found'], 404);
+            }
+            DB::table('a1_call_analysis')->insert([
+                'recording_uuid' => $uuid,
+                'ai_status'      => 'processing',
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        if ($request->has('error')) {
+            DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
+                'ai_status'  => 'error',
+                'ai_error'   => $request->input('error'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        } elseif ($request->has('ai_summary')) {
+            // Phase 2: full analysis → done
+            DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
+                'transcript'           => $request->input('transcript', ''),
+                'ai_summary'           => $request->input('ai_summary'),
+                'ai_result'            => $request->input('ai_result'),
+                'ai_result_detail'     => $request->input('ai_result_detail'),
+                'discussed_items'      => json_encode($request->input('discussed_items', [])),
+                'missed_item'          => $request->input('missed_item'),
+                'client_sentiment'     => $request->input('client_sentiment'),
+                'consultant_sentiment' => $request->input('consultant_sentiment'),
+                'ai_status'            => 'done',
+                'ai_processed_at'      => date('Y-m-d H:i:s'),
+                'updated_at'           => date('Y-m-d H:i:s'),
+            ]);
+        } else {
+            // Phase 1: transcript only → transcribed (ready for Phase 2)
+            DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
+                'transcript' => $request->input('transcript'),
+                'ai_status'  => 'transcribed',
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $updated = DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->first();
+        return $this->envelope(['uuid' => $uuid], (array) $updated, []);
+    }
+
+    /**
+     * POST /api/mcp/v1/calls/recordings/{uuid}/reset-analysis
+     * Resets ai_status back to 'pending' so the AI agent re-processes the recording.
+     */
+    public function resetAnalysis(string $uuid): JsonResponse
+    {
+        $analysis = DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->first();
+
+        if (!$analysis) {
+            return response()->json(['error' => 'Analysis not found'], 404);
+        }
+
+        DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
+            'ai_status'  => 'pending',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $updated = DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->first();
+        return $this->envelope(['uuid' => $uuid], (array) $updated, []);
+    }
+
+    /**
+     * GET /api/mcp/v1/calls/recordings/{uuid}/analysis
+     */
+    public function getAnalysis(string $uuid): JsonResponse
+    {
+        $analysis = DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->first();
+
+        if (!$analysis) {
+            return response()->json(['error' => 'Analysis not found'], 404);
+        }
+
+        return $this->envelope(['uuid' => $uuid], (array) $analysis, []);
+    }
+
+    /**
+     * GET /api/mcp/v1/calls/daily-summary/{date}
+     */
+    public function getDailySummary(string $date): JsonResponse
+    {
+        $row = DB::table('a1_daily_summaries')->where('summary_date', $date)->first();
+
+        if (!$row) {
+            return response()->json(['error' => 'Summary not found'], 404);
+        }
+
+        $data = (array) $row;
+        $data['key_themes'] = json_decode($row->key_themes ?? '[]', true);
+
+        return $this->envelope(['date' => $date], $data, []);
+    }
+
+    /**
+     * POST /api/mcp/v1/calls/daily-summary/{date}
+     * Body: {summary_text, key_themes[]}
+     * Counts filled from a1_cdr automatically.
+     */
+    public function submitDailySummary(Request $request, string $date): JsonResponse
+    {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return response()->json(['error' => 'Invalid date format, expected YYYY-MM-DD'], 422);
+        }
+
+        $fromDt = $date . ' 00:00:00';
+        $toDt   = $date . ' 23:59:59';
+
+        $counts = DB::table('a1_cdr')
+            ->whereBetween('call_date', [$fromDt, $toDt])
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(call_type = 'incoming') as incoming,
+                SUM(call_type = 'outgoing') as outgoing,
+                SUM(call_type = 'missed') as missed
+            ")
+            ->first();
+
+        $analyzed = DB::table('a1_call_analysis as ca')
+            ->join('a1_call_recordings as r', 'r.uuid', '=', 'ca.recording_uuid')
+            ->whereBetween('r.call_date', [$fromDt, $toDt])
+            ->where('ca.ai_status', 'done')
+            ->count();
+
+        $payload = [
+            'summary_date'   => $date,
+            'summary_text'   => $request->input('summary_text', ''),
+            'total_calls'    => (int) ($counts->total    ?? 0),
+            'incoming_calls' => (int) ($counts->incoming ?? 0),
+            'outgoing_calls' => (int) ($counts->outgoing ?? 0),
+            'missed_calls'   => (int) ($counts->missed   ?? 0),
+            'calls_analyzed' => $analyzed,
+            'key_themes'     => json_encode($request->input('key_themes', [])),
+            'updated_at'     => date('Y-m-d H:i:s'),
+        ];
+
+        $existing = DB::table('a1_daily_summaries')->where('summary_date', $date)->exists();
+        if ($existing) {
+            DB::table('a1_daily_summaries')->where('summary_date', $date)->update($payload);
+        } else {
+            $payload['created_at'] = date('Y-m-d H:i:s');
+            DB::table('a1_daily_summaries')->insert($payload);
+        }
+
+        $row = DB::table('a1_daily_summaries')->where('summary_date', $date)->first();
+        $data = (array) $row;
+        $data['key_themes'] = json_decode($row->key_themes ?? '[]', true);
+
+        return $this->envelope(['date' => $date], $data, []);
+    }
 }
