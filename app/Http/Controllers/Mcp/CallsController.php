@@ -128,7 +128,7 @@ class CallsController extends BaseController
         $parts    = explode('/', $recording->file_path);
         $filename = end($parts);
 
-        return response()->download($diskPath, $filename, ['Content-Type' => 'audio/mpeg']);
+        return response()->file($diskPath, ['Content-Type' => 'audio/mpeg']);
     }
 
     /**
@@ -268,7 +268,7 @@ class CallsController extends BaseController
         } elseif ($request->has('ai_summary')) {
             // Phase 2: full analysis → done
             DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
-                'transcript'           => $request->input('transcript', ''),
+                'transcript'           => $request->has('transcript') ? $request->input('transcript') : ($analysis->transcript ?? ''),
                 'ai_summary'           => $request->input('ai_summary'),
                 'ai_result'            => $request->input('ai_result'),
                 'ai_result_detail'     => $request->input('ai_result_detail'),

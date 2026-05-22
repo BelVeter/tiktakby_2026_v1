@@ -234,6 +234,7 @@
             }
           },
           "deals":            { "type": "integer" },
+          "deals_by_source":  { "type": "object", "description": "Deal counts keyed by utm_source; 'direct' when no UTM attribution found.", "additionalProperties": { "type": "integer" } },
           "issuance_events":  { "type": "integer" },
           "renewal_events":   { "type": "integer" },
           "sub_deals":        { "type": "integer" },
