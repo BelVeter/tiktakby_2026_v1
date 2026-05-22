@@ -54,6 +54,7 @@ See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoi
 - `McpTokenMiddleware` — route middleware (`mcp.token`). Validates Bearer token from `MCP_API_TOKEN` env var for MCP API
 - `McpGeoCountryMiddleware` — route middleware (`mcp.geo`). Restricts access by country (BY+RU) using GeoLite2 database at `storage/app/geoip/GeoLite2-Country.mmdb`
 - `McpAuditLogMiddleware` — route middleware (`mcp.audit`). Writes each MCP API request to the `mcp_api_log` table
+- `TrackUtmMiddleware` — global middleware. Parses and stores `utm_*` tracking parameters (source, medium, campaign) into HTTP-only cookie and sets DB context tracking for API connections
 
 ### Form Requests (`app/Http/Requests/Mcp/`)
 
