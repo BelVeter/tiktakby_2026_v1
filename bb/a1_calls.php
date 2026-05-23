@@ -441,6 +441,14 @@ function toggleSummary() {
     var el = document.getElementById('summary-body');
     if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
+
+document.querySelectorAll('audio.audio-player').forEach(function(player) {
+    player.addEventListener('play', function() {
+        document.querySelectorAll('audio.audio-player').forEach(function(other) {
+            if (other !== player) other.pause();
+        });
+    });
+});
 </script>
 </body>
 </html>
