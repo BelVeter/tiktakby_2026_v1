@@ -17,7 +17,7 @@
 
     RewriteEngine On
 
-    RewriteRule ^(bb) - [L]
+    RewriteRule ^bb(/|$) - [L]
 
     # Serve static image files directly — never route to Laravel
     RewriteRule \.(avif|webp|jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$ - [L]
