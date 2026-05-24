@@ -58,7 +58,7 @@ server that wraps Phase A; it auto-generates its tool definitions from
 
 | Concern | Path |
 |---|---|
-| Domain controllers | `app/Http/Controllers/Mcp/*Controller.php` (11 files) |
+| Domain controllers | `app/Http/Controllers/Mcp/*Controller.php` (12 files) |
 | Shared helpers | `app/Http/Controllers/Mcp/BaseController.php` (envelope, cache, data-freshness, TTL constants) |
 | Form Request | `app/Http/Requests/Mcp/RangeRequest.php` (defaults, validation, `granularityFormatFor()`) |
 | Middleware | `app/Http/Middleware/Mcp{ForceJson,Token,GeoCountry,AuditLog}Middleware.php` |
@@ -68,6 +68,7 @@ server that wraps Phase A; it auto-generates its tool definitions from
 | Audit log table | `mcp_api_log` (created by `2026_05_06_000001_create_mcp_api_log_table`) |
 | Feature tests | `tests/Feature/Mcp/*Test.php` (215 tests, analytics + calls) |
 | Smoke test (prod) | `docs/mcp_smoke_test.sh` |
+| Frontend tracking | `app/Http/Controllers/TrackingController.php` + `POST /track-event` (web route, CSRF-protected, public) |
 
 ## Response envelope
 
@@ -155,6 +156,56 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /calls/daily-summary/{date}` | Get AI daily summary for YYYY-MM-DD |
 |        | `POST /calls/daily-summary/{date}` | Upsert daily summary; counts auto-filled from a1_cdr |
 |        | `POST /calls/recordings/{uuid}/reset-analysis` | Reset ai_status → pending for re-processing |
+| Marketing | `GET /marketing/conversions` | All conversion events with full UTM attribution. Joins entity details from `zvonki`, `rent_orders`, `karn_brons`, `kb_zayavki`. Accepts `?utm_source=` and `?utm_campaign=` filters. |
+
+## Marketing conversions — data model
+
+All conversions are stored in `tiktak_utms` and populated via `App\Helpers\UtmTracker::track($entityType, $entityId)`, called after each qualifying user action:
+
+| `entity_type` | Source action | Joined table | PK |
+|---|---|---|---|
+| `zvonki` | Callback request / call lead | `zvonki` | `zv_id` |
+| `rent_orders` | Online order (standard item booking) | `rent_orders` | `order_id` |
+| `karn_brons` | Carnival costume booking | `karn_brons` | `kb_id` |
+| `kb_zayavki` | Waitlist request (item out of stock) | `kb_zayavki` | `id` |
+| `phone_click` | Click on phone number (JS event) | — | `entity_id = 0` |
+| `add_to_cart_click` | Add-to-cart button click (JS event) | — | `entity_id = 0` |
+
+### Response row shape (`GET /marketing/conversions`)
+
+```json
+{
+  "date":         "2026-05-24 17:32:10",
+  "entity_type":  "rent_orders",
+  "utm_source":   "google",
+  "utm_medium":   "cpc",
+  "utm_campaign": "brand_may2026",
+  "utm_term":     "прокат коляски минск",
+  "fio":          "Иванова",
+  "phone":        "375291234567",
+  "info":         null,
+  "status":       ""
+}
+```
+
+For `phone_click` / `add_to_cart_click` the entity fields (`fio`, `phone`, `info`, `status`) are always `null`. UTM data is taken from the `tiktak_utms.utm_*` columns.
+
+### Front-end JS tracking snippet
+
+To record a frontend event (phone click, add-to-cart), call from page JS:
+
+```javascript
+fetch('/track-event', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+  },
+  body: JSON.stringify({ entity_type: 'phone_click' }) // or 'add_to_cart_click'
+});
+```
+
+The endpoint reads UTM cookies set by `TrackUtmMiddleware` and writes a row to `tiktak_utms`. UTMs with no active cookie are silently skipped (returns `{success: false}` — not an error).
 
 ## Caching
 

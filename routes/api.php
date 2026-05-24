@@ -10,6 +10,7 @@ use App\Http\Controllers\Mcp\GeoController;
 use App\Http\Controllers\Mcp\HealthController;
 use App\Http\Controllers\Mcp\InventoryController;
 use App\Http\Controllers\Mcp\LocationsController;
+use App\Http\Controllers\Mcp\MarketingController;
 use App\Http\Controllers\Mcp\MetaController;
 use App\Http\Controllers\Mcp\OperationsController;
 use Illuminate\Support\Facades\Route;
@@ -107,4 +108,7 @@ Route::prefix('mcp/v1')
         Route::post('calls/recordings/{uuid}/reset-analysis', [CallsController::class, 'resetAnalysis'])->name('calls.recordings.analysis.reset');
         Route::get('calls/daily-summary/{date}', [CallsController::class, 'getDailySummary'])->name('calls.daily-summary.get');
         Route::post('calls/daily-summary/{date}', [CallsController::class, 'submitDailySummary'])->name('calls.daily-summary.post');
+
+        // Marketing Conversions
+        Route::get('marketing/conversions', [MarketingController::class, 'conversions'])->name('marketing.conversions');
     });

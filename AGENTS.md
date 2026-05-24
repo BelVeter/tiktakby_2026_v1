@@ -43,9 +43,12 @@
 | `Mcp/ExportController` | `/export/monthly/{topic}` — CSV streams matching `data/monthly/_schema.md` |
 | `Mcp/CallsController` | `/calls/*` — A1 Call recordings, CDR, and AI call analysis |
 | `Mcp/BaseController` | abstract — `envelope()`, `cacheRemember()`, `dataFreshness()`, TTL constants |
+| `Mcp/MarketingController` | `/marketing/conversions` — UTM-attributed conversion events for all conversion types |
 | `BbAudioController` | `/bb-internal/audio/{uuid}` — streams audio files to bb/ interface with cookie auth |
 
 See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoint catalog.
+
+> **Marketing tracking**: Frontend click events (`phone_click`, `add_to_cart_click`) are written to `tiktak_utms` via `POST /track-event` (web route, handled by `TrackingController`). This is separate from the MCP API and requires a CSRF token from the frontend.
 
 ### Middleware (`app/Http/Middleware/`)
 
@@ -133,6 +136,7 @@ Sequence:
 | System | `migrations`, `users`, `personal_access_tokens` |
 | A1 API | `a1_call_recordings`, `a1_recordings_fetch_log`, `a1_cdr`, `a1_cdr_fetch_log`, `a1_call_analysis`, `a1_daily_summaries` |
 | MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent); plus `idx_mcp_*` performance indexes on `rent_deals_arch`, `rent_sub_deals_arch`, `doh_rash`, `clients`, `karn_brons`, `karn_brons_arch`, `rent_orders`, `rent_orders_arch`, `rent_deals_act` (migration `2026_05_09_000001_add_mcp_analytics_indexes`) |
+| Marketing | `tiktak_utms` (entity_type, entity_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, created_at). Written by `UtmTracker::track()`. entity_types: `zvonki`, `rent_orders`, `karn_brons`, `kb_zayavki`, `phone_click`, `add_to_cart_click` |
 
 ## Data Access Strategy
 
