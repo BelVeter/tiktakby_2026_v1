@@ -7,6 +7,8 @@
  * Badge refresh: AJAX → bb_nav_badge.php every 60s.
  */
 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php';
+
 // Don't show nav on index.php (it has its own icon grid)
 $_bb_nav_self = basename($_SERVER['PHP_SELF']);
 if ($_bb_nav_self === 'index.php')
@@ -42,8 +44,8 @@ $_bb_nav_items = [
     ],
 ];
 
-// "Звонки" page is only visible to Дима (user_id=3)
-if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === 3) {
+// "Звонки" page is visible to all owners
+if (isset($_SESSION['user_id']) && \bb\models\User::getCurrentUser()->isOwner()) {
     // Insert before the last item (Архив dropdown)
     $archivItem = array_pop($_bb_nav_items);
     $_bb_nav_items[] = [
