@@ -146,7 +146,7 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 | Legacy | `GET /orders/stats` | Original combined orders+brons+deals stats |
 |        | `GET /deals/list` | Paginated recent deals with addresses (no PII) |
 | Export | `GET /export/monthly/{topic}` | CSV stream for `operations`, `revenue`, `pnl`; `traffic` is a header-only stub (Y.Metrika lives elsewhere) |
-| Calls  | `GET /calls/recordings` | List A1 VATS recordings (uuid, dates, caller/callee, duration, file_size) |
+| Calls  | `GET /calls/recordings` | List A1 VATS recordings (uuid, dates, caller_number, caller/callee, duration, file_size, file_url, ai_status, ai_business_note) |
 |        | `GET /calls/recordings/{uuid}/file` | Stream MP3 binary (Range-aware) |
 |        | `GET /calls/cdr` | CDR list — all calls (incoming/outgoing/missed) from A1 VATS |
 |        | `GET /calls/pending-analysis` | Pending AI analysis queue; auto-marks returned records as processing |
