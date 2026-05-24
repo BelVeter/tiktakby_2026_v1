@@ -724,7 +724,7 @@
     "/calls/recordings": {
       "get": {
         "operationId": "tiktak_calls_recordings_list",
-        "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_part, callee_part, call_duration, file_size. Binary file via /calls/recordings/{uuid}/file.",
+        "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_number, caller_part, callee_part, call_duration, file_size, file_url, ai_status, ai_business_note. Binary file via /calls/recordings/{uuid}/file.",
         "parameters": [
           { "in": "query", "name": "from", "schema": { "type": "string", "format": "date" }, "description": "Start date YYYY-MM-DD (default: 30 days ago)" },
           { "in": "query", "name": "to",   "schema": { "type": "string", "format": "date" }, "description": "End date YYYY-MM-DD (default: today)" },

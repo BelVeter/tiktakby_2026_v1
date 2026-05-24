@@ -32,7 +32,7 @@ class CallsController extends BaseController
         $caller  = $request->get('caller');
         $callee  = $request->get('callee');
         $page    = max(1, (int) $request->get('page', 1));
-        $perPage = min(200, max(1, (int) $request->get('per_page', 50)));
+        $perPage = min(500, max(1, (int) $request->get('per_page', 100)));
 
         $fromDt = $from . ' 00:00:00';
         $toDt   = $to   . ' 23:59:59';
@@ -63,6 +63,7 @@ class CallsController extends BaseController
                 'a1_call_recordings.call_duration', 
                 'a1_call_recordings.file_size', 
                 'a1_call_recordings.downloaded_at',
+                'a1_call_analysis.ai_status',
                 'a1_call_analysis.ai_business_note'
             ]);
 
@@ -75,16 +76,21 @@ class CallsController extends BaseController
             ->orderBy('fetched_at', 'desc')
             ->value('fetched_at');
 
-        $data = $rows->map(function ($row) {
+        $baseUrl = config('app.url') . '/api/mcp/v1/calls/recordings/';
+
+        $data = $rows->map(function ($row) use ($baseUrl) {
             return [
                 'uuid'             => $row->uuid,
                 'record_name'      => $row->record_name,
                 'call_date'        => $row->call_date,
+                'caller_number'    => $row->caller_part,
                 'caller_part'      => $row->caller_part,
                 'callee_part'      => $row->callee_part,
                 'call_duration'    => (int) $row->call_duration,
                 'file_size'        => (int) $row->file_size,
+                'file_url'         => $baseUrl . $row->uuid . '/file',
                 'downloaded_at'    => $row->downloaded_at,
+                'ai_status'        => $row->ai_status ?? 'pending',
                 'ai_business_note' => $row->ai_business_note,
             ];
         })->values()->all();
