@@ -101,6 +101,15 @@ while ($row = $result->fetch_assoc()) {
 }
 
 // ─── Вспомогательные функции ──────────────────────────────────────────────
+function formatPhone(?string $phone): string {
+    if (!$phone) return '';
+    $digits = preg_replace('/\D/', '', $phone);
+    if (strlen($digits) === 12 && strpos($digits, '375') === 0) {
+        return '+375 (' . substr($digits, 3, 2) . ') ' . substr($digits, 5, 3) . '-' . substr($digits, 8, 2) . '-' . substr($digits, 10, 2);
+    }
+    return $phone;
+}
+
 function formatDuration(int $secs): string {
     if ($secs === 0) return '—';
     return sprintf('%d:%02d', intdiv($secs, 60), $secs % 60);
@@ -191,6 +200,25 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .calls-table td { vertical-align: middle; font-size: 0.9rem; }
         .transcript-modal pre { white-space: pre-wrap; font-size: 0.85rem; max-height: 60vh; overflow-y: auto; }
         .audio-player { width: 200px; height: 32px; }
+        .ai-summary-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            cursor: pointer;
+            border-bottom: 1px dashed #adb5bd;
+            display: inline-box; /* To make dashed border wrap tight */
+        }
+        @supports (-webkit-line-clamp: 1) {
+            .ai-summary-text {
+                display: -webkit-box;
+            }
+        }
+        .ai-summary-text.expanded {
+            -webkit-line-clamp: unset;
+            display: block;
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -291,7 +319,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <td><?= date('H:i', strtotime($call['call_date'])) ?></td>
                 <td><?= callTypeIcon($call['call_type']) ?></td>
                 <td>
-                    <div><?= htmlspecialchars($call['call_type'] !== 'outgoing' ? $call['caller_number'] : $call['callee_number']) ?></div>
+                    <div style="white-space: nowrap;"><?= htmlspecialchars(formatPhone($call['call_type'] !== 'outgoing' ? $call['caller_number'] : $call['callee_number'])) ?></div>
                     <?php if ($call['client_name']): ?>
                     <small class="text-muted"><?= htmlspecialchars($call['client_name']) ?></small>
                     <?php endif; ?>
@@ -299,9 +327,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <td><?= formatDuration((int) $call['call_duration']) ?></td>
                 <td>
                     <?php if ($call['ai_summary'] && $call['ai_status'] === 'done'): ?>
-                        <span title="<?= htmlspecialchars($call['ai_summary']) ?>">
-                            <?= htmlspecialchars(mb_strimwidth($call['ai_summary'], 0, 60, '…')) ?>
-                        </span>
+                        <div class="ai-summary-text" onclick="this.classList.toggle('expanded')" title="Нажмите, чтобы развернуть/свернуть">
+                            <?= nl2br(htmlspecialchars($call['ai_summary'])) ?>
+                        </div>
                     <?php elseif ($call['recording_uuid'] && $call['ai_status'] === 'processing'): ?>
                         <span class="text-muted small">обрабатывается…</span>
                     <?php elseif ($call['recording_uuid'] && $call['ai_status'] === 'transcribed'): ?>
