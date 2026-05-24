@@ -11,8 +11,7 @@ require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
 \bb\Base::loginCheck();
 
-// Only Дима (user_id=3) has access to this page
-if (!isset($_SESSION['user_id']) || (int)$_SESSION['user_id'] !== 3) {
+if (!\bb\models\User::getCurrentUser()->isOwner()) {
     http_response_code(403);
     die('<p>Доступ запрещён.</p>');
 }
@@ -238,6 +237,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             width: auto;
             min-width: 220px;
         }
+        .calls-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 768px) {
+            .phone-number {
+                white-space: normal;
+                word-break: break-all;
+            }
+        }
     </style>
 </head>
 <body>
@@ -316,6 +325,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     <!-- Таблица звонков -->
     <div class="calls-table mb-4">
+      <div class="calls-table-wrapper">
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
@@ -339,7 +349,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <td><?= date('H:i', strtotime($call['call_date'])) ?></td>
                 <td><?= callTypeIcon($call['call_type']) ?></td>
                 <td>
-                    <div style="white-space: nowrap;"><?= htmlspecialchars(formatPhone($call['call_type'] !== 'outgoing' ? $call['caller_number'] : $call['callee_number'])) ?></div>
+                    <div class="phone-number"><?= htmlspecialchars(formatPhone($call['call_type'] !== 'outgoing' ? $call['caller_number'] : $call['callee_number'])) ?></div>
                     <?php if ($call['client_name']): ?>
                     <small class="text-muted"><?= htmlspecialchars($call['client_name']) ?></small>
                     <?php endif; ?>
@@ -414,6 +424,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             <?php endforeach; ?>
             </tbody>
         </table>
+      </div>
     </div>
 </div>
 
