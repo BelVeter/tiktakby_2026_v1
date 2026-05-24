@@ -73,6 +73,7 @@ $result = $mysqli->query("
         ca.missed_item,
         ca.client_sentiment,
         ca.consultant_sentiment,
+        ca.ai_business_note,
         ca.recording_uuid AS analysis_recording_uuid,
         rec.uuid AS local_file_uuid
     FROM a1_cdr cdr
@@ -219,6 +220,15 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             display: block;
             border-bottom: none;
         }
+        .ai-business-note {
+            font-size: 12px;
+            color: #6c757d;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            width: 220px;
+        }
     </style>
 </head>
 <body>
@@ -306,13 +316,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <th>Длит.</th>
                     <th>Краткое описание</th>
                     <th>Результат ИИ</th>
+                    <th>Детали</th>
                     <th>Транскр.</th>
                     <th>Запись</th>
                 </tr>
             </thead>
             <tbody>
             <?php if (empty($calls)): ?>
-                <tr><td colspan="8" class="text-center text-muted py-4">Звонков за этот день нет</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-4">Звонков за этот день нет</td></tr>
             <?php endif; ?>
             <?php foreach ($calls as $call): ?>
             <tr>
@@ -341,6 +352,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <?php endif; ?>
                 </td>
                 <td><?= aiResultBadge($call['ai_result'], $call['ai_status']) ?></td>
+                <td>
+                    <?php if (!empty($call['ai_business_note'])): ?>
+                        <div class="ai-business-note" title="<?= htmlspecialchars($call['ai_business_note']) ?>">
+                            <?= nl2br(htmlspecialchars($call['ai_business_note'])) ?>
+                        </div>
+                    <?php endif; ?>
+                </td>
                 <td>
                     <?php if ($call['transcript'] && in_array($call['ai_status'], ['transcribed', 'done', 'error'], true)): ?>
                     <button class="btn btn-sm btn-outline-secondary"
