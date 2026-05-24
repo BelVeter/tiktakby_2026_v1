@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "TikTak.by MCP Analytics API",
-    "version": "2.0.1",
+    "version": "2.1.0",
     "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
   },
   "servers": [
@@ -594,6 +594,27 @@
           "revenue_bank_byn":     { "$ref": "#/components/schemas/AmountBYN" },
           "revenue_total_byn":    { "$ref": "#/components/schemas/AmountBYN" }
         }
+      },
+
+      "MarketingConversionRow": {
+        "type": "object",
+        "description": "A single conversion event from tiktak_utms with UTM attribution and entity details.",
+        "properties": {
+          "date":         { "type": "string", "format": "date-time", "description": "Conversion timestamp (tiktak_utms.created_at)." },
+          "entity_type": {
+            "type": "string",
+            "enum": ["zvonki", "rent_orders", "karn_brons", "kb_zayavki", "phone_click", "add_to_cart_click"],
+            "description": "Conversion type. zvonki=callback request; rent_orders=online booking (standard items); karn_brons=carnival costume booking; kb_zayavki=waitlist request (out-of-stock); phone_click/add_to_cart_click=JS frontend events (entity_id=0, fio/phone/status=null)."
+          },
+          "utm_source":   { "type": ["string","null"], "description": "e.g. 'google', 'yandex', 'vk'." },
+          "utm_medium":   { "type": ["string","null"], "description": "e.g. 'cpc', 'social', 'organic'." },
+          "utm_campaign": { "type": ["string","null"] },
+          "utm_term":     { "type": ["string","null"] },
+          "fio":          { "type": ["string","null"], "description": "Customer name from joined entity. CONCAT_WS(' ', family, name, otch) for rent_orders; fio for karn_brons; z_name for zvonki. Null for frontend click events." },
+          "phone":        { "type": ["string","null"], "description": "Customer phone from joined entity. Null for frontend click events." },
+          "info":         { "type": ["string","null"], "description": "Free-text info from joined entity (zvonki.info or kb_zayavki.info). Null for others." },
+          "status":       { "type": ["string","null"], "description": "Entity status (zvonki.status, rent_orders.status, karn_brons.status). Null for kb_zayavki and click events." }
+        }
       }
     },
     "responses": {
@@ -643,7 +664,9 @@
 
       "CarnivalFunnelEnvelope":      { "description": "Carnival funnel envelope.",      "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/CarnivalFunnelData" } } }] } } } },
       "CarnivalSeasonalityEnvelope": { "description": "Carnival seasonality envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CarnivalSeasonalityRow" } } } }] } } } },
-      "CarnivalRevenueEnvelope":     { "description": "Carnival revenue envelope.",     "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CarnivalRevenueRow" } } } }] } } } }
+      "CarnivalRevenueEnvelope":     { "description": "Carnival revenue envelope.",     "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CarnivalRevenueRow" } } } }] } } } },
+
+      "MarketingConversionsEnvelope": { "description": "Marketing conversions envelope.", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/MarketingConversionRow" } } } }] } } } }
     }
   },
   "paths": {
@@ -879,6 +902,25 @@
         "responses": {
           "200": { "description": "Updated analysis record (ai_status=pending) in {query, data, meta} envelope." },
           "404": { "description": "No analysis record found for this uuid." }
+        }
+      }
+    },
+
+    "/marketing/conversions": {
+      "get": {
+        "operationId": "tiktak_marketing_conversions",
+        "summary": "All conversion events with UTM attribution for the period.",
+        "description": "Returns rows from tiktak_utms joined with entity tables (zvonki, rent_orders, karn_brons, kb_zayavki). Covers 6 entity_types: zvonki (callback leads), rent_orders (standard item bookings), karn_brons (carnival costume bookings), kb_zayavki (waitlist requests), phone_click and add_to_cart_click (JS frontend events, entity_id=0). Sorted DESC by created_at.",
+        "parameters": [
+          { "$ref": "#/components/parameters/from" },
+          { "$ref": "#/components/parameters/to" },
+          { "in": "query", "name": "utm_source",   "schema": { "type": "string" }, "description": "Optional: filter by utm_source exact match." },
+          { "in": "query", "name": "utm_campaign", "schema": { "type": "string" }, "description": "Optional: filter by utm_campaign exact match." }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/MarketingConversionsEnvelope" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     }

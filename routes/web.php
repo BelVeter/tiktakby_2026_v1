@@ -60,6 +60,9 @@ Route::get(
 // --- Тестовая страница ---
 Route::get('/test/', 'App\Http\Controllers\RedirectController@testPage');
 
+// --- Трекинг событий (clicks) ---
+Route::post('/track-event', 'App\Http\Controllers\TrackingController@trackEvent');
+
 
 // --- Статические страницы ---
 
