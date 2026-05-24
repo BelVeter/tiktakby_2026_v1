@@ -38,22 +38,33 @@ class CallsController extends BaseController
         $toDt   = $to   . ' 23:59:59';
 
         $query = DB::table('a1_call_recordings')
-            ->whereBetween('call_date', [$fromDt, $toDt]);
+            ->leftJoin('a1_call_analysis', 'a1_call_recordings.uuid', '=', 'a1_call_analysis.recording_uuid')
+            ->whereBetween('a1_call_recordings.call_date', [$fromDt, $toDt]);
 
         if ($caller) {
-            $query->where('caller_part', 'like', '%' . $caller . '%');
+            $query->where('a1_call_recordings.caller_part', 'like', '%' . $caller . '%');
         }
         if ($callee) {
-            $query->where('callee_part', 'like', '%' . $callee . '%');
+            $query->where('a1_call_recordings.callee_part', 'like', '%' . $callee . '%');
         }
 
         $total = $query->count();
 
         $rows = (clone $query)
-            ->orderBy('call_date', 'desc')
+            ->orderBy('a1_call_recordings.call_date', 'desc')
             ->offset(($page - 1) * $perPage)
             ->limit($perPage)
-            ->get(['uuid', 'record_name', 'call_date', 'caller_part', 'callee_part', 'call_duration', 'file_size', 'downloaded_at']);
+            ->get([
+                'a1_call_recordings.uuid', 
+                'a1_call_recordings.record_name', 
+                'a1_call_recordings.call_date', 
+                'a1_call_recordings.caller_part', 
+                'a1_call_recordings.callee_part', 
+                'a1_call_recordings.call_duration', 
+                'a1_call_recordings.file_size', 
+                'a1_call_recordings.downloaded_at',
+                'a1_call_analysis.ai_business_note'
+            ]);
 
         $totalSizeBytes = (int) Cache::remember('a1.recordings.total_size', 300, function () {
             return DB::table('a1_call_recordings')->sum('file_size');
@@ -66,14 +77,15 @@ class CallsController extends BaseController
 
         $data = $rows->map(function ($row) {
             return [
-                'uuid'          => $row->uuid,
-                'record_name'   => $row->record_name,
-                'call_date'     => $row->call_date,
-                'caller_part'   => $row->caller_part,
-                'callee_part'   => $row->callee_part,
-                'call_duration' => (int) $row->call_duration,
-                'file_size'     => (int) $row->file_size,
-                'downloaded_at' => $row->downloaded_at,
+                'uuid'             => $row->uuid,
+                'record_name'      => $row->record_name,
+                'call_date'        => $row->call_date,
+                'caller_part'      => $row->caller_part,
+                'callee_part'      => $row->callee_part,
+                'call_duration'    => (int) $row->call_duration,
+                'file_size'        => (int) $row->file_size,
+                'downloaded_at'    => $row->downloaded_at,
+                'ai_business_note' => $row->ai_business_note,
             ];
         })->values()->all();
 
@@ -143,18 +155,28 @@ class CallsController extends BaseController
         $perPage  = min(200, max(1, (int) $request->get('per_page', 100)));
 
         $query = DB::table('a1_cdr')
-            ->whereBetween('call_date', [$from . ' 00:00:00', $to . ' 23:59:59']);
+            ->leftJoin('a1_call_analysis', 'a1_cdr.recording_uuid', '=', 'a1_call_analysis.recording_uuid')
+            ->whereBetween('a1_cdr.call_date', [$from . ' 00:00:00', $to . ' 23:59:59']);
 
         if ($callType !== 'all' && in_array($callType, ['incoming', 'outgoing', 'missed'], true)) {
-            $query->where('call_type', $callType);
+            $query->where('a1_cdr.call_type', $callType);
         }
 
         $total = $query->count();
         $rows  = (clone $query)
-            ->orderBy('call_date', 'desc')
+            ->orderBy('a1_cdr.call_date', 'desc')
             ->offset(($page - 1) * $perPage)
             ->limit($perPage)
-            ->get(['uuid', 'call_date', 'call_type', 'caller_number', 'callee_number', 'call_duration', 'recording_uuid']);
+            ->get([
+                'a1_cdr.uuid', 
+                'a1_cdr.call_date', 
+                'a1_cdr.call_type', 
+                'a1_cdr.caller_number', 
+                'a1_cdr.callee_number', 
+                'a1_cdr.call_duration', 
+                'a1_cdr.recording_uuid',
+                'a1_call_analysis.ai_business_note'
+            ]);
 
         return $this->envelope(
             ['from' => $from, 'to' => $to, 'call_type' => $callType],
@@ -267,7 +289,7 @@ class CallsController extends BaseController
             ]);
         } elseif ($request->has('ai_summary')) {
             // Phase 2: full analysis → done
-            DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
+            $updateData = [
                 'transcript'           => $request->has('transcript') ? $request->input('transcript') : ($analysis->transcript ?? ''),
                 'ai_summary'           => $request->input('ai_summary'),
                 'ai_result'            => $request->input('ai_result'),
@@ -279,7 +301,13 @@ class CallsController extends BaseController
                 'ai_status'            => 'done',
                 'ai_processed_at'      => date('Y-m-d H:i:s'),
                 'updated_at'           => date('Y-m-d H:i:s'),
-            ]);
+            ];
+
+            if ($request->has('ai_business_note')) {
+                $updateData['ai_business_note'] = $request->input('ai_business_note');
+            }
+
+            DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update($updateData);
         } else {
             // Phase 1: transcript only → transcribed (ready for Phase 2)
             DB::table('a1_call_analysis')->where('recording_uuid', $uuid)->update([
