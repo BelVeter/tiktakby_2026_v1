@@ -799,7 +799,7 @@
       },
       "post": {
         "operationId": "tiktak_calls_recordings_analysis_submit",
-        "summary": "Submit AI analysis result. Body: {transcript, ai_summary, ai_result, ai_result_detail, discussed_items[], missed_item, client_sentiment, consultant_sentiment} for success, or {error} for failure. Sets ai_status=done or error.",
+        "summary": "Submit AI analysis result. Body: {transcript, ai_summary, ai_result, ai_result_detail, discussed_items[], missed_item, client_sentiment, consultant_sentiment, ai_business_note} for success, or {error} for failure. Sets ai_status=done or error.",
         "parameters": [
           { "in": "path", "name": "uuid", "required": true, "schema": { "type": "string" } }
         ],
@@ -817,6 +817,7 @@
                   "missed_item":          { "type": "string" },
                   "client_sentiment":     { "type": "string", "enum": ["positive","neutral","negative"] },
                   "consultant_sentiment": { "type": "string", "enum": ["positive","neutral","negative"] },
+                  "ai_business_note":     { "type": "string" },
                   "error":               { "type": "string", "description": "Set this instead of the other fields to mark the analysis as failed." }
                 }
               }
