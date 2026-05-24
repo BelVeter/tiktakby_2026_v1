@@ -228,6 +228,15 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             -webkit-box-orient: vertical;
             overflow: hidden;
             width: 220px;
+            cursor: pointer;
+            border-bottom: 1px dashed #adb5bd;
+        }
+        .ai-business-note.expanded {
+            -webkit-line-clamp: unset;
+            display: block;
+            border-bottom: none;
+            width: auto;
+            min-width: 220px;
         }
     </style>
 </head>
@@ -354,7 +363,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <td><?= aiResultBadge($call['ai_result'], $call['ai_status']) ?></td>
                 <td>
                     <?php if (!empty($call['ai_business_note'])): ?>
-                        <div class="ai-business-note" title="<?= htmlspecialchars($call['ai_business_note']) ?>">
+                        <div class="ai-business-note" onclick="this.classList.toggle('expanded')" title="Нажмите, чтобы развернуть/свернуть">
                             <?= nl2br(htmlspecialchars($call['ai_business_note'])) ?>
                         </div>
                     <?php endif; ?>
