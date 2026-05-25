@@ -32,7 +32,7 @@
         $__ldItems[] = [
             '@type' => 'ListItem',
             'position' => $__idx,
-            'name' => strip_tags($key),
+            'name' => html_entity_decode(strip_tags($key), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'item' => $__itemUrl
         ];
         $__idx++;
