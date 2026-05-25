@@ -11,7 +11,7 @@ require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
 \bb\Base::loginCheck();
 
-if (!\bb\models\User::getCurrentUser()->isOwner()) {
+if (!\bb\models\User::getCurrentUser()->isManagement()) {
     http_response_code(403);
     die('<p>Доступ запрещён.</p>');
 }

@@ -379,6 +379,7 @@ if (User::getCurrentUser()->isManagement()) {
     echo '
     <div class="top_menu">
         <a class="div_item" href="/bb/tov_analytics.php">Анализ категорий.</a>
+        <a class="div_item" href="/bb/a1_calls.php">Звонки A1</a>
     </div>
     ';
 
