@@ -19,27 +19,27 @@
     </ol>
 </nav>
 @once
-@if(isset($b) && count($b) > 0)
+@if(isset($b) && is_array($b) && count($b) > 0)
+@php
+    $__ldItems = [];
+    $__idx = 1;
+    foreach($b as $key => $value) {
+        $__ldItems[] = [
+            '@type' => 'ListItem',
+            'position' => $__idx,
+            'name' => strip_tags($key),
+            'item' => $value !== '' ? $value : url()->current()
+        ];
+        $__idx++;
+    }
+    $__ldData = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => $__ldItems
+    ];
+@endphp
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    @php
-      $__bKeys = array_keys($b);
-      $__bVals = array_values($b);
-      $__bCount = count($b);
-    @endphp
-    @for($__idx = 0; $__idx < $__bCount; $__idx++)
-    {
-      "@type": "ListItem",
-      "position": {{ $__idx + 1 }},
-      "name": "{{ addslashes(strip_tags($__bKeys[$__idx])) }}",
-      "item": "{{ $__bVals[$__idx] !== '' ? $__bVals[$__idx] : url()->current() }}"
-    }{{ $__idx < $__bCount - 1 ? ',' : '' }}
-    @endfor
-  ]
-}
+{!! json_encode($__ldData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
 </script>
 @endif
 @endonce
