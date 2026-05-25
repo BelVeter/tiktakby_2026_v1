@@ -45,7 +45,7 @@ $_bb_nav_items = [
 ];
 
 // "Звонки" page is visible to all owners
-if (isset($_SESSION['user_id']) && \bb\models\User::getCurrentUser()->isOwner()) {
+if (isset($_SESSION['user_id']) && \bb\models\User::getCurrentUser()->isManagement()) {
     // Insert before the last item (Архив dropdown)
     $archivItem = array_pop($_bb_nav_items);
     $_bb_nav_items[] = [
