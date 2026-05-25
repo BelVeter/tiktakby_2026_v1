@@ -18,3 +18,33 @@
         @endforeach
     </ol>
 </nav>
+@once
+@if(isset($b) && is_array($b) && count($b) > 0)
+@php
+    $__ldItems = [];
+    $__idx = 1;
+    foreach($b as $key => $value) {
+        $__itemUrl = $value !== '' ? $value : url()->current();
+        // Ensure absolute URL (Schema.org requires fully qualified URLs)
+        if ($__itemUrl !== '' && !preg_match('/^https?:\/\//', $__itemUrl)) {
+            $__itemUrl = url($__itemUrl);
+        }
+        $__ldItems[] = [
+            '@type' => 'ListItem',
+            'position' => $__idx,
+            'name' => strip_tags($key),
+            'item' => $__itemUrl
+        ];
+        $__idx++;
+    }
+    $__ldData = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => $__ldItems
+    ];
+@endphp
+<script type="application/ld+json">
+{!! json_encode($__ldData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+</script>
+@endif
+@endonce
