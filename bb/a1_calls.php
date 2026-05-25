@@ -194,6 +194,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .summary-block { background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
         .summary-block .themes { margin-top: 8px; }
         .summary-block .themes .badge { margin-right: 4px; font-size: 0.85rem; }
+        .summary-text-wrap { max-height: 8em; overflow: hidden; position: relative; transition: max-height 0.3s ease; }
+        .summary-text-wrap.expanded { max-height: 500em; }
+        .summary-text-wrap:not(.expanded)::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2.5em; background: linear-gradient(transparent, #fff); pointer-events: none; }
         .filter-tabs .nav-link { cursor: pointer; }
         .calls-table { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
         .calls-table th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: .5px; color: #6c757d; background: #f8f9fa; border-top: none; }
@@ -303,10 +306,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <div class="summary-block">
         <div class="d-flex align-items-center justify-content-between">
             <strong>ИИ-сводка за день</strong>
-            <button class="btn btn-sm btn-link" onclick="toggleSummary()">скрыть/показать</button>
+            <button id="summary-toggle-btn" class="btn btn-sm btn-link" onclick="toggleSummary()">показать все</button>
         </div>
         <div id="summary-body">
-            <p class="mb-1 mt-2"><?= nl2br(htmlspecialchars($summaryRow['summary_text'] ?? '')) ?></p>
+            <div class="summary-text-wrap" id="summary-text-wrap">
+                <p class="mb-1 mt-2"><?= nl2br(htmlspecialchars($summaryRow['summary_text'] ?? '')) ?></p>
+            </div>
             <?php if (!empty($summaryRow['key_themes'])): ?>
             <div class="themes">
                 <?php $themes = json_decode($summaryRow['key_themes'], true) ?: []; ?>
@@ -504,9 +509,20 @@ function escHtml(str) {
 }
 
 function toggleSummary() {
-    var el = document.getElementById('summary-body');
-    if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+    var wrap = document.getElementById('summary-text-wrap');
+    var btn = document.getElementById('summary-toggle-btn');
+    if (!wrap) return;
+    var expanded = wrap.classList.toggle('expanded');
+    btn.textContent = expanded ? 'скрыть' : 'показать все';
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var wrap = document.getElementById('summary-text-wrap');
+    var btn = document.getElementById('summary-toggle-btn');
+    if (wrap && btn && wrap.scrollHeight <= wrap.clientHeight) {
+        btn.style.display = 'none';
+    }
+});
 
 document.querySelectorAll('audio.audio-player').forEach(function(player) {
     player.addEventListener('play', function() {
