@@ -6,7 +6,7 @@
 @endphp
 
 <!DOCTYPE html>
-<html lang="{{(request()->lang ? request()->lang : 'ru')}}">
+<html lang="ru">
 
 <head>
   <!-- Global site tag (gtag.js) - Yandex webmaster -->
@@ -88,11 +88,15 @@
 
   <link rel="icon" href="/tiktak.ico" type="image/x-icon">
   <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="32x32">
+  <link rel="icon" sizes="192x192" href="/public/images/favicon-192.png">
   {{--
   <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="16x16">--}}
   {{--
   <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="64x64">--}}
   <link rel="apple-touch-icon" sizes="32x32" href="/public/favicon-32x32.png">
+
+  <link rel="alternate" hreflang="ru" href="{{ $canonical_url ?? url()->current() }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ $canonical_url ?? url()->current() }}" />
 
   <title>@yield('page-title')</title>
 </head>
