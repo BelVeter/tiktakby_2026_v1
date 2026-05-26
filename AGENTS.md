@@ -44,6 +44,7 @@
 | `Mcp/CallsController` | `/calls/*` — A1 Call recordings, CDR, and AI call analysis |
 | `Mcp/BaseController` | abstract — `envelope()`, `cacheRemember()`, `dataFreshness()`, TTL constants |
 | `Mcp/MarketingController` | `/marketing/conversions` — UTM-attributed conversion events for all conversion types |
+| `Mcp/RedirectsController` | `/redirects/*` — redirects CRUD API and bulk upsert |
 | `BbAudioController` | `/bb-internal/audio/{uuid}` — streams audio files to bb/ interface with cookie auth |
 
 See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoint catalog.
@@ -97,7 +98,7 @@ Blade templates. Main layout: `layouts/app.blade.php` (contains version number f
 - Language redirects `/en/*`, `/lt/*` → `/ru/*`
 - Catalog: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
 - Fallback → 404 page
-- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 31 analytics endpoints + `/health` + `/openapi.json`, middleware chain `mcp.json → mcp.token → mcp.geo → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+.
+- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 31 analytics endpoints + `/health` + `/openapi.json` + `/redirects/*`, middleware chain `mcp.json → mcp.token → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+.
 
   **Methodology (locked 2026-05-14, reproduces legacy admin reports — see `docs/mcp_server.md`):**
   - Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` by `acc_date` (not deal `cr_time`).
