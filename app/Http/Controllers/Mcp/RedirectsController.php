@@ -314,11 +314,9 @@ class RedirectsController extends BaseController
             ];
         }
 
-        // INSERT ... ON DUPLICATE KEY UPDATE via raw SQL
-        $count = 0;
-        foreach ($rows as $r) {
-            $affected = DB::statement(
-                "INSERT INTO `redirects`
+        // INSERT ... ON DUPLICATE KEY UPDATE via raw PDO to get rowCount per statement
+        $pdo   = DB::getPdo();
+        $sql   = "INSERT INTO `redirects`
                     (`source_url`, `target_url`, `status_code`, `is_active`, `is_regex`, `comment`, `hit_count`, `last_hit_at`)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE
@@ -326,25 +324,18 @@ class RedirectsController extends BaseController
                     `status_code` = VALUES(`status_code`),
                     `is_active`   = VALUES(`is_active`),
                     `is_regex`    = VALUES(`is_regex`),
-                    `comment`     = VALUES(`comment`)",
-                [
-                    $r['source_url'],
-                    $r['target_url'],
-                    $r['status_code'],
-                    $r['is_active'],
-                    $r['is_regex'],
-                    $r['comment'],
-                    $r['hit_count'],
-                    $r['last_hit_at'],
-                ]
-            );
-            // DB::statement returns bool; use affectedRows to count
-            $count += DB::getPdo()->rowCount() > 0 ? 1 : 0;
+                    `comment`     = VALUES(`comment`)";
+        $stmt = $pdo->prepare($sql);
+        foreach ($rows as $r) {
+            $stmt->execute([
+                $r['source_url'], $r['target_url'], $r['status_code'],
+                $r['is_active'],  $r['is_regex'],   $r['comment'],
+                $r['hit_count'],  $r['last_hit_at'],
+            ]);
         }
 
-        // Fallback: if for any reason rowCount tracking failed, use input count
-        // (upsert guarantees at least N rows touched)
-        $upserted = $count > 0 ? $count : count($rows);
+        // Every item was either inserted or upserted — all rows were touched.
+        $upserted = count($rows);
 
         $this->clearCache();
 
