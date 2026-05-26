@@ -13,6 +13,7 @@ use App\Http\Controllers\Mcp\LocationsController;
 use App\Http\Controllers\Mcp\MarketingController;
 use App\Http\Controllers\Mcp\MetaController;
 use App\Http\Controllers\Mcp\OperationsController;
+use App\Http\Controllers\Mcp\RedirectsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,10 +29,10 @@ Route::middleware('auth:api')->get('/user', function (\Illuminate\Http\Request $
 
 // ──────────────────────────────────────────────────────────────────────────
 // MCP Analytics API v1
-// Middleware: mcp.token (Bearer auth) → mcp.geo (BY/RU) → mcp.audit (log) → throttle
+// Middleware: mcp.token (Bearer auth) → mcp.audit (log) → throttle
 // ──────────────────────────────────────────────────────────────────────────
 Route::prefix('mcp/v1')
-    ->middleware(['mcp.json', 'mcp.token', 'mcp.geo', 'mcp.audit', 'throttle:60,1'])
+    ->middleware(['mcp.json', 'mcp.token', 'mcp.audit', 'throttle:60,1'])
     ->name('mcp.v1.')
     ->group(function () {
 
@@ -111,4 +112,11 @@ Route::prefix('mcp/v1')
 
         // Marketing Conversions
         Route::get('marketing/conversions', [MarketingController::class, 'conversions'])->name('marketing.conversions');
+
+        // Redirects management (CRUD + bulk)
+        Route::get('redirects',           [RedirectsController::class, 'index'])->name('redirects.index');
+        Route::post('redirects/bulk',     [RedirectsController::class, 'bulk'])->name('redirects.bulk');
+        Route::post('redirects',          [RedirectsController::class, 'store'])->name('redirects.store');
+        Route::patch('redirects/{id}',    [RedirectsController::class, 'update'])->name('redirects.update')->where('id', '[0-9]+');
+        Route::delete('redirects/{id}',   [RedirectsController::class, 'destroy'])->name('redirects.destroy')->where('id', '[0-9]+');
     });
