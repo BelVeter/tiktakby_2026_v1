@@ -103,3 +103,5 @@ Deploy.php
 
 # Ignore database dumps
 *.sql
+
+.venv/
