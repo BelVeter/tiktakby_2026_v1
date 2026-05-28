@@ -19,39 +19,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $type = $_POST['type'] ?? 'pas_ln';
         $limit = 50; // Групп за один раз
         
-        $groups = [];
+        $groups_high = [];
+        $groups_medium = [];
+        $groups_low = [];
+        
+        // Helper function for PHP scoring
+        if (!function_exists('calc_confidence')) {
+            function clean_phone($phone) {
+                return preg_replace('/[^0-9]/', '', $phone);
+            }
+            function calc_confidence($c1, $c2) {
+                $score = 0;
+                // pas_ln
+                if (!empty($c1['pas_ln']) && $c1['pas_ln'] === $c2['pas_ln'] && mb_strlen($c1['pas_ln']) >= 14) $score += 50;
+                
+                // phone
+                $p1_1 = clean_phone($c1['phone_1']); $p1_2 = clean_phone($c1['phone_2']);
+                $p2_1 = clean_phone($c2['phone_1']); $p2_2 = clean_phone($c2['phone_2']);
+                $phone_match = false;
+                if ($p1_1 && ($p1_1 === $p2_1 || $p1_1 === $p2_2)) $phone_match = true;
+                if ($p1_2 && ($p1_2 === $p2_1 || $p1_2 === $p2_2)) $phone_match = true;
+                if ($phone_match) $score += 40;
+                
+                // Name
+                $f1 = mb_strtoupper(trim($c1['family'])); $n1 = mb_strtoupper(trim($c1['name'])); $o1 = mb_strtoupper(trim($c1['otch']));
+                $f2 = mb_strtoupper(trim($c2['family'])); $n2 = mb_strtoupper(trim($c2['name'])); $o2 = mb_strtoupper(trim($c2['otch']));
+                $f_match = ($f1 && $f1 === $f2); $n_match = ($n1 && $n1 === $n2); $o_match = ($o1 && $o1 === $o2);
+                if ($f_match && $n_match && $o_match) $score += 40;
+                elseif ($f_match && $n_match) $score += 20;
+                
+                // Additional
+                if (!empty($c1['pas_n']) && $c1['pas_n'] === $c2['pas_n']) $score += 20;
+                $str1 = mb_strtoupper(trim($c1['str'])); $dom1 = mb_strtoupper(trim($c1['dom']));
+                $str2 = mb_strtoupper(trim($c2['str'])); $dom2 = mb_strtoupper(trim($c2['dom']));
+                if ($str1 && $str1 === $str2 && $dom1 === $dom2) $score += 10;
+                if (!empty($c1['pas_date']) && $c1['pas_date'] != 0 && $c1['pas_date'] == $c2['pas_date']) $score += 10;
+                
+                return $score;
+            }
+        }
+        
+        $process_group = function($title, $clients) use (&$groups_high, &$groups_medium, &$groups_low) {
+            if (count($clients) < 2) return;
+            $group_score = 999;
+            for ($i = 1; $i < count($clients); $i++) {
+                $s = calc_confidence($clients[0], $clients[$i]);
+                if ($s < $group_score) $group_score = $s;
+            }
+            if ($group_score >= 80) $conf = 'high';
+            elseif ($group_score >= 50) $conf = 'medium';
+            else $conf = 'low';
+            
+            $g = ['title' => $title, 'clients' => $clients, 'confidence' => $conf, 'score' => $group_score];
+            if ($conf === 'high') $groups_high[] = $g;
+            elseif ($conf === 'medium') $groups_medium[] = $g;
+            else $groups_low[] = $g;
+        };
         
         if ($type === 'pas_ln') {
-            $query = "SELECT pas_ln, COUNT(*) as c FROM clients WHERE pas_ln != '' GROUP BY pas_ln HAVING c > 1 LIMIT $limit";
+            $query = "SELECT pas_ln, COUNT(*) as c FROM clients WHERE pas_ln != '' GROUP BY pas_ln HAVING c > 1 AND LENGTH(pas_ln) >= 14 LIMIT $limit";
             $res = $mysqli->query($query);
             while ($row = $res->fetch_assoc()) {
                 $pas_ln = $mysqli->real_escape_string($row['pas_ln']);
                 $clients = $mysqli->query("SELECT * FROM clients WHERE pas_ln = '$pas_ln'")->fetch_all(MYSQLI_ASSOC);
-                $groups[] = ['title' => 'ЛН: ' . $row['pas_ln'], 'clients' => $clients];
+                $process_group('ЛН: ' . $row['pas_ln'], $clients);
             }
         } elseif ($type === 'phone') {
-            $query = "SELECT phone_1, COUNT(*) as c FROM clients WHERE phone_1 != '' GROUP BY phone_1 HAVING c > 1 LIMIT $limit";
+            $clean_expr = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_1, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '')";
+            $clean_expr2 = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_2, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '')";
+            $query = "SELECT $clean_expr as cp, COUNT(*) as c FROM clients WHERE phone_1 != '' GROUP BY cp HAVING c > 1 AND LENGTH(cp) >= 7 LIMIT $limit";
             $res = $mysqli->query($query);
             while ($row = $res->fetch_assoc()) {
-                $phone = $mysqli->real_escape_string($row['phone_1']);
-                $clients = $mysqli->query("SELECT * FROM clients WHERE phone_1 = '$phone' OR phone_2 = '$phone'")->fetch_all(MYSQLI_ASSOC);
-                if (count($clients) > 1) {
-                    $groups[] = ['title' => 'Телефон: ' . $row['phone_1'], 'clients' => $clients];
-                }
+                $cp = $mysqli->real_escape_string($row['cp']);
+                $clients = $mysqli->query("SELECT * FROM clients WHERE $clean_expr = '$cp' OR $clean_expr2 = '$cp'")->fetch_all(MYSQLI_ASSOC);
+                $process_group('Телефон: ' . $row['cp'], $clients);
             }
         } elseif ($type === 'name') {
-            $query = "SELECT family, name, otch, COUNT(*) as c FROM clients GROUP BY family, name, otch HAVING c > 1 LIMIT $limit";
+            $query = "SELECT family, name, otch, COUNT(*) as c FROM clients WHERE family != '' AND name != '' GROUP BY family, name, otch HAVING c > 1 LIMIT $limit";
             $res = $mysqli->query($query);
             while ($row = $res->fetch_assoc()) {
                 $f = $mysqli->real_escape_string($row['family']);
                 $n = $mysqli->real_escape_string($row['name']);
                 $o = $mysqli->real_escape_string($row['otch']);
                 $clients = $mysqli->query("SELECT * FROM clients WHERE family='$f' AND name='$n' AND otch='$o'")->fetch_all(MYSQLI_ASSOC);
-                $groups[] = ['title' => 'ФИО: ' . $row['family'] . ' ' . $row['name'] . ' ' . $row['otch'], 'clients' => $clients];
+                $process_group('ФИО: ' . $row['family'] . ' ' . $row['name'] . ' ' . $row['otch'], $clients);
             }
         }
 
-        echo json_encode(['status' => 'ok', 'groups' => $groups]);
+        $all_groups = array_merge($groups_high, $groups_medium, $groups_low);
+        echo json_encode(['status' => 'ok', 'groups' => $all_groups]);
         exit;
     }
 
@@ -202,6 +258,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-merge-group:hover { background: #0069d9; }
         .hidden { display: none; }
         .loading { color: #666; font-style: italic; }
+        .badge { display: inline-block; padding: 4px 8px; font-size: 14px; font-weight: bold; border-radius: 4px; color: #fff; margin-left: 15px; vertical-align: middle; }
+        .badge-high { background-color: #28a745; }
+        .badge-medium { background-color: #ffc107; color: #212529; }
+        .badge-low { background-color: #dc3545; }
     </style>
 </head>
 <body>
@@ -260,8 +320,11 @@ function renderGroups(groups) {
         const gDiv = document.createElement('div');
         gDiv.className = 'group';
         gDiv.id = 'group-' + gIndex;
+        gDiv.setAttribute('data-confidence', g.confidence);
         
-        let html = `<h3>${g.title} (Записей: ${g.clients.length})</h3><div class="clients-flex">`;
+        let confText = g.confidence === 'high' ? 'High Confidence' : (g.confidence === 'medium' ? 'Medium Confidence' : 'Low Confidence');
+        
+        let html = `<h3>${g.title} (Записей: ${g.clients.length}) <span class="badge badge-${g.confidence}">${confText} (Мин. Score: ${g.score})</span></h3><div class="clients-flex">`;
         
         g.clients.forEach(c => {
             const dateObj = new Date(c.cr_time * 1000);
@@ -308,9 +371,15 @@ function selectMaster(gIndex, clientId) {
 }
 
 async function mergeGroup(gIndex) {
-    if (!confirm('Вы уверены? Это действие необратимо.')) return;
-    
     const groupDiv = document.getElementById('group-' + gIndex);
+    const conf = groupDiv.getAttribute('data-confidence');
+    
+    if (conf === 'low') {
+        if (!confirm('ВНИМАНИЕ! У этих клиентов низкий индекс сходства. Это могут быть разные люди или опечатка. Вы ТОЧНО уверены, что хотите их объединить?')) return;
+    } else {
+        if (!confirm('Вы уверены? Это действие необратимо.')) return;
+    }
+    
     const masterId = groupDiv.getAttribute('data-master-id');
     const cards = groupDiv.querySelectorAll('.client-card');
     
