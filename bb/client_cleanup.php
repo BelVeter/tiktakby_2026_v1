@@ -8,9 +8,17 @@ if ($_SESSION['svoi']!=8941 || !(in_array($_SESSION['level'], $in_level))) {
     die('Доступ запрещен.');
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     $action = $_POST['action'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        echo json_encode(['error' => 'Ошибка безопасности. Обновите страницу.']);
+        exit;
+    }
     $last_id = (int)($_POST['last_id'] ?? 0);
     $limit = 500;
 
@@ -94,28 +102,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         while ($row = $res->fetch_assoc()) {
             $processed++;
             $max_id = $row['client_id'];
-            $purged_count++;
 
-            // Insert into clients_arch with main_cl_id = 0 to signify deletion/ghost
-            $ins = $mysqli->prepare("INSERT INTO clients_arch 
-                (arch_time, arch_who_id, main_cl_id, client_id, family, name, otch, city, str, dom, kv, pas_n, pas_ln, pas_date, pas_who, reg_city, reg_str, reg_dom, reg_kv, phone_1, phone_2, info, status, cr_time, arch_n, arch_amount, arch_l_date, cr_who, source)
-                VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            
             $arch_time = time();
             $user_id = $_SESSION['user_id'];
-            $ins->bind_param("iiisssssssssisssssssssiidiis", 
-                $arch_time, $user_id, $row['client_id'], 
-                $row['family'], $row['name'], $row['otch'], $row['city'], $row['str'], $row['dom'], $row['kv'], 
-                $row['pas_n'], $row['pas_ln'], $row['pas_date'], $row['pas_who'], 
-                $row['reg_city'], $row['reg_str'], $row['reg_dom'], $row['reg_kv'], 
-                $row['phone_1'], $row['phone_2'], $row['info'], $row['status'], $row['cr_time'], 
+
+            $mysqli->begin_transaction();
+            $ins = $mysqli->prepare("INSERT INTO clients_arch
+                (arch_time, arch_who_id, main_cl_id, client_id, family, name, otch, city, str, dom, kv, pas_n, pas_ln, pas_date, pas_who, reg_city, reg_str, reg_dom, reg_kv, phone_1, phone_2, info, status, cr_time, arch_n, arch_amount, arch_l_date, cr_who, source)
+                VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $ins->bind_param("iiisssssssssisssssssssiidiis",
+                $arch_time, $user_id, $row['client_id'],
+                $row['family'], $row['name'], $row['otch'], $row['city'], $row['str'], $row['dom'], $row['kv'],
+                $row['pas_n'], $row['pas_ln'], $row['pas_date'], $row['pas_who'],
+                $row['reg_city'], $row['reg_str'], $row['reg_dom'], $row['reg_kv'],
+                $row['phone_1'], $row['phone_2'], $row['info'], $row['status'], $row['cr_time'],
                 $row['arch_n'], $row['arch_amount'], $row['arch_l_date'], $row['cr_who'], $row['source']
             );
             $ins->execute();
             $ins->close();
-
-            // Delete from clients
-            $mysqli->query("DELETE FROM clients WHERE client_id = " . $row['client_id']);
+            $del_ok = $mysqli->query("DELETE FROM clients WHERE client_id = " . (int)$row['client_id']);
+            if ($del_ok) {
+                $mysqli->commit();
+                $purged_count++;
+            } else {
+                $mysqli->rollback();
+            }
         }
 
         // We also need a way to increment last_id properly if we didn't process 500 ghost clients.
@@ -150,6 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	<a class="div_item" href="/bb/index.php">На главную</a>
 </div>
 
+<input type="hidden" id="csrf-token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+
 <h2>Очистка базы клиентов</h2>
 
 <div class="box">
@@ -179,6 +192,7 @@ async function startProcess(action, logId) {
     while (!done) {
         const formData = new FormData();
         formData.append('action', action);
+        formData.append('csrf_token', document.getElementById('csrf-token').value);
         formData.append('last_id', lastId);
 
         try {

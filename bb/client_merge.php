@@ -10,10 +10,18 @@ if ($_SESSION['svoi'] != 8941 || !(in_array($_SESSION['level'], $in_level))) {
     die('Доступ запрещен.');
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Обработка AJAX запросов
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     $action = $_POST['action'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        echo json_encode(['error' => 'Ошибка безопасности. Обновите страницу.']);
+        exit;
+    }
 
     if ($action === 'find_duplicates') {
         $groups_high = [];
@@ -59,10 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $process_group = function($title, $clients) use (&$groups_high, &$groups_medium, &$groups_low) {
             if (count($clients) < 2) return;
             $group_score = 999;
-            // Calculate min pairwise score relative to the first element
-            for ($i = 1; $i < count($clients); $i++) {
-                $s = calc_confidence($clients[0], $clients[$i]);
-                if ($s < $group_score) $group_score = $s;
+            $n = count($clients);
+            for ($i = 0; $i < $n; $i++) {
+                for ($j = $i + 1; $j < $n; $j++) {
+                    $s = calc_confidence($clients[$i], $clients[$j]);
+                    if ($s < $group_score) $group_score = $s;
+                }
             }
             if ($group_score >= 80) $conf = 'high';
             elseif ($group_score >= 50) $conf = 'medium';
@@ -75,10 +85,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         };
 
         // Graph Algorithm Start
+        $mysqli->query("DROP TEMPORARY TABLE IF EXISTS temp_dup_ids");
         $mysqli->query("CREATE TEMPORARY TABLE temp_dup_ids (client_id INT PRIMARY KEY)");
         $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT client_id FROM clients WHERE pas_ln IN (SELECT pas_ln FROM clients WHERE LENGTH(pas_ln) >= 14 GROUP BY pas_ln HAVING COUNT(*) > 1)");
-        $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT client_id FROM clients WHERE phone_1 IN (SELECT phone_1 FROM clients WHERE LENGTH(phone_1) >= 7 GROUP BY phone_1 HAVING COUNT(*) > 1)");
-        $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT client_id FROM clients WHERE phone_2 IN (SELECT phone_2 FROM clients WHERE LENGTH(phone_2) >= 7 GROUP BY phone_2 HAVING COUNT(*) > 1)");
+        // Normalize both phone columns into one temp table to catch cross-field matches (phone_1 of A = phone_2 of B)
+        $cp1 = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_1,' ',''),'-',''),'(',''),')',''),'+','')";
+        $cp2 = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_2,' ',''),'-',''),'(',''),')',''),'+','')";
+        $mysqli->query("DROP TEMPORARY TABLE IF EXISTS temp_phones");
+        $mysqli->query("CREATE TEMPORARY TABLE temp_phones (client_id INT, clean_phone VARCHAR(30), INDEX idx_cp(clean_phone))");
+        $mysqli->query("INSERT INTO temp_phones SELECT client_id, $cp1 FROM clients WHERE LENGTH($cp1) >= 7");
+        $mysqli->query("INSERT INTO temp_phones SELECT client_id, $cp2 FROM clients WHERE LENGTH($cp2) >= 7");
+        $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT DISTINCT client_id FROM temp_phones WHERE clean_phone IN (SELECT clean_phone FROM (SELECT clean_phone FROM temp_phones GROUP BY clean_phone HAVING COUNT(DISTINCT client_id) > 1) dup_phones)");
+        $mysqli->query("DROP TEMPORARY TABLE IF EXISTS temp_phones");
         $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT client_id FROM clients c JOIN (SELECT family, name, otch FROM clients WHERE family != '' AND name != '' GROUP BY family, name, otch HAVING COUNT(*) > 1) dup ON c.family = dup.family AND c.name = dup.name AND c.otch = dup.otch");
         
         // Disable address lev distance to keep it fast and only rely on strict name + otch + ln + phone edges for components
@@ -93,10 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (mb_strlen($c['pas_ln']) >= 14) $map_ln[$c['pas_ln']][] = $c['client_id'];
             
             $p1 = clean_phone($c['phone_1']);
-            if (strlen($p1) >= 7) $map_phone[substr($p1, -7)][] = $c['client_id'];
-            
+            if (strlen($p1) >= 7) $map_phone[$p1][] = $c['client_id'];
+
             $p2 = clean_phone($c['phone_2']);
-            if (strlen($p2) >= 7) $map_phone[substr($p2, -7)][] = $c['client_id'];
+            if (strlen($p2) >= 7) $map_phone[$p2][] = $c['client_id'];
             
             $f = mb_strtolower(trim($c['family']));
             $n = mb_strtolower(trim($c['name']));
@@ -208,17 +226,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->close();
                     $master['info'] = $new_info; // update local copy for next slaves
                 }
-                // If master has empty phone slots, fill them from slave
+                // Fill each empty phone slot independently
                 if (empty($master['phone_1']) && !empty($slave['phone_1'])) {
                     $stmt = $mysqli->prepare("UPDATE clients SET phone_1 = ? WHERE client_id = ?");
                     $stmt->bind_param("si", $slave['phone_1'], $master_id);
                     $stmt->execute(); $stmt->close();
                     $master['phone_1'] = $slave['phone_1'];
-                } elseif (empty($master['phone_2']) && !empty($slave['phone_2'])) {
+                }
+                if (empty($master['phone_2']) && !empty($slave['phone_2'])) {
                     $stmt = $mysqli->prepare("UPDATE clients SET phone_2 = ? WHERE client_id = ?");
                     $stmt->bind_param("si", $slave['phone_2'], $master_id);
                     $stmt->execute(); $stmt->close();
                     $master['phone_2'] = $slave['phone_2'];
+                }
+                // Promote slave.phone_1 to master.phone_2 if that slot is still free and the number is new
+                if (!empty($slave['phone_1']) && empty($master['phone_2']) && $slave['phone_1'] !== $master['phone_1']) {
+                    $stmt = $mysqli->prepare("UPDATE clients SET phone_2 = ? WHERE client_id = ?");
+                    $stmt->bind_param("si", $slave['phone_1'], $master_id);
+                    $stmt->execute(); $stmt->close();
+                    $master['phone_2'] = $slave['phone_1'];
                 }
 
                 // 4. Archive the slave
@@ -311,6 +337,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <h2>Слияние дубликатов клиентов (Stage 3)</h2>
 
+<input type="hidden" id="csrf-token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+
 <div class="controls" style="text-align: center;">
     <button onclick="findDuplicates()" style="padding: 12px 24px; font-size: 16px; background-color: #007bff; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Найти дубликаты (Умный алгоритм)</button>
 </div>
@@ -318,19 +346,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div id="results"></div>
 
 <script>
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 async function findDuplicates() {
     const resDiv = document.getElementById('results');
     resDiv.innerHTML = '<div class="loading" style="text-align:center; padding: 30px; font-size: 18px;">Запуск графового алгоритма поиска... Пожалуйста, подождите (это может занять до 10 секунд).</div>';
 
     const formData = new FormData();
     formData.append('action', 'find_duplicates');
+    formData.append('csrf_token', document.getElementById('csrf-token').value);
 
     try {
         const response = await fetch('client_merge.php', { method: 'POST', body: formData });
         const data = await response.json();
 
         if (data.error) {
-            resDiv.innerHTML = '<div style="color:red">Ошибка: ' + data.error + '</div>';
+            resDiv.innerHTML = '<div style="color:red">Ошибка: ' + escapeHtml(data.error) + '</div>';
             return;
         }
 
@@ -358,22 +392,22 @@ function renderGroups(groups) {
         
         let confText = g.confidence === 'high' ? 'High Confidence' : (g.confidence === 'medium' ? 'Medium Confidence' : 'Low Confidence');
         
-        let html = `<h3>${g.title} (Записей: ${g.clients.length}) <span class="badge badge-${g.confidence}">${confText} (Мин. Score: ${g.score})</span></h3><div class="clients-flex">`;
-        
+        let html = `<h3>${escapeHtml(g.title)} (Записей: ${g.clients.length}) <span class="badge badge-${g.confidence}">${confText} (Мин. Score: ${g.score})</span></h3><div class="clients-flex">`;
+
         g.clients.forEach(c => {
             const dateObj = new Date(c.cr_time * 1000);
             const crDate = dateObj.toLocaleDateString('ru-RU');
-            
+
             html += `
             <div class="client-card" id="card-${gIndex}-${c.client_id}" data-id="${c.client_id}">
                 <h4>ID: ${c.client_id}</h4>
-                <div class="field"><strong>ФИО:</strong> ${c.family} ${c.name} ${c.otch}</div>
-                <div class="field"><strong>Паспорт:</strong> ${c.pas_n} ЛН: ${c.pas_ln}</div>
-                <div class="field"><strong>Прописка:</strong> ${c.reg_city}, ${c.reg_str} ${c.reg_dom}-${c.reg_kv}</div>
-                <div class="field"><strong>Телефоны:</strong> ${c.phone_1} / ${c.phone_2}</div>
+                <div class="field"><strong>ФИО:</strong> ${escapeHtml(c.family)} ${escapeHtml(c.name)} ${escapeHtml(c.otch)}</div>
+                <div class="field"><strong>Паспорт:</strong> ${escapeHtml(c.pas_n)} ЛН: ${escapeHtml(c.pas_ln)}</div>
+                <div class="field"><strong>Прописка:</strong> ${escapeHtml(c.reg_city)}, ${escapeHtml(c.reg_str)} ${escapeHtml(c.reg_dom)}-${escapeHtml(c.reg_kv)}</div>
+                <div class="field"><strong>Телефоны:</strong> ${escapeHtml(c.phone_1)} / ${escapeHtml(c.phone_2)}</div>
                 <div class="field"><strong>Финансы:</strong> Архивов: ${c.arch_n}, Сумма: ${c.arch_amount}</div>
                 <div class="field"><strong>Создан:</strong> ${crDate}</div>
-                <div class="field"><strong>Инфо:</strong> ${c.info}</div>
+                <div class="field"><strong>Инфо:</strong> ${escapeHtml(c.info)}</div>
                 <button class="btn-make-master" onclick="selectMaster(${gIndex}, ${c.client_id})">Выбрать Главным</button>
             </div>
             `;
@@ -434,6 +468,7 @@ async function mergeGroup(gIndex) {
 
     const formData = new FormData();
     formData.append('action', 'merge');
+    formData.append('csrf_token', document.getElementById('csrf-token').value);
     formData.append('master_id', masterId);
     slaveIds.forEach(id => formData.append('slave_ids[]', id));
 
@@ -442,7 +477,7 @@ async function mergeGroup(gIndex) {
         const data = await response.json();
 
         if (data.error) {
-            statusDiv.innerHTML = '<span style="color:red">Ошибка: ' + data.error + '</span>';
+            statusDiv.innerHTML = '<span style="color:red">Ошибка: ' + escapeHtml(data.error) + '</span>';
             document.getElementById(`btn-merge-${gIndex}`).disabled = false;
         } else {
             statusDiv.innerHTML = '<span style="color:green; font-weight:bold;">Успешно объединено!</span>';
