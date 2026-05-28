@@ -3285,9 +3285,14 @@ echo '
 		<label>Кем выдан</label>
 		<input type="text" name="pas_who" id="pas_who" class="airy-input" ' . $d_disabled . ' value="' . $cl_def['pas_who'] . '" />
 	</div>
-	<div class="airy-input-group">
-		<label>Личный номер</label>
+	<div class="airy-input-group" style="position: relative;">
+		<label>Личный номер 
+			<span style="font-size: 11px; float: right; margin-top: 2px;">
+				<input type="checkbox" id="no_pas_ln" style="margin: 0; vertical-align: middle;"> <label for="no_pas_ln" style="display:inline; font-weight:normal;">Нет</label>
+			</span>
+		</label>
 		<input type="text" name="pas_ln" id="pas_ln" class="airy-input" maxlength="14" ' . $d_disabled . ' value="' . $cl_def['pas_ln'] . '" />
+		<div id="pas_ln_warning" style="display:none; color: #dc3545; font-size: 12px; margin-top: 4px; line-height: 1.2;"></div>
 	</div>
 </div>
 
@@ -3295,6 +3300,7 @@ echo '
 	<div class="airy-input-group">
 		<label>Телефон 1 (+375)</label>
 		<input type="text" name="phone_1" id="phone_1" class="airy-input" ' . $d_disabled . ' value="' . phone_print($cl_def['phone_1']) . '" />
+		<div id="phone_1_warning" style="display:none; color: #dc3545; font-size: 12px; margin-top: 4px; line-height: 1.2;"></div>
 	</div>
 	<div class="airy-input-group">
 		<label>Телефон 2 (+375)</label>
@@ -3362,6 +3368,108 @@ if ($client_id > 0) {
 		if (phone2 && !phone2.value) {
 			phone2.value = "0";
 		}
+	}
+
+	// Stage 4: Input Validation & Auto-correction
+	document.addEventListener('DOMContentLoaded', function() {
+		const pasLnInput = document.getElementById('pas_ln');
+		const noPasLnCheckbox = document.getElementById('no_pas_ln');
+		const phone1Input = document.getElementById('phone_1');
+
+		if (!pasLnInput) return;
+
+		// 1. "Нет личного номера" checkbox
+		if (noPasLnCheckbox) {
+			noPasLnCheckbox.addEventListener('change', function() {
+				if (this.checked) {
+					pasLnInput.value = '';
+					pasLnInput.readOnly = true;
+					pasLnInput.style.backgroundColor = '#e9ecef';
+					document.getElementById('pas_ln_warning').style.display = 'none';
+				} else {
+					pasLnInput.readOnly = false;
+					pasLnInput.style.backgroundColor = '';
+				}
+			});
+		}
+
+		// 2. Auto-formatting
+		pasLnInput.addEventListener('blur', function() {
+			if (this.readOnly) return;
+			
+			let val = this.value;
+			// Remove spaces
+			val = val.replace(/\s+/g, '');
+			// Uppercase
+			val = val.toUpperCase();
+			// Replace Cyrillic with Latin
+			const cyrillicToLatin = {
+				'А': 'A', 'В': 'B', 'С': 'C', 'Е': 'E', 'Н': 'H', 'К': 'K', 'М': 'M', 'О': 'O', 'Р': 'P', 'Т': 'T', 'Х': 'X', 'У': 'Y'
+			};
+			val = val.replace(/[АВСЕНКМОРТХУ]/g, function(match) {
+				return cyrillicToLatin[match];
+			});
+			// Replace O with 0
+			val = val.replace(/O/g, '0');
+			
+			this.value = val;
+			checkDuplicate('pas_ln', val);
+		});
+
+		if (phone1Input) {
+			phone1Input.addEventListener('blur', function() {
+				checkDuplicate('phone_1', this.value);
+			});
+		}
+
+		// 3. AJAX Duplicate Check
+		async function checkDuplicate(field, value) {
+			const clientId = document.getElementById('client_id').value;
+			if (clientId && parseInt(clientId) > 0) return; // Do not warn if editing an existing client
+			if (!value || value.length < 5) return;
+			
+			const warnDiv = document.getElementById(field + '_warning');
+			
+			const formData = new FormData();
+			formData.append('field', field);
+			formData.append('value', value);
+
+			try {
+				const response = await fetch('/bb/ajax_client_check.php', { method: 'POST', body: formData });
+				const data = await response.json();
+				if (data.exists) {
+					warnDiv.style.display = 'block';
+					warnDiv.innerHTML = `Внимание! Клиент уже есть в базе: <b>${data.client.family} ${data.client.name} (ID: ${data.client.client_id})</b>. <a href="#" onclick="loadExistingClient(${data.client.client_id}); return false;" style="color:#dc3545; text-decoration:underline;">Загрузить его данные?</a>`;
+				} else {
+					warnDiv.style.display = 'none';
+				}
+			} catch (e) {
+				console.error('Ошибка проверки дублей', e);
+			}
+		}
+	});
+
+	function loadExistingClient(id) {
+		const form = document.getElementById('main_form');
+		const actInput = document.getElementById('action_save_cl');
+		if (actInput) actInput.value = 'сохранить только клиента'; // Bypass validation or just reload
+		
+		// To simply reload the page with that client:
+		const searchForm = document.createElement('form');
+		searchForm.method = 'post';
+		searchForm.action = 'dogovor_new4.php';
+		const input = document.createElement('input');
+		input.type = 'hidden';
+		input.name = 's_client_id';
+		input.value = id;
+		const act = document.createElement('input');
+		act.type = 'hidden';
+		act.name = 'action';
+		act.value = 'найти';
+		searchForm.appendChild(input);
+		searchForm.appendChild(act);
+		document.body.appendChild(searchForm);
+		searchForm.submit();
 	}
 </script>
 <?php
