@@ -16,9 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'find_duplicates') {
-        $type = $_POST['type'] ?? 'pas_ln';
-        $limit = 50; // Групп за один раз
-        
         $groups_high = [];
         $groups_medium = [];
         $groups_low = [];
@@ -62,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $process_group = function($title, $clients) use (&$groups_high, &$groups_medium, &$groups_low) {
             if (count($clients) < 2) return;
             $group_score = 999;
+            // Calculate min pairwise score relative to the first element
             for ($i = 1; $i < count($clients); $i++) {
                 $s = calc_confidence($clients[0], $clients[$i]);
                 if ($s < $group_score) $group_score = $s;
@@ -70,43 +68,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             elseif ($group_score >= 50) $conf = 'medium';
             else $conf = 'low';
             
-            $g = ['title' => $title, 'clients' => $clients, 'confidence' => $conf, 'score' => $group_score];
+            $g = ['title' => $title, 'clients' => array_values($clients), 'confidence' => $conf, 'score' => $group_score];
             if ($conf === 'high') $groups_high[] = $g;
             elseif ($conf === 'medium') $groups_medium[] = $g;
             else $groups_low[] = $g;
         };
+
+        // Graph Algorithm Start
+        $mysqli->query("CREATE TEMPORARY TABLE temp_dup_ids (client_id INT PRIMARY KEY)");
+        $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT client_id FROM clients WHERE pas_ln IN (SELECT pas_ln FROM clients WHERE LENGTH(pas_ln) >= 14 GROUP BY pas_ln HAVING COUNT(*) > 1)");
+        $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT client_id FROM clients WHERE phone_1 IN (SELECT phone_1 FROM clients WHERE LENGTH(phone_1) >= 7 GROUP BY phone_1 HAVING COUNT(*) > 1)");
+        $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT client_id FROM clients WHERE phone_2 IN (SELECT phone_2 FROM clients WHERE LENGTH(phone_2) >= 7 GROUP BY phone_2 HAVING COUNT(*) > 1)");
+        $mysqli->query("INSERT IGNORE INTO temp_dup_ids SELECT client_id FROM clients c JOIN (SELECT family, name, otch FROM clients WHERE family != '' AND name != '' GROUP BY family, name, otch HAVING COUNT(*) > 1) dup ON c.family = dup.family AND c.name = dup.name AND c.otch = dup.otch");
         
-        if ($type === 'pas_ln') {
-            $query = "SELECT pas_ln, COUNT(*) as c FROM clients WHERE pas_ln != '' GROUP BY pas_ln HAVING c > 1 AND LENGTH(pas_ln) >= 14 LIMIT $limit";
-            $res = $mysqli->query($query);
-            while ($row = $res->fetch_assoc()) {
-                $pas_ln = $mysqli->real_escape_string($row['pas_ln']);
-                $clients = $mysqli->query("SELECT * FROM clients WHERE pas_ln = '$pas_ln'")->fetch_all(MYSQLI_ASSOC);
-                $process_group('ЛН: ' . $row['pas_ln'], $clients);
-            }
-        } elseif ($type === 'phone') {
-            $clean_expr = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_1, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '')";
-            $clean_expr2 = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_2, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '')";
-            $query = "SELECT $clean_expr as cp, COUNT(*) as c FROM clients WHERE phone_1 != '' GROUP BY cp HAVING c > 1 AND LENGTH(cp) >= 7 LIMIT $limit";
-            $res = $mysqli->query($query);
-            while ($row = $res->fetch_assoc()) {
-                $cp = $mysqli->real_escape_string($row['cp']);
-                $clients = $mysqli->query("SELECT * FROM clients WHERE $clean_expr = '$cp' OR $clean_expr2 = '$cp'")->fetch_all(MYSQLI_ASSOC);
-                $process_group('Телефон: ' . $row['cp'], $clients);
-            }
-        } elseif ($type === 'name') {
-            $query = "SELECT family, name, otch, COUNT(*) as c FROM clients WHERE family != '' AND name != '' GROUP BY family, name, otch HAVING c > 1 LIMIT $limit";
-            $res = $mysqli->query($query);
-            while ($row = $res->fetch_assoc()) {
-                $f = $mysqli->real_escape_string($row['family']);
-                $n = $mysqli->real_escape_string($row['name']);
-                $o = $mysqli->real_escape_string($row['otch']);
-                $clients = $mysqli->query("SELECT * FROM clients WHERE family='$f' AND name='$n' AND otch='$o'")->fetch_all(MYSQLI_ASSOC);
-                $process_group('ФИО: ' . $row['family'] . ' ' . $row['name'] . ' ' . $row['otch'], $clients);
+        // Disable address lev distance to keep it fast and only rely on strict name + otch + ln + phone edges for components
+        
+        $res = $mysqli->query("SELECT * FROM clients WHERE client_id IN (SELECT client_id FROM temp_dup_ids)");
+        $clients = [];
+        $map_ln = []; $map_phone = []; $map_name = [];
+        
+        while ($c = $res->fetch_assoc()) {
+            $clients[$c['client_id']] = $c;
+            
+            if (mb_strlen($c['pas_ln']) >= 14) $map_ln[$c['pas_ln']][] = $c['client_id'];
+            
+            $p1 = clean_phone($c['phone_1']);
+            if (strlen($p1) >= 7) $map_phone[substr($p1, -7)][] = $c['client_id'];
+            
+            $p2 = clean_phone($c['phone_2']);
+            if (strlen($p2) >= 7) $map_phone[substr($p2, -7)][] = $c['client_id'];
+            
+            $f = mb_strtolower(trim($c['family']));
+            $n = mb_strtolower(trim($c['name']));
+            $o = mb_strtolower(trim($c['otch']));
+            if ($f && $n && $o) $map_name[$f.'|'.$n.'|'.$o][] = $c['client_id'];
+        }
+        
+        $parent = [];
+        foreach ($clients as $cid => $c) $parent[$cid] = $cid;
+        
+        function uf_find(&$parent, $i) {
+            if ($parent[$i] == $i) return $i;
+            return $parent[$i] = uf_find($parent, $parent[$i]);
+        }
+        function uf_union(&$parent, $i, $j) {
+            $root_i = uf_find($parent, $i);
+            $root_j = uf_find($parent, $j);
+            if ($root_i != $root_j) $parent[$root_i] = $root_j;
+        }
+        
+        foreach ($map_ln as $ids) { if (count($ids) > 1) for ($i=1; $i<count($ids); $i++) uf_union($parent, $ids[0], $ids[$i]); }
+        foreach ($map_phone as $ids) { if (count($ids) > 1) for ($i=1; $i<count($ids); $i++) uf_union($parent, $ids[0], $ids[$i]); }
+        foreach ($map_name as $ids) { if (count($ids) > 1) for ($i=1; $i<count($ids); $i++) uf_union($parent, $ids[0], $ids[$i]); }
+        
+        $clusters = [];
+        foreach ($clients as $cid => $c) {
+            $root = uf_find($parent, $cid);
+            $clusters[$root][] = $c;
+        }
+        
+        foreach ($clusters as $root_id => $group_clients) {
+            if (count($group_clients) > 1) {
+                // Name the cluster dynamically
+                $first = $group_clients[0];
+                $title = "Умная группа: {$first['family']} {$first['name']}";
+                $process_group($title, $group_clients);
             }
         }
-
+        
+        // Sort groups inside by score DESC (so 100 confidence is first)
+        usort($groups_high, function($a, $b) { return $b['score'] <=> $a['score']; });
+        usort($groups_medium, function($a, $b) { return $b['score'] <=> $a['score']; });
+        usort($groups_low, function($a, $b) { return $b['score'] <=> $a['score']; });
+        
         $all_groups = array_merge($groups_high, $groups_medium, $groups_low);
+        // Take top 50 to avoid crashing browser if there are thousands
+        $all_groups = array_slice($all_groups, 0, 50);
+
         echo json_encode(['status' => 'ok', 'groups' => $all_groups]);
         exit;
     }
@@ -273,23 +311,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <h2>Слияние дубликатов клиентов (Stage 3)</h2>
 
-<div class="controls">
-    <strong>Искать дубликаты по:</strong>
-    <button onclick="findDuplicates('pas_ln')">Личному номеру паспорта</button>
-    <button onclick="findDuplicates('phone')">Телефону</button>
-    <button onclick="findDuplicates('name')">ФИО</button>
+<div class="controls" style="text-align: center;">
+    <button onclick="findDuplicates()" style="padding: 12px 24px; font-size: 16px; background-color: #007bff; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Найти дубликаты (Умный алгоритм)</button>
 </div>
 
 <div id="results"></div>
 
 <script>
-async function findDuplicates(type) {
+async function findDuplicates() {
     const resDiv = document.getElementById('results');
-    resDiv.innerHTML = '<div class="loading">Идет поиск дубликатов...</div>';
+    resDiv.innerHTML = '<div class="loading" style="text-align:center; padding: 30px; font-size: 18px;">Запуск графового алгоритма поиска... Пожалуйста, подождите (это может занять до 10 секунд).</div>';
 
     const formData = new FormData();
     formData.append('action', 'find_duplicates');
-    formData.append('type', type);
 
     try {
         const response = await fetch('client_merge.php', { method: 'POST', body: formData });
