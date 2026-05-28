@@ -337,7 +337,14 @@ class FetchA1MissedCalls extends Command
             return $call;
         }
 
-        $clients = DB::select("SELECT client_id, family, name, otch, phone_1, phone_2 FROM clients LIMIT 5000");
+        $pattern = '%' . implode('%', str_split($last9)) . '%';
+        $clients = DB::select("
+            SELECT client_id, family, name, otch, phone_1, phone_2 
+            FROM clients 
+            WHERE phone_1 LIKE ? OR phone_2 LIKE ?
+            ORDER BY client_id DESC
+            LIMIT 50
+        ", [$pattern, $pattern]);
 
         $foundClient = null;
         foreach ($clients as $client) {
