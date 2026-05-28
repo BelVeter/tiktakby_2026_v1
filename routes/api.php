@@ -124,6 +124,7 @@ Route::prefix('mcp/v1')
         Route::get('pages/product/{slug}',   [PagesProductController::class, 'show'])->name('pages.product.show');
         Route::patch('pages/product/{slug}', [PagesProductController::class, 'update'])->name('pages.product.update');
 
+
         // Redirects management (CRUD + bulk)
         Route::get('redirects',           [RedirectsController::class, 'index'])->name('redirects.index');
         Route::post('redirects/bulk',     [RedirectsController::class, 'bulk'])->name('redirects.bulk');
