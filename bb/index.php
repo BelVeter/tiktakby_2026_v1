@@ -437,5 +437,13 @@ if (User::getCurrentUser()->isOwner()) {
     </div>';
 }
 
+if (User::getCurrentUser()->isDima()) {
+    echo '
+    <div class="top_menu">
+        <a class="div_item" href="/bb/client_cleanup.php" style="background-color: #17a2b8; color: white;">Очистка клиентов (Stage 1&2)</a>
+        <a class="div_item" href="/bb/client_merge.php" style="background-color: #28a745; color: white;">Слияние клиентов (Stage 3)</a>
+    </div>';
+}
+
 echo Base::PageEndHTML();
 ?>
