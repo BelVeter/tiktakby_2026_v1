@@ -4212,6 +4212,219 @@
           }
         }
       }
+    },
+    "/pages/listing": {
+      "get": {
+        "summary": "List L2 categories",
+        "description": "Returns all catalog listing pages with their SEO fields completion status.",
+        "tags": [
+          "Pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": []
+            }
+          }
+        }
+      }
+    },
+    "/pages/listing/{slug}": {
+      "get": {
+        "summary": "Get L2 SEO data",
+        "description": "Read L2 category SEO fields (from pages table) along with site default values.",
+        "tags": [
+          "Pages"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": []
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update L2 SEO data",
+        "description": "Upsert L2 category SEO fields (meta_title, meta_description, h1, intro_text, seo_text, h1_pic_url).",
+        "tags": [
+          "Pages"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "meta_title": {
+                    "type": "string",
+                    "maxLength": 70
+                  },
+                  "meta_description": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "h1": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "intro_text": {
+                    "type": "string"
+                  },
+                  "seo_text": {
+                    "type": "string"
+                  },
+                  "h1_pic_url": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": []
+            }
+          }
+        }
+      }
+    },
+    "/pages/product": {
+      "get": {
+        "summary": "List L3 models",
+        "description": "Returns all catalog L3 models with their SEO fields completion status.",
+        "tags": [
+          "Pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": []
+            }
+          }
+        }
+      }
+    },
+    "/pages/product/{slug}": {
+      "get": {
+        "summary": "Get L3 SEO data",
+        "description": "Read L3 product SEO fields (from rent_model_web).",
+        "tags": [
+          "Pages"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": []
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update L3 SEO data",
+        "description": "Update L3 product SEO fields (meta_title, meta_description, main_pic_alt, l2_pic_alt, description, breadcrumb_name).",
+        "tags": [
+          "Pages"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "meta_title": {
+                    "type": "string",
+                    "maxLength": 70
+                  },
+                  "meta_description": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "main_pic_alt": {
+                    "type": "string",
+                    "maxLength": 125
+                  },
+                  "l2_pic_alt": {
+                    "type": "string",
+                    "maxLength": 125
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "breadcrumb_name": {
+                    "type": "string",
+                    "maxLength": 100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": []
+            }
+          }
+        }
+      }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Pages",
+      "description": "SEO fields management for catalog L2 (listing) and L3 (product) pages"
+    }
+  ]
 }
