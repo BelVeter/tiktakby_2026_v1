@@ -13,6 +13,8 @@ use App\Http\Controllers\Mcp\LocationsController;
 use App\Http\Controllers\Mcp\MarketingController;
 use App\Http\Controllers\Mcp\MetaController;
 use App\Http\Controllers\Mcp\OperationsController;
+use App\Http\Controllers\Mcp\PagesListingController;
+use App\Http\Controllers\Mcp\PagesProductController;
 use App\Http\Controllers\Mcp\RedirectsController;
 use Illuminate\Support\Facades\Route;
 
@@ -112,6 +114,15 @@ Route::prefix('mcp/v1')
 
         // Marketing Conversions
         Route::get('marketing/conversions', [MarketingController::class, 'conversions'])->name('marketing.conversions');
+
+        // Pages (SEO)
+        Route::get('pages/listing',          [PagesListingController::class, 'index'])->name('pages.listing.index');
+        Route::get('pages/listing/{slug}',   [PagesListingController::class, 'show'])->name('pages.listing.show');
+        Route::patch('pages/listing/{slug}', [PagesListingController::class, 'update'])->name('pages.listing.update');
+
+        Route::get('pages/product',          [PagesProductController::class, 'index'])->name('pages.product.index');
+        Route::get('pages/product/{slug}',   [PagesProductController::class, 'show'])->name('pages.product.show');
+        Route::patch('pages/product/{slug}', [PagesProductController::class, 'update'])->name('pages.product.update');
 
         // Redirects management (CRUD + bulk)
         Route::get('redirects',           [RedirectsController::class, 'index'])->name('redirects.index');
