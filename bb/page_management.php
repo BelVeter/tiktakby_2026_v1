@@ -78,6 +78,7 @@ if (isset($_POST['action'])) {
       $np->setH1($_POST['h1']);
       $np->setH1LongText($_POST['h1_long_text']);
       $np->setCodeBlock1($_POST['code1']);
+      $np->setFaqJson($_POST['faq_json'] ?? '');
       $np->setBlock2Title($_POST['block_2_title']);
       $np->setCodeBlock2($_POST['code2']);
 
@@ -225,6 +226,21 @@ $p = \App\MyClasses\MainPage::getPageOrFillInfroFromRuOrCreateNew($lang, $levelC
         </div>
       </div>
       <div class="row mt-3">
+        <label class="col-2 col-form-label fw-bold">FAQ (вопросы-ответы):</label>
+        <div class="col-10">
+          <div id="faq-items-container">
+            <!-- Пары вопрос/ответ будут добавляться сюда через JS -->
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="faq-add-btn">
+            + Добавить вопрос
+          </button>
+          <input type="hidden" name="faq_json" id="faq_json" value="">
+          <div class="form-text text-muted mt-1">
+            Заполните для SEO. Будет отображаться аккордеоном на сайте и как FAQPage JSON-LD в Google.
+          </div>
+        </div>
+      </div>
+      <div class="row mt-3">
         <label class="col-2 col-form-label" for="block_2_title">Заголовок для блока 2:</label>
         <div class="col-4"><input class="form-control" type="text" name="block_2_title" id="block_2_title"
             value="<?= $p->getBlock2Title() ?>"></div>
@@ -255,6 +271,67 @@ $p = \App\MyClasses\MainPage::getPageOrFillInfroFromRuOrCreateNew($lang, $levelC
 
 <script>
   new Choices(document.querySelector(".concrete-page"));
+
+  (function() {
+    function createFaqItem(question, answer) {
+      var idx = Date.now() + Math.random();
+      return '<div class="faq-item card mb-2 p-3" data-idx="' + idx + '">' +
+        '<div class="d-flex justify-content-between align-items-start mb-2">' +
+          '<strong>Вопрос/Ответ</strong>' +
+          '<button type="button" class="btn btn-sm btn-outline-danger faq-remove-btn">✕</button>' +
+        '</div>' +
+        '<input type="text" class="form-control mb-2 faq-question" placeholder="Вопрос..." value="' + escHtml(question) + '">' +
+        '<textarea class="form-control faq-answer" rows="3" placeholder="Ответ...">' + escHtml(answer) + '</textarea>' +
+      '</div>';
+    }
+    
+    function escHtml(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function collectFaq() {
+      var items = document.querySelectorAll('.faq-item');
+      var result = [];
+      items.forEach(function(item) {
+        var q = item.querySelector('.faq-question').value.trim();
+        var a = item.querySelector('.faq-answer').value.trim();
+        if (q && a) result.push({question: q, answer: a});
+      });
+      document.getElementById('faq_json').value = JSON.stringify(result);
+    }
+
+    <?php if(isset($p) && is_object($p)): ?>
+    var existingJson = <?= json_encode($p->getFaqArray(), JSON_UNESCAPED_UNICODE) ?>;
+    var container = document.getElementById('faq-items-container');
+    if (existingJson && Array.isArray(existingJson)) {
+      existingJson.forEach(function(item) {
+        container.insertAdjacentHTML('beforeend', createFaqItem(item.question, item.answer));
+      });
+    }
+
+    var addBtn = document.getElementById('faq-add-btn');
+    if(addBtn) {
+        addBtn.addEventListener('click', function() {
+          container.insertAdjacentHTML('beforeend', createFaqItem('', ''));
+        });
+    }
+
+    if(container) {
+        container.addEventListener('click', function(e) {
+          if (e.target.classList.contains('faq-remove-btn')) {
+            e.target.closest('.faq-item').remove();
+          }
+        });
+    }
+
+    var form = document.getElementById('page-form');
+    if (form) {
+        form.addEventListener('submit', function() {
+          collectFaq();
+        });
+    }
+    <?php endif; ?>
+  })();
 </script>
 
 <?php

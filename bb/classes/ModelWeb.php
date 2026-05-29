@@ -30,6 +30,7 @@ class ModelWeb
 
   public $logo;//url of logo file - to change with producer
   public $main_descr;
+  public $faq;
 
   private $sort_num;
   private $tarif_line_period;
@@ -653,6 +654,35 @@ class ModelWeb
     return $this->main_descr;
   }
 
+  public function getFaqArray(): array
+  {
+    if (empty($this->faq)) return [];
+    $decoded = json_decode($this->faq, true);
+    return is_array($decoded) ? $decoded : [];
+  }
+
+  public function setFaqJson($faqJson): void
+  {
+    if (empty($faqJson)) {
+      $this->faq = null;
+      return;
+    }
+    $decoded = json_decode($faqJson, true);
+    if (!is_array($decoded)) {
+      $this->faq = null;
+      return;
+    }
+    $clean = [];
+    foreach ($decoded as $item) {
+      $q = trim($item['question'] ?? '');
+      $a = trim($item['answer'] ?? '');
+      if ($q !== '' && $a !== '') {
+        $clean[] = ['question' => $q, 'answer' => $a];
+      }
+    }
+    $this->faq = count($clean) > 0 ? json_encode($clean, JSON_UNESCAPED_UNICODE) : null;
+  }
+
   /**
    * @param mixed $main_descr
    */
@@ -686,9 +716,10 @@ class ModelWeb
     $mysqli = Db::getInstance()->getConnection();
 
     if ($this->getWebId() < 1) {
+      $faqStr = $this->faq === null ? 'NULL' : "'" . addslashes($this->faq) . "'";
       $query = "INSERT INTO rent_model_web SET lang='$this->lang', model_id='$this->model_id', page_addr='$this->page_addr', `title`='" . addslashes($this->title) . "', `meta_description`='" . addslashes($this->meta_description) . "', breadcrumbs_name='" . addslashes($this->breadcrumbs_name) . "',
                            l2_pic='$this->l2_pic', l2_name='" . addslashes($this->l2_name) . "', l2_alt='" . addslashes($this->l2_alt) . "', item_name_main='" . addslashes($this->item_name_main) . "',
-                           m_pic_big='$this->m_pic_big', m_pic_alt='" . addslashes($this->m_pic_alt) . "', m_a_title='" . addslashes($this->m_a_title) . "', logo='$this->logo', main_descr='" . addslashes($this->main_descr) . "',
+                           m_pic_big='$this->m_pic_big', m_pic_alt='" . addslashes($this->m_pic_alt) . "', m_a_title='" . addslashes($this->m_a_title) . "', logo='$this->logo', main_descr='" . addslashes($this->main_descr) . "', faq=" . $faqStr . ",
                            tarif_line_period='$this->tarif_line_period', tarif_base_days='$this->tarif_base_days', sort_n='$this->sort_num', keywords='$this->keywords', `status`='$this->status', l2_availability_show='$this->l2_availability_show'";
       $result = $mysqli->query($query);
       if (!$result) {
@@ -730,9 +761,10 @@ class ModelWeb
 
     $mysqli = Db::getInstance()->getConnection();
 
+    $faqStr = $this->faq === null ? 'NULL' : "'" . addslashes($this->faq) . "'";
     $query = "UPDATE rent_model_web SET lang='$this->lang', model_id='$this->model_id', page_addr='$this->page_addr', `title`='" . addslashes($this->title) . "', `meta_description`='" . addslashes($this->meta_description) . "', breadcrumbs_name='" . addslashes($this->breadcrumbs_name) . "',
                            l2_pic='$this->l2_pic', l2_name='" . addslashes($this->l2_name) . "', l2_alt='" . addslashes($this->l2_alt) . "', item_name_main='" . addslashes($this->item_name_main) . "',
-                           m_pic_big='$this->m_pic_big', m_pic_alt='" . addslashes($this->m_pic_alt) . "', m_a_title='" . addslashes($this->m_a_title) . "', logo='$this->logo', main_descr='" . addslashes($this->main_descr) . "',
+                           m_pic_big='$this->m_pic_big', m_pic_alt='" . addslashes($this->m_pic_alt) . "', m_a_title='" . addslashes($this->m_a_title) . "', logo='$this->logo', main_descr='" . addslashes($this->main_descr) . "', faq=" . $faqStr . ",
                            tarif_line_period='$this->tarif_line_period', tarif_base_days='$this->tarif_base_days', sort_n='$this->sort_num', keywords='$this->keywords', `status`='$this->status', l2_availability_show='$this->l2_availability_show'
                        WHERE web_id='$this->web_id'";
     $result = $mysqli->query($query);
@@ -804,6 +836,7 @@ class ModelWeb
 
     $mw->setLogoUrlAddress($row['logo']);
     $mw->setMainDescrHtml($row['main_descr']);
+    $mw->setFaqJson($row['faq'] ?? '');
     $mw->setSortNum($row['sort_n']);
     $mw->setTarifLinePeriod($row['tarif_line_period']);
     $mw->setTarifBaseDays($row['tarif_base_days']);

@@ -283,6 +283,14 @@ class L3Page
   }
 
   /**
+   * @return array  [{question, answer}, ...]
+   */
+  public function getFaqArray(): array
+  {
+    return $this->modelWeb->getFaqArray();
+  }
+
+  /**
    * @param $urlName
    * @return L3Page
    */

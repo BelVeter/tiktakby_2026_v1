@@ -65,6 +65,7 @@ class PagesListingController extends BaseController
                     'has_intro_text' => !empty($page->h1_long_text),
                     'has_seo_text' => !empty($page->code_block_1),
                     'has_h1_pic_url' => !empty($page->h1_pic_url),
+                    'has_faq' => !empty($page->faq),
                 ],
                 'updated_at' => $page ? $page->change_time : null,
             ];
@@ -104,6 +105,7 @@ class PagesListingController extends BaseController
             'h1' => $displayName,
             'intro_text' => null,
             'seo_text' => null,
+            'faq' => null,
         ];
 
         $currentValues = null;
@@ -115,6 +117,7 @@ class PagesListingController extends BaseController
                 'intro_text' => $page->h1_long_text ?: null,
                 'seo_text' => $page->code_block_1 ?: null,
                 'h1_pic_url' => $page->h1_pic_url ?: null,
+                'faq' => $page->faq ? json_decode($page->faq, true) : null,
             ];
         }
 
@@ -133,6 +136,7 @@ class PagesListingController extends BaseController
                 'has_intro_text' => !empty($page->h1_long_text),
                 'has_seo_text' => !empty($page->code_block_1),
                 'has_h1_pic_url' => !empty($page->h1_pic_url),
+                'has_faq' => !empty($page->faq),
             ],
             'updated_at' => $page ? $page->change_time : null,
         ];
@@ -161,6 +165,9 @@ class PagesListingController extends BaseController
             'intro_text' => 'nullable|string',
             'seo_text' => 'nullable|string',
             'h1_pic_url' => 'nullable|string|max:255',
+            'faq' => 'nullable|array',
+            'faq.*.question' => 'required_with:faq|string|max:500',
+            'faq.*.answer' => 'required_with:faq|string|max:5000',
         ]);
 
         $levelCode = $resolved['level_code'];
@@ -184,6 +191,12 @@ class PagesListingController extends BaseController
         }
         if (array_key_exists('h1_pic_url', $validated)) {
             $updateData['h1_pic_url'] = $validated['h1_pic_url'] ?? '';
+        }
+        if (array_key_exists('faq', $validated)) {
+            $faqArr = $validated['faq'] ?? null;
+            $updateData['faq'] = ($faqArr && count($faqArr) > 0)
+                ? json_encode($faqArr, JSON_UNESCAPED_UNICODE)
+                : null;
         }
         
         $updateData['change_time'] = now();

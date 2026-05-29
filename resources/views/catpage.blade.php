@@ -192,13 +192,6 @@
                 </div>
               </div>
             @endif
-            @if($p->getCodeBlock1() && $p->getShowPageNumber() < 2)
-              <div class="row">
-                <div class="col-12">
-                  {!! $p->getCodeBlock1() !!}
-                </div>
-              </div>
-            @endif
             @if(isset($_GET['v']) && $_GET['v'] == 'dima')
               <div class="row">
                 @foreach($p->getDevInfo() as $d)
@@ -210,6 +203,16 @@
         </div>
       </div>
     </div> <!-- end of container app -->
+    @if($p->getShowPageNumber() < 2)
+      @if($p->getCodeBlock1())
+        <div class="container-app">
+          <div class="cat-seo-text mt-4">
+            {!! $p->getCodeBlock1() !!}
+          </div>
+        </div>
+      @endif
+      @include('partials.faq_block', ['faq' => $p->getFaqArray()])
+    @endif
   </div><!-- end of gradient -->
   <script type="module" src="/public/js/l2.js?v=2 "></script>
 

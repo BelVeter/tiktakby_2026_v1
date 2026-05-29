@@ -91,6 +91,7 @@
               </div>
             </div>
           </div>
+          @include('partials.faq_block', ['faq' => $p->getFaqArray()])
           <div class="row">
             <div class="col">
               <div class="l3-fav-slider-container">
