@@ -22,14 +22,14 @@
 
   // ── Conversion 1: Zvonok form (redirect-based, ?ck=zvonok) ──────────────
 
-  // Enhanced Conversions: capture phone before form submits
+  // Enhanced Conversions: save phone to sessionStorage before redirect
   document.addEventListener('DOMContentLoaded', function () {
     var zvonokForm = document.querySelector('form.back-coll-modal');
     if (!zvonokForm) return;
     zvonokForm.addEventListener('submit', function () {
       var phone = zvonokForm.querySelector('input[name="phone"]');
       if (phone && phone.value) {
-        safeGtag('set', 'user_data', { phone_number: phone.value });
+        try { sessionStorage.setItem('_tt_ec_phone', phone.value); } catch (e) { /* silent */ }
       }
     });
   });
@@ -38,6 +38,15 @@
   document.addEventListener('DOMContentLoaded', function () {
     var params = new URLSearchParams(window.location.search);
     if (params.get('ck') !== 'zvonok') return;
+
+    // Restore phone saved before redirect for Enhanced Conversions
+    try {
+      var savedPhone = sessionStorage.getItem('_tt_ec_phone');
+      if (savedPhone) {
+        safeGtag('set', 'user_data', { phone_number: savedPhone });
+        sessionStorage.removeItem('_tt_ec_phone');
+      }
+    } catch (e) { /* silent */ }
 
     safeGtag('event', 'conversion', {
       send_to: 'AW-18182822550/u1JiCKOe87UcEJa1n95D',
@@ -116,7 +125,7 @@
     var _origFetch = window.fetch;
     window.fetch = function (url, options) {
       var urlStr = (typeof url === 'string') ? url : (url && url.url) || '';
-      var promise = _origFetch.apply(this, arguments);
+      var promise = _origFetch.apply(window, arguments);
       if (urlStr.indexOf('/zvonok/kb') === -1) return promise;
       return promise.then(function (response) {
         response.clone().json().then(function (data) {
