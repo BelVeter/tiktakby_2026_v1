@@ -12,97 +12,143 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/bb/classes/RocketSMS.php';
 
 $currentUser = \bb\models\User::getCurrentUser();
 if (!$currentUser || !$currentUser->isDima()) {
-    die('Доступ запрещен. Страница доступна только для администратора (Dima).');
+    http_response_code(403);
+    die('Доступ запрещён. Страница доступна только для администратора (Dima).');
 }
 
 $rocketSms = new \bb\classes\RocketSMS();
 
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
+// ─── Обработка POST (отправка SMS) ────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send') {
+    $phone  = trim($_POST['phone'] ?? '');
+    $text   = trim($_POST['text']  ?? '');
+    $sender = trim($_POST['sender'] ?? '') ?: null;
+
+    if ($phone && $text) {
+        $result = $rocketSms->send($phone, $text, $sender);
+    } else {
+        $result = ['error' => 'Заполните номер телефона и текст сообщения'];
+    }
+
+    // Redirect-after-post: сохраняем результат в сессию, редиректим на GET
+    // Это предотвращает повторную отправку SMS при обновлении страницы (F5)
+    $_SESSION['rocketsms_result'] = $result;
+    header('Location: /bb/rocketsms_test.php');
+    exit;
+}
+
+// ─── GET: дополнительные команды ─────────────────────────────────────────────
+$action = $_GET['action'] ?? '';
 $responseResult = null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($action === 'send') {
-        $phone = trim($_POST['phone'] ?? '');
-        $text = trim($_POST['text'] ?? '');
-        $sender = trim($_POST['sender'] ?? '');
-        
-        if ($phone && $text) {
-            $responseResult = $rocketSms->send($phone, $text, $sender ?: null);
-        } else {
-            $responseResult = ['error' => 'Заполните номер телефона и текст'];
-        }
-    }
-} elseif ($action === 'balance') {
+if ($action === 'balance') {
     $responseResult = $rocketSms->balance();
 } elseif ($action === 'senders') {
     $responseResult = $rocketSms->senders();
+} elseif ($action === 'templates') {
+    $responseResult = $rocketSms->templates();
 }
 
+// Подхватываем результат из сессии (после POST-редиректа)
+if ($responseResult === null && isset($_SESSION['rocketsms_result'])) {
+    $responseResult = $_SESSION['rocketsms_result'];
+    unset($_SESSION['rocketsms_result']);
+}
+
+// ─── Отображение ─────────────────────────────────────────────────────────────
 echo \bb\Base::pageStartB5('Тест RocketSMS');
 ?>
-<div class="container mt-4">
-    <div class="d-flex align-items-center mb-4 gap-3">
-        <h2>Тестирование RocketSMS API</h2>
-        <a href="/bb/index.php" class="btn btn-sm btn-outline-secondary">← На главную</a>
+<div class="container mt-4" style="max-width: 900px;">
+
+    <div class="d-flex align-items-center mb-4 gap-3 flex-wrap">
+        <h2 class="mb-0">📱 Тестирование RocketSMS API</h2>
+        <a href="/bb/index.php" class="btn btn-sm btn-outline-secondary ms-auto">← На главную</a>
     </div>
 
-    <div class="row">
-        <!-- Форма отправки -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    Отправить одиночное SMS (SEND)
+    <div class="row g-4">
+
+        <!-- Левая колонка: форма + результат -->
+        <div class="col-md-7">
+
+            <!-- Форма отправки -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    Отправить SMS
                 </div>
                 <div class="card-body">
                     <form method="post" action="/bb/rocketsms_test.php">
                         <input type="hidden" name="action" value="send">
-                        
+
                         <div class="mb-3">
                             <label class="form-label fw-bold">Номер телефона</label>
-                            <input type="text" name="phone" class="form-control" placeholder="37529xxxxxxx (без плюса)" required>
-                            <div class="form-text">Международный формат без плюса.</div>
+                            <input type="text" name="phone" class="form-control"
+                                   placeholder="375296890043 (без плюса, международный формат)" required
+                                   value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>">
+                            <div class="form-text">Пример: 375291234567 (BY), 79101234567 (RU)</div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">Текст сообщения</label>
-                            <textarea name="text" class="form-control" rows="3" required></textarea>
+                            <textarea name="text" class="form-control" rows="3" required
+                                      maxlength="160"><?= htmlspecialchars($_POST['text'] ?? '') ?></textarea>
+                            <div class="form-text">Максимум 160 символов (1 SMS). Кириллица = ~70 символов на часть.</div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Отправитель (Sender ID)</label>
-                            <input type="text" name="sender" class="form-control" placeholder="Например: TIKTAK">
-                            <div class="form-text">Оставьте пустым для использования имени по умолчанию.</div>
+                            <label class="form-label fw-bold">Sender ID <span class="text-muted fw-normal">(необязательно)</span></label>
+                            <input type="text" name="sender" class="form-control"
+                                   placeholder="Например: TIKTAK.BY">
+                            <div class="form-text">Оставьте пустым — будет использовано имя по умолчанию.</div>
                         </div>
 
-                        <button type="submit" class="btn btn-success">Отправить SMS</button>
+                        <button type="submit" class="btn btn-success">📤 Отправить SMS</button>
                     </form>
                 </div>
             </div>
-        </div>
 
-        <!-- Дополнительные действия -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
-                    Дополнительные команды
-                </div>
-                <div class="card-body d-flex gap-2">
-                    <a href="/bb/rocketsms_test.php?action=balance" class="btn btn-outline-info">Проверить баланс</a>
-                    <a href="/bb/rocketsms_test.php?action=senders" class="btn btn-outline-info">Получить Sender ID</a>
-                </div>
-            </div>
-
-            <!-- Блок результата -->
+            <!-- Результат запроса -->
             <?php if ($responseResult !== null): ?>
             <div class="card shadow-sm border-<?= isset($responseResult['error']) ? 'danger' : 'success' ?>">
-                <div class="card-header bg-<?= isset($responseResult['error']) ? 'danger' : 'success' ?> text-white">
-                    Результат запроса
+                <div class="card-header bg-<?= isset($responseResult['error']) ? 'danger' : 'success' ?> text-white fw-semibold">
+                    <?= isset($responseResult['error']) ? '❌ Ошибка' : '✅ Результат' ?>
                 </div>
-                <div class="card-body">
-                    <pre class="bg-light p-3 rounded" style="font-size: 14px;"><?= htmlspecialchars(print_r($responseResult, true)) ?></pre>
+                <div class="card-body p-0">
+                    <pre class="m-0 p-3 bg-light rounded-bottom" style="font-size: 13px; white-space: pre-wrap;"><?= htmlspecialchars(json_encode($responseResult, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)) ?></pre>
                 </div>
             </div>
             <?php endif; ?>
+        </div>
+
+        <!-- Правая колонка: дополнительные команды + справка -->
+        <div class="col-md-5">
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-secondary text-white fw-semibold">
+                    Информация об аккаунте
+                </div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <a href="/bb/rocketsms_test.php?action=balance"   class="btn btn-outline-info w-100">💰 Проверить баланс</a>
+                    <a href="/bb/rocketsms_test.php?action=senders"   class="btn btn-outline-info w-100">✉️ Список Sender ID</a>
+                    <a href="/bb/rocketsms_test.php?action=templates" class="btn btn-outline-info w-100">📄 Список шаблонов</a>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header fw-semibold">📖 Справка по статусам</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0">
+                        <tbody>
+                            <tr><td><code>SENT</code></td><td>Отправлено в сеть</td></tr>
+                            <tr><td><code>QUEUED</code></td><td>В очереди</td></tr>
+                            <tr><td><code>DELIVERED</code></td><td>Доставлено</td></tr>
+                            <tr><td><code>FAILED</code></td><td>Ошибка доставки</td></tr>
+                            <tr><td><code>NO_MONEY</code></td><td>Недостаточно средств</td></tr>
+                            <tr><td><code>INVALID_PHONE</code></td><td>Неверный номер</td></tr>
+                            <tr><td><code>NO_MESSAGE</code></td><td>Текст не задан</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
