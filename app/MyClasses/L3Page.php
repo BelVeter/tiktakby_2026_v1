@@ -636,4 +636,86 @@ class L3Page
     ],
   ];
 
+  /**
+   * Builds the Product Schema.org JSON-LD string for the product page (L3).
+   *
+   * @return string
+   */
+  public function getSchemaJsonLd()
+  {
+      $l3Url         = $this->getCanonicalUrlBy();
+      $l3PrimaryStep = $this->modelWeb->getTarifLinePeriod() ?: 'week';
+
+      // Build Schema.org offers via TariffModel — filtered by primary rental period
+      $l3SchemaOffers = $this->getTarifModel() ? $this->getTarifModel()->getSchemaOffers($l3PrimaryStep, $l3Url) : null;
+      if ($l3SchemaOffers) {
+          $availability = $this->model->hasFreeItems() ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
+          if (isset($l3SchemaOffers['@type'])) {
+              $l3SchemaOffers['availability'] = $availability;
+          } else {
+              foreach ($l3SchemaOffers as &$offer) {
+                  $offer['availability'] = $availability;
+              }
+              unset($offer);
+          }
+      }
+
+      // Images: all slider photos as absolute URLs
+      $l3Images = [];
+      foreach ($this->getPicsForSlider() as $pic) {
+          $src = $pic->getSrc();
+          if ($src) {
+              $l3Images[] = strpos($src, 'http') === 0 ? $src : 'https://tiktak.by' . $src;
+          }
+      }
+
+      // Description: prefer main_descr (943/980 products), fall back to meta_description
+      $l3RawDesc = $this->getDescription(); // = modelWeb->main_descr (HTML)
+      if (!$l3RawDesc) {
+          $l3RawDesc = $this->getMetaDescription();
+      }
+      $l3Description = trim(strip_tags($l3RawDesc));
+
+      // Brand: only output if the producer field contains a real brand name
+      $l3Producer   = $this->model ? (string)$this->model->getProducer() : '';
+      $l3BrandValid = $l3Producer && strlen($l3Producer) <= 50
+          && !preg_match('/\d+\s*(см|кг|лет|мес|×)/iu', $l3Producer);
+
+      $l3Schema = [
+          '@context' => 'https://schema.org',
+          '@type'    => 'Product',
+          '@id'      => $l3Url,
+          'url'      => $l3Url,
+          'name'     => strip_tags($this->getL3MainName()),
+      ];
+
+      if ($l3Description) {
+          $l3Schema['description'] = $l3Description;
+      }
+
+      if (count($l3Images) === 1) {
+          $l3Schema['image'] = $l3Images[0];
+      } elseif (count($l3Images) > 1) {
+          $l3Schema['image'] = $l3Images;
+      }
+
+      if ($l3SchemaOffers) {
+          $l3Schema['offers'] = $l3SchemaOffers;
+      }
+
+      if ($l3BrandValid) {
+          $l3Schema['brand'] = ['@type' => 'Brand', 'name' => $l3Producer];
+      }
+
+      $l3Schema['additionalProperty'] = [
+          [
+              '@type' => 'PropertyValue',
+              'name'  => 'Доставка по Минску',
+              'value' => 'бесплатно',
+          ],
+      ];
+
+      return '<script type="application/ld+json">' . json_encode($l3Schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+  }
+
 }

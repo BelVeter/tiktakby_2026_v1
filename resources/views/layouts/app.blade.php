@@ -85,6 +85,7 @@
   </noscript>
   @yield('style')
   @yield('canonical')
+  @yield('json-ld')
 
   <link rel="icon" href="/tiktak.ico" type="image/x-icon">
   <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="32x32">

@@ -1196,5 +1196,73 @@ class MainPage
     else
       return false;
   }
+  /**
+   * Builds the ItemList Schema.org JSON-LD string for category listings (L2).
+   *
+   * @return string
+   */
+  public function getSchemaJsonLd()
+  {
+      if ($this->getShowPageNumber() != 1 || $this->getModelsNum() <= 0) {
+          return '';
+      }
+
+      $schemaItems = [];
+      $pos = 0;
+
+      foreach ($this->getModels() as $m) {
+          $pos++;
+          $l3AbsUrl    = 'https://tiktak.by' . $m->getL3Url();
+          $picAbsUrl   = $m->getPicUrl() ? 'https://tiktak.by' . $m->getPicUrl() : null;
+          $producerStr = $m->getProducer();
+
+          $item = [
+              '@type'    => 'ListItem',
+              'position' => $pos,
+              'item'     => [
+                  '@type' => 'Product',
+                  '@id'   => $l3AbsUrl,
+                  'url'   => $l3AbsUrl,
+                  'name'  => $m->getNameNoBr(),
+              ]
+          ];
+
+          if ($picAbsUrl) {
+              $item['item']['image'] = $picAbsUrl;
+          }
+
+          $brandIsValid = $producerStr && strlen($producerStr) <= 50
+              && !preg_match('/\d+\s*(см|кг|лет|мес|×)/iu', $producerStr);
+          if ($brandIsValid) {
+              $item['item']['brand'] = ['@type' => 'Brand', 'name' => $producerStr];
+          }
+
+          $desc = $m->getModelMetaDescription();
+          if ($desc) {
+              $item['item']['description'] = $desc;
+          }
+
+          $schemaOffer = $m->getTarifModel() ? $m->getTarifModel()->getSchemaMinOffer($l3AbsUrl) : null;
+          if ($schemaOffer) {
+              $schemaOffer['availability'] = $m->hasItemsAvailable()
+                  ? 'https://schema.org/InStock'
+                  : 'https://schema.org/OutOfStock';
+              $item['item']['offers'] = $schemaOffer;
+          }
+
+          $schemaItems[] = $item;
+      }
+
+      $schemaData = [
+          '@context'        => 'https://schema.org',
+          '@type'           => 'ItemList',
+          'name'            => $this->getH1(0),
+          'url'             => $this->getCanonicalUrlBy() ?: request()->url(),
+          'numberOfItems'   => $this->getTotalModelsNum(),
+          'itemListElement' => $schemaItems,
+      ];
+
+      return '<script type="application/ld+json">' . json_encode($schemaData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+  }
 
 }

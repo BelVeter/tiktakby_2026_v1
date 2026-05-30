@@ -493,6 +493,49 @@ class L2ModelWeb
       return 0;
     }
   }
+  /**
+   * @return string
+   */
+  public function getProducer()
+  {
+    return $this->model ? (string)$this->model->getProducer() : '';
+  }
+
+  /**
+   * @return string
+   */
+  public function getModelMetaDescription()
+  {
+    return $this->model_web ? strip_tags($this->model_web->getMetaDescription()) : '';
+  }
+
+  /**
+   * @return Tariff|null
+   */
+  public function getMinPeriodTarif()
+  {
+    if (!$this->tarifModel) {
+      return null;
+    }
+    
+    $tariffs = $this->tarifModel->getTarifs();
+    if (!is_array($tariffs) || count($tariffs) === 0) {
+      return null;
+    }
+
+    $minTariff = null;
+    $minDays = 999999;
+    
+    foreach ($tariffs as $t) {
+      $days = $t->getDaysCalculatedNumber();
+      if ($days > 0 && $days < $minDays) {
+        $minDays = $days;
+        $minTariff = $t;
+      }
+    }
+    
+    return $minTariff;
+  }
 
   private static $_translations = [
     "Тариф за сутки" => [
