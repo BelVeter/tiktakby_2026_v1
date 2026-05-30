@@ -120,7 +120,8 @@ class RocketSMS {
      */
     public function send($phone, $text, $sender = null) {
         $params = ['phone' => $phone, 'text' => $text];
-        if ($sender) $params['sender'] = $sender;
+        $sender = $sender ?: 'TIKTAK.BY';
+        $params['sender'] = $sender;
         return $this->request('send', $params);
     }
 
@@ -133,7 +134,8 @@ class RocketSMS {
      */
     public function bulkSend(array $phones, $text, $sender = null) {
         $extra = ['text' => $text];
-        if ($sender) $extra['sender'] = $sender;
+        $sender = $sender ?: 'TIKTAK.BY';
+        $extra['sender'] = $sender;
         return $this->postRaw('bulkSend', $extra, $phones);
     }
 
