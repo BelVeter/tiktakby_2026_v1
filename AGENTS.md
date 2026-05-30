@@ -164,6 +164,7 @@ The project uses two distinct methods for database interaction due to its hybrid
 8. **Local dev environment**: Docker-based on Linux (not Laragon/Windows). Containers: `tiktakby-app` (Apache+PHP 7.4, port 80), `db` (MySQL). Run commands via `docker exec tiktakby-app php artisan ...`
 9. **Sitemap Generation**: A cron job runs `php artisan sitemap:generate` daily to update `sitemap.xml` (root) and `public/sitemap.xml`. The command iterates through all active catalog categories and products.
 10. **A1 VATS Integration**: Missed calls are fetched via `php artisan a1:fetch-missed-calls` (scheduled every 10 min during 9:00–19:00, hourly otherwise). Credentials in `.env`: `A1_COMPANY_ID`, `A1_API_KEY`. Tokens stored in `storage/app/a1_tokens.json` (access: 1 day, refresh: 7 days). Calls stored in `storage/app/a1_missed_calls.json` (UUID-keyed, max 500 records). Enriched with CRM data: client lookup by phone (last-7-digits normalization), active rentals from `rent_deals_act`, last return date from `rent_deals_arch`. Viewed at `/bb/a1_missed_calls.php`.
+11. **RocketSMS Integration**: A legacy PHP class `\bb\classes\RocketSMS` handles sending SMS messages, checking balance, and checking status. The credentials are read manually from `ROCKETSMS_USERNAME` and `ROCKETSMS_PASSWORD` in `.env`. The test interface is at `/bb/rocketsms_test.php` (accessible only to the administrator). Documentation is at `docs/rocketsms_api.md`.
 
 ## Rules for AI Agents
 
