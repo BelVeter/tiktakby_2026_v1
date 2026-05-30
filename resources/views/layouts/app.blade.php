@@ -3,6 +3,7 @@
   $v_js_popper = file_exists(public_path('js/popper.min.js')) ? filemtime(public_path('js/popper.min.js')) : 1;
   $v_js_bootstrap = file_exists(public_path('js/bootstrap.min.js')) ? filemtime(public_path('js/bootstrap.min.js')) : 1;
   $v_js_app = file_exists(public_path('js/app.js')) ? filemtime(public_path('js/app.js')) : 1;
+  $v_js_ads = file_exists(public_path('js/ads-conversions.js')) ? filemtime(public_path('js/ads-conversions.js')) : 1;
 @endphp
 
 <!DOCTYPE html>
@@ -22,6 +23,7 @@
     gtag('js', new Date());
 
     gtag('config', 'G-WWTHNS0FYG');
+    gtag('config', 'AW-18182822550');
   </script>
 
   <!-- Yandex.Metrika counter -->
