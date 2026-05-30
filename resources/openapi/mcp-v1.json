@@ -3,7 +3,7 @@
   "info": {
     "title": "TikTak.by MCP Analytics API",
     "version": "2.2.0",
-    "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
+    "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date \u2014 when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) \u2014 matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
   },
   "servers": [
     {
@@ -798,7 +798,7 @@
         "properties": {
           "office_id": {
             "type": "integer",
-            "description": "0 = synthetic 'Курьер' pseudo-office (delivery_yn='1' sub-deals)."
+            "description": "0 = synthetic '\u041a\u0443\u0440\u044c\u0435\u0440' pseudo-office (delivery_yn='1' sub-deals)."
           },
           "office_name": {
             "type": [
@@ -835,7 +835,7 @@
       },
       "InventoryFreeTreeData": {
         "type": "array",
-        "description": "Catalog tree: section → subsection → category → model.",
+        "description": "Catalog tree: section \u2192 subsection \u2192 category \u2192 model.",
         "items": {
           "type": "object",
           "properties": {
@@ -1081,7 +1081,7 @@
           },
           "avg_units": {
             "type": "number",
-            "description": "(units_at_from + units_at_to) / 2 — utilization denominator."
+            "description": "(units_at_from + units_at_to) / 2 \u2014 utilization denominator."
           },
           "deals_in_period": {
             "type": "integer"
@@ -1401,7 +1401,7 @@
           },
           "office_id": {
             "type": "integer",
-            "description": "0 = synthetic 'Курьер' pseudo-office."
+            "description": "0 = synthetic '\u041a\u0443\u0440\u044c\u0435\u0440' pseudo-office."
           },
           "office_name": {
             "type": [
@@ -1424,7 +1424,7 @@
           },
           "unique_clients_proxy": {
             "type": "integer",
-            "description": "DISTINCT deal_id of issuance sub-deals — proxy for unique customers visiting that office in that period."
+            "description": "DISTINCT deal_id of issuance sub-deals \u2014 proxy for unique customers visiting that office in that period."
           },
           "revenue_byn": {
             "$ref": "#/components/schemas/AmountBYN"
@@ -1574,7 +1574,7 @@
           },
           "total_revenue_byn": {
             "$ref": "#/components/schemas/AmountBYN",
-            "description": "Pre-aggregated per item to avoid M:N inflation through subrazdel_category × razdel_subrazdel."
+            "description": "Pre-aggregated per item to avoid M:N inflation through subrazdel_category \u00d7 razdel_subrazdel."
           },
           "issuance_events": {
             "type": "integer"
@@ -2986,7 +2986,7 @@
     "/finance/expenses": {
       "get": {
         "operationId": "tiktak_finance_expenses",
-        "summary": "doh_rash expenses by period × type2 × channel.",
+        "summary": "doh_rash expenses by period \u00d7 type2 \u00d7 channel.",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3033,7 +3033,7 @@
     "/operations/funnel": {
       "get": {
         "operationId": "tiktak_operations_funnel",
-        "summary": "Lead → deal → sub-deal → return funnel with conversion rates. issuance_events = sub_deal type IN first_rent/takeaway_plan (matches /bb/reports.php deal counts).",
+        "summary": "Lead \u2192 deal \u2192 sub-deal \u2192 return funnel with conversion rates. issuance_events = sub_deal type IN first_rent/takeaway_plan (matches /bb/reports.php deal counts).",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3114,7 +3114,7 @@
     "/operations/by-location": {
       "get": {
         "operationId": "tiktak_operations_by_location",
-        "summary": "Per-office deals + revenue + issuance_events + renewal_events. office_id=0 is the synthetic 'Курьер' row (delivery_yn='1' sub-deals).",
+        "summary": "Per-office deals + revenue + issuance_events + renewal_events. office_id=0 is the synthetic '\u041a\u0443\u0440\u044c\u0435\u0440' row (delivery_yn='1' sub-deals).",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3174,7 +3174,7 @@
     "/inventory/utilization": {
       "get": {
         "operationId": "tiktak_inventory_utilization",
-        "summary": "Per-model utilization = rented_seconds / (avg_units × period) + avg_rental_days_per_deal. Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).",
+        "summary": "Per-model utilization = rented_seconds / (avg_units \u00d7 period) + avg_rental_days_per_deal. Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3271,7 +3271,7 @@
     "/customers/cohorts": {
       "get": {
         "operationId": "tiktak_customers_cohorts",
-        "summary": "Monthly cohort × observed retention matrix.",
+        "summary": "Monthly cohort \u00d7 observed retention matrix.",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3334,7 +3334,7 @@
     "/geo/clients-by-city": {
       "get": {
         "operationId": "tiktak_geo_clients_by_city",
-        "summary": "Distinct clients × deals × revenue by trimmed/lower-cased city.",
+        "summary": "Distinct clients \u00d7 deals \u00d7 revenue by trimmed/lower-cased city.",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3356,7 +3356,7 @@
     "/locations/performance": {
       "get": {
         "operationId": "tiktak_locations_performance",
-        "summary": "Per-period × per-office revenue, deals, issuance_events. Office attribution via sub_deal.place + delivery_yn (per-payment). office_id=0 is the Курьер pseudo-office. avg_payment_byn is per sub-deal payment, not per deal.",
+        "summary": "Per-period \u00d7 per-office revenue, deals, issuance_events. Office attribution via sub_deal.place + delivery_yn (per-payment). office_id=0 is the \u041a\u0443\u0440\u044c\u0435\u0440 pseudo-office. avg_payment_byn is per sub-deal payment, not per deal.",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3448,7 +3448,7 @@
     "/carnival/funnel": {
       "get": {
         "operationId": "tiktak_carnival_funnel",
-        "summary": "Carnival booking funnel: bookings → approved → issued → returned. Source: karn_brons + karn_brons_arch (separate from regular rentals).",
+        "summary": "Carnival booking funnel: bookings \u2192 approved \u2192 issued \u2192 returned. Source: karn_brons + karn_brons_arch (separate from regular rentals).",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3483,7 +3483,7 @@
     "/carnival/revenue": {
       "get": {
         "operationId": "tiktak_carnival_revenue",
-        "summary": "Per-period carnival revenue by payment channel (k1/k2/terminal/bank). NOTE: this is the karn_brons pre-booking system — separate from /finance/revenue which sums rent_sub_deals. DO NOT sum both — that double-counts carnival revenue.",
+        "summary": "Per-period carnival revenue by payment channel (k1/k2/terminal/bank). NOTE: this is the karn_brons pre-booking system \u2014 separate from /finance/revenue which sums rent_sub_deals. DO NOT sum both \u2014 that double-counts carnival revenue.",
         "parameters": [
           {
             "$ref": "#/components/parameters/from"
@@ -3642,7 +3642,7 @@
     "/calls/cdr": {
       "get": {
         "operationId": "tiktak_calls_cdr",
-        "summary": "CDR list — all calls (incoming/outgoing/missed) fetched from A1 VATS. Includes recording_uuid if a recording exists.",
+        "summary": "CDR list \u2014 all calls (incoming/outgoing/missed) fetched from A1 VATS. Includes recording_uuid if a recording exists.",
         "parameters": [
           {
             "in": "query",
@@ -4078,7 +4078,7 @@
     "/redirects/bulk": {
       "post": {
         "operationId": "tiktak_redirects_bulk",
-        "summary": "Bulk upsert redirect rules (INSERT … ON DUPLICATE KEY UPDATE).",
+        "summary": "Bulk upsert redirect rules (INSERT \u2026 ON DUPLICATE KEY UPDATE).",
         "description": "Accepts up to 200 redirect items. Existing rows (matched by source_url) are updated; new rows are inserted. Cache is cleared once after the entire batch. Useful for SEO migrations.",
         "requestBody": {
           "required": true,
@@ -4419,12 +4419,62 @@
           }
         }
       }
+    },
+    "/sms/send": {
+      "post": {
+        "summary": "Send SMS",
+        "description": "Send an SMS message using RocketSMS API.",
+        "tags": [
+          "Notifications"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "description": "Phone number in international format without +"
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 160,
+                    "description": "Message content"
+                  },
+                  "sender": {
+                    "type": "string",
+                    "description": "Optional sender ID"
+                  }
+                },
+                "required": [
+                  "phone",
+                  "text"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": []
+            }
+          }
+        }
+      }
     }
   },
   "tags": [
     {
       "name": "Pages",
       "description": "SEO fields management for catalog L2 (listing) and L3 (product) pages"
+    },
+    {
+      "name": "Notifications",
+      "description": "Sending SMS and other notifications"
     }
   ]
 }

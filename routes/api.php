@@ -16,6 +16,7 @@ use App\Http\Controllers\Mcp\OperationsController;
 use App\Http\Controllers\Mcp\PagesListingController;
 use App\Http\Controllers\Mcp\PagesProductController;
 use App\Http\Controllers\Mcp\RedirectsController;
+use App\Http\Controllers\Mcp\SmsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -114,6 +115,9 @@ Route::prefix('mcp/v1')
 
         // Marketing Conversions
         Route::get('marketing/conversions', [MarketingController::class, 'conversions'])->name('marketing.conversions');
+
+        // SMS / Notifications
+        Route::post('sms/send', [SmsController::class, 'send'])->name('sms.send');
 
         // Pages (SEO)
         Route::get('pages/listing',          [PagesListingController::class, 'index'])->name('pages.listing.index');

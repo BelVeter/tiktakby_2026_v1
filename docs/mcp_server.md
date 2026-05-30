@@ -163,6 +163,7 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /pages/product` | List all L3 product models with their SEO completion status |
 |        | `GET /pages/product/{slug}` | Read L3 model SEO fields (from `rent_model_web`) |
 |        | `PATCH /pages/product/{slug}` | Update L3 model SEO fields (`meta_title`, `meta_description`, `main_pic_alt`, `l2_pic_alt`, `description`, `breadcrumb_name`) |
+| SMS    | `POST /sms/send` | Send an SMS message using RocketSMS (`phone`, `text`, optional `sender`) |
 
 ## Marketing conversions — data model
 
