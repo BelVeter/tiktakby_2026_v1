@@ -478,6 +478,7 @@
     </script>
 
     <script src="/public{{ mix('/js/app.js') }}"></script>
+    <script src="/public/js/ads-conversions.js?v={{$v_js_ads}}" defer></script>
 
     @if(isset($_COOKIE['tt_is_logged_in']))
       <script>
