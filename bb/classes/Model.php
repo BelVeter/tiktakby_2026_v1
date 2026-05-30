@@ -225,6 +225,67 @@ class Model
       return false;
   }
 
+  // $_heightCache[modelId] = [[r1,r2], [r1,r2], ...] merged contiguous ranges, or [] if none
+  private static $_heightCache = [];
+
+  public static function preloadHeightRanges(array $modelIds): void
+  {
+      if (empty($modelIds)) return;
+      $ids = implode(',', array_map('intval', $modelIds));
+      $mysqli = \bb\Db::getInstance()->getConnection();
+      $r = $mysqli->query(
+          "SELECT model_id, item_rost1, item_rost2
+           FROM tovar_rent_items
+           WHERE model_id IN ($ids) AND item_rost1 > 0
+           GROUP BY model_id, item_rost1, item_rost2
+           ORDER BY model_id, item_rost1"
+      );
+      if (!$r) return;
+      $raw = [];
+      while ($row = $r->fetch_assoc()) {
+          $raw[(int)$row['model_id']][] = [(int)$row['item_rost1'], (int)$row['item_rost2']];
+      }
+      foreach ($modelIds as $id) {
+          self::$_heightCache[(int)$id] = isset($raw[(int)$id])
+              ? self::mergeHeightRanges($raw[(int)$id])
+              : [];
+      }
+  }
+
+  public static function getHeightRangeForModelId(int $modelId): array
+  {
+      if (array_key_exists($modelId, self::$_heightCache)) {
+          return self::$_heightCache[$modelId];
+      }
+      $mysqli = \bb\Db::getInstance()->getConnection();
+      $r = $mysqli->query(
+          "SELECT item_rost1, item_rost2
+           FROM tovar_rent_items WHERE model_id = $modelId AND item_rost1 > 0
+           GROUP BY item_rost1, item_rost2 ORDER BY item_rost1"
+      );
+      $pairs = [];
+      if ($r) while ($row = $r->fetch_assoc()) {
+          $pairs[] = [(int)$row['item_rost1'], (int)$row['item_rost2']];
+      }
+      return self::$_heightCache[$modelId] = self::mergeHeightRanges($pairs);
+  }
+
+  // Merge overlapping/adjacent ranges (gap ≤ 5 cm treated as contiguous)
+  private static function mergeHeightRanges(array $pairs): array
+  {
+      if (empty($pairs)) return [];
+      usort($pairs, fn($a, $b) => $a[0] - $b[0]);
+      $merged = [$pairs[0]];
+      foreach (array_slice($pairs, 1) as [$r1, $r2]) {
+          if ($r1 <= end($merged)[1] + 5) {
+              $merged[count($merged) - 1][1] = max(end($merged)[1], $r2);
+          } else {
+              $merged[] = [$r1, $r2];
+          }
+      }
+      return $merged;
+  }
+
   /**
    * @param int $model_id
    * @return Model
