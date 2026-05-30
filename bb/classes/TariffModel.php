@@ -213,15 +213,10 @@ class TariffModel
     /**
      * Build Schema.org Offer array for the primary rental period (L3 product page).
      *
-     * Only tariffs whose `step` matches $primaryStep are included, so the schema
-     * reflects what the product card's price gradient actually shows:
-     *   'week'  → only week×1, week×2, week×3, week×4  offers
-     *   'day'   → only day×1, day×2, …
-     *   'month' → only month×1, …
-     *
-     * Returns a single Offer array (not wrapped) when there is only one tariff,
-     * or an indexed array of Offer arrays when there are multiple — matching
-     * the Schema.org convention used by Google's parser.
+     * Always generates 4 fixed breakpoints (×1, ×2, ×3, ×4) for the given step,
+     * using getAmmountForDaysPeriod() — the same interpolation the L2 card uses.
+     * This means week-based products always show 1/2/3/4 weeks even when the DB
+     * only has a subset of those tariff rows.
      *
      * @param  string $primaryStep  'day' | 'week' | 'month'
      * @param  string $url          Absolute canonical URL of the product page
@@ -229,31 +224,38 @@ class TariffModel
      */
     public function getSchemaOffers($primaryStep, $url)
     {
-        $unitCodeMap = ['day' => 'DAY', 'week' => 'WEE', 'month' => 'MON'];
+        if (count($this->getTarifs()) === 0) return null;
 
-        // Sort ascending by days so the order in JSON matches the UI
-        $tariffs = $this->getTarifs();
-        usort($tariffs, function ($a, $b) {
-            return $a->getDaysCalculatedNumber() - $b->getDaysCalculatedNumber();
-        });
+        $unitCodeMap = ['day' => 'DAY', 'week' => 'WEE', 'month' => 'MON'];
+        $stepDaysMap = ['day' => 1,     'week' => 7,     'month' => 30];
+
+        $unitCode = $unitCodeMap[$primaryStep] ?? 'DAY';
+        $stepDays = $stepDaysMap[$primaryStep] ?? 1;
 
         $offers = [];
-        foreach ($tariffs as $t) {
-            if ($t->step !== $primaryStep) continue;
-            if ($t->getDaysCalculatedNumber() < 1) continue;
+        for ($qty = 1; $qty <= 4; $qty++) {
+            // Prefer exact tariff row; fall back to interpolation for missing breakpoints
+            $exactPrice = null;
+            foreach ($this->getTarifs() as $t) {
+                if ($t->step === $primaryStep && (int)$t->kol_vo === $qty) {
+                    $exactPrice = $t->getTotalAmount();
+                    break;
+                }
+            }
+            $price = $exactPrice !== null ? $exactPrice : $this->getAmmountForDaysPeriod($stepDays * $qty);
+            if ($price <= 0) continue;
 
-            $unitCode = $unitCodeMap[$t->step] ?? 'DAY';
             $offers[] = [
                 '@type'              => 'Offer',
                 'priceCurrency'      => 'BYN',
-                'price'              => number_format($t->getTotalAmount(), 2, '.', ''),
+                'price'              => number_format($price, 2, '.', ''),
                 'priceSpecification' => [
                     '@type'             => 'UnitPriceSpecification',
-                    'price'             => number_format($t->getTotalAmount(), 2, '.', ''),
+                    'price'             => number_format($price, 2, '.', ''),
                     'priceCurrency'     => 'BYN',
                     'referenceQuantity' => [
                         '@type'    => 'QuantitativeValue',
-                        'value'    => (string) $t->kol_vo,
+                        'value'    => (string) $qty,
                         'unitCode' => $unitCode,
                     ],
                 ],

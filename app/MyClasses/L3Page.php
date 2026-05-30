@@ -674,7 +674,7 @@ class L3Page
       if (!$l3RawDesc) {
           $l3RawDesc = $this->getMetaDescription();
       }
-      $l3Description = trim(strip_tags($l3RawDesc));
+      $l3Description = trim(html_entity_decode(strip_tags($l3RawDesc), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
       // Brand: only output if the producer field contains a real brand name
       $l3Producer   = $this->model ? (string)$this->model->getProducer() : '';
@@ -686,7 +686,7 @@ class L3Page
           '@type'    => 'Product',
           '@id'      => $l3Url,
           'url'      => $l3Url,
-          'name'     => strip_tags($this->getL3MainName()),
+          'name'     => html_entity_decode(strip_tags($this->getL3MainName()), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
       ];
 
       if ($l3Description) {

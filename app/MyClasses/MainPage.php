@@ -1223,7 +1223,7 @@ class MainPage
                   '@type' => 'Product',
                   '@id'   => $l3AbsUrl,
                   'url'   => $l3AbsUrl,
-                  'name'  => $m->getNameNoBr(),
+                  'name'  => html_entity_decode($m->getNameNoBr(), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
               ]
           ];
 
@@ -1239,10 +1239,21 @@ class MainPage
 
           $desc = $m->getModelMetaDescription();
           if ($desc) {
-              $item['item']['description'] = $desc;
+              $item['item']['description'] = html_entity_decode($desc, ENT_QUOTES | ENT_HTML5, 'UTF-8');
           }
 
-          $schemaOffer = $m->getTarifModel() ? $m->getTarifModel()->getSchemaMinOffer($l3AbsUrl) : null;
+          // Use primary step (same as card: week→7, month→30, else day)
+          $baseDays    = $m->getTarifLinePeriodDaysNumber();
+          $primaryStep = ($baseDays === 30) ? 'month' : ($baseDays === 7 ? 'week' : 'day');
+          $tarifModel  = $m->getTarifModel();
+          $schemaOffer = null;
+          if ($tarifModel) {
+              $stepOffers  = $tarifModel->getSchemaOffers($primaryStep, $l3AbsUrl);
+              if ($stepOffers !== null) {
+                  // getSchemaOffers returns single Offer array when 1 tariff, indexed array when multiple
+                  $schemaOffer = isset($stepOffers['@type']) ? $stepOffers : $stepOffers[0];
+              }
+          }
           if ($schemaOffer) {
               $schemaOffer['availability'] = $m->hasItemsAvailable()
                   ? 'https://schema.org/InStock'
