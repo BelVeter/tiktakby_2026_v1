@@ -307,3 +307,6 @@ For deeper details, see `AGENTS.md`:
 - Git workflow and branching strategy
 - Security, authentication, and session management
 - Project history and stakeholder context
+
+**External APIs & Integrations**:
+- [RocketSMS API Integration](docs/rocketsms_api.md)
