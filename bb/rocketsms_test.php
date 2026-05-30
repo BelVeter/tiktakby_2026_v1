@@ -9,6 +9,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/bb/classes/RocketSMS.php';
 require        $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
+
 \bb\Base::loginCheck();
 
 $currentUser = \bb\models\User::getCurrentUser();
