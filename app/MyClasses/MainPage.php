@@ -1210,6 +1210,13 @@ class MainPage
       $schemaItems = [];
       $pos = 0;
 
+      // Preload height ranges in one query for all carnival models on this page
+      $carnivalIds = [];
+      foreach ($this->getModels() as $m) {
+          if ($m->isKarnaval()) $carnivalIds[] = $m->getModelId();
+      }
+      if ($carnivalIds) \bb\classes\Model::preloadHeightRanges($carnivalIds);
+
       foreach ($this->getModels() as $m) {
           $pos++;
           $l3AbsUrl    = 'https://tiktak.by' . $m->getL3Url();
@@ -1261,6 +1268,33 @@ class MainPage
               $item['item']['offers'] = $schemaOffer;
           }
 
+          $additionalProps = [];
+
+          $ageFrom = $m->getAgeFrom();
+          $ageTo   = $m->getAgeTo();
+          if ($ageFrom > 0 && $ageTo > 0) {
+              $additionalProps[] = [
+                  '@type' => 'PropertyValue',
+                  'name'  => 'Возраст',
+                  'value' => 'от ' . self::formatAgeMonths($ageFrom) . ' до ' . self::formatAgeMonths($ageTo),
+              ];
+          }
+
+          if ($m->isKarnaval()) {
+              $heightStr = self::formatHeightRanges($m->getHeightRange());
+              if ($heightStr) {
+                  $additionalProps[] = [
+                      '@type' => 'PropertyValue',
+                      'name'  => 'Рост ребёнка',
+                      'value' => $heightStr,
+                  ];
+              }
+          }
+
+          if ($additionalProps) {
+              $item['item']['additionalProperty'] = $additionalProps;
+          }
+
           $schemaItems[] = $item;
       }
 
@@ -1274,6 +1308,28 @@ class MainPage
       ];
 
       return '<script type="application/ld+json">' . json_encode($schemaData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+  }
+
+  private static function formatHeightRanges(array $ranges): string
+  {
+      if (empty($ranges)) return '';
+      if (count($ranges) === 1) {
+          return 'от ' . $ranges[0][0] . ' до ' . $ranges[0][1] . ' см';
+      }
+      return implode(', ', array_map(fn($r) => $r[0] . '-' . $r[1], $ranges)) . ' см';
+  }
+
+  private static function formatAgeMonths(int $months): string
+  {
+      if ($months < 12) return $months . ' мес';
+      $years = intdiv($months, 12);
+      $rem   = $months % 12;
+      if ($rem === 0) {
+          if ($years === 1) return '1 год';
+          if ($years <= 4) return $years . ' года';
+          return $years . ' лет';
+      }
+      return $years . ' г ' . $rem . ' мес';
   }
 
 }

@@ -537,6 +537,23 @@ class L2ModelWeb
     return $minTariff;
   }
 
+  public function getAgeFrom(): int
+  {
+    return $this->model ? (int)$this->model->getAgeFrom() : 0;
+  }
+
+  public function getAgeTo(): int
+  {
+    return $this->model ? (int)$this->model->getAgeTo() : 0;
+  }
+
+  // Returns merged height ranges: [[r1,r2], ...] or []
+  public function getHeightRange(): array
+  {
+    if (!$this->model) return [];
+    return Model::getHeightRangeForModelId((int)$this->model->model_id);
+  }
+
   private static $_translations = [
     "Тариф за сутки" => [
       "Tarifas už dieną",

@@ -707,15 +707,58 @@ class L3Page
           $l3Schema['brand'] = ['@type' => 'Brand', 'name' => $l3Producer];
       }
 
-      $l3Schema['additionalProperty'] = [
-          [
-              '@type' => 'PropertyValue',
-              'name'  => 'Доставка по Минску',
-              'value' => 'бесплатно',
-          ],
+      $l3AdditionalProps = [
+          ['@type' => 'PropertyValue', 'name' => 'Доставка по Минску', 'value' => 'бесплатно'],
       ];
 
+      $l3AgeFrom = $this->model ? (int)$this->model->getAgeFrom() : 0;
+      $l3AgeTo   = $this->model ? (int)$this->model->getAgeTo()   : 0;
+      if ($l3AgeFrom > 0 && $l3AgeTo > 0) {
+          $l3AdditionalProps[] = [
+              '@type' => 'PropertyValue',
+              'name'  => 'Возраст',
+              'value' => 'от ' . self::formatAgeMonths($l3AgeFrom) . ' до ' . self::formatAgeMonths($l3AgeTo),
+          ];
+      }
+
+      if ($this->isKarnaval()) {
+          $heightStr = self::formatHeightRanges(
+              \bb\classes\Model::getHeightRangeForModelId((int)$this->modelWeb->getModelId())
+          );
+          if ($heightStr) {
+              $l3AdditionalProps[] = [
+                  '@type' => 'PropertyValue',
+                  'name'  => 'Рост ребёнка',
+                  'value' => $heightStr,
+              ];
+          }
+      }
+
+      $l3Schema['additionalProperty'] = $l3AdditionalProps;
+
       return '<script type="application/ld+json">' . json_encode($l3Schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+  }
+
+  private static function formatHeightRanges(array $ranges): string
+  {
+      if (empty($ranges)) return '';
+      if (count($ranges) === 1) {
+          return 'от ' . $ranges[0][0] . ' до ' . $ranges[0][1] . ' см';
+      }
+      return implode(', ', array_map(fn($r) => $r[0] . '-' . $r[1], $ranges)) . ' см';
+  }
+
+  private static function formatAgeMonths(int $months): string
+  {
+      if ($months < 12) return $months . ' мес';
+      $years = intdiv($months, 12);
+      $rem   = $months % 12;
+      if ($rem === 0) {
+          if ($years === 1) return '1 год';
+          if ($years <= 4) return $years . ' года';
+          return $years . ' лет';
+      }
+      return $years . ' г ' . $rem . ' мес';
   }
 
 }
