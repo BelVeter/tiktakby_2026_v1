@@ -59,7 +59,9 @@ class ZvonokController extends Controller
       }
     }
 
-    return Redirect::to($req->header('referer'));
+    $referer = $req->header('referer') ?: '/';
+    $separator = parse_url($referer, PHP_URL_QUERY) ? '&' : '?';
+    return Redirect::to($referer . $separator . 'ck=zvonok');
   }
 
   public function addSubscription(Request $req)
@@ -77,7 +79,8 @@ class ZvonokController extends Controller
       Base::addClientMessage($req->input('Ваша заявка на подписку принята.'));
     }
 
-    return Redirect::to($req->header('referer'));
+    $referer = $req->header('referer') ?: '/';
+    return Redirect::to($referer);
   }
 
   public function bron(Request $req)
