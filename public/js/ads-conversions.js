@@ -7,14 +7,15 @@
     }
   }
 
-  // ── Conversion 4: Tel click ──────────────────────────────────────────────
+  // ── Conversion 5: Tel + Viber clicks ────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('a[href^="tel:"]').forEach(function (el) {
+    document.querySelectorAll('a[href^="tel:"], a[href^="viber://"]').forEach(function (el) {
       el.addEventListener('click', function () {
+        var isViber = el.getAttribute('href').indexOf('viber://') === 0;
         safeGtag('event', 'conversion', {
           send_to: 'AW-18182822550/sDSkCKye87UcEJa1n95D',
         });
-        safeGtag('event', 'phone_click');
+        safeGtag('event', isViber ? 'viber_click' : 'phone_click');
       });
     });
   });
@@ -104,6 +105,51 @@
       });
       safeGtag('event', 'booking_submit');
       _nativeSubmit.call(this);
+    };
+  });
+
+  // ── Conversion 4 + micro: /zvonok/kb via fetch() ────────────────────────
+  // kb_save → kb_ok     : Ads conversion (costume booking) + GA4 event
+  // zayavka → zayavka_ok: GA4 only (waitlist lead, no Ads tag needed)
+  (function () {
+    if (typeof window.fetch !== 'function') return;
+    var _origFetch = window.fetch;
+    window.fetch = function (url, options) {
+      var urlStr = (typeof url === 'string') ? url : (url && url.url) || '';
+      var promise = _origFetch.apply(this, arguments);
+      if (urlStr.indexOf('/zvonok/kb') === -1) return promise;
+      return promise.then(function (response) {
+        response.clone().json().then(function (data) {
+          if (!data || !data.status) return;
+          if (data.status === 'kb_ok') {
+            var phoneEl = document.querySelector('input[name="phone"]');
+            if (phoneEl && phoneEl.value) {
+              safeGtag('set', 'user_data', { phone_number: phoneEl.value });
+            }
+            safeGtag('event', 'conversion', {
+              send_to: 'AW-18182822550/0x6yCK72-7UcEJa1n95D',
+            });
+            safeGtag('event', 'costume_booking_submit');
+          } else if (data.status === 'zayavka_ok') {
+            safeGtag('event', 'waitlist_submit');
+          }
+        }).catch(function () { /* silent */ });
+        return response;
+      });
+    };
+  })();
+
+  // ── Micro: add_to_cart ───────────────────────────────────────────────────
+  // TiktakCart is set by inline script in app.blade.php before our defer runs.
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.TiktakCart || typeof window.TiktakCart.addItem !== 'function') return;
+    var _origAddItem = window.TiktakCart.addItem;
+    window.TiktakCart.addItem = function (item) {
+      var result = _origAddItem.call(this, item);
+      if (result === true) {
+        safeGtag('event', 'add_to_cart');
+      }
+      return result;
     };
   });
 
