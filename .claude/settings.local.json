@@ -34,7 +34,8 @@
       "Bash(curl -s \"https://tiktak.by/Deploy.php?key=$\\(grep -oP \"\\(?<=key=\\)[^'\\\\\"&\\\\s]+\" ~/sites/tiktakby/Deploy.php)",
       "Bash(xargs -I{} bash -c 'grep -L \"models/User\" \"{}\" 2>/dev/null')",
       "Bash(grep -n 'function getTarifs\\\\|function getDaysCalculatedNumber\\\\|function getTotalAmount\\\\|class Tariff\\\\|public $step\\\\|public $kol_vo\\\\|$step\\\\|$kol_vo' /home/dmitry/sites/tiktakby/bb/classes/TariffModel.php)",
-      "Bash(php artisan *)"
+      "Bash(php artisan *)",
+      "Bash(docker-compose ps *)"
     ]
   }
 }
