@@ -87,6 +87,56 @@
   </noscript>
   @yield('style')
   @yield('canonical')
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "RentalBusiness",
+    "@id": "https://tiktak.by",
+    "name": "TikTak — Прокат детских товаров",
+    "url": "https://tiktak.by",
+    "logo": "https://tiktak.by/public/png/logo-circle.png",
+    "image": "https://tiktak.by/public/img/prokat-detskih-koliasok-minsk.jpg",
+    "description": "Прокат детских товаров и карнавальных костюмов в Минске. Велосипеды, самокаты, коляски, ходунки, качели, ингаляторы, увлажнители воздуха. Доставка по Минску. Работаем с 2011 года.",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "ул. Литературная, 22",
+      "addressLocality": "Минск",
+      "postalCode": "220113",
+      "addressCountry": "BY"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 53.9401009,
+      "longitude": 27.5680041
+    },
+    "telephone": "+375447454040",
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+        "opens": "10:00",
+        "closes": "19:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Saturday","Sunday"],
+        "opens": "10:00",
+        "closes": "15:00"
+      }
+    ],
+    "priceRange": "$$",
+    "currenciesAccepted": "BYN",
+    "areaServed": {
+      "@type": "City",
+      "name": "Минск"
+    },
+    "foundingDate": "2011",
+    "sameAs": [
+      "https://www.google.com/maps?cid=4081704901349344029",
+      "https://www.instagram.com/prokat_tiktak.by"
+    ]
+  }
+  </script>
   @yield('json-ld')
 
   <link rel="icon" href="/tiktak.ico" type="image/x-icon">
