@@ -728,7 +728,18 @@ class Model
     }
     if ($resultDop->num_rows > 0) {
       while ($row = $resultDop->fetch_assoc()) {
-        $rez[] = [$row['model_id'], $row['free_num'], $row['sort_n'],];
+        $arrToInclude = [$row['model_id'], $row['free_num'], $row['sort_n'],];
+        $toInclude = true;
+
+        foreach ($rez as $r) {
+          if ($r[0] == $arrToInclude[0]) {
+            $toInclude = false;
+            break;
+          }
+        }
+        if ($toInclude) {
+          $rez[] = $arrToInclude;
+        }
       }
     }
 

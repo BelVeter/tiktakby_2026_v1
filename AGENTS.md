@@ -42,6 +42,7 @@
 | `Mcp/CarnivalController` | `/carnival/{funnel,seasonality,revenue}` (UNION of `karn_brons` + `karn_brons_arch`) |
 | `Mcp/ExportController` | `/export/monthly/{topic}` — CSV streams matching `data/monthly/_schema.md` |
 | `Mcp/CallsController` | `/calls/*` — A1 Call recordings, CDR, and AI call analysis |
+| `Mcp/SmsController` | `/sms/send` — sending SMS messages via RocketSMS API |
 | `Mcp/BaseController` | abstract — `envelope()`, `cacheRemember()`, `dataFreshness()`, TTL constants |
 | `Mcp/MarketingController` | `/marketing/conversions` — UTM-attributed conversion events for all conversion types |
 | `Mcp/RedirectsController` | `/redirects/*` — redirects CRUD API and bulk upsert |

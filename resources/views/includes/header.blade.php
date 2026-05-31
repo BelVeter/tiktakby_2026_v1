@@ -303,8 +303,7 @@
                         </a>
                     </div>
 
-                    <div class="mobile-top-actions"
-                        style="display: flex; gap: 15px; flex: 0 0 auto; justify-content: flex-end;">
+                    <div class="mobile-top-actions">
                         <a href="#" data-bs-toggle="modal" data-bs-target="#profileComingSoonModal"
                             style="color: #3180D1;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" stroke-width="2">
