@@ -40,8 +40,13 @@ class Feed2GisTest extends TestCase
         $body = $response->getContent();
         $bodyNoDtd = preg_replace('/<!DOCTYPE[^>]*>/', '', $body);
 
+        libxml_use_internal_errors(true);
         $xml = simplexml_load_string($bodyNoDtd);
-        $this->assertNotFalse($xml, 'Feed XML failed to parse: ' . implode('; ', libxml_get_errors()));
+        $errors = array_map(fn($e) => trim($e->message), libxml_get_errors());
+        libxml_clear_errors();
+        libxml_use_internal_errors(false);
+
+        $this->assertNotFalse($xml, 'Feed XML failed to parse: ' . implode('; ', $errors));
     }
 
     public function test_feed_contains_at_least_one_offer_with_positive_price(): void
@@ -98,6 +103,7 @@ class Feed2GisTest extends TestCase
             $this->assertNotEmpty((string)$offer->name, "offer $id: missing <name>");
             $this->assertNotEmpty((string)$offer->url, "offer $id: missing <url>");
             $this->assertNotEmpty((string)$offer->currencyId, "offer $id: missing <currencyId>");
+            $this->assertNotEmpty((string)$offer->price, "offer $id: missing <price>");
         }
     }
 }

@@ -256,8 +256,11 @@ class Feed2GisController extends Controller
 
         $lines[] = '    <offers>';
         foreach (self::SERVICES as $service) {
-            $data  = $this->queryServiceData($service['filter']);
-            $price = $data['price'] !== null ? number_format($data['price'], 2, '.', '') : '0';
+            $data = $this->queryServiceData($service['filter']);
+            if ($data['price'] === null) {
+                continue;
+            }
+            $price = number_format($data['price'], 2, '.', '');
 
             $description = 'Прокат в Минске от ' . $price . ' руб./неделю. '
                 . 'Доставка по Минску. Работаем с 2011 года. '
@@ -409,11 +412,10 @@ class Feed2GisController extends Controller
 
     private function secondsUntilNextGeneration(): int
     {
-        $now  = time();
-        $next = mktime(3, 0, 0);
-        if ($next <= $now) {
-            $next = mktime(3, 0, 0, (int)date('n'), (int)date('j') + 1);
+        $next = strtotime('tomorrow 03:00:00');
+        if (strtotime('today 03:00:00') > time()) {
+            $next = strtotime('today 03:00:00');
         }
-        return max(3600, $next - $now);
+        return max(3600, $next - time());
     }
 }
