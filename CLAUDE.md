@@ -171,6 +171,7 @@ Check admin status in Laravel views:
 | `FavoritesController` | Favorites functionality |
 | `ZvonokController` | Callback requests, bookings (KB), subscriptions |
 | `RedirectController` | URL redirects (created for `route:cache` compatibility) |
+| `Feed2GisController` | 2GIS YML feed — generates XML with 24 rental services and minimum weekly prices, daily cache |
 
 ### MCP Analytics API Controllers (`app/Http/Controllers/Mcp/`)
 
@@ -227,6 +228,7 @@ Standalone PHP application (not Laravel):
 - Language redirects: `/en/*`, `/lt/*` → `/ru/*` (only `/ru/` active)
 - Catalog structure: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
 - All routes use controllers (no closures!) — required for `route:cache`
+- **2GIS YML Feed** (`GET /feed/2gis`): public XML feed of 24 rental services with minimum weekly prices; daily cached at 03:00 via `feed:generate-2gis` Artisan command; `?refresh=1` forces regeneration; source: `Feed2GisController`
 
 **API routes** (`routes/api.php`):
 - **MCP Analytics API** (`GET /api/mcp/v1/*`)
