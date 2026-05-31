@@ -138,6 +138,9 @@ Route::get('/bb-internal/audio/{uuid}', 'App\Http\Controllers\BbAudioController@
     ->where('uuid', '[a-zA-Z0-9_-]+')
     ->name('bb.audio.stream');
 
+// --- Фиды ---
+Route::get('/feed/2gis', 'App\Http\Controllers\Feed2GisController@generate');
+
 // --- Каталог ---
 Route::get(
     '/ru/prokat/{cat}',

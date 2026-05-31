@@ -30,6 +30,7 @@
 | `RedirectController` | All redirect routes (created for `route:cache` compatibility) |
 | `FavoritesController` | Favorites functionality (added by Kristina) |
 | `CartController` | Shopping cart: display cart page, tariff retrieval, availability check, checkout with booking creation |
+| `Feed2GisController` | Generation of 2GIS XML feed (`/api/feed/2gis`) |
 | `Mcp/HealthController` | `/health` + `/openapi.json` |
 | `Mcp/MetaController` | `/meta/*` — categories, locations, expense-items, income-items, data-freshness |
 | `Mcp/FinanceController` | `/finance/{pnl,revenue,revenue-by-category,expenses,cash-flow}` — P&L injects 2025 bank-channel warning |
@@ -166,6 +167,7 @@ The project uses two distinct methods for database interaction due to its hybrid
 9. **Sitemap Generation**: A cron job runs `php artisan sitemap:generate` daily to update `sitemap.xml` (root) and `public/sitemap.xml`. The command iterates through all active catalog categories and products.
 10. **A1 VATS Integration**: Missed calls are fetched via `php artisan a1:fetch-missed-calls` (scheduled every 10 min during 9:00–19:00, hourly otherwise). Credentials in `.env`: `A1_COMPANY_ID`, `A1_API_KEY`. Tokens stored in `storage/app/a1_tokens.json` (access: 1 day, refresh: 7 days). Calls stored in `storage/app/a1_missed_calls.json` (UUID-keyed, max 500 records). Enriched with CRM data: client lookup by phone (last-7-digits normalization), active rentals from `rent_deals_act`, last return date from `rent_deals_arch`. Viewed at `/bb/a1_missed_calls.php`.
 11. **RocketSMS Integration**: A legacy PHP class `\bb\classes\RocketSMS` handles sending SMS messages, checking balance, and checking status. The credentials are read manually from `ROCKETSMS_USERNAME` and `ROCKETSMS_PASSWORD` in `.env`. The test interface is at `/bb/rocketsms_test.php` (accessible only to the administrator). Documentation is at `docs/rocketsms_api.md`.
+12. **2GIS Feed Generation**: A cron job runs `php artisan feed:2gis` to generate the `feed_2gis_xml` cache used by `Feed2GisController` for providing a YML catalog at `/api/feed/2gis`.
 
 ## Rules for AI Agents
 
