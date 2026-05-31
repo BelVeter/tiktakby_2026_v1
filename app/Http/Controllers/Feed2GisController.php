@@ -155,12 +155,13 @@ class Feed2GisController extends Controller
             'filter'      => ['type' => 'sub_razdel', 'value' => 'electroterapiya-prokat'],
         ],
 
-        // --- Карнавальные костюмы ---
+        // --- Карнавальные костюмы (посуточный прокат) ---
         [
             'id'          => 18,
             'name'        => 'Прокат детских карнавальных костюмов',
             'url'         => '/ru/karnavalnye-kostyumy/detskie-nariady-prokat/',
             'feed_cat_id' => 2,
+            'price_per'   => 'day',
             'filter'      => ['type' => 'sub_razdel', 'value' => 'detskie-nariady-prokat'],
         ],
         [
@@ -168,6 +169,7 @@ class Feed2GisController extends Controller
             'name'        => 'Прокат карнавальных костюмов для взрослых',
             'url'         => '/ru/karnavalnye-kostyumy/carnival-rent-adult/',
             'feed_cat_id' => 2,
+            'price_per'   => 'day',
             'filter'      => ['type' => 'sub_razdel', 'value' => 'carnival-rent-adult'],
         ],
 
@@ -256,13 +258,16 @@ class Feed2GisController extends Controller
 
         $lines[] = '    <offers>';
         foreach (self::SERVICES as $service) {
-            $data = $this->queryServiceData($service['filter']);
+            $pricePer = $service['price_per'] ?? 'week';
+            $data     = $this->queryServiceData($service['filter'], $pricePer);
             if ($data['price'] === null) {
                 continue;
             }
             $price = number_format($data['price'], 2, '.', '');
 
-            $description = 'Прокат в Минске от ' . $price . ' руб./неделю. '
+            $measureLabel = $pricePer === 'day' ? 'сутки' : 'неделя';
+            $priceLabel   = $pricePer === 'day' ? 'руб./сутки' : 'руб./неделю';
+            $description  = 'Прокат в Минске от ' . $price . ' ' . $priceLabel . '. '
                 . 'Доставка по Минску. Работаем с 2011 года. '
                 . 'Подробнее и полный каталог: tiktak.by';
 
@@ -271,7 +276,7 @@ class Feed2GisController extends Controller
             $lines[] = '        <url>' . htmlspecialchars(self::BASE_URL . $service['url'], ENT_XML1) . '</url>';
             $lines[] = '        <price>' . $price . '</price>';
             $lines[] = '        <currencyId>BYN</currencyId>';
-            $lines[] = '        <measure>неделя</measure>';
+            $lines[] = '        <measure>' . $measureLabel . '</measure>';
             $lines[] = '        <categoryId>' . $service['feed_cat_id'] . '</categoryId>';
             if (!empty($data['photo'])) {
                 $lines[] = '        <picture>' . htmlspecialchars(self::BASE_URL . $data['photo'], ENT_XML1) . '</picture>';
@@ -286,7 +291,7 @@ class Feed2GisController extends Controller
         return implode("\n", $lines) . "\n";
     }
 
-    private function queryServiceData(array $filter): array
+    private function queryServiceData(array $filter, string $pricePer = 'week'): array
     {
         [$joinSql, $whereSql, $bindings] = $this->buildFilterClauses($filter);
 
@@ -332,7 +337,9 @@ class Feed2GisController extends Controller
 
         $minPrice = null;
         foreach ($byModel as $tiers) {
-            $price = $this->getPriceForWeek($tiers);
+            $price = $pricePer === 'day'
+                ? $this->getPriceForDay($tiers)
+                : $this->getPriceForWeek($tiers);
             if ($price !== null && ($minPrice === null || $price < $minPrice)) {
                 $minPrice = $price;
             }
@@ -408,6 +415,24 @@ class Feed2GisController extends Controller
         }
 
         return round(7 * $tarifPerDay, 2);
+    }
+
+    private function getPriceForDay(array $tiers): ?float
+    {
+        $tiers = array_values(array_filter($tiers, fn($t) => $t['tier_days'] > 0 && $t['daily_rate'] > 0));
+        if (empty($tiers)) {
+            return null;
+        }
+
+        // Mirrors TariffModel::getAmmountForDaysPeriod(1)
+        $tarifPerDay = $tiers[0]['daily_rate'];
+        foreach ($tiers as $tier) {
+            if (1 >= $tier['tier_days']) {
+                $tarifPerDay = $tier['daily_rate'];
+            }
+        }
+
+        return round($tarifPerDay, 2);
     }
 
     private function secondsUntilNextGeneration(): int
