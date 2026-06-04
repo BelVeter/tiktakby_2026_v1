@@ -676,6 +676,14 @@ class L3Page
       }
       $l3Description = trim(html_entity_decode(strip_tags($l3RawDesc), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
+      if (!$l3Description) {
+          $minOffer = $this->getTarifModel() ? $this->getTarifModel()->getSchemaMinOffer($l3Url) : null;
+          $minPrice = $minOffer && isset($minOffer['price']) ? $minOffer['price'] : '';
+          $priceText = $minPrice ? " от {$minPrice} BYN" : '';
+          $productName = html_entity_decode(strip_tags($this->getL3MainName()), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+          $l3Description = "Прокат " . $productName . " в Минске" . $priceText . ".";
+      }
+
       // Brand: only output if the producer field contains a real brand name
       $l3Producer   = $this->model ? (string)$this->model->getProducer() : '';
       $l3BrandValid = $l3Producer && strlen($l3Producer) <= 50
@@ -705,6 +713,8 @@ class L3Page
 
       if ($l3BrandValid) {
           $l3Schema['brand'] = ['@type' => 'Brand', 'name' => $l3Producer];
+      } else {
+          $l3Schema['brand'] = ['@type' => 'Brand', 'name' => 'TikTak Прокат'];
       }
 
       $l3AdditionalProps = [
