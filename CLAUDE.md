@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **CRITICAL**: Dual architecture:
 1. **Laravel app** (`app/`, `routes/`, `resources/`) - Public website
 2. **Legacy admin panel** (`bb/`) - Standalone PHP admin interface
-3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 31 analytics + 9 AI-agent call endpoints under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
+3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 57 endpoints (analytics, AI-agent calls, SEO content management, SMS, redirects CRUD) under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
 
 **MCP API methodology (locked 2026-05-14)** — reproduces legacy admin reports `/bb/reports.php`, `/bb/sales_breakdown.php`, `/bb/dohrash2.php`, `/bb/cat_analysis.php`:
 - Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` filtered by `acc_date` (accounting date — when payment landed). NOT by deal `cr_time`.
@@ -181,9 +181,9 @@ All MCP controllers extend `BaseController` (envelope/cache/data-freshness helpe
 |-----------|-------------|-------------------|
 | `HealthController` | `/health`, `/openapi.json` | 2 — liveness probe + OpenAPI 3.0 spec |
 | `MetaController` | `/meta/*` | 5 — categories, locations, expense-items, income-items, data-freshness |
-| `FinanceController` | `/finance/*` | 4 — pnl (with 2025 warning), revenue, expenses, cash-flow |
-| `OperationsController` | `/operations/*`, `/orders/stats`, `/deals/list` | 6 — funnel, timeline, by-category, by-location + 2 legacy |
-| `InventoryController` | `/inventory/*` | 5 — free-tree, profitability, utilization, turnover, idle |
+| `FinanceController` | `/finance/*` | 5 — pnl (with 2025 warning), revenue, revenue-by-category, expenses, cash-flow |
+| `OperationsController` | `/operations/*` | 4 — funnel, timeline, by-category, by-location (`/orders/stats` + `/deals/list` removed, HTTP 404) |
+| `InventoryController` | `/inventory/*` | 6 — free-tree, pricing, profitability, utilization, turnover, idle |
 | `CustomersController` | `/customers/*`, `/clients/ltv` | 4 — timeline, cohorts, repeat-intervals + legacy LTV |
 | `GeoController` | `/geo/clients-by-city` | 1 — city-level grouping (Minsk-district resolution deferred to Stage 2) |
 | `LocationsController` | `/locations/*` | 2 — performance (per period × office), lifecycle (full history) |
@@ -191,6 +191,11 @@ All MCP controllers extend `BaseController` (envelope/cache/data-freshness helpe
 | `CarnivalController` | `/carnival/*` | 3 — funnel, seasonality, revenue (UNION of `karn_brons` + `karn_brons_arch`) |
 | `ExportController` | `/export/monthly/{topic}` | 1 — streaming CSV for `operations`, `revenue`, `pnl`, `traffic` |
 | `CallsController` | `/calls/*` | 9 — recordings list, file stream, CDR, pending-analysis queue, get/submit/reset analysis, get/submit daily summary |
+| `MarketingController` | `/marketing/conversions` | 1 — UTM-attributed conversion events with entity details |
+| `PagesListingController` | `/pages/listing`, `/pages/listing/{slug}` | 3 — GET list, GET show, PATCH upsert SEO fields for L2 categories (`pages` table) |
+| `PagesProductController` | `/pages/product`, `/pages/product/{slug}` | 3 — GET list, GET show, PATCH update SEO fields for L3 models (`rent_model_web`) |
+| `SmsController` | `/sms/send` | 1 — POST send SMS via RocketSMS (`phone`, `text`, optional `sender`) |
+| `RedirectsController` | `/redirects`, `/redirects/{id}`, `/redirects/bulk` | 5 — GET list (filters+pagination), POST create, PATCH update, DELETE, POST bulk upsert; clears `CheckRedirects` cache on every write |
 
 ### Middleware (`app/Http/Middleware/`)
 

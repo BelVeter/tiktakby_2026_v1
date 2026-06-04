@@ -71,6 +71,9 @@ class CheckRedirects
         // 2. Пропускаем запросы к статическим файлам (изображения, CSS, JS и т.д.)
         // Это исключает мусорные запросы от ботов и снижает нагрузку на БД.
         $path = '/' . ltrim($request->path(), '/');
+        if (strlen($path) > 1) {
+            $path = rtrim($path, '/');
+        }
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         if ($extension && in_array($extension, self::STATIC_EXTENSIONS)) {
             return $next($request);
