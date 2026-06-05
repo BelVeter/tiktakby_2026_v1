@@ -31,6 +31,14 @@
 - **Бейджи** (`bb/bb_nav_badge.php`): «новые» = `type2='zayavka' AND info2 пусто`; «товар появился» = модель снова в наличии.
 - **Потребители заявок (read):** `bb/reports.php`, MCP `OperationsController/MarketingController/MetaController/ExportController`. Аддитивные колонки им не мешают.
 
+## Тестирование (как запускать) — findings 2026-06-05
+
+- **Запуск тестов только в контейнере** `tiktakby-app`: `docker exec tiktakby-app php artisan test [--filter=...]`. Причина: `bb\Db` **хардкодит** host `db` (не из `.env`), который резолвится только внутри docker-сети. С хоста (`localhost:33060`) легаси-код к БД не подключится.
+- **`bb\Db` — отдельное mysqli-соединение, НЕ Laravel PDO.** Поэтому Laravel-трейт `DatabaseTransactions` его НЕ откатывает: всё, что пишет легаси-код (`bb\classes\*`), на отдельном соединении и не роллбэчится транзакцией Laravel. Для тестов легаси-логики: либо самим чистить за собой в `tearDown()` (собирать созданные id и удалять), либо инъектировать соединение в тестируемый класс и делать `START TRANSACTION`/`ROLLBACK` на нём (но осторожно: `LOCK TABLES` в MySQL неявно коммитит транзакцию — ветки с lock не изолируются транзакцией).
+- **Тестируемость легаси:** новые классы (напр. `bb\classes\Zayavka`) принимают **инъектируемое** `\mysqli`-соединение в конструкторе (default `bb\Db::getInstance()->getConnection()`) — чистый DI и контроль соединения в тестах.
+- **`phpunit.xml`:** sqlite закомментирован → тесты идут на дефолтном mysql-соединении (та же dev-БД `tiktakby_tiktak`), без глобального RefreshDatabase. Тесты в репозитории на ветке `main`: набор `tests/Feature/Mcp/*` (читают реальные данные, есть `LegacyParityTest` с зафиксированными суммами) + `tests/Feature/ZvonokRedirectTest.php`. (MCP marketing/redirects-тесты живут на ветке rocketsms, на main их нет.)
+- Контейнеры проекта: `tiktakby-app` (PHP), `tiktakby-db` (mariadb 10.6), `tiktakby-pma`. Прямой доступ к БД для разовых запросов: `docker exec tiktakby-db mysql -u tiktakby_tiktak -pVai7evahch tiktakby_tiktak -e "..."`.
+
 ## Практика работы (по просьбе владельца)
 
 > Владелец писал базу сам ~10 лет, самоучка; в коде есть легаси и неоптимальные решения, особенно ранние. **При каждом удобном случае предлагать мелкие безопасные (low-risk) правки** того кода, который и так трогаем. **Массовый рефакторинг легаси не делать без явного запроса.** Перед добавлением колонок — всегда проверять позиционные INSERT (gotcha №1).
