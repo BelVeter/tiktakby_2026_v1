@@ -65,9 +65,18 @@ class BronRegressionTest extends TestCase
         $row = $this->conn->query("SELECT type2, family, phone FROM rent_orders WHERE order_id=" . (int)$br->insert_id)->fetch_assoc();
         $this->assertSame('bron', $row['type2']);
         $this->assertSame('__TEST__ Иванов', $row['family']);
+        $this->assertSame('79900000001', $row['phone']);
 
         $br->arch_copy('dogovor_new'); // auto-режим, user=0, без $_SESSION
+
+        $still = $this->conn->query("SELECT COUNT(*) c FROM rent_orders WHERE order_id=" . (int)$br->insert_id)->fetch_assoc();
+        $this->assertSame(1, (int)$still['c'], 'arch_copy must not delete the source row');
+
         $arch = $this->conn->query("SELECT COUNT(*) c FROM rent_orders_arch WHERE order_id=" . (int)$br->insert_id)->fetch_assoc();
         $this->assertSame(1, (int)$arch['c'], 'arch_copy must duplicate the row into _arch');
+
+        $archRow = $this->conn->query("SELECT type2, family FROM rent_orders_arch WHERE order_id=" . (int)$br->insert_id)->fetch_assoc();
+        $this->assertSame('bron', $archRow['type2']);
+        $this->assertSame('__TEST__ Иванов', $archRow['family']);
     }
 }
