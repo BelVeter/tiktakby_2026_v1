@@ -97,7 +97,13 @@
 
 После этого добавление колонок безопасно (новые получают `DEFAULT`), брони работают как прежде, и код защищён от поломок при любых будущих добавлениях колонок.
 
-**Мёртвые** позиционные INSERT не трогаем (нигде не подключаются, подтверждено): `bb/l_3_br.php`, `bb/classes/old_bron.php`, `bb/bron/rent_orders.php`. `bb/bron.php` (глобальный `class bron`, без namespace) — проверить на этапе реализации, что не используется; если да — тоже не трогаем.
+**`zvonki` (добавляем `order_id`)** — позиционные INSERT тоже опасны:
+- Живой путь — `Zvonok::save()` ([bb/classes/Zvonok.php:43](../../../bb/classes/Zvonok.php)) использует **named** `INSERT INTO zvonki SET …` → безопасен, новую колонку не требует (`order_id` по умолчанию NULL, проставляется через `linkZvonok()`).
+- `includes/zvonok.php:64` — позиционный `INSERT INTO zvonki VALUES (11 значений)`, а в таблице **14 колонок** → уже несовместим со схемой (мёртвый/падающий легаси; живые колбэки идут через `ZvonokController`). Заодно **удаляем** этот файл.
+
+**Мёртвые** позиционные INSERT в `rent_orders`/`_arch` не трогаем (нигде не подключаются, подтверждено grep'ом): `bb/bron.php` (глобальный `class bron` без namespace — никто не require'ит), `bb/l_3_br.php`, `bb/classes/old_bron.php`, `bb/bron/rent_orders.php`.
+
+**Полный аудит проведён (2026-06-05):** по всему проекту (все расширения, не только `.php`) других позиционных вставок в `rent_orders`/`rent_orders_arch`/`zvonki` нет; `INSERT … SELECT *` нет; триггеров и хранимых процедур в БД нет (локально и на проде).
 
 Регрессия проверяется тестом: создать `bron`/`deliv`/`remont`, заархивировать — после конвертации и миграции всё работает.
 
@@ -264,6 +270,9 @@ $z->toBron(...): void                    // обёртка над существ
 - `bb/classes/bron.php` — `createZayavka()` → обёртка над `Zayavka::create()`; **`insert()` и `arch_copy()` → явные колонки (§4a)**.
 - `includes/l_3_br.php` — 3 позиционных INSERT → явные колонки (§4a).
 - `app/Http/Controllers/L3Controller.php`, `CartController.php`, `ZvonokController.php` — создание через `Zayavka::create()`.
+
+**Удаляем (мёртвое):**
+- `includes/zvonok.php` — позиционный INSERT в `zvonki`, уже несовместим со схемой; живой путь — `ZvonokController`. Удалять после подтверждения, что статические `.html`-хедеры (karnaval/igrushki), которые на него постят, не обслуживаются. Если вдруг обслуживаются — вместо удаления чиним INSERT на named-колонки.
 
 **Не трогаем (работает на аддитивных колонках):**
 - `bb/reports.php`, MCP `OperationsController/MarketingController/MetaController/ExportController`. Опц. позже: исключить `spam` из аналитики.
