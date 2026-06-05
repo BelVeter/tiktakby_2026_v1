@@ -8,7 +8,9 @@ class ZayavkaCreateResult
     public bool $isDuplicate = false;
     public ?int $orderId = null;
     public ?Zayavka $existing = null;
-    public ?int $zvonokId = null;
+    public ?int $zvonokId = null;   // populated by caller when linking a zvonok (later task)
+    public bool $isRepeat = false;          // true when a prior archived request exists for same model+phone
+    public ?Zayavka $priorArchived = null;  // the most recent archived match (informational)
 }
 
 class Zayavka
@@ -39,26 +41,41 @@ class Zayavka
         return $z;
     }
 
+    /**
+     * Returns an active (new/in_work) заявка for the same model+phone, or null.
+     * Only checks the ACTIVE table — archived records are handled by findRecentArchived().
+     */
     public function findActiveDuplicate(int $modelId, ?int $phone): ?self
     {
         if (!$phone || $phone <= 1 || $modelId <= 0) { return null; }
-        $since = time() - self::DEDUP_WINDOW_MONTHS * 30 * 86400;
 
         $sql = "SELECT * FROM rent_orders WHERE type2='zayavka' AND model_id=" . (int)$modelId
              . " AND phone=" . (int)$phone . " AND z_status IN ('new','in_work') ORDER BY cr_time DESC LIMIT 1";
         $r = $this->conn->query($sql);
         if ($r && $r->num_rows > 0) { return self::fromRow($r->fetch_assoc(), $this->conn); }
 
-        $sqlA = "SELECT * FROM rent_orders_arch WHERE type2='zayavka' AND model_id=" . (int)$modelId
-              . " AND phone=" . (int)$phone . " AND cr_time>" . (int)$since . " ORDER BY cr_time DESC LIMIT 1";
-        $ra = $this->conn->query($sqlA);
-        if ($ra && $ra->num_rows > 0) { return self::fromRow($ra->fetch_assoc(), $this->conn); }
+        return null;
+    }
 
+    /**
+     * Returns the most recent archived заявка for the same model+phone within DEDUP_WINDOW_MONTHS,
+     * or null. Used to flag repeat requests without suppressing the new insert.
+     */
+    public function findRecentArchived(int $modelId, ?int $phone): ?self
+    {
+        if (!$phone || $phone <= 1 || $modelId <= 0) { return null; }
+        $since = strtotime('-' . self::DEDUP_WINDOW_MONTHS . ' months');
+        $sql = "SELECT * FROM rent_orders_arch WHERE type2='zayavka' AND model_id=" . (int)$modelId
+             . " AND phone=" . (int)$phone . " AND cr_time>" . (int)$since
+             . " ORDER BY cr_time DESC LIMIT 1";
+        $r = $this->conn->query($sql);
+        if ($r && $r->num_rows > 0) { return self::fromRow($r->fetch_assoc(), $this->conn); }
         return null;
     }
 
     public function create(array $d, string $source): ZayavkaCreateResult
     {
+        // $source is the origin tag (web_product/web_cart/web_modal/crm); reserved for attribution, not persisted yet
         $res = new ZayavkaCreateResult();
         $modelId = (int)($d['model_id'] ?? 0);
         $phone = isset($d['phone']) ? (int)preg_replace('/[^0-9]/', '', (string)$d['phone']) : 0;
@@ -67,7 +84,7 @@ class Zayavka
         if ($existing) {
             $res->isDuplicate = true;
             $res->existing = $existing;
-            return $res;
+            return $res; // active dup → no new row
         }
 
         $catId = 0;
@@ -85,6 +102,13 @@ class Zayavka
             throw new \RuntimeException('Zayavka create failed: ' . $this->conn->error);
         }
         $res->orderId = (int)$this->conn->insert_id;
+
+        // informational: was there a prior closed request for same model+phone?
+        $prior = $this->findRecentArchived($modelId, $phone ?: null);
+        if ($prior) {
+            $res->isRepeat = true;
+            $res->priorArchived = $prior;
+        }
         return $res;
     }
 }
