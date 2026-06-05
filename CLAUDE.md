@@ -310,3 +310,9 @@ For deeper details, see `AGENTS.md`:
 
 **External APIs & Integrations**:
 - [RocketSMS API Integration](docs/rocketsms_api.md)
+
+**Project Notes & Backlog**:
+- [docs/db_notes.md](docs/db_notes.md) — DB gotchas + архитектура заявок/звонков. **Читать перед правками `rent_orders`/`rent_orders_arch`/`zvonki`/заявок.** Главная ловушка: позиционные `INSERT ... VALUES` ломаются при добавлении колонок — всегда проверять перед `ALTER TABLE ADD COLUMN`.
+- [docs/backlog.md](docs/backlog.md) — техдолг и отложенные задачи (вкл. чистку найденного легаси).
+
+**Working preference (owner):** владелец писал базу сам ~10 лет (самоучка), есть легаси. При каждом удобном случае предлагать **мелкие безопасные (low-risk) правки** кода, который и так трогаем; массовый рефакторинг легаси — только по явному запросу.
