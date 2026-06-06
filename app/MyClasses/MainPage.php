@@ -90,11 +90,11 @@ class MainPage
           else
             $razdel = new Razdel();
         }
-        $this->_razdel = $razdel;
+        $this->_razdel = $razdel ?: new Razdel();
       }
 
       return $this->_razdel->isKarnaval();
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
       return false;
     }
 
