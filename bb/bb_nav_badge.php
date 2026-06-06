@@ -25,8 +25,8 @@ if ($result_bron && $row = $result_bron->fetch_assoc()) {
     $count_bron = (int) $row['cnt'];
 }
 
-// Count NEW unprocessed Zayavki (no staff actions — info2 is empty)
-$query_new = "SELECT COUNT(*) as cnt FROM rent_orders WHERE type2='zayavka' AND (info2 IS NULL OR info2 = '')";
+// Count NEW unprocessed Zayavki (z_status lifecycle field; was: info2 empty)
+$query_new = "SELECT COUNT(*) as cnt FROM rent_orders WHERE type2='zayavka' AND z_status='new'";
 $result_new = $mysqli->query($query_new);
 $count_zayavk_new = 0;
 if ($result_new && $row = $result_new->fetch_assoc()) {
