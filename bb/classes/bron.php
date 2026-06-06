@@ -17,6 +17,7 @@ class bron {
 	public $user_id;
 
 	public $insert_id;
+	public $is_duplicate = false;
 
 	public $order_id;
 	public $type; // strong, zayavka
@@ -355,26 +356,23 @@ class bron {
    * @return bron
    */
   public static function createZayavka($model_id, $phone, $family, $name, $otch, \DateTime $validityDate, $info, $webYN){
+    $za = new \bb\classes\Zayavka();
+    $res = $za->create([
+      'model_id'  => $model_id,
+      'phone'     => $phone,
+      'family'    => $family,
+      'info'      => $info,
+      'web'       => $webYN,
+      'validity'  => $validityDate->getTimestamp(),
+    ], 'crm');
 
-    //$query = "INSERT INTO rent_orders VALUES ('', 'zayavka', '$ac_date', '$tel', '', '$f', '$i', '$o', '', '$deliv_addr', '$validity', '', '$model_id', '".$model_m['tovar_rent_cat_id']."', 'zayavka', '".Base::getAdvCompId()."', '$info', '', '1', '".time()."', '', '', '', '', '', '', '".$_SERVER['REMOTE_ADDR']."', '', '')";
     $z = new self();
-    $z->type = 'zayavka';
-    $z->order_date = (new \DateTime())->getTimestamp();
-    $z->phone=$phone;
-    $z->family=$family;
-    $z->name = $name;
-    $z->otch = $otch;
-    $z->validity = $validityDate->getTimestamp();
+    $z->type2 = 'zayavka';
     $z->model_id = $model_id;
-      $model = Model::getById($model_id);
-    $z->cat_id = $model->getCatId();
-    $z->type2='zayavka';
-    $z->info=$info;
-    $z->web = $webYN;
-    $z->cr_time=time();
-
-    $z->insert();
-
+    // insert_id points to the actual zayavka (new one, or the existing one on duplicate),
+    // so callers can link the originating zvonok to it (spec §6).
+    $z->insert_id = $res->orderId ?: ($res->existing ? $res->existing->order_id : null);
+    $z->is_duplicate = $res->isDuplicate;
     return $z;
   }
 

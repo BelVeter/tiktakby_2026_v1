@@ -53,6 +53,9 @@ class ZvonokController extends Controller
         if ($zayavka) {
             \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
         }
+        if ($z && $z->id && $zayavka && $zayavka->insert_id) {
+            (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$z->id);
+        }
       } catch (\Exception $e) {
         // log but don't break the redirect
         \Illuminate\Support\Facades\Log::error('createZayavka failed: ' . $e->getMessage());

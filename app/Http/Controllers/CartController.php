@@ -273,6 +273,9 @@ class CartController extends Controller
                 if ($zayavka && $zayavka->insert_id) {
                     \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
                 }
+                if (isset($z) && $z->id && $zayavka && $zayavka->insert_id) {
+                    (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$z->id);
+                }
 
                 $results[] = [
                     'modelId' => $modelId,

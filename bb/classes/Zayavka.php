@@ -149,6 +149,11 @@ class Zayavka
         $this->conn->query("UPDATE zvonki SET order_id=" . (int)$this->order_id . " WHERE zv_id=" . (int)$zvId);
     }
 
+    public function linkAfterCreate(int $orderId, int $zvId): void
+    {
+        $this->conn->query("UPDATE zvonki SET order_id=" . (int)$orderId . " WHERE zv_id=" . (int)$zvId);
+    }
+
     public function create(array $d, string $source): ZayavkaCreateResult
     {
         // $source is the origin tag (web_product/web_cart/web_modal/crm); reserved for attribution, not persisted yet
