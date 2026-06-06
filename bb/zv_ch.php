@@ -530,8 +530,13 @@ function get_post($var)
     <label style="display:block;font-size:13px;margin-top:8px;">Планируемая дата выдачи:
       <input type="date" id="zayEditPlanned">
     </label>
-    <div style="margin-top:8px;font-size:13px;">Сменить модель (ID):
-      <input type="number" id="zayEditModel" style="width:90px;">
+    <div style="margin-top:8px;font-size:13px;">Сменить модель:
+      <div style="position:relative;display:inline-block;vertical-align:middle;">
+        <input type="text" id="zayEditModelSearch" placeholder="название или ID…" autocomplete="off"
+               style="width:220px;padding:3px 6px;font-size:13px;">
+        <input type="hidden" id="zayEditModel">
+        <div id="zayEditModelDropdown" style="display:none;position:absolute;top:100%;left:0;width:340px;background:#fff;border:1px solid #ccc;border-radius:4px;z-index:2000;max-height:220px;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.15);"></div>
+      </div>
       <button type="button" id="zayEditModelBtn">сменить</button>
     </div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -602,9 +607,51 @@ function get_post($var)
     post({action:"save", order_id:elId.value, info:document.getElementById("zayEditInfo").value,
           planned_date:document.getElementById("zayEditPlanned").value, last_ch_time:elCh.value}).then(handle);
   });
+  // live model search
+  (function(){
+    var searchEl  = document.getElementById("zayEditModelSearch");
+    var hiddenEl  = document.getElementById("zayEditModel");
+    var dropdown  = document.getElementById("zayEditModelDropdown");
+    var timer     = null;
+
+    function closeDropdown(){ dropdown.style.display = "none"; }
+
+    searchEl.addEventListener("input", function(){
+      clearTimeout(timer);
+      hiddenEl.value = "";
+      var q = searchEl.value.trim();
+      if (q.length < 2) { closeDropdown(); return; }
+      timer = setTimeout(function(){
+        fetch("/bb/model_search.php?q=" + encodeURIComponent(q))
+          .then(function(r){ return r.json(); })
+          .then(function(items){
+            if (!items.length) { closeDropdown(); return; }
+            dropdown.innerHTML = "";
+            items.forEach(function(item){
+              var d = document.createElement("div");
+              d.textContent = "#" + item.id + " " + item.label;
+              d.style.cssText = "padding:6px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;";
+              d.addEventListener("mousedown", function(e){
+                e.preventDefault();
+                searchEl.value = "#" + item.id + " " + item.label;
+                hiddenEl.value = item.id;
+                closeDropdown();
+              });
+              d.addEventListener("mouseover", function(){ d.style.background="#e8f0fe"; });
+              d.addEventListener("mouseout",  function(){ d.style.background=""; });
+              dropdown.appendChild(d);
+            });
+            dropdown.style.display = "block";
+          });
+      }, 200);
+    });
+
+    searchEl.addEventListener("blur", function(){ setTimeout(closeDropdown, 150); });
+  })();
+
   document.getElementById("zayEditModelBtn").addEventListener("click", function(){
     var mid = document.getElementById("zayEditModel").value;
-    if (!mid) { elErr.textContent="Укажите ID модели"; return; }
+    if (!mid) { elErr.textContent="Выберите модель из списка (начните вводить название)"; return; }
     if (!confirm("Сменить модель заявки?")) return;
     post({action:"change_model", order_id:elId.value, model_id:mid}).then(handle);
   });

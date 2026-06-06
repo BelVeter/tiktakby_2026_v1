@@ -501,9 +501,15 @@ while ($ord = $result_or->fetch_assoc()) {
 					<option value="other">другое</option>
 				</select>
 			</div>
-			<div style="margin-top:6px;font-size:11px;">
-				<input type="number" name="new_model_id" form="order_' . $br_line->order_id . '" placeholder="ID модели" style="width:78px;font-size:11px;">
-				<button type="submit" name="action" form="order_' . $br_line->order_id . '" value="сменить модель" style="font-size:11px;" onclick="return confirm(\'Сменить модель заявки на указанный ID?\');">сменить</button>
+			<div style="margin-top:6px;font-size:11px;position:relative;">
+				<div class="ms-wrap" style="display:inline-block;position:relative;vertical-align:middle;">
+					<input type="text" class="ms-input" placeholder="модель (назв. или ID)…" autocomplete="off"
+					       data-form="order_' . $br_line->order_id . '"
+					       style="width:160px;font-size:11px;padding:2px 4px;">
+					<input type="hidden" name="new_model_id" class="ms-hidden" form="order_' . $br_line->order_id . '">
+					<div class="ms-dropdown" style="display:none;position:absolute;top:100%;left:0;width:300px;background:#fff;border:1px solid #ccc;border-radius:4px;z-index:500;max-height:180px;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.15);"></div>
+				</div>
+				<button type="submit" name="action" form="order_' . $br_line->order_id . '" value="сменить модель" class="ms-submit" style="font-size:11px;" onclick="return confirm(\'Сменить модель заявки?\');">сменить</button>
 			</div>
 			</form>
 		</td>
@@ -616,6 +622,62 @@ function user_select($id)
 		}
 	}
 
+</script>
+
+<script>
+// Live model search for "сменить модель" inputs on the board
+(function(){
+  var timers = {};
+
+  function initWrap(wrap) {
+    var input    = wrap.querySelector('.ms-input');
+    var hidden   = wrap.querySelector('.ms-hidden');
+    var dropdown = wrap.querySelector('.ms-dropdown');
+    if (!input || input._msInit) return;
+    input._msInit = true;
+
+    function close(){ dropdown.style.display = 'none'; }
+
+    input.addEventListener('input', function(){
+      clearTimeout(timers[input._msId]);
+      hidden.value = '';
+      var q = input.value.trim();
+      if (q.length < 2) { close(); return; }
+      timers[input._msId] = setTimeout(function(){
+        fetch('/bb/model_search.php?q=' + encodeURIComponent(q))
+          .then(function(r){ return r.json(); })
+          .then(function(items){
+            if (!items.length) { close(); return; }
+            dropdown.innerHTML = '';
+            items.forEach(function(item){
+              var d = document.createElement('div');
+              d.textContent = '#' + item.id + ' ' + item.label;
+              d.style.cssText = 'padding:5px 8px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;';
+              d.addEventListener('mousedown', function(e){
+                e.preventDefault();
+                input.value = '#' + item.id + ' ' + item.label;
+                hidden.value = item.id;
+                close();
+              });
+              d.addEventListener('mouseover', function(){ d.style.background='#e8f0fe'; });
+              d.addEventListener('mouseout',  function(){ d.style.background=''; });
+              dropdown.appendChild(d);
+            });
+            dropdown.style.display = 'block';
+          });
+      }, 200);
+    });
+
+    input.addEventListener('blur', function(){ setTimeout(close, 150); });
+  }
+
+  var counter = 0;
+  document.querySelectorAll('.ms-wrap').forEach(function(wrap){
+    var input = wrap.querySelector('.ms-input');
+    if (input) { input._msId = 'ms' + (counter++); }
+    initWrap(wrap);
+  });
+})();
 </script>
 </body>
 
