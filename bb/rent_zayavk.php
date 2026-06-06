@@ -465,6 +465,17 @@ while ($ord = $result_or->fetch_assoc()) {
 		echo '<img style="width:25px; height:25px; float:right;" src="' . $off_pic[$free_i_of] . '"/>';
 	}
 
+	echo '
+<div id="ms_div_' . $br_line->order_id . '" style="display:none;margin-top:6px;font-size:11px;position:relative;">
+    <div class="ms-wrap" style="display:inline-block;position:relative;vertical-align:middle;">
+        <input type="text" class="ms-input" placeholder="сменить модель…" autocomplete="off"
+               data-form="order_' . $br_line->order_id . '"
+               style="width:160px;font-size:11px;padding:2px 4px;">
+        <input type="hidden" name="new_model_id" class="ms-hidden" form="order_' . $br_line->order_id . '">
+        <div class="ms-dropdown" style="display:none;position:absolute;top:100%;left:0;width:300px;background:#fff;border:1px solid #ccc;border-radius:4px;z-index:500;max-height:180px;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.15);"></div>
+    </div>
+    <button type="submit" name="action" form="order_' . $br_line->order_id . '" value="сменить модель" class="ms-submit" style="font-size:11px;" onclick="return confirm(\'Сменить модель заявки?\');">сменить</button>
+</div>';
 	echo '</td>
 		<td ' . ($br_line->appr_id > 0 ? 'style="background-color:#acf398;"' : '') . '>
 		    <div style="width: 788px;">
@@ -513,16 +524,6 @@ while ($ord = $result_or->fetch_assoc()) {
 				<button type="submit" name="action" value="отказ"   id="del_reject_' . $br_line->order_id . '" style="display:none;"></button>
 				<button type="submit" name="action" value="удалить" id="del_other_' . $br_line->order_id . '"  style="display:none;"></button>
 				<input type="hidden" name="reason_comment" id="del_cmt_' . $br_line->order_id . '" value="">
-			</div>
-			<div id="ms_div_' . $br_line->order_id . '" style="display:none;margin-top:6px;font-size:11px;position:relative;">
-				<div class="ms-wrap" style="display:inline-block;position:relative;vertical-align:middle;">
-					<input type="text" class="ms-input" placeholder="сменить модель…" autocomplete="off"
-					       data-form="order_' . $br_line->order_id . '"
-					       style="width:160px;font-size:11px;padding:2px 4px;">
-					<input type="hidden" name="new_model_id" class="ms-hidden" form="order_' . $br_line->order_id . '">
-					<div class="ms-dropdown" style="display:none;position:absolute;top:100%;left:0;width:300px;background:#fff;border:1px solid #ccc;border-radius:4px;z-index:500;max-height:180px;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.15);"></div>
-				</div>
-				<button type="submit" name="action" form="order_' . $br_line->order_id . '" value="сменить модель" class="ms-submit" style="font-size:11px;" onclick="return confirm(\'Сменить модель заявки?\');">сменить</button>
 			</div>
 			<div id="del_panel_' . $br_line->order_id . '" style="display:none;margin-top:6px;background:#fff3f3;border:1px solid #f5c6cb;border-radius:4px;padding:8px;">
 				<div style="font-size:11px;font-weight:bold;margin-bottom:6px;">Причина:</div>

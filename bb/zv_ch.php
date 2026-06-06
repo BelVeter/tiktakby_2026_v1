@@ -472,7 +472,7 @@ while ($zv=$result_zv->fetch_assoc()) {
 					'.($zv['status']=='new' ? '<input type="submit" name="action" value="звонок сделан" />' : '').'
 					</form>
         '.(!empty($zv['order_id'])
-            ? '<button type="button" class="zay_edit_btn" data-orderid="'.$zv['order_id'].'">Редактировать заявку'.(!empty($zv['zay_status']) ? ' <small>('.$zv['zay_status'].')</small>' : '').'</button>'
+            ? '<button type="button" class="zay_edit_btn" data-orderid="'.$zv['order_id'].'">Заявка'.(!empty($zv['zay_status']) ? ' <small>('.$zv['zay_status'].')</small>' : '').'</button>'
             : ($zv['type1']=='zayavka' ? '<button type="button" class="zayavka_btn">Оформить заявку</button>' : '')).'
 			</td>
 		</tr>
