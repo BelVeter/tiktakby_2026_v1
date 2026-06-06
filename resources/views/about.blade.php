@@ -389,30 +389,6 @@
         <script type="application/ld+json">
                                             {
                                               "@context": "https://schema.org",
-                                              "@type": "RentalBusiness",
-                                              "name": "TikTak",
-                                              "image": "https://tiktak.by/images/logo.png",
-                                              "@id": "https://tiktak.by",
-                                              "url": "https://tiktak.by",
-                                              "telephone": "+37529XXXXXXX",
-                                              "priceRange": "$$",
-                                              "address": {
-                                                "@type": "PostalAddress",
-                                                "streetAddress": "Улица, дом",
-                                                "addressLocality": "Минск",
-                                                "addressCountry": "BY"
-                                              },
-                                              "geo": {
-                                                "@type": "GeoCoordinates",
-                                                "latitude": 53.9006,
-                                                "longitude": 27.5590
-                                              }
-                                            }
-                                            </script>
-
-        <script type="application/ld+json">
-                                            {
-                                              "@context": "https://schema.org",
                                               "@type": "FAQPage",
                                               "mainEntity": [{
                                                 "@type": "Question",

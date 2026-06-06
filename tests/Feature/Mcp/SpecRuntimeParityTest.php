@@ -176,7 +176,7 @@ class SpecRuntimeParityTest extends McpTestCase
     public function test_spec_version_matches(): void
     {
         $this->assertSame(
-            '2.0.1',
+            '2.2.1',
             $this->spec['info']['version'],
             'bumping spec without updating this assertion is a footgun — update both together'
         );
