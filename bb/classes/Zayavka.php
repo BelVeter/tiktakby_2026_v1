@@ -76,7 +76,8 @@ class Zayavka
     public static function load(int $orderId, $conn = null): self
     {
         $c = $conn ?: Db::getInstance()->getConnection();
-        $r = $c->query("SELECT * FROM rent_orders WHERE order_id=" . (int)$orderId . " LIMIT 1");
+        // type2 guard: this loader is for заявки only — never load/mutate a bron etc. by crafted id
+        $r = $c->query("SELECT * FROM rent_orders WHERE order_id=" . (int)$orderId . " AND type2='zayavka' LIMIT 1");
         if (!$r || $r->num_rows < 1) { throw new \RuntimeException('Zayavka not found: ' . $orderId); }
         return self::fromRow($r->fetch_assoc(), $c);
     }

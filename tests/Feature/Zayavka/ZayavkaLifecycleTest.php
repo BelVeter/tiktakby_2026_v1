@@ -56,6 +56,19 @@ class ZayavkaLifecycleTest extends TestCase
         $z->update(['info' => '__TEST__ stale', 'last_ch_time' => $z->ch_time + 999]);
     }
 
+    public function test_load_rejects_non_zayavka(): void {
+        // прямой INSERT строки type2='bron' — Zayavka::load не должен её отдавать
+        $now = time();
+        $this->conn->query("INSERT INTO rent_orders
+            (`type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
+            VALUES ('strong', $now, 79900000050, 0, '__TEST__ Bron', '', '', 0, '', $now, 0, 0, 0, 'bron', 0, '__TEST__', '', 0, $now, 0, 0, 0, '', 0, 0, '', '', '')");
+        $bronId = $this->conn->insert_id;
+        $this->cleanup[] = $bronId;
+
+        $this->expectException(\RuntimeException::class);
+        Zayavka::load($bronId, $this->conn);
+    }
+
     public function test_link_zvonok_sets_order_id(): void {
         $z = $this->makeZayavka();
         $this->conn->query("INSERT INTO zvonki SET z_name='__TEST__', phone=79900000020, tema='__TEST__', info='__TEST__ zv', cr_time=".time().", status='new', pr_time=0, operator='', react_time=0, person_id=0, validity_days=0, type1='zayavka', model_id=999100");

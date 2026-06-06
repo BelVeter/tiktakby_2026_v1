@@ -50,7 +50,7 @@ class ZvonokController extends Controller
           $req->input('info'),
           1
         );
-        if ($zayavka) {
+        if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
             \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
         }
         if ($z && $z->id && $zayavka && $zayavka->insert_id) {

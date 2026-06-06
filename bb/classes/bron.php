@@ -526,6 +526,10 @@ class bron {
 		//}
 	}
 
+	// ВНИМАНИЕ: SET-список ниже намеренно НЕ содержит z_status / z_reject_reason / planned_date —
+	// эти поля заявок управляются классом bb\classes\Zayavka, и bron::update() их не должен трогать
+	// (иначе перезатрёт статус/дату). При добавлении новой колонки в rent_orders реши осознанно,
+	// нужна ли она здесь.
 	function update() {//!!! обновить функцию обновления
 
 		$query_upd = "UPDATE rent_orders SET `type`='$this->type', `order_date`='$this->order_date', `phone`='$this->phone', `phone_yn`='$this->phone_yn', `family`='$this->family', `name`='$this->name', `otch`='$this->otch', `fio_yn`='$this->fio_yn', `address`='$this->address', `validity`='$this->validity', `inv_n`='$this->inv_n', `model_id`='$this->model_id', `cat_id`='$this->cat_id', `type2`='$this->type2', `client_id`='$this->client_id', `info`='$this->info', `info2`='$this->info2', `web`='$this->web', `cr_time`='$this->cr_time', `cr_who_id`='$this->cr_who_id', `ch_time`='$this->ch_time', `ch_who_id`='$this->ch_who_id', `status`='$this->status', `appr_id`='$this->appr_id', `appr_time`='$this->appr_time', `cr_ip`='$this->cr_ip', place_status='$this->place_status', rem_type='$this->rem_type' WHERE `order_id`='$this->order_id'";

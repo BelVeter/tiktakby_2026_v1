@@ -83,6 +83,7 @@ echo '
 .z_btn_del { background-color: #dc3545; }
 .z_btn_missed { background-color: #ffc107; color: #333; }
 .zayavk_btn svg, .zayavk_btn path, .zayavk_btn polyline, .zayavk_btn line { pointer-events: none; }
+input[data-due="1"] { border: 2px solid #d00; color: #d00; font-weight: bold; }
 </style>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ' . Base::getBarCodeReaderScript() . '
@@ -380,7 +381,7 @@ echo '
       <th style="width:80px; text-align:center;">Фото</th>
 	  <th style="width:350px; text-align:center;">Товар</th>
       <th style="width:350px; text-align:center;">коментари<br>сортировать по дате заявки <button type="button" data-sort="start" class="sort-btn" value="новые наверх">новые наверх</button></th>
-	  <th style="width:81px; text-align:center;">дата действия<br><button type="button" data-sort="finish" class="sort-btn" value="новые наверх">новые наверх</button></th>
+	  <th style="width:81px; text-align:center;">срок заявки / план. выдача<br><button type="button" data-sort="finish" class="sort-btn" value="новые наверх">новые наверх</button></th>
 	  <!--<th style="width:90px; text-align:center;">созд/подтв</th>-->
       <th style="text-align:center;">действия</th>
 	</tr>

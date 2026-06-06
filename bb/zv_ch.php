@@ -65,6 +65,9 @@ if ($action=='create_zayavka'){
 
 
   $zayavka = \bb\classes\bron::createZayavka($model_id, preg_replace("/[^0-9]/", "", $z->phone), $z->z_name, '', '', $validity, $dop_info, 1);
+  if ($zayavka && $zayavka->insert_id && $zv_id) {
+      (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$zv_id);
+  }
   $message = "Заявка оформлена";
 }
 

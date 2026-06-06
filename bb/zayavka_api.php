@@ -44,11 +44,16 @@ try {
             'ch_time'      => $z->ch_time,
         ]]);
     } elseif ($action === 'save') {
+        if (!isset($_POST['last_ch_time'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'last_ch_time required (optimistic lock)']);
+            exit;
+        }
         $z = Zayavka::load((int)($_POST['order_id'] ?? 0));
         $z->update([
             'info'         => $_POST['info'] ?? '',
             'planned_date' => $_POST['planned_date'] ?? null,
-            'last_ch_time' => $_POST['last_ch_time'] ?? $z->ch_time,
+            'last_ch_time' => $_POST['last_ch_time'],
         ]);
         echo json_encode(['ok' => true]);
     } elseif ($action === 'change_model') {
@@ -56,8 +61,14 @@ try {
         $z->changeModel((int)($_POST['model_id'] ?? 0));
         echo json_encode(['ok' => true]);
     } elseif ($action === 'set_status') {
+        $status = $_POST['status'] ?? '';
+        if (!in_array($status, ['rejected', 'spam', 'deleted', 'done'], true)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'invalid status']);
+            exit;
+        }
         $z = Zayavka::load((int)($_POST['order_id'] ?? 0));
-        $z->setStatus($_POST['status'] ?? '', $_POST['reason'] ?? null);
+        $z->setStatus($status, $_POST['reason'] ?? null);
         echo json_encode(['ok' => true]);
     } else {
         http_response_code(400);
