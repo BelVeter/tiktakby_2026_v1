@@ -95,6 +95,30 @@ try {
         $z = Zayavka::load((int)($_POST['order_id'] ?? 0));
         $z->setStatus($status, $reason, $comment);
         echo json_encode(['ok' => true]);
+    } elseif ($action === 'resolve') {
+        $phone   = (int)preg_replace('/[^0-9]/', '', (string)($_GET['phone'] ?? ''));
+        $modelId = (int)($_GET['model_id'] ?? 0);
+        $zvId    = (int)($_GET['zv_id'] ?? 0);
+        $crTime  = (int)($_GET['cr_time'] ?? 0);
+        if ($phone <= 1 || $modelId <= 0 || $zvId <= 0) {
+            echo json_encode(['ok' => true, 'found' => false]);
+            exit;
+        }
+        $dayStart = $crTime > 0 ? mktime(0, 0, 0, (int)date('n', $crTime), (int)date('j', $crTime), (int)date('Y', $crTime)) : mktime(0, 0, 0);
+        $dayEnd   = $dayStart + 86400;
+        $c = \bb\Db::getInstance()->getConnection();
+        $where = " WHERE type2='zayavka' AND phone=" . $phone . " AND model_id=" . $modelId
+               . " AND cr_time>=" . $dayStart . " AND cr_time<" . $dayEnd . " ORDER BY cr_time DESC LIMIT 1";
+        foreach (['rent_orders', 'rent_orders_arch'] as $tbl) {
+            $r = $c->query("SELECT order_id FROM " . $tbl . $where);
+            if ($r && $r->num_rows > 0) {
+                $orderId = (int)$r->fetch_assoc()['order_id'];
+                $c->query("UPDATE zvonki SET order_id=" . $orderId . " WHERE zv_id=" . $zvId . " AND (order_id IS NULL OR order_id=0)");
+                echo json_encode(['ok' => true, 'found' => true, 'order_id' => $orderId]);
+                exit;
+            }
+        }
+        echo json_encode(['ok' => true, 'found' => false]);
     } elseif ($action === 'create_new') {
         $modelId = (int)($_POST['model_id'] ?? 0);
         $phone   = (int)preg_replace('/[^0-9]/', '', (string)($_POST['phone'] ?? ''));
@@ -105,8 +129,16 @@ try {
             echo json_encode(['error' => 'model_id required']);
             exit;
         }
+        $validityTs = !empty($_POST['validity_date']) ? strtotime($_POST['validity_date']) : null;
         $z   = new Zayavka();
-        $res = $z->create(['model_id' => $modelId, 'phone' => $phone, 'family' => $family], 'crm');
+        $res = $z->create([
+            'model_id'     => $modelId,
+            'phone'        => $phone,
+            'family'       => $family,
+            'info'         => trim($_POST['info'] ?? ''),
+            'planned_date' => !empty($_POST['planned_date']) ? $_POST['planned_date'] : null,
+            'validity'     => $validityTs ?: null,
+        ], 'crm');
         if ($res->isDuplicate) {
             http_response_code(409);
             echo json_encode(['error' => 'Уже есть активная заявка #' . $res->existing->order_id]);
