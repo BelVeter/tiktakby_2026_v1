@@ -166,6 +166,7 @@ class Model
     $result = $mysqli->query($query);
     if (!$result) {
       printf("Mysqli Errormessage: %s\n", $mysqli->error);
+      return [];
     }
 
     if ($result->num_rows < 1)
@@ -584,7 +585,7 @@ class Model
 
     }
     if ($filter && isset($filter['rost']) && $filter['rost'] > 0) {
-      $rost = $filter['rost'];
+      $rost = intval($filter['rost']);
       $rostVariance = 3;
 
       $filterAddOnQuery .= " AND (tovar_rent_items.item_rost1-3)<='$rost' AND (tovar_rent_items.item_rost2+3)>='$rost'";
@@ -606,6 +607,7 @@ class Model
     $result = $mysqli->query($query);
     if (!$result) {
       printf("Mysqli Errormessage: %s\n", $mysqli->error);
+      return [];
     }
 
     if ($result->num_rows < 1)
