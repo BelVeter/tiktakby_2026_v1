@@ -357,7 +357,7 @@ class FetchA1Recordings extends Command
     private function refreshToken(string $refreshToken): string
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $refreshToken,
+            'Authorization' => $refreshToken,
         ])->put(self::BASE_URL . '/auth/tokens');
 
         if (in_array($response->status(), [401, 403], true)) {
