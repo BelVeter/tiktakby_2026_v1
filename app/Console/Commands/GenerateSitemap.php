@@ -28,8 +28,18 @@ class GenerateSitemap extends Command
 
         $razdels = DB::select("
             SELECT url_razdel_name, razdel_change_time
-            FROM razdel
+            FROM razdel r
             WHERE url_razdel_name != ''
+              AND EXISTS (
+                SELECT 1 FROM razdel_subrazdel rs2
+                JOIN sub_razdel sr2 ON sr2.id_sub_razdel = rs2.id_sub_razdel
+                JOIN tovar_rent_cat c2 ON c2.main_sub_razdel_id = sr2.id_sub_razdel
+                JOIN tovar_rent tr2 ON tr2.tovar_rent_cat_id = c2.tovar_rent_cat_id
+                JOIN rent_model_web rmw2 ON rmw2.model_id = tr2.tovar_rent_id
+                JOIN tovar_rent_items ti ON ti.model_id = tr2.tovar_rent_id
+                WHERE rs2.id_razdel = r.id_razdel
+                  AND rmw2.status = 'show' AND rmw2.lang = 'ru'
+              )
             ORDER BY razdel_order_num, id_razdel
         ");
 
@@ -48,6 +58,14 @@ class GenerateSitemap extends Command
             JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
             JOIN razdel r ON r.id_razdel = rs.id_razdel
             WHERE sr.url_sub_razdel_name != '' AND r.url_razdel_name != ''
+              AND EXISTS (
+                SELECT 1 FROM tovar_rent_cat c2
+                JOIN tovar_rent tr2 ON tr2.tovar_rent_cat_id = c2.tovar_rent_cat_id
+                JOIN rent_model_web rmw2 ON rmw2.model_id = tr2.tovar_rent_id
+                JOIN tovar_rent_items ti ON ti.model_id = tr2.tovar_rent_id
+                WHERE c2.main_sub_razdel_id = sr.id_sub_razdel
+                  AND rmw2.status = 'show' AND rmw2.lang = 'ru'
+              )
             ORDER BY r.url_razdel_name, sr.url_sub_razdel_name
         ");
 
@@ -67,6 +85,13 @@ class GenerateSitemap extends Command
             JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
             JOIN razdel r ON r.id_razdel = rs.id_razdel
             WHERE c.cat_url_key != '' AND sr.url_sub_razdel_name != '' AND r.url_razdel_name != ''
+              AND EXISTS (
+                SELECT 1 FROM tovar_rent tr2
+                JOIN rent_model_web rmw2 ON rmw2.model_id = tr2.tovar_rent_id
+                JOIN tovar_rent_items ti ON ti.model_id = tr2.tovar_rent_id
+                WHERE tr2.tovar_rent_cat_id = c.tovar_rent_cat_id
+                  AND rmw2.status = 'show' AND rmw2.lang = 'ru'
+              )
             ORDER BY r.url_razdel_name, sr.url_sub_razdel_name, c.cat_url_key
         ");
 
@@ -88,6 +113,7 @@ class GenerateSitemap extends Command
             JOIN razdel r ON r.id_razdel = rs.id_razdel
             WHERE rmw.lang = 'ru' AND rmw.page_addr != '' AND rmw.status = 'show'
                 AND sr.url_sub_razdel_name != '' AND r.url_razdel_name != '' AND c.cat_url_key != ''
+                AND EXISTS (SELECT 1 FROM tovar_rent_items ti WHERE ti.model_id = rmw.model_id)
             ORDER BY r.url_razdel_name, sr.url_sub_razdel_name, c.cat_url_key, rmw.page_addr
         ");
 
