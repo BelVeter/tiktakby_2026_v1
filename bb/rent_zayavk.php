@@ -422,12 +422,14 @@ while ($ord = $result_or->fetch_assoc()) {
 
 	$is_new = ($ord['z_status'] === 'new');
 	$noPhone = ((int)$br_line->phone <= 1);
-	$rowStyle = $is_new ? 'background-color:#e3f2fd;' : '';
+	$hasFree = ($it_free_num > 0);
+	// green (free items available) takes priority over blue (new/unreviewed)
+	$rowStyle = $hasFree ? 'background-color:#c8f5b0;' : ($is_new ? 'background-color:#e3f2fd;' : '');
 	if ($noPhone) { $rowStyle .= 'border-left:4px solid #b00;'; }
 	echo '
 	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '"' . ($rowStyle ? ' style="' . $rowStyle . '"' : '') . '>
 		<td style="text-align: center;"><img src="' . $br_line->small_pic . '" style="max-height: 80px; max-width: 80px; width: auto; object-fit: contain;" /></td>
-		<td ' . ($it_free_num > 0 ? 'style="background-color:#acf398;"' : '') . '>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" <br />
+		<td>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" <br />
 		' . (User::getCurrentUser()->isAdmin() ? 'br_id:' . $br_line->order_id : '') . '
 			<div id="free_inv_n_' . $br_line->order_id . '" style="display:none;">
 			<select name="inv_n" form="order_' . $br_line->order_id . '">
