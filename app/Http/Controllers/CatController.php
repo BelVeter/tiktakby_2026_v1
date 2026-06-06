@@ -35,7 +35,7 @@ class CatController extends Controller{
 
         $p=MainPage::getRazdelPageForWeb($lang, $razdelName, $showPageNumber, $filter);
 
-        if(!$p || !$p->isRealPage()) return response()->view('not_found', [], 404);
+        if(!$p || !$p->isRealPage() || !$p->_razdel) return response()->view('not_found', [], 404);
 
         return view('catpage', ['p' => $p]);
     }
