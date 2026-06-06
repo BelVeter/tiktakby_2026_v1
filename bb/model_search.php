@@ -1,9 +1,9 @@
 <?php
 /**
  * AJAX endpoint: search tovar_rent models by name or ID.
- * GET ?q=<query>  → JSON [{id, label}, ...]
+ * GET ?q=<query>  → JSON [{id, label, free_count}, ...]
  * If q is all-digits → search by tovar_rent_id too.
- * Returns max 10 results.
+ * Returns max 10 results with free item count (status=to_rent or expired t_bron).
  */
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -24,20 +24,29 @@ if (strlen($q) < 2) {
 
 $mysqli = \bb\Db::getInstance()->getConnection();
 $esc = $mysqli->real_escape_string($q);
+$now = time();
+
+$freeJoin = "LEFT JOIN tovar_rent_items ti ON ti.model_id = tr.tovar_rent_id
+                  AND (ti.`status`='to_rent' OR (ti.`status`='t_bron' AND ti.br_time < $now))";
 
 if (ctype_digit($q)) {
-    // поиск по ID и по названию
-    $sql = "SELECT tovar_rent_id, CONCAT(producer, ' ', model) AS label
-            FROM tovar_rent
-            WHERE tovar_rent_id = " . (int)$q . "
-               OR CONCAT(producer, ' ', model) LIKE '%" . $esc . "%'
-            ORDER BY tovar_rent_id = " . (int)$q . " DESC, producer, model
+    $sql = "SELECT tr.tovar_rent_id, CONCAT(tr.producer, ' ', tr.model) AS label,
+                   COUNT(ti.item_id) AS free_count
+            FROM tovar_rent tr
+            $freeJoin
+            WHERE tr.tovar_rent_id = " . (int)$q . "
+               OR CONCAT(tr.producer, ' ', tr.model) LIKE '%" . $esc . "%'
+            GROUP BY tr.tovar_rent_id
+            ORDER BY tr.tovar_rent_id = " . (int)$q . " DESC, tr.producer, tr.model
             LIMIT 10";
 } else {
-    $sql = "SELECT tovar_rent_id, CONCAT(producer, ' ', model) AS label
-            FROM tovar_rent
-            WHERE CONCAT(producer, ' ', model) LIKE '%" . $esc . "%'
-            ORDER BY producer, model
+    $sql = "SELECT tr.tovar_rent_id, CONCAT(tr.producer, ' ', tr.model) AS label,
+                   COUNT(ti.item_id) AS free_count
+            FROM tovar_rent tr
+            $freeJoin
+            WHERE CONCAT(tr.producer, ' ', tr.model) LIKE '%" . $esc . "%'
+            GROUP BY tr.tovar_rent_id
+            ORDER BY tr.producer, tr.model
             LIMIT 10";
 }
 
@@ -45,7 +54,11 @@ $res = $mysqli->query($sql);
 $out = [];
 if ($res) {
     while ($row = $res->fetch_assoc()) {
-        $out[] = ['id' => (int)$row['tovar_rent_id'], 'label' => $row['label']];
+        $out[] = [
+            'id'         => (int)$row['tovar_rent_id'],
+            'label'      => $row['label'],
+            'free_count' => (int)$row['free_count'],
+        ];
     }
 }
 echo json_encode($out);

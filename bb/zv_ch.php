@@ -630,7 +630,8 @@ function get_post($var)
             items.forEach(function(item){
               var d = document.createElement("div");
               d.textContent = "#" + item.id + " " + item.label;
-              d.style.cssText = "padding:6px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;";
+              var color = item.free_count > 0 ? "#155a1a" : "#a04000";
+              d.style.cssText = "padding:6px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;color:" + color + ";font-weight:600;";
               d.addEventListener("mousedown", function(e){
                 e.preventDefault();
                 searchEl.value = "#" + item.id + " " + item.label;

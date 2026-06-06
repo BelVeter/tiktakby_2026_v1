@@ -652,7 +652,8 @@ function user_select($id)
             items.forEach(function(item){
               var d = document.createElement('div');
               d.textContent = '#' + item.id + ' ' + item.label;
-              d.style.cssText = 'padding:5px 8px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;';
+              var color = item.free_count > 0 ? '#155a1a' : '#a04000';
+              d.style.cssText = 'padding:5px 8px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;color:' + color + ';font-weight:600;';
               d.addEventListener('mousedown', function(e){
                 e.preventDefault();
                 input.value = '#' + item.id + ' ' + item.label;
