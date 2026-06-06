@@ -42,6 +42,7 @@ try {
             'planned_date' => $z->planned_date,
             'z_status'     => $z->z_status,
             'ch_time'      => $z->ch_time,
+            'validity_date' => $z->validity ? date('Y-m-d', (int)$z->validity) : '',
         ]]);
     } elseif ($action === 'save') {
         if (!isset($_POST['last_ch_time'])) {
@@ -51,9 +52,10 @@ try {
         }
         $z = Zayavka::load((int)($_POST['order_id'] ?? 0));
         $z->update([
-            'info'         => $_POST['info'] ?? '',
-            'planned_date' => $_POST['planned_date'] ?? null,
-            'last_ch_time' => $_POST['last_ch_time'],
+            'info'          => $_POST['info'] ?? '',
+            'planned_date'  => $_POST['planned_date'] ?? null,
+            'validity_date' => $_POST['validity_date'] ?? null,
+            'last_ch_time'  => $_POST['last_ch_time'],
         ]);
         echo json_encode(['ok' => true]);
     } elseif ($action === 'change_model') {

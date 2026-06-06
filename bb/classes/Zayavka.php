@@ -98,6 +98,13 @@ class Zayavka
             $sets[] = "planned_date=" . (empty($f['planned_date']) ? 'NULL' : "'" . $this->esc($f['planned_date']) . "'");
             $this->planned_date = $f['planned_date'] ?: null;
         }
+        if (!empty($f['validity_date'])) {
+            $ts = strtotime($f['validity_date']);
+            if ($ts !== false) {
+                $sets[] = "validity=" . (int)$ts;
+                $this->validity = $ts;
+            }
+        }
         if ($this->z_status === 'new') { $sets[] = "z_status='in_work'"; $this->z_status = 'in_work'; }
         $sets[] = "ch_time=" . time();
         $this->ch_time = time();

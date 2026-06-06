@@ -472,7 +472,7 @@ while ($zv=$result_zv->fetch_assoc()) {
 					'.($zv['status']=='new' ? '<input type="submit" name="action" value="звонок сделан" />' : '').'
 					</form>
         '.(!empty($zv['order_id'])
-            ? '<button type="button" class="zay_edit_btn" data-orderid="'.$zv['order_id'].'">Заявка'.(!empty($zv['zay_status']) ? ' <small>('.$zv['zay_status'].')</small>' : '').'</button>'
+            ? '<button type="button" class="zay_edit_btn" data-orderid="'.$zv['order_id'].'">Заявка</button>'
             : ($zv['type1']=='zayavka' ? '<button type="button" class="zayavka_btn">Оформить заявку</button>' : '')).'
 			</td>
 		</tr>
@@ -530,6 +530,9 @@ function get_post($var)
     <label style="display:block;font-size:13px;margin-top:8px;">Планируемая дата выдачи:
       <input type="date" id="zayEditPlanned">
     </label>
+    <label style="display:block;font-size:13px;margin-top:8px;">Срок действия заявки:
+      <input type="date" id="zayEditValidity">
+    </label>
     <div style="margin-top:8px;font-size:13px;">Сменить модель:
       <div style="position:relative;display:inline-block;vertical-align:middle;">
         <input type="text" id="zayEditModelSearch" placeholder="название или ID…" autocomplete="off"
@@ -581,6 +584,7 @@ function get_post($var)
         document.getElementById("zayEditHistory").innerHTML = z.info2 || "";
         document.getElementById("zayEditInfo").value = "";
         document.getElementById("zayEditPlanned").value = z.planned_date || "";
+        document.getElementById("zayEditValidity").value = z.validity_date || "";
         document.getElementById("zayEditModel").value = "";
         overlay.style.display = "block";
       })
@@ -605,7 +609,9 @@ function get_post($var)
 
   document.getElementById("zayEditSave").addEventListener("click", function(){
     post({action:"save", order_id:elId.value, info:document.getElementById("zayEditInfo").value,
-          planned_date:document.getElementById("zayEditPlanned").value, last_ch_time:elCh.value}).then(handle);
+          planned_date:document.getElementById("zayEditPlanned").value,
+          validity_date:document.getElementById("zayEditValidity").value,
+          last_ch_time:elCh.value}).then(handle);
   });
   // live model search
   (function(){
