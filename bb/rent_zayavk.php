@@ -10,6 +10,7 @@ error_reporting(E_ALL);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Base.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/bron.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Zayavka.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Db.php'); //
@@ -284,6 +285,10 @@ if (isset($_POST['action'])) {
 			$br_upd->update();
 			unset($br_upd);
 
+			// планируемая дата выдачи + авто-перевод new -> in_work (z_status/planned_date не трогаются bron::update)
+			$pd = isset($planned_date) && $planned_date !== '' ? "'" . $mysqli->real_escape_string($planned_date) . "'" : 'NULL';
+			$mysqli->query("UPDATE rent_orders SET planned_date=$pd, z_status=IF(z_status='new','in_work',z_status) WHERE order_id='" . (int)$order_id . "'");
+
 			break;
 
 		case 'недозвон':
@@ -295,6 +300,33 @@ if (isset($_POST['action'])) {
 			$br_upd->update();
 			unset($br_upd);
 
+			// первый контакт переводит new -> in_work
+			$mysqli->query("UPDATE rent_orders SET z_status=IF(z_status='new','in_work',z_status) WHERE order_id='" . (int)$order_id . "'");
+
+			break;
+
+		case 'сменить модель':
+			try {
+				\bb\classes\Zayavka::load((int)$order_id)->changeModel((int)$new_model_id);
+			} catch (\RuntimeException $e) {
+				die('Не удалось сменить модель: ' . htmlspecialchars($e->getMessage()));
+			}
+			break;
+
+		case 'отказ':
+			try {
+				\bb\classes\Zayavka::load((int)$order_id)->setStatus('rejected', isset($reason) && $reason !== '' ? $reason : null);
+			} catch (\RuntimeException $e) {
+				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
+			}
+			break;
+
+		case 'спам':
+			try {
+				\bb\classes\Zayavka::load((int)$order_id)->setStatus('spam');
+			} catch (\RuntimeException $e) {
+				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
+			}
 			break;
 
 		case 'самовывоз':
@@ -317,11 +349,12 @@ if (isset($_POST['action'])) {
 
 
 		case 'удалить':
-
-			$br = new \bb\classes\bron();
-			$br->br_load($order_id);
-			$br->arch_copy();
-			$br->del_br();
+			// soft-delete: пишем статус 'deleted' и архивируем (физически не теряем)
+			try {
+				\bb\classes\Zayavka::load((int)$order_id)->softDelete(isset($reason) && $reason !== '' ? $reason : null);
+			} catch (\RuntimeException $e) {
+				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
+			}
 
 			break;
 
@@ -329,7 +362,7 @@ if (isset($_POST['action'])) {
 }
 
 
-$query_or = "SELECT * FROM rent_orders WHERE type2='zayavka' ORDER BY (info2 IS NULL OR info2 = '') DESC, validity";
+$query_or = "SELECT * FROM rent_orders WHERE type2='zayavka' AND z_status IN ('new','in_work') ORDER BY z_status='new' DESC, (planned_date IS NULL) ASC, planned_date ASC, validity";
 $result_or = $mysqli->query($query_or);
 if (!$result_or) {
 	die('Сбой при доступе к базе данных: ' . $query_or . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -386,9 +419,12 @@ while ($ord = $result_or->fetch_assoc()) {
 
 
 
-	$is_new = ($br_line->info2 === null || $br_line->info2 === '');
+	$is_new = ($ord['z_status'] === 'new');
+	$noPhone = ((int)$br_line->phone <= 1);
+	$rowStyle = $is_new ? 'background-color:#e3f2fd;' : '';
+	if ($noPhone) { $rowStyle .= 'border-left:4px solid #b00;'; }
 	echo '
-	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '"' . ($is_new ? ' style="background-color:#e3f2fd;"' : '') . '>
+	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '"' . ($rowStyle ? ' style="' . $rowStyle . '"' : '') . '>
 		<td style="text-align: center;"><img src="' . $br_line->small_pic . '" style="max-height: 80px; max-width: 80px; width: auto; object-fit: contain;" /></td>
 		<td ' . ($it_free_num > 0 ? 'style="background-color:#acf398;"' : '') . '>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" <br />
 		' . (User::getCurrentUser()->isAdmin() ? 'br_id:' . $br_line->order_id : '') . '
@@ -419,6 +455,8 @@ while ($ord = $result_or->fetch_assoc()) {
 	}
 	if ($br_line->phone > 1) {
 		echo Base::phone_print($br_line->phone) . '<br>';
+	} else {
+		echo '<span style="color:#b00;font-weight:bold;">⚠ нет телефона — ищите контакт в комментарии</span><br>';
 	}
 	echo '
 
@@ -431,8 +469,10 @@ while ($ord = $result_or->fetch_assoc()) {
 				<textarea rows="5" cols="70" name="info" id="info_' . $br_line->order_id . '" form="order_' . $br_line->order_id . '"></textarea><br />
       		</div>
       	</td>
-		<td>' . date("d.m.y", $br_line->validity) . '
+		<td style="text-align:center;">' . date("d.m.y", $br_line->validity) . '
       		<div style="position:relative; z-index:2; background-color:#FFF;"><input style="display:none;" type="date" name="br_valid" id="br_valid_' . $br_line->order_id . '" form="order_' . $br_line->order_id . '" value="' . date("Y-m-d", $br_line->validity) . '"></div>
+      		<div style="margin-top:8px;font-size:11px;color:#0a5c36;">план. выдача:</div>
+      		<input type="date" name="planned_date" form="order_' . $br_line->order_id . '" value="' . htmlspecialchars($ord['planned_date'] ?? '') . '" style="font-size:11px;"' . ((!empty($ord['planned_date']) && $ord['planned_date'] <= date('Y-m-d')) ? ' data-due="1"' : '') . '>
       		</td>
     	<!--<td ' . ($br_line->web == 1 ? 'style="background-color:#F60"' : '') . '>' . $lp_list[$br_line->cr_who_id] . '/' . $lp_list[$br_line->appr_id] . '</td>-->
 		<td>
@@ -446,7 +486,23 @@ while ($ord = $result_or->fetch_assoc()) {
 				<button type="button" name="action" class="zayavk_btn z_btn_save" data-tooltip="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
 				<button type="submit" name="action" class="zayavk_btn z_btn_save" data-tooltip="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
       	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return confirm(\'Отметить недозвон?\');">' . $svg_phone_off . '</button>
-				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
+				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Удалить заявку? (сохранится в архиве со статусом «удалена»)\');" value="удалить">' . $svg_trash . '</button>
+				<button type="submit" name="action" class="zayavk_btn" style="background:#fd7e14;color:#fff;" data-tooltip="Отказ клиента" onclick="return confirm(\'Отметить отказ? (укажите причину слева)\');" value="отказ">✕</button>
+				<button type="submit" name="action" class="zayavk_btn" style="background:#6c757d;color:#fff;" data-tooltip="Спам" onclick="return confirm(\'Пометить как спам и убрать?\');" value="спам">🚫</button>
+			</div>
+			<div style="margin-top:6px;">
+				<select name="reason" form="order_' . $br_line->order_id . '" style="font-size:11px;">
+					<option value="">причина отказа…</option>
+					<option value="out_of_stock">нет в наличии</option>
+					<option value="changed_mind">передумал</option>
+					<option value="too_expensive">дорого</option>
+					<option value="found_elsewhere">нашёл в др. месте</option>
+					<option value="other">другое</option>
+				</select>
+			</div>
+			<div style="margin-top:6px;font-size:11px;">
+				<input type="number" name="new_model_id" form="order_' . $br_line->order_id . '" placeholder="ID модели" style="width:78px;font-size:11px;">
+				<button type="submit" name="action" form="order_' . $br_line->order_id . '" value="сменить модель" style="font-size:11px;" onclick="return confirm(\'Сменить модель заявки на указанный ID?\');">сменить</button>
 			</div>
 			</form>
 		</td>
