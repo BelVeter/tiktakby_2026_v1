@@ -892,6 +892,9 @@ class bron {
 
                     $this->update();
 
+                    //заявка превратилась в бронь — помечаем для аналитики спроса
+                    $this->mysqli->query("UPDATE rent_orders SET z_status='done' WHERE order_id='".(int)$this->order_id."'");
+
 
                     //разблокируем таблицы
                     $query = "UNLOCK TABLES";
