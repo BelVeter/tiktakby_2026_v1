@@ -140,8 +140,11 @@ class L3Controller extends Controller
         $validityDateObj->modify('+' . intval($validityDaysNum) . ' days');
       }
       $zayavka = bron::createZayavka($req->input('model_id'), $req->input('phone'), $req->input('fio'), '', '', $validityDateObj, $req->input('info'), 1);
-      if ($zayavka) {
+      if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
           \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
+      }
+      if (isset($z) && $z->id && $zayavka && $zayavka->insert_id) {
+          (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$z->id);
       }
 
       $message = 'Заявка на товар принята. При поступлении товара в указанный срок ожидания, оператор свяжется с вами по телефону.';
