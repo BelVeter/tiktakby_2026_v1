@@ -71,10 +71,13 @@ try {
             echo json_encode(['error' => 'last_ch_time required (optimistic lock)']);
             exit;
         }
+        $plannedDate = !empty($_POST['planned_date'])
+            ? (\DateTime::createFromFormat('Y-m-d', $_POST['planned_date']) ? $_POST['planned_date'] : null)
+            : null;
         $z = Zayavka::load((int)($_POST['order_id'] ?? 0));
         $z->update([
             'info'          => $_POST['info'] ?? '',
-            'planned_date'  => $_POST['planned_date'] ?? null,
+            'planned_date'  => $plannedDate,
             'validity_date' => $_POST['validity_date'] ?? null,
             'last_ch_time'  => $_POST['last_ch_time'],
         ]);
@@ -136,7 +139,7 @@ try {
             'phone'        => $phone,
             'family'       => $family,
             'info'         => trim($_POST['info'] ?? ''),
-            'planned_date' => !empty($_POST['planned_date']) ? $_POST['planned_date'] : null,
+            'planned_date' => (!empty($_POST['planned_date']) && \DateTime::createFromFormat('Y-m-d', $_POST['planned_date'])) ? $_POST['planned_date'] : null,
             'validity'     => $validityTs ?: null,
         ], 'crm');
         if ($res->isDuplicate) {

@@ -155,9 +155,18 @@ class Zayavka
         $user = (int)($_SESSION['user_id'] ?? 0);
         $cols = "(arch_time, arch_who, order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type, z_status, z_reject_reason, planned_date)";
         $sel  = time() . ", " . $user . ", order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type, z_status, z_reject_reason, planned_date";
-        $arch = "INSERT INTO rent_orders_arch $cols SELECT $sel FROM rent_orders WHERE order_id=" . (int)$this->order_id;
-        if (!$this->conn->query($arch)) { throw new \RuntimeException('archive failed: ' . $this->conn->error); }
-        $this->conn->query("DELETE FROM rent_orders WHERE order_id=" . (int)$this->order_id);
+        $this->conn->begin_transaction();
+        try {
+            $arch = "INSERT INTO rent_orders_arch $cols SELECT $sel FROM rent_orders WHERE order_id=" . (int)$this->order_id;
+            if (!$this->conn->query($arch)) { throw new \RuntimeException('archive failed: ' . $this->conn->error); }
+            if (!$this->conn->query("DELETE FROM rent_orders WHERE order_id=" . (int)$this->order_id)) {
+                throw new \RuntimeException('delete after archive failed: ' . $this->conn->error);
+            }
+            $this->conn->commit();
+        } catch (\Throwable $e) {
+            $this->conn->rollback();
+            throw $e;
+        }
     }
 
     public function linkZvonok(int $zvId): void

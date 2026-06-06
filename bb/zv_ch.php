@@ -54,21 +54,19 @@ foreach ($_POST as $key => $value) {
 }
 
 if ($action=='create_zayavka'){
-  $z = \bb\classes\Zvonok::getById($zv_id);
-  $z->info = $dop_info.' [Оформлена заявка]';
-  $z->zayavkaDone();
-
-  $m = \bb\classes\Model::getById($model_id);
-
-  $validity = new DateTime();
+  if ((int)$model_id > 0) {
+    $validity = new DateTime();
     $validity->modify('+'.$days_num.' days');
 
-
-  $zayavka = \bb\classes\bron::createZayavka($model_id, preg_replace("/[^0-9]/", "", $z->phone), $z->z_name, '', '', $validity, $dop_info, 1);
-  if ($zayavka && $zayavka->insert_id && $zv_id) {
-      (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$zv_id);
+    $z = \bb\classes\Zvonok::getById($zv_id);
+    $zayavka = \bb\classes\bron::createZayavka($model_id, preg_replace("/[^0-9]/", "", $z->phone), $z->z_name, '', '', $validity, $dop_info, 1);
+    if ($zayavka && $zayavka->insert_id) {
+        (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$zv_id);
+        $z->info = $dop_info.' [Оформлена заявка]';
+        $z->zayavkaDone();
+        $message = "Заявка оформлена";
+    }
   }
-  $message = "Заявка оформлена";
 }
 
 if ($action=='zv_check') {
@@ -706,6 +704,8 @@ function get_post($var)
     document.getElementById("zayArchivedPanel").style.display = "none";
     document.getElementById("zayCreatePanel").style.display = "none";
     document.getElementById("zayEditFields").style.display = "block";
+    document.getElementById("zayDelPanel").style.display = "none";
+    document.getElementById("zayDelComment").value = "";
   }
   document.getElementById("zayEditClose").addEventListener("click", closeOverlay);
 
