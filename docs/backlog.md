@@ -14,6 +14,10 @@
 - [ ] `includes/*.html` — старые статические хедеры (`header.html`, `header_karnaval.html`, `header_igrushki.html`, `arch/*`). Все переадресованы; кандидаты на удаление.
 - [ ] Прочие `* copy.php` (`bb/scanner_tovar copy.php`, `bb/top_menu copy.php`) — проверить и удалить.
 
+## Известные пре-существующие проблемы
+
+- [ ] `tests/Feature/Mcp/SpecRuntimeParityTest::spec version matches` падает на `main`: тест ждёт версию OpenAPI `2.0.1`, а спека уже `2.2.0`. Не связано с заявками (область MCP/rocketsms). Фикс — синхронизировать assertion с актуальной версией спеки (обновлять оба вместе).
+
 ## Технические улучшения (отложено)
 
 - [ ] Перевести **остальные** позиционные `INSERT ... VALUES` по проекту на явные колонки (шире, чем редизайн заявок) — устранить gotcha №1 в db_notes.
