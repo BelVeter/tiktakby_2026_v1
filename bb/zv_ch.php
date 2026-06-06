@@ -427,7 +427,7 @@ if ($action=='показать только примерки') {
 }
 else {
 	//echo '2';
-	$query_zv = "SELECT * FROM zvonki WHERE `status`!='arch' ORDER BY `status` DESC, cr_time DESC LIMIT $limit";
+	$query_zv = "SELECT z.*, ro.z_status AS zay_status FROM zvonki z LEFT JOIN rent_orders ro ON ro.order_id = z.order_id WHERE z.`status`!='arch' ORDER BY z.`status` DESC, z.cr_time DESC LIMIT $limit";
 	$result_zv = $mysqli->query($query_zv);
 	if (!$result_zv) die('Сбой при доступе к базе данных: '.$query_zv.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
 }
@@ -468,7 +468,9 @@ while ($zv=$result_zv->fetch_assoc()) {
 						<input type="hidden" name="zv_id" value="'.$zv['zv_id'].'" />
 					'.($zv['status']=='new' ? '<input type="submit" name="action" value="звонок сделан" />' : '').'
 					</form>
-        '.($zv['type1']=='zayavka' ? '<button type="button" class="zayavka_btn">Оформить заявку</button>' : '').'
+        '.(!empty($zv['order_id'])
+            ? '<button type="button" class="zay_edit_btn" data-orderid="'.$zv['order_id'].'">Редактировать заявку'.(!empty($zv['zay_status']) ? ' <small>('.$zv['zay_status'].')</small>' : '').'</button>'
+            : ($zv['type1']=='zayavka' ? '<button type="button" class="zayavka_btn">Оформить заявку</button>' : '')).'
 			</td>
 		</tr>
 
@@ -508,6 +510,115 @@ function get_post($var)
     <button type="submit" class="submit-button" onclick="this.form.submit();">Создать заявку</button>
   </div>
 </form>
+
+<!-- Edit Zayavka popup -->
+<div id="zayEditOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;">
+  <div style="background:#fff;max-width:560px;margin:60px auto;padding:20px;border-radius:6px;position:relative;">
+    <span id="zayEditClose" style="position:absolute;top:8px;right:14px;cursor:pointer;font-size:24px;">&times;</span>
+    <h3 style="margin-top:0;">Заявка <span id="zayEditTitle"></span></h3>
+    <input type="hidden" id="zayEditOrderId">
+    <input type="hidden" id="zayEditChTime">
+    <div id="zayEditMeta" style="font-size:13px;color:#444;margin-bottom:8px;"></div>
+    <div id="zayEditHistory" style="font-size:12px;color:#666;max-height:140px;overflow:auto;border:1px solid #eee;padding:6px;margin-bottom:10px;"></div>
+
+    <label style="display:block;font-size:13px;">Комментарий (добавится в историю):<br>
+      <textarea id="zayEditInfo" rows="3" style="width:100%;"></textarea>
+    </label>
+    <label style="display:block;font-size:13px;margin-top:8px;">Планируемая дата выдачи:
+      <input type="date" id="zayEditPlanned">
+    </label>
+    <div style="margin-top:8px;font-size:13px;">Сменить модель (ID):
+      <input type="number" id="zayEditModel" style="width:90px;">
+      <button type="button" id="zayEditModelBtn">сменить</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button type="button" id="zayEditSave" style="background:#28a745;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;">Сохранить</button>
+      <select id="zayEditReason" style="font-size:12px;">
+        <option value="">причина отказа…</option>
+        <option value="out_of_stock">нет в наличии</option>
+        <option value="changed_mind">передумал</option>
+        <option value="too_expensive">дорого</option>
+        <option value="found_elsewhere">нашёл в др. месте</option>
+        <option value="other">другое</option>
+      </select>
+      <button type="button" id="zayEditReject" style="background:#fd7e14;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Отказ</button>
+      <button type="button" id="zayEditSpam" style="background:#6c757d;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Спам</button>
+      <button type="button" id="zayEditDelete" style="background:#dc3545;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Удалить</button>
+    </div>
+    <div id="zayEditErr" style="color:#b00;margin-top:8px;font-size:13px;"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var API = "/bb/zayavka_api.php";
+  var overlay = document.getElementById("zayEditOverlay");
+  var elId = document.getElementById("zayEditOrderId");
+  var elCh = document.getElementById("zayEditChTime");
+  var elErr = document.getElementById("zayEditErr");
+
+  function open(orderId){
+    elErr.textContent = "";
+    fetch(API + "?action=load&order_id=" + encodeURIComponent(orderId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.ok) { alert(d.error || "Ошибка загрузки"); return; }
+        var z = d.zayavka;
+        elId.value = z.order_id;
+        elCh.value = z.ch_time;
+        document.getElementById("zayEditTitle").textContent = "№" + z.order_id + " (" + z.z_status + ")";
+        document.getElementById("zayEditMeta").innerHTML =
+          "<strong>" + (z.family||"") + "</strong> " + (z.phone>1 ? z.phone : "<span style='color:#b00'>нет телефона</span>") +
+          "<br>" + (z.info||"");
+        document.getElementById("zayEditHistory").innerHTML = z.info2 || "";
+        document.getElementById("zayEditInfo").value = "";
+        document.getElementById("zayEditPlanned").value = z.planned_date || "";
+        document.getElementById("zayEditModel").value = "";
+        overlay.style.display = "block";
+      })
+      .catch(function(){ alert("Сеть недоступна"); });
+  }
+
+  function post(params){
+    var body = new URLSearchParams(params);
+    return fetch(API, {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:body.toString()})
+      .then(function(r){ return r.json().then(function(j){ return {status:r.status, j:j}; }); });
+  }
+
+  function handle(res){
+    if (res.j && res.j.ok) { location.reload(); }
+    else { elErr.textContent = (res.j && res.j.error) ? res.j.error : "Ошибка"; }
+  }
+
+  document.querySelectorAll(".zay_edit_btn").forEach(function(b){
+    b.addEventListener("click", function(){ open(b.dataset.orderid); });
+  });
+  document.getElementById("zayEditClose").addEventListener("click", function(){ overlay.style.display="none"; });
+
+  document.getElementById("zayEditSave").addEventListener("click", function(){
+    post({action:"save", order_id:elId.value, info:document.getElementById("zayEditInfo").value,
+          planned_date:document.getElementById("zayEditPlanned").value, last_ch_time:elCh.value}).then(handle);
+  });
+  document.getElementById("zayEditModelBtn").addEventListener("click", function(){
+    var mid = document.getElementById("zayEditModel").value;
+    if (!mid) { elErr.textContent="Укажите ID модели"; return; }
+    if (!confirm("Сменить модель заявки?")) return;
+    post({action:"change_model", order_id:elId.value, model_id:mid}).then(handle);
+  });
+  document.getElementById("zayEditReject").addEventListener("click", function(){
+    if (!confirm("Отметить отказ?")) return;
+    post({action:"set_status", order_id:elId.value, status:"rejected", reason:document.getElementById("zayEditReason").value}).then(handle);
+  });
+  document.getElementById("zayEditSpam").addEventListener("click", function(){
+    if (!confirm("Пометить как спам?")) return;
+    post({action:"set_status", order_id:elId.value, status:"spam"}).then(handle);
+  });
+  document.getElementById("zayEditDelete").addEventListener("click", function(){
+    if (!confirm("Удалить заявку? (сохранится в архиве)")) return;
+    post({action:"set_status", order_id:elId.value, status:"deleted", reason:document.getElementById("zayEditReason").value}).then(handle);
+  });
+})();
+</script>
 
 <script src="/bb/assets/js/zvonki_bb.js"></script>
 
