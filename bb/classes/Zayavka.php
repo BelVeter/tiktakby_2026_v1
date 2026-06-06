@@ -121,19 +121,27 @@ class Zayavka
     }
 
     /** Terminal statuses (rejected/spam/deleted/done): write status+reason and archive */
-    public function setStatus(string $status, ?string $reason = null): void
+    public function setStatus(string $status, ?string $reason = null, ?string $comment = null): void
     {
         $terminal = in_array($status, ['rejected', 'spam', 'deleted', 'done'], true);
-        $sql = "UPDATE rent_orders SET z_status='" . $this->esc($status) . "'"
-             . ($reason !== null ? ", z_reject_reason='" . $this->esc($reason) . "'" : "")
-             . ", ch_time=" . time() . " WHERE order_id=" . (int)$this->order_id;
+        $sets = ["z_status='" . $this->esc($status) . "'", "ch_time=" . time()];
+        if ($reason !== null) { $sets[] = "z_reject_reason='" . $this->esc($reason) . "'"; }
+        if ($comment !== null && $comment !== '') {
+            $hist = '<p class="bron_hist_unit">' . date('d.m H:i') . ': ' . $this->esc($comment) . '</p>';
+            $this->info2 = (string)$this->info2 . $hist;
+            $sets[] = "info2='" . $this->esc($this->info2) . "'";
+        }
+        $sql = "UPDATE rent_orders SET " . implode(', ', $sets) . " WHERE order_id=" . (int)$this->order_id;
         if (!$this->conn->query($sql)) { throw new \RuntimeException('setStatus failed: ' . $this->conn->error); }
         $this->z_status = $status; $this->z_reject_reason = $reason;
 
         if ($terminal) { $this->archiveAndRemove(); }
     }
 
-    public function softDelete(?string $reason = null): void { $this->setStatus('deleted', $reason); }
+    public function softDelete(?string $reason = null, ?string $comment = null): void
+    {
+        $this->setStatus('deleted', $reason, $comment);
+    }
 
     private function archiveAndRemove(): void
     {

@@ -201,6 +201,21 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 
 	function reload() { location = '/bb/index.php' };
 
+	function showDelPanel(id) {
+		document.getElementById('del_panel_' + id).style.display = 'block';
+		document.getElementById('del_but_'   + id).style.display = 'none';
+	}
+	function hideDelPanel(id) {
+		document.getElementById('del_panel_' + id).style.display = 'none';
+		document.getElementById('del_but_'   + id).style.display = 'inline-flex';
+		document.getElementById('del_txt_'   + id).value = '';
+	}
+	function submitDelPanel(id, type) {
+		document.getElementById('del_cmt_' + id).value = document.getElementById('del_txt_' + id).value.trim();
+		var btn = type === 'spam' ? 'del_spam_' + id : (type === 'reject' ? 'del_reject_' + id : 'del_other_' + id);
+		document.getElementById(btn).click();
+	}
+
 
 
 </script>
@@ -316,7 +331,8 @@ if (isset($_POST['action'])) {
 
 		case 'отказ':
 			try {
-				\bb\classes\Zayavka::load((int)$order_id)->setStatus('rejected', isset($reason) && $reason !== '' ? $reason : null);
+				$cmt = isset($reason_comment) && $reason_comment !== '' ? $reason_comment : null;
+				\bb\classes\Zayavka::load((int)$order_id)->setStatus('rejected', 'changed_mind', $cmt);
 			} catch (\RuntimeException $e) {
 				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
 			}
@@ -324,7 +340,8 @@ if (isset($_POST['action'])) {
 
 		case 'спам':
 			try {
-				\bb\classes\Zayavka::load((int)$order_id)->setStatus('spam');
+				$cmt = isset($reason_comment) && $reason_comment !== '' ? $reason_comment : null;
+				\bb\classes\Zayavka::load((int)$order_id)->setStatus('spam', null, $cmt);
 			} catch (\RuntimeException $e) {
 				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
 			}
@@ -352,7 +369,8 @@ if (isset($_POST['action'])) {
 		case 'удалить':
 			// soft-delete: пишем статус 'deleted' и архивируем (физически не теряем)
 			try {
-				\bb\classes\Zayavka::load((int)$order_id)->softDelete(isset($reason) && $reason !== '' ? $reason : null);
+				$cmt = isset($reason_comment) && $reason_comment !== '' ? $reason_comment : null;
+				\bb\classes\Zayavka::load((int)$order_id)->softDelete(null, $cmt);
 			} catch (\RuntimeException $e) {
 				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
 			}
@@ -487,19 +505,20 @@ while ($ord = $result_or->fetch_assoc()) {
 				<button type="button" name="action" class="zayavk_btn z_btn_save" data-tooltip="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
 				<button type="submit" name="action" class="zayavk_btn z_btn_save" data-tooltip="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
       	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return confirm(\'Отметить недозвон?\');">' . $svg_phone_off . '</button>
-				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Удалить заявку? (сохранится в архиве со статусом «удалена»)\');" value="удалить">' . $svg_trash . '</button>
-				<button type="submit" name="action" class="zayavk_btn" style="background:#fd7e14;color:#fff;" data-tooltip="Отказ клиента" onclick="return confirm(\'Отметить отказ? (укажите причину слева)\');" value="отказ">✕</button>
-				<button type="submit" name="action" class="zayavk_btn" style="background:#6c757d;color:#fff;" data-tooltip="Спам" onclick="return confirm(\'Пометить как спам и убрать?\');" value="спам">🚫</button>
+				<button type="button" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="showDelPanel(\'' . $br_line->order_id . '\');">' . $svg_trash . '</button>
+				<!-- hidden submit triggers for the delete panel -->
+				<button type="submit" name="action" value="спам"    id="del_spam_' . $br_line->order_id . '"   style="display:none;"></button>
+				<button type="submit" name="action" value="отказ"   id="del_reject_' . $br_line->order_id . '" style="display:none;"></button>
+				<button type="submit" name="action" value="удалить" id="del_other_' . $br_line->order_id . '"  style="display:none;"></button>
+				<input type="hidden" name="reason_comment" id="del_cmt_' . $br_line->order_id . '" value="">
 			</div>
-			<div style="margin-top:6px;">
-				<select name="reason" form="order_' . $br_line->order_id . '" style="font-size:11px;">
-					<option value="">причина отказа…</option>
-					<option value="out_of_stock">нет в наличии</option>
-					<option value="changed_mind">передумал</option>
-					<option value="too_expensive">дорого</option>
-					<option value="found_elsewhere">нашёл в др. месте</option>
-					<option value="other">другое</option>
-				</select>
+			<div id="del_panel_' . $br_line->order_id . '" style="display:none;margin-top:6px;background:#fff3f3;border:1px solid #f5c6cb;border-radius:4px;padding:8px;">
+				<div style="font-size:11px;font-weight:bold;margin-bottom:6px;">Причина:</div>
+				<button type="button" onclick="submitDelPanel(\'' . $br_line->order_id . '\',\'spam\')"   style="background:#6c757d;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">Спам</button>
+				<button type="button" onclick="submitDelPanel(\'' . $br_line->order_id . '\',\'reject\')" style="background:#fd7e14;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">Отказ клиента</button>
+				<button type="button" onclick="submitDelPanel(\'' . $br_line->order_id . '\',\'other\')"  style="background:#dc3545;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">Другое</button>
+				<button type="button" onclick="hideDelPanel(\'' . $br_line->order_id . '\')"             style="background:#aaa;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">Отмена</button>
+				<textarea id="del_txt_' . $br_line->order_id . '" placeholder="Комментарий (необязательно)" rows="2" style="display:block;width:100%;margin-top:6px;font-size:11px;box-sizing:border-box;"></textarea>
 			</div>
 			<div style="margin-top:6px;font-size:11px;position:relative;">
 				<div class="ms-wrap" style="display:inline-block;position:relative;vertical-align:middle;">

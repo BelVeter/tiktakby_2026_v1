@@ -541,17 +541,15 @@ function get_post($var)
     </div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
       <button type="button" id="zayEditSave" style="background:#28a745;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;">Сохранить</button>
-      <select id="zayEditReason" style="font-size:12px;">
-        <option value="">причина отказа…</option>
-        <option value="out_of_stock">нет в наличии</option>
-        <option value="changed_mind">передумал</option>
-        <option value="too_expensive">дорого</option>
-        <option value="found_elsewhere">нашёл в др. месте</option>
-        <option value="other">другое</option>
-      </select>
-      <button type="button" id="zayEditReject" style="background:#fd7e14;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Отказ</button>
-      <button type="button" id="zayEditSpam" style="background:#6c757d;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Спам</button>
       <button type="button" id="zayEditDelete" style="background:#dc3545;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Удалить</button>
+    </div>
+    <div id="zayDelPanel" style="display:none;background:#fff3f3;border:1px solid #f5c6cb;border-radius:4px;padding:10px;margin-top:10px;">
+      <div style="font-size:13px;font-weight:bold;margin-bottom:8px;">Причина:</div>
+      <button type="button" id="zayDelSpam"   style="background:#6c757d;color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;margin-right:6px;">Спам</button>
+      <button type="button" id="zayDelReject" style="background:#fd7e14;color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;margin-right:6px;">Отказался</button>
+      <button type="button" id="zayDelOther"  style="background:#dc3545;color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;margin-right:6px;">Другое</button>
+      <button type="button" id="zayDelCancel" style="background:#aaa;color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;">Отмена</button>
+      <textarea id="zayDelComment" rows="2" placeholder="Комментарий (необязательно)" style="display:block;width:100%;margin-top:8px;font-size:13px;box-sizing:border-box;"></textarea>
     </div>
     <div id="zayEditErr" style="color:#b00;margin-top:8px;font-size:13px;"></div>
   </div>
@@ -567,6 +565,8 @@ function get_post($var)
 
   function open(orderId){
     elErr.textContent = "";
+    document.getElementById("zayDelPanel").style.display = "none";
+    document.getElementById("zayDelComment").value = "";
     fetch(API + "?action=load&order_id=" + encodeURIComponent(orderId))
       .then(function(r){ return r.json(); })
       .then(function(d){
@@ -656,18 +656,21 @@ function get_post($var)
     if (!confirm("Сменить модель заявки?")) return;
     post({action:"change_model", order_id:elId.value, model_id:mid}).then(handle);
   });
-  document.getElementById("zayEditReject").addEventListener("click", function(){
-    if (!confirm("Отметить отказ?")) return;
-    post({action:"set_status", order_id:elId.value, status:"rejected", reason:document.getElementById("zayEditReason").value}).then(handle);
-  });
-  document.getElementById("zayEditSpam").addEventListener("click", function(){
-    if (!confirm("Пометить как спам?")) return;
-    post({action:"set_status", order_id:elId.value, status:"spam"}).then(handle);
-  });
   document.getElementById("zayEditDelete").addEventListener("click", function(){
-    if (!confirm("Удалить заявку? (сохранится в архиве)")) return;
-    post({action:"set_status", order_id:elId.value, status:"deleted", reason:document.getElementById("zayEditReason").value}).then(handle);
+    document.getElementById("zayDelPanel").style.display = "block";
   });
+  document.getElementById("zayDelCancel").addEventListener("click", function(){
+    document.getElementById("zayDelPanel").style.display = "none";
+    document.getElementById("zayDelComment").value = "";
+  });
+  function delWithReason(status, reason) {
+    var comment = document.getElementById("zayDelComment").value.trim();
+    post({action:"set_status", order_id:elId.value, status:status,
+          reason: reason || "", reason_comment: comment}).then(handle);
+  }
+  document.getElementById("zayDelSpam").addEventListener("click",   function(){ delWithReason("spam",     null); });
+  document.getElementById("zayDelReject").addEventListener("click", function(){ delWithReason("rejected", "changed_mind"); });
+  document.getElementById("zayDelOther").addEventListener("click",  function(){ delWithReason("deleted",  null); });
 })();
 </script>
 

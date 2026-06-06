@@ -67,8 +67,10 @@ try {
             echo json_encode(['error' => 'invalid status']);
             exit;
         }
+        $reason  = isset($_POST['reason'])         && $_POST['reason']         !== '' ? $_POST['reason']         : null;
+        $comment = isset($_POST['reason_comment']) && $_POST['reason_comment'] !== '' ? $_POST['reason_comment'] : null;
         $z = Zayavka::load((int)($_POST['order_id'] ?? 0));
-        $z->setStatus($status, $_POST['reason'] ?? null);
+        $z->setStatus($status, $reason, $comment);
         echo json_encode(['ok' => true]);
     } else {
         http_response_code(400);
