@@ -128,6 +128,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 			document.getElementById('info_div_' + id).style.display = "inline-block";
 			document.getElementById('br_valid_' + id).style.display = "inline-block";
 			document.getElementById('ms_div_' + id).style.display = "block";
+			document.getElementById('pd_div_' + id).style.display = "block";
 		}
 		else {
 			btn.value = "оформить звонок";
@@ -140,6 +141,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 			document.getElementById('info_div_' + id).style.display = "none";
 			document.getElementById('br_valid_' + id).style.display = "none";
 			document.getElementById('ms_div_' + id).style.display = "none";
+			document.getElementById('pd_div_' + id).style.display = "none";
 		}
 	}
 
@@ -401,7 +403,7 @@ echo '
       <th style="width:80px; text-align:center;">Фото</th>
 	  <th style="width:350px; text-align:center;">Товар</th>
       <th style="width:350px; text-align:center;">коментари<br>сортировать по дате заявки <button type="button" data-sort="start" class="sort-btn" value="новые наверх">новые наверх</button></th>
-	  <th style="width:81px; text-align:center;">срок заявки / план. выдача<br><button type="button" data-sort="finish" class="sort-btn" value="новые наверх">новые наверх</button></th>
+	  <th style="width:110px; text-align:center;"><button type="button" data-sort="finish" data-label="срок заявки" class="sort-btn" value="новые наверх" style="cursor:pointer;background:none;border:none;padding:2px 0;font-weight:bold;font-size:inherit;">срок заявки ↕</button><br><button type="button" data-sort="plan" data-label="план. выдача" class="sort-btn" value="новые наверх" style="cursor:pointer;background:none;border:none;padding:2px 0;font-size:11px;">план. выдача ↕</button></th>
 	  <!--<th style="width:90px; text-align:center;">созд/подтв</th>-->
       <th style="text-align:center;">действия</th>
 	</tr>
@@ -445,7 +447,7 @@ while ($ord = $result_or->fetch_assoc()) {
 	$rowStyle = $is_new ? 'background-color:#e3f2fd;' : '';
 	if ($noPhone) { $rowStyle .= 'border-left:4px solid #b00;'; }
 	echo '
-	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '"' . ($rowStyle ? ' style="' . $rowStyle . '"' : '') . '>
+	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '" data-plan="' . htmlspecialchars($ord['planned_date'] ?? '') . '"' . ($rowStyle ? ' style="' . $rowStyle . '"' : '') . '>
 		<td style="text-align: center;"><img src="' . $br_line->small_pic . '" style="max-height: 80px; max-width: 80px; width: auto; object-fit: contain;" /></td>
 		<td ' . ($it_free_num > 0 ? 'style="background-color:#acf398;"' : '') . '>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" <br />
 		' . (User::getCurrentUser()->isAdmin() ? 'br_id:' . $br_line->order_id : '') . '
@@ -502,9 +504,13 @@ while ($ord = $result_or->fetch_assoc()) {
       		</div>
       	</td>
 		<td style="text-align:center;">' . date("d.m.y", $br_line->validity) . '
-      		<div style="position:relative; z-index:2; background-color:#FFF;"><input style="display:none;" type="date" name="br_valid" id="br_valid_' . $br_line->order_id . '" form="order_' . $br_line->order_id . '" value="' . date("Y-m-d", $br_line->validity) . '"></div>
-      		<div style="margin-top:8px;font-size:11px;color:#0a5c36;">план. выдача:</div>
+      		<div style="position:relative; z-index:2; background-color:#FFF;"><input style="display:none;" type="date" name="br_valid" id="br_valid_' . $br_line->order_id . '" form="order_' . $br_line->order_id . '" value="' . date("Y-m-d", $br_line->validity) . '"></div>'
+      		. (!empty($ord['planned_date']) ? '<div style="margin-top:4px;font-size:11px;color:#0a5c36;">📅 ' . htmlspecialchars($ord['planned_date']) . '</div>' : '')
+      		. '
+      		<div id="pd_div_' . $br_line->order_id . '" style="display:none;margin-top:4px;">
+      		<div style="font-size:10px;color:#0a5c36;">план. выдача:</div>
       		<input type="date" name="planned_date" form="order_' . $br_line->order_id . '" value="' . htmlspecialchars($ord['planned_date'] ?? '') . '" style="font-size:11px;"' . ((!empty($ord['planned_date']) && $ord['planned_date'] <= date('Y-m-d')) ? ' data-due="1"' : '') . '>
+      		</div>
       		</td>
     	<!--<td ' . ($br_line->web == 1 ? 'style="background-color:#F60"' : '') . '>' . $lp_list[$br_line->cr_who_id] . '/' . $lp_list[$br_line->appr_id] . '</td>-->
 		<td>
@@ -614,31 +620,28 @@ function user_select($id)
 	// Function to sort table
 	function sortTable(e) {
 		let sortType = e.target.dataset.sort;
+		let label = e.target.dataset.label;
 		let switcher = 1;
-		console.log(e.target.value);
 		if (e.target.value == 'новые наверх') {
-			e.target.innerHTML = 'старые наверх';
-			e.target.value = 'старые наверх';
 			switcher = -1;
-		}
-		else {
-			e.target.innerHTML = 'новые наверх';
-			e.target.value = 'новые наверх';
+			e.target.value = 'старые наверх';
+			e.target.innerHTML = label ? label + ' ▼' : 'старые наверх';
+		} else {
 			switcher = 1;
+			e.target.value = 'новые наверх';
+			e.target.innerHTML = label ? label + ' ▲' : 'новые наверх';
 		}
-		var table = document.querySelector('table'); // Select the table
-		var rows = Array.from(table.rows); // Convert HTMLCollection to Array
-
-		rows.shift(); // Remove the header row if exists
-
-		// Sort rows Array
+		var table = document.querySelector('table');
+		var rows = Array.from(table.rows);
+		rows.shift();
 		rows.sort(function (a, b) {
-			var dateA = new Date(a.getAttribute('data-' + sortType)); // Convert to Date object
-			var dateB = new Date(b.getAttribute('data-' + sortType)); // Convert to Date object
-			return (dateA - dateB) * switcher; // Sort in ascending order
+			var valA = a.getAttribute('data-' + sortType) || '';
+			var valB = b.getAttribute('data-' + sortType) || '';
+			if (!valA && !valB) return 0;
+			if (!valA) return 1;
+			if (!valB) return -1;
+			return (new Date(valA) - new Date(valB)) * switcher;
 		});
-
-		// Append sorted rows back into the table
 		for (let row of rows) {
 			table.appendChild(row);
 		}
