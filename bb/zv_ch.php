@@ -472,7 +472,7 @@ while ($zv=$result_zv->fetch_assoc()) {
 					'.($zv['status']=='new' ? '<input type="submit" name="action" value="звонок сделан" />' : '').'
 					</form>
         '.(!empty($zv['order_id'])
-            ? '<button type="button" class="zay_edit_btn" data-orderid="'.$zv['order_id'].'">Заявка</button>'
+            ? '<button type="button" class="zay_edit_btn" data-orderid="'.$zv['order_id'].'" data-zvid="'.$zv['zv_id'].'">Заявка</button>'
             : ($zv['type1']=='zayavka' ? '<button type="button" class="zayavka_btn">Оформить заявку</button>' : '')).'
 			</td>
 		</tr>
@@ -521,9 +521,16 @@ function get_post($var)
     <h3 style="margin-top:0;">Заявка <span id="zayEditTitle"></span></h3>
     <input type="hidden" id="zayEditOrderId">
     <input type="hidden" id="zayEditChTime">
+    <input type="hidden" id="zayEditZvId">
     <div id="zayEditMeta" style="font-size:13px;color:#444;margin-bottom:8px;"></div>
     <div id="zayEditHistory" style="font-size:12px;color:#666;max-height:140px;overflow:auto;border:1px solid #eee;padding:6px;margin-bottom:10px;"></div>
 
+    <div id="zayArchivedPanel" style="display:none;background:#fff3f3;border:1px solid #f5c6cb;border-radius:4px;padding:10px;margin-bottom:10px;">
+      <div id="zayArchivedMsg" style="font-size:13px;margin-bottom:10px;"></div>
+      <button type="button" id="zayCreateNew" style="background:#007bff;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;">Создать новую заявку</button>
+    </div>
+
+    <div id="zayEditFields">
     <label style="display:block;font-size:13px;">Комментарий (добавится в историю):<br>
       <textarea id="zayEditInfo" rows="3" style="width:100%;"></textarea>
     </label>
@@ -554,6 +561,7 @@ function get_post($var)
       <button type="button" id="zayDelCancel" style="background:#aaa;color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;">Отмена</button>
       <textarea id="zayDelComment" rows="2" placeholder="Комментарий (необязательно)" style="display:block;width:100%;margin-top:8px;font-size:13px;box-sizing:border-box;"></textarea>
     </div>
+    </div><!-- /zayEditFields -->
     <div id="zayEditErr" style="color:#b00;margin-top:8px;font-size:13px;"></div>
   </div>
 </div>
@@ -566,26 +574,45 @@ function get_post($var)
   var elCh = document.getElementById("zayEditChTime");
   var elErr = document.getElementById("zayEditErr");
 
-  function open(orderId){
+  var reasonMap = {rejected:"Отказался", spam:"Спам", deleted:"Удалено", done:"Выполнено"};
+
+  function open(orderId, zvId){
     elErr.textContent = "";
     document.getElementById("zayDelPanel").style.display = "none";
     document.getElementById("zayDelComment").value = "";
+    document.getElementById("zayEditZvId").value = zvId || "";
     fetch(API + "?action=load&order_id=" + encodeURIComponent(orderId))
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d.ok) { alert(d.error || "Ошибка загрузки"); return; }
         var z = d.zayavka;
         elId.value = z.order_id;
-        elCh.value = z.ch_time;
         document.getElementById("zayEditTitle").textContent = "№" + z.order_id + " (" + z.z_status + ")";
         document.getElementById("zayEditMeta").innerHTML =
           "<strong>" + (z.family||"") + "</strong> " + (z.phone>1 ? z.phone : "<span style='color:#b00'>нет телефона</span>") +
-          "<br>" + (z.info||"");
+          (z.info ? "<br>" + z.info : "");
         document.getElementById("zayEditHistory").innerHTML = z.info2 || "";
-        document.getElementById("zayEditInfo").value = "";
-        document.getElementById("zayEditPlanned").value = z.planned_date || "";
-        document.getElementById("zayEditValidity").value = z.validity_date || "";
-        document.getElementById("zayEditModel").value = "";
+
+        if (d.archived) {
+          var msg = "Заявка закрыта: <strong>" + (reasonMap[z.z_status] || z.z_status) + "</strong>";
+          if (z.z_reject_reason) { msg += " (" + z.z_reject_reason + ")"; }
+          document.getElementById("zayArchivedMsg").innerHTML = msg;
+          var btn = document.getElementById("zayCreateNew");
+          btn.dataset.modelId = z.model_id || "";
+          btn.dataset.phone   = z.phone || "";
+          btn.dataset.family  = z.family || "";
+          document.getElementById("zayArchivedPanel").style.display = "block";
+          document.getElementById("zayEditFields").style.display = "none";
+        } else {
+          elCh.value = z.ch_time;
+          document.getElementById("zayArchivedPanel").style.display = "none";
+          document.getElementById("zayEditFields").style.display = "block";
+          document.getElementById("zayEditInfo").value = "";
+          document.getElementById("zayEditPlanned").value = z.planned_date || "";
+          document.getElementById("zayEditValidity").value = z.validity_date || "";
+          document.getElementById("zayEditModel").value = "";
+          document.getElementById("zayEditModelSearch").value = "";
+        }
         overlay.style.display = "block";
       })
       .catch(function(){ alert("Сеть недоступна"); });
@@ -603,9 +630,13 @@ function get_post($var)
   }
 
   document.querySelectorAll(".zay_edit_btn").forEach(function(b){
-    b.addEventListener("click", function(){ open(b.dataset.orderid); });
+    b.addEventListener("click", function(){ open(b.dataset.orderid, b.dataset.zvid); });
   });
-  document.getElementById("zayEditClose").addEventListener("click", function(){ overlay.style.display="none"; });
+  document.getElementById("zayEditClose").addEventListener("click", function(){
+    overlay.style.display = "none";
+    document.getElementById("zayArchivedPanel").style.display = "none";
+    document.getElementById("zayEditFields").style.display = "block";
+  });
 
   document.getElementById("zayEditSave").addEventListener("click", function(){
     post({action:"save", order_id:elId.value, info:document.getElementById("zayEditInfo").value,
@@ -662,6 +693,13 @@ function get_post($var)
     if (!confirm("Сменить модель заявки?")) return;
     post({action:"change_model", order_id:elId.value, model_id:mid}).then(handle);
   });
+  document.getElementById("zayCreateNew").addEventListener("click", function(){
+    var btn = this;
+    if (!confirm("Создать новую заявку?")) return;
+    post({action:"create_new", model_id:btn.dataset.modelId, phone:btn.dataset.phone,
+          family:btn.dataset.family, zv_id:document.getElementById("zayEditZvId").value}).then(handle);
+  });
+
   document.getElementById("zayEditDelete").addEventListener("click", function(){
     document.getElementById("zayDelPanel").style.display = "block";
   });

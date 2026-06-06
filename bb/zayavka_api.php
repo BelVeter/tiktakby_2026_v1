@@ -31,19 +31,40 @@ $action = $_REQUEST['action'] ?? 'load';
 
 try {
     if ($action === 'load') {
-        $z = Zayavka::load((int)($_GET['order_id'] ?? 0));
-        echo json_encode(['ok' => true, 'zayavka' => [
-            'order_id'     => $z->order_id,
-            'model_id'     => $z->model_id,
-            'phone'        => $z->phone,
-            'family'       => $z->family,
-            'info'         => $z->info,
-            'info2'        => $z->info2,
-            'planned_date' => $z->planned_date,
-            'z_status'     => $z->z_status,
-            'ch_time'      => $z->ch_time,
-            'validity_date' => $z->validity ? date('Y-m-d', (int)$z->validity) : '',
-        ]]);
+        $orderId = (int)($_GET['order_id'] ?? 0);
+        $c = \bb\Db::getInstance()->getConnection();
+        $ra = $c->query("SELECT * FROM rent_orders WHERE order_id=" . $orderId . " AND type2='zayavka' LIMIT 1");
+        if ($ra && $ra->num_rows > 0) {
+            $z = Zayavka::fromRow($ra->fetch_assoc(), $c);
+            echo json_encode(['ok' => true, 'archived' => false, 'zayavka' => [
+                'order_id'      => $z->order_id,
+                'model_id'      => $z->model_id,
+                'phone'         => $z->phone,
+                'family'        => $z->family,
+                'info'          => $z->info,
+                'info2'         => $z->info2,
+                'planned_date'  => $z->planned_date,
+                'z_status'      => $z->z_status,
+                'ch_time'       => $z->ch_time,
+                'validity_date' => $z->validity ? date('Y-m-d', (int)$z->validity) : '',
+            ]]);
+        } else {
+            $arch = $c->query("SELECT * FROM rent_orders_arch WHERE order_id=" . $orderId . " AND type2='zayavka' LIMIT 1");
+            if (!$arch || $arch->num_rows < 1) {
+                throw new \RuntimeException('Zayavka not found: ' . $orderId);
+            }
+            $z = Zayavka::fromRow($arch->fetch_assoc(), $c);
+            echo json_encode(['ok' => true, 'archived' => true, 'zayavka' => [
+                'order_id'        => $z->order_id,
+                'model_id'        => $z->model_id,
+                'phone'           => $z->phone,
+                'family'          => $z->family,
+                'info'            => $z->info,
+                'info2'           => $z->info2,
+                'z_status'        => $z->z_status,
+                'z_reject_reason' => $z->z_reject_reason,
+            ]]);
+        }
     } elseif ($action === 'save') {
         if (!isset($_POST['last_ch_time'])) {
             http_response_code(400);
@@ -74,6 +95,27 @@ try {
         $z = Zayavka::load((int)($_POST['order_id'] ?? 0));
         $z->setStatus($status, $reason, $comment);
         echo json_encode(['ok' => true]);
+    } elseif ($action === 'create_new') {
+        $modelId = (int)($_POST['model_id'] ?? 0);
+        $phone   = (int)preg_replace('/[^0-9]/', '', (string)($_POST['phone'] ?? ''));
+        $family  = trim($_POST['family'] ?? '');
+        $zvId    = (int)($_POST['zv_id'] ?? 0);
+        if ($modelId <= 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'model_id required']);
+            exit;
+        }
+        $z   = new Zayavka();
+        $res = $z->create(['model_id' => $modelId, 'phone' => $phone, 'family' => $family], 'crm');
+        if ($res->isDuplicate) {
+            http_response_code(409);
+            echo json_encode(['error' => 'Уже есть активная заявка #' . $res->existing->order_id]);
+        } else {
+            if ($zvId > 0 && $res->orderId) {
+                $z->linkAfterCreate($res->orderId, $zvId);
+            }
+            echo json_encode(['ok' => true, 'order_id' => $res->orderId]);
+        }
     } else {
         http_response_code(400);
         echo json_encode(['error' => 'unknown action']);
