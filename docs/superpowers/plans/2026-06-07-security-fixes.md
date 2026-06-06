@@ -30,7 +30,7 @@
 - Delete: `bb/top_menu copy.php` — брошенная копия
 - Delete: корень `test_sql.php`, `test_sql2.php`, `t2.php`, `insert_models.php`, `recover_from_archive.php`, `get_imgs2.php`, `get_live_images.php`, `test_images.php`
 
-- [ ] **Step 1: Убедиться что файлы не нужны в проде**
+- [x] **Step 1: Убедиться что файлы не нужны в проде**
 
 ```bash
 cd ~/sites/tiktakby
@@ -41,7 +41,7 @@ grep -r "test_sql\|t2\.php\|insert_models\|recover_from_archive\|get_imgs2\|get_
 # Ожидаем: пусто
 ```
 
-- [ ] **Step 2: Удалить файлы из `bb/`**
+- [x] **Step 2: Удалить файлы из `bb/`**
 
 ```bash
 cd ~/sites/tiktakby
@@ -50,14 +50,14 @@ rm bb/dima_test.php bb/test2.php bb/t.php bb/tp.php bb/qr_jpeg.php
 rm "bb/top_menu copy.php"
 ```
 
-- [ ] **Step 3: Удалить тестовые скрипты из корня**
+- [x] **Step 3: Удалить тестовые скрипты из корня**
 
 ```bash
 cd ~/sites/tiktakby
 rm -f test_sql.php test_sql2.php t2.php insert_models.php recover_from_archive.php get_imgs2.php get_live_images.php test_images.php
 ```
 
-- [ ] **Step 4: Проверить что сайт не упал**
+- [x] **Step 4: Проверить что сайт не упал**
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}" https://tiktak.by/ru/ 
@@ -66,7 +66,7 @@ curl -s -o /dev/null -w "%{http_code}" https://tiktak.by/bb/
 # Ожидаем: 200 (логин-форма)
 ```
 
-- [ ] **Step 5: Коммит**
+- [x] **Step 5: Коммит**
 
 ```bash
 cd ~/sites/tiktakby
