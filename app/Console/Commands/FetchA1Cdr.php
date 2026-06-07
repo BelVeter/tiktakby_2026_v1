@@ -135,13 +135,13 @@ class FetchA1Cdr extends Command
 
     private function resolveCallType(array $rec): string
     {
-        $status = $rec['callStatus'] ?? '';
-        if (in_array($status, self::MISSED_STATUSES, true)) {
-            return 'missed';
-        }
         $type = strtolower($rec['callType'] ?? '');
         if (str_contains($type, 'outgoing') || str_contains($type, 'out')) {
             return 'outgoing';
+        }
+        $status = $rec['callStatus'] ?? '';
+        if (in_array($status, self::MISSED_STATUSES, true)) {
+            return 'missed';
         }
         return 'incoming';
     }
