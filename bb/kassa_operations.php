@@ -167,10 +167,7 @@ echo '
 //echo '</div>';
 
 echo $form->startTable();
-$start=new DateTime("2019-06-01");
-$end=new DateTime("2019-10-03");
-
-echo $form->tableRows($start, $end);
+echo $form->tableRows();
 echo $form->endTable();
 
 echo bb\Base::PageEndHTML();
