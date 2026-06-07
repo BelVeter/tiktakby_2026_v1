@@ -205,6 +205,8 @@ Replaced weak cookie-only guard in webp_converter.php."
 
 ### Task 5: Исправить SQL-инъекцию (pre-auth) в публичном поиске — P0-2
 
+**Статус:** Выполнено [x]
+
 **Repo:** `~/sites/tiktakby`
 
 **Уязвимость:**

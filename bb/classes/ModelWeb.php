@@ -1180,11 +1180,15 @@ class ModelWeb
     $rez = [];
 
     $mysqli = Db::getInstance()->getConnection();
+    
+    $safe_text = $mysqli->real_escape_string($text);
+    // Remove boolean full-text operators to prevent syntax errors and ReDoS
+    $safe_text = preg_replace('/[+\-><\(\)~*"@]/', ' ', $safe_text);
 
-    $query = "SELECT rent_model_web.model_id, MATCH(rent_model_web.title, rent_model_web.l2_name, rent_model_web.item_name_main) AGAINST('$text') AS relevance FROM rent_model_web
+    $query = "SELECT rent_model_web.model_id, MATCH(rent_model_web.title, rent_model_web.l2_name, rent_model_web.item_name_main) AGAINST('$safe_text') AS relevance FROM rent_model_web
                     LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id = rent_model_web.model_id
                     WHERE (
-                        MATCH(rent_model_web.title, rent_model_web.l2_name, rent_model_web.item_name_main) AGAINST('$text')
+                        MATCH(rent_model_web.title, rent_model_web.l2_name, rent_model_web.item_name_main) AGAINST('$safe_text')
                         )
                     AND tovar_rent_items.item_id>0
                     GROUP BY rent_model_web.model_id

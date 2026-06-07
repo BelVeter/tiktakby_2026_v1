@@ -188,6 +188,8 @@ class Model
       return false;
 
     $mysqli = \bb\Db::getInstance()->getConnection();
+    $producer = $mysqli->real_escape_string($producer);
+    
     if ($hasItems == 1) {
       $query = "SELECT DISTINCT(tovar_rent.tovar_rent_id) as model_id
                     FROM `tovar_rent`
