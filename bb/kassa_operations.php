@@ -8,6 +8,8 @@
 
 use bb\models;
 
+
+require_once __DIR__ . '/auth_guard.php';
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Db.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Base.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Schedule.php');
@@ -165,10 +167,7 @@ echo '
 //echo '</div>';
 
 echo $form->startTable();
-$start=new DateTime("2019-06-01");
-$end=new DateTime("2019-10-03");
-
-echo $form->tableRows($start, $end);
+echo $form->tableRows();
 echo $form->endTable();
 
 echo bb\Base::PageEndHTML();

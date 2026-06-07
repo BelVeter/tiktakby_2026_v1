@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/auth_guard.php';
 require_once(__DIR__.'/Db.php'); // включаем подключение к базе данных
 require_once(__DIR__.'/Base.php'); // включаем подключение к базе данных
 

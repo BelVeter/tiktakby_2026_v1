@@ -81,49 +81,26 @@ debug/test scripts from bb/ and project root."
 
 ---
 
-### Task 2: Выключить `display_errors` в `bb/` глобально
+### Task 2: Выключить `display_errors` в `bb/` для гостей
 
 **Repo:** `~/sites/tiktakby`
 
-**Проблема:** 77 файлов `bb/` содержат `ini_set("display_errors",1)`. Подтверждено вживую: `delited_tovar.php` печатает `Fatal error` и `Notice` анонимам. Один флаг в `.htaccess` перебивает все `ini_set`.
+**Проблема:** 77 файлов `bb/` содержат `ini_set("display_errors",1)`. Подтверждено вживую: `delited_tovar.php` печатает `Fatal error` и `Notice` анонимам. Один флаг в `.htaccess` не перебивает `ini_set`.
+
+**Решение:** Вместо глобального отключения (которое не работало бы из-за `ini_set` в коде), сделали условное включение только для авторизованных сотрудников (`isset($_SESSION['svoi'])`).
 
 **Files:**
 - Create: `bb/.htaccess`
+- Modify: ~80 файлов в `bb/` (замена `ini_set("display_errors", 1)`)
 
-- [ ] **Step 1: Проверить что `bb/.htaccess` не существует (или пустой)**
+- [x] **Step 1: Создать `bb/.htaccess`** (fallback)
 
-```bash
-ls -la ~/sites/tiktakby/bb/.htaccess 2>/dev/null || echo "НЕТ — создаём"
-```
+- [x] **Step 2: Массово заменить `ini_set("display_errors", 1)` во всех файлах `bb/` на условный вывод:**
+`ini_set('display_errors', (isset($_SESSION['svoi']) && $_SESSION['svoi'] == 8941) ? 1 : 0);`
 
-- [ ] **Step 2: Создать `bb/.htaccess`**
+- [x] **Step 3: Проверить что ошибки больше не видны анонимам, но видны сотрудникам.**
 
-```apache
-# bb/.htaccess
-# Отключаем вывод ошибок PHP в браузер для всего раздела /bb/
-php_flag display_errors Off
-php_flag log_errors On
-```
-
-- [ ] **Step 3: Проверить что ошибки больше не видны анонимам**
-
-```bash
-# delited_tovar.php показывал Fatal error без авторизации
-curl -s "https://tiktak.by/bb/delited_tovar.php" | grep -i "fatal\|error\|notice\|warning"
-# Ожидаем: пусто (ошибки не выводятся)
-# Но страница может всё ещё быть доступна (auth guard добавим в Task 4)
-```
-
-- [ ] **Step 4: Коммит**
-
-```bash
-cd ~/sites/tiktakby
-git add bb/.htaccess
-git commit -m "security: disable display_errors in bb/ via .htaccess
-
-Suppresses PHP error output to browser across all 77 bb/ files.
-Errors still logged to server log file."
-```
+- [x] **Step 4: Коммит**
 
 ---
 
@@ -183,112 +160,32 @@ grep -n "Vai7evahch\|password\|пароль" ~/sites/tiktakby/CLAUDE.md | head
 - Create: `bb/auth_guard.php`
 - Modify: каждый из 13 файлов выше — добавить `require_once`
 
-- [ ] **Step 1: Создать `bb/auth_guard.php`**
+- [x] **Step 1: Создать `bb/auth_guard.php`**
 
 ```php
 <?php
 // Fail-closed guard — require_once FIRST в каждом bb/ entry-point.
-// Использовать ВМЕСТО (не вместе с) inline-проверки svoi.
+// Используем архитектурный стандарт \bb\Base::loginCheck()
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-if (!isset($_SESSION['svoi']) || $_SESSION['svoi'] !== 8941) {
-    http_response_code(403);
-    die(
-        '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Авторизация</title></head>'
-        . '<body style="font-family:sans-serif;padding:2rem">'
-        . '<p>Требуется авторизация.</p>'
-        . '<a href="/bb/index.php">Войти в панель</a>'
-        . '</body></html>'
-    );
-}
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Base.php');
+\bb\Base::loginCheck();
 ```
 
-- [ ] **Step 2: Добавить guard в `bb/delited_tovar.php`**
+- [x] **Step 2: Добавить guard в `bb/delited_tovar.php`**
 
-Файл начинается с `<?php` + `use` + `session_start()`. Вставить после блока `use`:
+- [x] **Step 3: Добавить guard в `bb/kassa_operations.php`**
 
-```php
-// Найти место — после последней строки use, перед session_start():
-// use bb\classes\tovar.php;
-// use bb\classes\Deal.php;
-// ...последний use...
-require_once __DIR__ . '/auth_guard.php'; // ← добавить здесь
+- [x] **Step 4: Добавить guard в `bb/predzakaz.php`**
 
-session_start();  // auth_guard уже вызвал session_start если сессия не открыта
-```
+- [x] **Step 5: Добавить guard в оставшиеся 10 файлов**
 
-Конкретно — открыть файл, найти первую строку кода (после use-блока), вставить перед `session_start()`:
+- [x] **Step 6: Проверить что защищённые файлы теперь возвращают 403**
 
-```bash
-# Проверяем что session_start есть без guard:
-head -15 ~/sites/tiktakby/bb/delited_tovar.php
-```
+- [x] **Step 7: Проверить что логин работает**
 
-Вставить строку 10 (перед `session_start()`):
-```php
-require_once __DIR__ . '/auth_guard.php';
-```
-
-- [ ] **Step 3: Добавить guard в `bb/kassa_operations.php`**
-
-Файл начинается с `<?php` → блок `use` → (нет session_start) → код. Добавить сразу после `<?php\n\n`:
-
-```php
-<?php
-require_once __DIR__ . '/auth_guard.php';
-
-use bb\models;
-// ... остальной файл без изменений
-```
-
-- [ ] **Step 4: Добавить guard в `bb/predzakaz.php`**
-
-```php
-<?php
-require_once __DIR__ . '/auth_guard.php';
-
-require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php');
-// ... остальной файл без изменений
-```
-
-- [ ] **Step 5: Добавить guard в оставшиеся 10 файлов**
-
-Для каждого из: `auto_ostatki.php`, `bb_nav.php`, `l_3_ch.php`, `kb_web_url.php`, `kb_ajax_eng.php`, `l_3_br.php`, `karn_srch.php`, `webp_converter.php`, `top_menu.php`, `zakaz2.php` — добавить в самое начало файла (сразу после `<?php`):
-
-```php
-<?php
-require_once __DIR__ . '/auth_guard.php';
-// ... остальной файл без изменений
-```
-
-Для `webp_converter.php` — там уже есть слабый cookie-guard (строка 16), его заменить (закомментировать старый и добавить наш):
-
-```php
-<?php
-require_once __DIR__ . '/auth_guard.php';
-// [убрать или закомментировать старую строку 16: if (!isset($_SESSION['uid']) && ...)]
-```
-
-- [ ] **Step 6: Проверить что защищённые файлы теперь возвращают 403**
-
-```bash
-# Должны вернуть 403 (без сессии)
-for f in delited_tovar.php kassa_operations.php predzakaz.php zakaz2.php kb_ajax_eng.php; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" "https://tiktak.by/bb/$f")
-  echo "$f → $code (ожидаем 403)"
-done
-```
-
-- [ ] **Step 7: Проверить что логин работает**
-
-```bash
-# Логин-форма должна работать
-curl -s -o /dev/null -w "%{http_code}" "https://tiktak.by/bb/"
-# Ожидаем: 200 (форма входа)
-```
-
-- [ ] **Step 8: Коммит**
+- [x] **Step 8: Коммит**
 
 ```bash
 cd ~/sites/tiktakby
@@ -297,7 +194,7 @@ git add bb/auth_guard.php bb/delited_tovar.php bb/kassa_operations.php bb/predza
   bb/l_3_br.php bb/karn_srch.php bb/webp_converter.php bb/top_menu.php bb/zakaz2.php
 git commit -m "security: add fail-closed auth guard to all unprotected bb/ entry points
 
-Created bb/auth_guard.php (fail-closed, checks SESSION svoi===8941).
+Created bb/auth_guard.php (fail-closed, uses \bb\Base::loginCheck()).
 Added require_once to 13 bb/ files that were reachable without authentication:
 delited_tovar, kassa_operations, predzakaz, zakaz2, kb_ajax_eng, kb_web_url,
 l_3_br, l_3_ch, karn_srch, auto_ostatki, webp_converter, bb_nav, top_menu.

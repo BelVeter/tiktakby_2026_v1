@@ -13,7 +13,7 @@ use Classes\Deal;
 use bb\classes\tovar;
 
 session_start();
-ini_set("display_errors",1);
+ini_set('display_errors', (isset($_SESSION['svoi']) && $_SESSION['svoi'] == 8941) ? 1 : 0);
 error_reporting(E_ALL);
 set_time_limit(120);
 

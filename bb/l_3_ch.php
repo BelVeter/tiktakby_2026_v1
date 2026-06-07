@@ -1,6 +1,8 @@
 <?php
 session_start();
 
+
+require_once __DIR__ . '/auth_guard.php';
 foreach ($_POST as $key => $value) {
 	$$key = get_post($key);
 }
