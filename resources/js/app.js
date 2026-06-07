@@ -810,9 +810,9 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleNavLeftCats(e) {
     e.preventDefault();
     e.currentTarget.classList.toggle('show');
-    var parent = e.currentTarget.closest('li');
+    let parent = e.currentTarget.closest('li');
     if (parent) {
-        var target = parent.querySelector('.cat-row');
+        let target = parent.querySelector('.cat-row');
         if (target) {
             target.classList.toggle('show');
         }
