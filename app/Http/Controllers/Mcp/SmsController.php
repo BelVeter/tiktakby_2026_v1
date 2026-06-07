@@ -15,6 +15,29 @@ class SmsController extends BaseController
      */
     public function send(Request $request): JsonResponse
     {
+        $clientIp = $request->ip();
+        $serverIp = $request->server('SERVER_ADDR');
+        $isLocal = in_array($clientIp, ['127.0.0.1', '::1']) || ($serverIp && $clientIp === $serverIp);
+
+        // Allow Docker bridge networks (172.16.x.x - 172.31.x.x) and local networks for local development
+        if (!$isLocal) {
+            $ipParts = explode('.', $clientIp);
+            if (count($ipParts) === 4) {
+                if ($ipParts[0] === '10' || $ipParts[0] === '192' && $ipParts[1] === '168') {
+                    $isLocal = true;
+                } elseif ($ipParts[0] === '172' && (int)$ipParts[1] >= 16 && (int)$ipParts[1] <= 31) {
+                    $isLocal = true;
+                }
+            }
+        }
+
+        if (!$isLocal) {
+            return response()->json([
+                'error' => 'Forbidden',
+                'message' => 'SMS endpoint is restricted to local system access only.'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'phone'  => 'required|string|max:20',
             // No max: text length limit depends on encoding (160 Latin / 70 Cyrillic per part).
