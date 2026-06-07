@@ -806,10 +806,15 @@ document.querySelectorAll('.nav-left_arrow-btn').forEach((el)=>{
 });
 
 function toggleNavLeftCats(e) {
+    e.preventDefault();
     e.currentTarget.classList.toggle('show');
-    let parrent = e.target.closest('li');
-    let target = parrent.querySelector('.cat-row');
-    target.classList.toggle('show');
+    let parent = e.currentTarget.closest('li');
+    if (parent) {
+        let target = parent.querySelector('.cat-row');
+        if (target) {
+            target.classList.toggle('show');
+        }
+    }
 }
 
 
