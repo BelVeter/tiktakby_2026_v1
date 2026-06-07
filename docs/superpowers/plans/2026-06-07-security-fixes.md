@@ -356,7 +356,8 @@ Added SearchSqlInjectionTest to prevent regression."
 
 ---
 
-### Task 6: Ограничить SMS-эндпоинт (toll-fraud, P1-4)
+### Task 6: Ограничить внутренний SMS-эндпоинт только локальным доступом — P1
+**Статус:** Выполнено [x]
 
 **Repo:** `~/sites/tiktakby`
 
