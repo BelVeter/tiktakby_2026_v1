@@ -8,6 +8,8 @@
 
 namespace bb;
 
+
+require_once __DIR__ . '/auth_guard.php';
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Db.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/Base.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/KBronForm.php');

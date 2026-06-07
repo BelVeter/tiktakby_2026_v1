@@ -7,6 +7,8 @@
  * Badge refresh: AJAX → bb_nav_badge.php every 60s.
  */
 
+
+require_once __DIR__ . '/auth_guard.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php';
 
 // Don't show nav on index.php (it has its own icon grid)

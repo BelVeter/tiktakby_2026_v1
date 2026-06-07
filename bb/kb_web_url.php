@@ -3,6 +3,8 @@ session_start();
 ini_set('display_errors', (isset($_SESSION['svoi']) && $_SESSION['svoi'] == 8941) ? 1 : 0);
 error_reporting(E_ALL);
 
+
+require_once __DIR__ . '/auth_guard.php';
 require ($_SERVER['DOCUMENT_ROOT'].'/vendor/autoload.php');
 // Get the parameter
 if (isset($_POST['kb_id'])) $kbId = $_POST['kb_id'];
