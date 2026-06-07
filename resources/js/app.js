@@ -801,8 +801,10 @@ function swipeAction(distX){
 
 //left menu new
 
-document.querySelectorAll('.nav-left_arrow-btn').forEach((el)=>{
-    el.addEventListener('click', toggleNavLeftCats);
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.nav-left_arrow-btn').forEach(function(el) {
+        el.addEventListener('click', toggleNavLeftCats);
+    });
 });
 
 function toggleNavLeftCats(e) {
