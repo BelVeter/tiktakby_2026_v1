@@ -801,16 +801,18 @@ function swipeAction(distX){
 
 //left menu new
 
-document.querySelectorAll('.nav-left_arrow-btn').forEach((el)=>{
-    el.addEventListener('click', toggleNavLeftCats);
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.nav-left_arrow-btn').forEach(function(el) {
+        el.addEventListener('click', toggleNavLeftCats);
+    });
 });
 
 function toggleNavLeftCats(e) {
     e.preventDefault();
     e.currentTarget.classList.toggle('show');
-    let parent = e.currentTarget.closest('li');
+    var parent = e.currentTarget.closest('li');
     if (parent) {
-        let target = parent.querySelector('.cat-row');
+        var target = parent.querySelector('.cat-row');
         if (target) {
             target.classList.toggle('show');
         }
