@@ -713,8 +713,6 @@ class L3Page
 
       if ($l3BrandValid) {
           $l3Schema['brand'] = ['@type' => 'Brand', 'name' => $l3Producer];
-      } else {
-          $l3Schema['brand'] = ['@type' => 'Brand', 'name' => 'TikTak Прокат'];
       }
 
       $l3AdditionalProps = [
