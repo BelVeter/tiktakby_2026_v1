@@ -809,12 +809,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function toggleNavLeftCats(e) {
     e.preventDefault();
-    e.currentTarget.classList.toggle('show');
-    let parent = e.currentTarget.closest('li');
-    if (parent) {
-        let target = parent.querySelector('.cat-row');
-        if (target) {
-            target.classList.toggle('show');
+    let currentBtn = e.currentTarget;
+    let isOpening = !currentBtn.classList.contains('show');
+
+    // Скрываем все раскрытые категории
+    document.querySelectorAll('.nav-left_arrow-btn.show').forEach(function(btn) {
+        btn.classList.remove('show');
+        let parent = btn.closest('li');
+        if (parent) {
+            let target = parent.querySelector('.cat-row');
+            if (target) target.classList.remove('show');
+        }
+    });
+
+    // Если кликнули по закрытой, открываем её
+    if (isOpening) {
+        currentBtn.classList.add('show');
+        let parent = currentBtn.closest('li');
+        if (parent) {
+            let target = parent.querySelector('.cat-row');
+            if (target) target.classList.add('show');
         }
     }
 }
