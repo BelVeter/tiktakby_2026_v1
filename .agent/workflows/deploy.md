@@ -58,6 +58,7 @@ Follow these steps to ensure a safe and successful deployment to production.
 1.  **Push & PR**:
     -   Push your local branch: `git push origin <current-branch>`.
     -   Create a Pull Request to `main` on GitHub.
+    -   **Agent Action**: If `gh` CLI is not available or fails, generate and provide the user with a direct URL to create the PR: `https://github.com/BelVeter/tiktakby_2026_v1/compare/main...<current-branch>?expand=1`.
     -   **Wait** for checks (if any) and peer review.
 2.  **Merge**:
     -   Merge the PR into `main`.
