@@ -9,7 +9,7 @@ use bb\classes\Tariff;
 use bb\classes\TariffModel;
 
 session_start();
-ini_set("display_errors", 1);
+ini_set('display_errors', (isset($_SESSION['svoi']) && $_SESSION['svoi'] == 8941) ? 1 : 0);
 error_reporting(E_ALL);
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
