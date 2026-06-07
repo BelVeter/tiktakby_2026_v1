@@ -2,7 +2,6 @@
   $v_css_bootstrap = file_exists(public_path('css/bootstrap.min.css')) ? filemtime(public_path('css/bootstrap.min.css')) : 1;
   $v_js_popper = file_exists(public_path('js/popper.min.js')) ? filemtime(public_path('js/popper.min.js')) : 1;
   $v_js_bootstrap = file_exists(public_path('js/bootstrap.min.js')) ? filemtime(public_path('js/bootstrap.min.js')) : 1;
-  $v_js_app = file_exists(public_path('js/app.js')) ? filemtime(public_path('js/app.js')) : 1;
   $v_js_ads = file_exists(public_path('js/ads-conversions.js')) ? filemtime(public_path('js/ads-conversions.js')) : 1;
 @endphp
 
@@ -197,8 +196,6 @@
       crossorigin="anonymous"></script>--}}
     <script src="/public/js/bootstrap.min.js?v={{$v_js_bootstrap}}" crossorigin="anonymous"></script>
 
-
-    <script src="/public/js/app.js?v={{$v_js_app}}"></script>
 
     {{-- Favorites Manager (localStorage-based, session-scope) --}}
     <style>
