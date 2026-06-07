@@ -14,9 +14,7 @@ docker-compose.override.yml
 # Environment specific
 .env
 .env.backup
-.env.*
 .env.local
-.env.example
 .env.testing
 .env.dusk.local
 /bb/Db.php
