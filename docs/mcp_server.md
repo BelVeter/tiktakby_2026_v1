@@ -160,6 +160,7 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 | Pages (SEO) | `GET /pages/listing` | List all L2 categories, subrazdels, razdels with their SEO completion status |
 |        | `GET /pages/listing/{slug}` | Read L2 category SEO fields (from `pages` table) with site defaults |
 |        | `PATCH /pages/listing/{slug}` | Upsert L2 category SEO fields (`meta_title`, `meta_description`, `h1`, `intro_text`, `seo_text`, `h1_pic_url`) |
+|        | `POST /pages/listing/{slug}/image` | Upload and resize hero-image for L2 category (saves as JPG, updates h1_pic_url) |
 |        | `GET /pages/product` | List all L3 product models with their SEO completion status |
 |        | `GET /pages/product/{slug}` | Read L3 model SEO fields (from `rent_model_web`) |
 |        | `PATCH /pages/product/{slug}` | Update L3 model SEO fields (`meta_title`, `meta_description`, `main_pic_alt`, `l2_pic_alt`, `description`, `breadcrumb_name`) |
