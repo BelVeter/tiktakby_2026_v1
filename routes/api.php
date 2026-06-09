@@ -122,6 +122,7 @@ Route::prefix('mcp/v1')
         // Pages (SEO)
         Route::get('pages/listing',          [PagesListingController::class, 'index'])->name('pages.listing.index');
         Route::get('pages/listing/{slug}',   [PagesListingController::class, 'show'])->name('pages.listing.show');
+        Route::post('pages/listing/{slug}/image', [PagesListingController::class, 'uploadImage'])->name('pages.listing.uploadImage');
         Route::patch('pages/listing/{slug}', [PagesListingController::class, 'update'])->name('pages.listing.update');
 
         Route::get('pages/product',          [PagesProductController::class, 'index'])->name('pages.product.index');
