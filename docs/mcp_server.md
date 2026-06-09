@@ -159,11 +159,11 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 | Marketing | `GET /marketing/conversions` | All conversion events with full UTM attribution. Joins entity details from `zvonki`, `rent_orders`, `karn_brons`, `kb_zayavki`. Accepts `?utm_source=` and `?utm_campaign=` filters. |
 | Pages (SEO) | `GET /pages/listing` | List all L2 categories, subrazdels, razdels with their SEO completion status |
 |        | `GET /pages/listing/{slug}` | Read L2 category SEO fields (from `pages` table) with site defaults |
-|        | `PATCH /pages/listing/{slug}` | Upsert L2 category SEO fields (`meta_title`, `meta_description`, `h1`, `intro_text`, `seo_text`, `h1_pic_url`) |
+|        | `PATCH /pages/listing/{slug}` | Upsert L2 category SEO fields (`meta_title`, `meta_description`, `h1`, `intro_text`, `seo_text`, `h1_pic_url`, `faq`) |
 |        | `POST /pages/listing/{slug}/image` | Upload and resize hero-image for L2 category (saves as JPG, updates h1_pic_url) |
 |        | `GET /pages/product` | List all L3 product models with their SEO completion status |
 |        | `GET /pages/product/{slug}` | Read L3 model SEO fields (from `rent_model_web`) |
-|        | `PATCH /pages/product/{slug}` | Update L3 model SEO fields (`meta_title`, `meta_description`, `main_pic_alt`, `l2_pic_alt`, `description`, `breadcrumb_name`) |
+|        | `PATCH /pages/product/{slug}` | Update L3 model SEO fields (`meta_title`, `meta_description`, `main_pic_alt`, `l2_pic_alt`, `description`, `breadcrumb_name`, `faq`) |
 | SMS    | `POST /sms/send` | Send an SMS message using RocketSMS (`phone`, `text`, optional `sender`) |
 | Redirects | `GET /redirects` | List redirects with optional filters: `is_active`, `is_regex`, `search` (LIKE on source/target); paginated (`per_page` max 500, default 100) |
 |        | `POST /redirects` | Create a single redirect (`source_url`, `target_url`, required; `status_code` 301/302, `is_active`, `is_regex`, `comment` optional). Non-regex URLs auto-prefixed with `/`. Returns 422 on duplicate `source_url`. |

@@ -4403,7 +4403,7 @@
             },
             "patch": {
                 "summary": "Update L3 SEO data",
-                "description": "Update L3 product SEO fields (meta_title, meta_description, main_pic_alt, l2_pic_alt, description, breadcrumb_name).",
+                "description": "Update L3 product SEO fields (meta_title, meta_description, main_pic_alt, l2_pic_alt, description, breadcrumb_name, faq).",
                 "tags": [
                     "Pages"
                 ],
@@ -4446,6 +4446,20 @@
                                     "breadcrumb_name": {
                                         "type": "string",
                                         "maxLength": 100
+                                    },
+                                    "faq": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "question": {
+                                                    "type": "string"
+                                                },
+                                                "answer": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
