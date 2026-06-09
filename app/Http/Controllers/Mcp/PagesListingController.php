@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Mcp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\MyClasses\MainPage;
+use Illuminate\Support\Facades\File;
 
 class PagesListingController extends BaseController
 {
@@ -138,6 +139,121 @@ class PagesListingController extends BaseController
         ];
 
         return $this->envelope($request->query(), $data);
+    }
+
+    /**
+     * POST /api/mcp/v1/pages/listing/{slug}/image
+     */
+    public function uploadImage(Request $request, string $slug)
+    {
+        $resolved = $this->resolveListingSlug($slug);
+        
+        if (!$resolved) {
+            return response()->json([
+                'error' => 'not_found',
+                'message' => "Listing page with slug '{$slug}' not found in catalog."
+            ], 404);
+        }
+
+        $request->validate([
+            'image' => 'required|file|mimes:jpeg,jpg,png,webp|max:5120',
+        ]);
+
+        $file = $request->file('image');
+        $imgInfo = getimagesize($file->getPathname());
+        
+        if (!$imgInfo) {
+            return response()->json([
+                'error' => 'invalid_image',
+                'message' => 'Uploaded file is not a valid image.'
+            ], 422);
+        }
+
+        $sourceWidth = $imgInfo[0];
+        $sourceHeight = $imgInfo[1];
+        $mimeType = $imgInfo['mime'];
+
+        $sourceImage = null;
+        switch ($mimeType) {
+            case 'image/jpeg':
+                $sourceImage = imagecreatefromjpeg($file->getPathname());
+                break;
+            case 'image/png':
+                $sourceImage = imagecreatefrompng($file->getPathname());
+                break;
+            case 'image/webp':
+                $sourceImage = imagecreatefromwebp($file->getPathname());
+                break;
+        }
+
+        if (!$sourceImage) {
+            return response()->json([
+                'error' => 'unsupported_image',
+                'message' => 'Failed to process image format.'
+            ], 422);
+        }
+
+        $targetWidth = 1440;
+        $targetHeight = 635;
+
+        // Calculate aspect ratio preserving dimensions
+        $sourceRatio = $sourceWidth / $sourceHeight;
+        $targetRatio = $targetWidth / $targetHeight;
+
+        if ($sourceRatio > $targetRatio) {
+            // Image is wider than target: fit by width
+            $newWidth = $targetWidth;
+            $newHeight = (int) round($targetWidth / $sourceRatio);
+        } else {
+            // Image is taller than target: fit by height
+            $newHeight = $targetHeight;
+            $newWidth = (int) round($targetHeight * $sourceRatio);
+        }
+
+        $dstX = (int) round(($targetWidth - $newWidth) / 2);
+        $dstY = (int) round(($targetHeight - $newHeight) / 2);
+
+        $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
+        
+        // Fill background with #F3F9FF (RGB: 243, 249, 255)
+        $bgColor = imagecolorallocate($canvas, 243, 249, 255);
+        imagefill($canvas, 0, 0, $bgColor);
+
+        imagecopyresampled(
+            $canvas, $sourceImage,
+            $dstX, $dstY, 0, 0,
+            $newWidth, $newHeight, $sourceWidth, $sourceHeight
+        );
+
+        // Ensure directory exists
+        $dirPath = public_path('img/topmenu');
+        if (!File::exists($dirPath)) {
+            File::makeDirectory($dirPath, 0755, true);
+        }
+
+        $filename = "{$slug}-prokat.jpg";
+        $savePath = $dirPath . '/' . $filename;
+
+        imagejpeg($canvas, $savePath, 88);
+
+        imagedestroy($sourceImage);
+        imagedestroy($canvas);
+
+        $dbUrl = "/public/img/topmenu/{$filename}";
+
+        DB::table('pages')->updateOrInsert(
+            [
+                'level_code' => $resolved['level_code'],
+                'url_key' => $slug,
+                'lang' => 'ru'
+            ],
+            [
+                'h1_pic_url' => $dbUrl,
+                'change_time' => now()
+            ]
+        );
+
+        return $this->show($request, $slug);
     }
 
     /**
