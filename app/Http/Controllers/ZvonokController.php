@@ -50,8 +50,11 @@ class ZvonokController extends Controller
           $req->input('info'),
           1
         );
-        if ($zayavka) {
+        if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
             \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
+        }
+        if ($z && $z->id && $zayavka && $zayavka->insert_id) {
+            (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$z->id);
         }
       } catch (\Exception $e) {
         // log but don't break the redirect
@@ -59,7 +62,9 @@ class ZvonokController extends Controller
       }
     }
 
-    return Redirect::to($req->header('referer'));
+    $referer = $req->header('referer') ?: '/';
+    $separator = parse_url($referer, PHP_URL_QUERY) ? '&' : '?';
+    return Redirect::to($referer . $separator . 'ck=zvonok');
   }
 
   public function addSubscription(Request $req)
@@ -77,7 +82,8 @@ class ZvonokController extends Controller
       Base::addClientMessage($req->input('Ваша заявка на подписку принята.'));
     }
 
-    return Redirect::to($req->header('referer'));
+    $referer = $req->header('referer') ?: '/';
+    return Redirect::to($referer);
   }
 
   public function bron(Request $req)

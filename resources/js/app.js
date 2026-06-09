@@ -801,15 +801,36 @@ function swipeAction(distX){
 
 //left menu new
 
-document.querySelectorAll('.nav-left_arrow-btn').forEach((el)=>{
-    el.addEventListener('click', toggleNavLeftCats);
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.nav-left_arrow-btn').forEach(function(el) {
+        el.addEventListener('click', toggleNavLeftCats);
+    });
 });
 
 function toggleNavLeftCats(e) {
-    e.currentTarget.classList.toggle('show');
-    let parrent = e.target.closest('li');
-    let target = parrent.querySelector('.cat-row');
-    target.classList.toggle('show');
+    e.preventDefault();
+    let currentBtn = e.currentTarget;
+    let isOpening = !currentBtn.classList.contains('show');
+
+    // Скрываем все раскрытые категории
+    document.querySelectorAll('.nav-left_arrow-btn.show').forEach(function(btn) {
+        btn.classList.remove('show');
+        let parent = btn.closest('li');
+        if (parent) {
+            let target = parent.querySelector('.cat-row');
+            if (target) target.classList.remove('show');
+        }
+    });
+
+    // Если кликнули по закрытой, открываем её
+    if (isOpening) {
+        currentBtn.classList.add('show');
+        let parent = currentBtn.closest('li');
+        if (parent) {
+            let target = parent.querySelector('.cat-row');
+            if (target) target.classList.add('show');
+        }
+    }
 }
 
 

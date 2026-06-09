@@ -17,6 +17,10 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('sitemap:generate')->weekly();
 
+        $schedule->command('feed:generate-2gis')
+            ->dailyAt('03:00')
+            ->withoutOverlapping();
+
         // A1 ВАТС: пропущенные звонки
         // В рабочее время (9:00-19:00) — каждые 10 минут (период выборки 15 мин с перекрытием)
         $schedule->command('a1:fetch-missed-calls', ['--period' => 15])

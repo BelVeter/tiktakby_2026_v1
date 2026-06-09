@@ -2,7 +2,7 @@
   $v_css_bootstrap = file_exists(public_path('css/bootstrap.min.css')) ? filemtime(public_path('css/bootstrap.min.css')) : 1;
   $v_js_popper = file_exists(public_path('js/popper.min.js')) ? filemtime(public_path('js/popper.min.js')) : 1;
   $v_js_bootstrap = file_exists(public_path('js/bootstrap.min.js')) ? filemtime(public_path('js/bootstrap.min.js')) : 1;
-  $v_js_app = file_exists(public_path('js/app.js')) ? filemtime(public_path('js/app.js')) : 1;
+  $v_js_ads = file_exists(public_path('js/ads-conversions.js')) ? filemtime(public_path('js/ads-conversions.js')) : 1;
 @endphp
 
 <!DOCTYPE html>
@@ -22,6 +22,7 @@
     gtag('js', new Date());
 
     gtag('config', 'G-WWTHNS0FYG');
+    gtag('config', 'AW-18182822550');
   </script>
 
   <!-- Yandex.Metrika counter -->
@@ -85,6 +86,57 @@
   </noscript>
   @yield('style')
   @yield('canonical')
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "RentalBusiness",
+    "@id": "https://tiktak.by",
+    "name": "TikTak — Прокат детских товаров",
+    "url": "https://tiktak.by",
+    "logo": "https://tiktak.by/public/png/logo-circle.png",
+    "image": "https://tiktak.by/public/img/prokat-detskih-koliasok-minsk.jpg",
+    "description": "Прокат детских товаров и карнавальных костюмов в Минске. Велосипеды, самокаты, коляски, ходунки, качели, ингаляторы, увлажнители воздуха. Доставка по Минску. Работаем с 2011 года.",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "ул. Литературная, 22",
+      "addressLocality": "Минск",
+      "postalCode": "220113",
+      "addressCountry": "BY"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 53.9401009,
+      "longitude": 27.5680041
+    },
+    "telephone": "+375447454040",
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+        "opens": "10:00",
+        "closes": "19:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Saturday","Sunday"],
+        "opens": "10:00",
+        "closes": "15:00"
+      }
+    ],
+    "priceRange": "$$",
+    "currenciesAccepted": "BYN",
+    "areaServed": {
+      "@type": "City",
+      "name": "Минск"
+    },
+    "foundingDate": "2011",
+    "sameAs": [
+      "https://www.google.com/maps?cid=4081704901349344029",
+      "https://www.instagram.com/prokat_tiktak.by"
+    ]
+  }
+  </script>
+  @yield('json-ld')
 
   <link rel="icon" href="/tiktak.ico" type="image/x-icon">
   <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="32x32">
@@ -144,8 +196,6 @@
       crossorigin="anonymous"></script>--}}
     <script src="/public/js/bootstrap.min.js?v={{$v_js_bootstrap}}" crossorigin="anonymous"></script>
 
-
-    <script src="/public/js/app.js?v={{$v_js_app}}"></script>
 
     {{-- Favorites Manager (localStorage-based, session-scope) --}}
     <style>
@@ -475,6 +525,7 @@
     </script>
 
     <script src="/public{{ mix('/js/app.js') }}"></script>
+    <script src="/public/js/ads-conversions.js?v={{$v_js_ads}}" defer></script>
 
     @if(isset($_COOKIE['tt_is_logged_in']))
       <script>

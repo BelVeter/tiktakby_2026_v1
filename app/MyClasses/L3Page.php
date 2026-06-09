@@ -644,4 +644,137 @@ class L3Page
     ],
   ];
 
+  /**
+   * Builds the Product Schema.org JSON-LD string for the product page (L3).
+   *
+   * @return string
+   */
+  public function getSchemaJsonLd()
+  {
+      $l3Url         = $this->getCanonicalUrlBy();
+      $l3PrimaryStep = $this->modelWeb->getTarifLinePeriod() ?: 'week';
+
+      // Build Schema.org offers via TariffModel — filtered by primary rental period
+      $l3SchemaOffers = $this->getTarifModel() ? $this->getTarifModel()->getSchemaOffers($l3PrimaryStep, $l3Url) : null;
+      if ($l3SchemaOffers) {
+          $availability = $this->model->hasFreeItems() ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
+          if (isset($l3SchemaOffers['@type'])) {
+              $l3SchemaOffers['availability'] = $availability;
+          } else {
+              foreach ($l3SchemaOffers as &$offer) {
+                  $offer['availability'] = $availability;
+              }
+              unset($offer);
+          }
+      }
+
+      // Images: all slider photos as absolute URLs
+      $l3Images = [];
+      foreach ($this->getPicsForSlider() as $pic) {
+          $src = $pic->getSrc();
+          if ($src) {
+              $l3Images[] = strpos($src, 'http') === 0 ? $src : 'https://tiktak.by' . $src;
+          }
+      }
+
+      // Description: prefer main_descr (943/980 products), fall back to meta_description
+      $l3RawDesc = $this->getDescription(); // = modelWeb->main_descr (HTML)
+      if (!$l3RawDesc) {
+          $l3RawDesc = $this->getMetaDescription();
+      }
+      $l3Description = trim(html_entity_decode(strip_tags($l3RawDesc), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
+      if (!$l3Description) {
+          $minOffer = $this->getTarifModel() ? $this->getTarifModel()->getSchemaMinOffer($l3Url) : null;
+          $minPrice = $minOffer && isset($minOffer['price']) ? $minOffer['price'] : '';
+          $priceText = $minPrice ? " от {$minPrice} BYN" : '';
+          $productName = html_entity_decode(strip_tags($this->getL3MainName()), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+          $l3Description = "Прокат " . $productName . " в Минске" . $priceText . ".";
+      }
+
+      // Brand: only output if the producer field contains a real brand name
+      $l3Producer   = $this->model ? (string)$this->model->getProducer() : '';
+      $l3BrandValid = $l3Producer && strlen($l3Producer) <= 50
+          && !preg_match('/\d+\s*(см|кг|лет|мес|×)/iu', $l3Producer);
+
+      $l3Schema = [
+          '@context' => 'https://schema.org',
+          '@type'    => 'Product',
+          '@id'      => $l3Url,
+          'url'      => $l3Url,
+          'name'     => html_entity_decode(strip_tags($this->getL3MainName()), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+      ];
+
+      if ($l3Description) {
+          $l3Schema['description'] = $l3Description;
+      }
+
+      if (count($l3Images) === 1) {
+          $l3Schema['image'] = $l3Images[0];
+      } elseif (count($l3Images) > 1) {
+          $l3Schema['image'] = $l3Images;
+      }
+
+      if ($l3SchemaOffers) {
+          $l3Schema['offers'] = $l3SchemaOffers;
+      }
+
+      if ($l3BrandValid) {
+          $l3Schema['brand'] = ['@type' => 'Brand', 'name' => $l3Producer];
+      }
+
+      $l3AdditionalProps = [
+          ['@type' => 'PropertyValue', 'name' => 'Доставка по Минску', 'value' => 'бесплатно'],
+      ];
+
+      $l3AgeFrom = $this->model ? (int)$this->model->getAgeFrom() : 0;
+      $l3AgeTo   = $this->model ? (int)$this->model->getAgeTo()   : 0;
+      if ($l3AgeFrom > 0 && $l3AgeTo > 0) {
+          $l3AdditionalProps[] = [
+              '@type' => 'PropertyValue',
+              'name'  => 'Возраст',
+              'value' => 'от ' . self::formatAgeMonths($l3AgeFrom) . ' до ' . self::formatAgeMonths($l3AgeTo),
+          ];
+      }
+
+      if ($this->isKarnaval()) {
+          $heightStr = self::formatHeightRanges(
+              \bb\classes\Model::getHeightRangeForModelId((int)$this->modelWeb->getModelId())
+          );
+          if ($heightStr) {
+              $l3AdditionalProps[] = [
+                  '@type' => 'PropertyValue',
+                  'name'  => 'Рост ребёнка',
+                  'value' => $heightStr,
+              ];
+          }
+      }
+
+      $l3Schema['additionalProperty'] = $l3AdditionalProps;
+
+      return '<script type="application/ld+json">' . json_encode($l3Schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+  }
+
+  private static function formatHeightRanges(array $ranges): string
+  {
+      if (empty($ranges)) return '';
+      if (count($ranges) === 1) {
+          return 'от ' . $ranges[0][0] . ' до ' . $ranges[0][1] . ' см';
+      }
+      return implode(', ', array_map(fn($r) => $r[0] . '-' . $r[1], $ranges)) . ' см';
+  }
+
+  private static function formatAgeMonths(int $months): string
+  {
+      if ($months < 12) return $months . ' мес';
+      $years = intdiv($months, 12);
+      $rem   = $months % 12;
+      if ($rem === 0) {
+          if ($years === 1) return '1 год';
+          if ($years <= 4) return $years . ' года';
+          return $years . ' лет';
+      }
+      return $years . ' г ' . $rem . ' мес';
+  }
+
 }

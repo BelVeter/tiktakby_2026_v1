@@ -270,8 +270,11 @@ class CartController extends Controller
                     $validityDateObj->modify('+' . intval($validityDays) . ' days');
                 }
                 $zayavka = bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $info, 1);
-                if ($zayavka && $zayavka->insert_id) {
+                if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
                     \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
+                }
+                if (isset($z) && $z->id && $zayavka && $zayavka->insert_id) {
+                    (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$z->id);
                 }
 
                 $results[] = [

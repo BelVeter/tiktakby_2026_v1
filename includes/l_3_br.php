@@ -340,7 +340,9 @@ else { //для доставки
 		$br_sposob=='deliv' ? $deliv_yn=1 : $deliv_yn=0;
 		$br_sposob=='deliv' ? $type_2_q='deliv' : $type_2_q='bron';
 
-		$query = "INSERT INTO rent_orders VALUES ('', 'strong', '$ac_date', '$tel', '', '$f', '$i', '$o', '', '$deliv_addr', '$validity', '".$free1_def['item_inv_n']."', '".$free1_def['model_id']."', '".$free1_def['cat_id']."', '$type_2_q', '".Base::getAdvCompId()."', '$dop_info', '', '1', '".time()."', '', '', '', '".Base::getAdvCompId()."', '', '', '".$_SERVER['REMOTE_ADDR']."', '', '')";
+		$query = "INSERT INTO rent_orders
+			(`type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
+			VALUES ('strong', '$ac_date', '$tel', '', '$f', '$i', '$o', '', '$deliv_addr', '$validity', '".$free1_def['item_inv_n']."', '".$free1_def['model_id']."', '".$free1_def['cat_id']."', '$type_2_q', '".Base::getAdvCompId()."', '$dop_info', '', '1', '".time()."', '', '', '', '".Base::getAdvCompId()."', '', '', '".$_SERVER['REMOTE_ADDR']."', '', '')";
 		//echo '1:'.$query;
 		$result = $mysqli->query($query);
 		if (!$result) {die('Сбой при доступе к базе данных: '.$query.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);}
@@ -413,7 +415,9 @@ else { //для доставки
                 $o=$fio_ar[2];
             }
 			
-			$query = "INSERT INTO rent_orders VALUES ('', 'strong', '$ac_date', '$tel', '', '$f', '$i', '$o', '', '$deliv_addr', '$validity', '".$free_zap['item_inv_n']."', '".$free_zap['model_id']."', '".$free_zap['cat_id']."', '$type_2_q', '".Base::getAdvCompId()."', '$dop_info', '', '1', '".time()."', '', '', '', '".Base::getAdvCompId()."', '', '', '".$_SERVER['REMOTE_ADDR']."', '', '')";
+			$query = "INSERT INTO rent_orders
+				(`type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
+				VALUES ('strong', '$ac_date', '$tel', '', '$f', '$i', '$o', '', '$deliv_addr', '$validity', '".$free_zap['item_inv_n']."', '".$free_zap['model_id']."', '".$free_zap['cat_id']."', '$type_2_q', '".Base::getAdvCompId()."', '$dop_info', '', '1', '".time()."', '', '', '', '".Base::getAdvCompId()."', '', '', '".$_SERVER['REMOTE_ADDR']."', '', '')";
             //echo '2:'.$query;
 			$result = $mysqli->query($query);
 			if (!$result) {die('Сбой при доступе к базе данных: '.$query.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);}
@@ -505,7 +509,9 @@ if ($q_type=='sam_zayav') {//заявка
 
 
 
-	$query = "INSERT INTO rent_orders VALUES ('', 'zayavka', '$ac_date', '$tel', '', '$f', '$i', '$o', '', '$deliv_addr', '$validity', '', '$model_id', '".$model_m['tovar_rent_cat_id']."', 'zayavka', '".Base::getAdvCompId()."', '$info', '', '1', '".time()."', '', '', '', '', '', '', '".$_SERVER['REMOTE_ADDR']."', '', '')";
+	$query = "INSERT INTO rent_orders
+		(`type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
+		VALUES ('zayavka', '$ac_date', '$tel', '', '$f', '$i', '$o', '', '$deliv_addr', '$validity', '', '$model_id', '".$model_m['tovar_rent_cat_id']."', 'zayavka', '".Base::getAdvCompId()."', '$info', '', '1', '".time()."', '', '', '', '', '', '', '".$_SERVER['REMOTE_ADDR']."', '', '')";
     //echo '3:'.$query;
 	$result = $mysqli->query($query);
 	if (!$result) {die('Сбой при доступе к базе данных: '.$query.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);}

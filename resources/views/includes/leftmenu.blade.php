@@ -8,7 +8,7 @@
             <ul class="nav-left_sub-razdel_ul">
             @foreach($r->getSubRazdels(request()->subrazdel) as $subR)
                     <li>
-                        <div class="sub-razdel-row"><a href="{{$subR->getUrlForPage(request()->lang)}}">{{$subR->getNameSubRazdelText()}}</a><button type="button" class="nav-left_arrow-btn"><img src="/public/svg/arrow_w_nav-left.svg"></button></div>
+                        <div class="sub-razdel-row"><a href="{{$subR->getUrlForPage(request()->lang)}}">{{$subR->getNameSubRazdelText()}}</a><button type="button" class="nav-left_arrow-btn {{$subR->getUrlSubRazdelName() == request()->subrazdel ? 'show' : ''}}"><img src="/public/svg/arrow_w_nav-left.svg"></button></div>
                         @if($cats=$subR->getCategories())
                             <ul class="cat-row {{$subR->getUrlSubRazdelName() == request()->subrazdel ? 'show' : ''}}">
                                 <li><a href="{{$subR->getUrlForPage(request()->lang)}}"><span class="nl-cat-radio {{($subR->getUrlSubRazdelName() == request()->subrazdel && request()->category=='') ? 'current' : ''}}"></span><span class="nl-cat-text">Смотреть все</span></a></li>

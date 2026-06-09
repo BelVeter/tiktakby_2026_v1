@@ -140,4 +140,8 @@
       data-bb-edit-params='@json(["model_id" => $p->getModelId()])'></div>
   @endif
 
+@section('json-ld')
+    {!! $p->getSchemaJsonLd() !!}
+@endsection
+
 @endsection

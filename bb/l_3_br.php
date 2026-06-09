@@ -1,5 +1,7 @@
 <?php
 
+
+require_once __DIR__ . '/auth_guard.php';
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php'); // включаем подключение к базе данных
 
 $q_type='';

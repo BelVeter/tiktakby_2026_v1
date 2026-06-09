@@ -1,0 +1,59 @@
+# TikTak.by — Прокат товаров в Минске
+
+> TikTak.by — сервис проката детских товаров, карнавальных костюмов и бытового оборудования в Минске. Работаем с 2011 года. Самовывоз из офиса на Литературной 22 и доставка курьером по городу.
+
+## Детские товары
+
+- [Прокат автокресел](https://tiktak.by/ru/prokat-detskih-tovarov/autokresla/): детские автокресла от 0 до 36 кг, бустеры
+- [Прокат колясок](https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie/): прогулочные, трансформеры, 2-в-1, трости
+- [Велосипеды, беговелы, самокаты](https://tiktak.by/ru/prokat-detskih-tovarov/begovely_velosipedy_samokaty/): детские и подростковые
+- [Детская комната](https://tiktak.by/ru/prokat-detskih-tovarov/detskaya-komnata/): кроватки, манежи, качели, ходунки, прыгунки
+- [Купание и пеленание](https://tiktak.by/ru/prokat-detskih-tovarov/kupanie-pelenanie/): ванночки, горки, пеленальные столики
+- [Весы и радионяни](https://tiktak.by/ru/prokat-detskih-tovarov/vesy-baby_monitors/): детские весы, видеоняни, радионяни
+- [Эргорюкзаки и слинги](https://tiktak.by/ru/prokat-detskih-tovarov/ergoryukzaki/)
+- [Игрушки](https://tiktak.by/ru/prokat-detskih-tovarov/toys-for-rent/)
+
+## Карнавальные костюмы
+
+- [Детские карнавальные костюмы](https://tiktak.by/ru/karnavalnye-kostyumy/detskie-nariady-prokat/): платья, наряды для праздников
+- [Взрослые карнавальные костюмы](https://tiktak.by/ru/karnavalnye-kostyumy/carnival-rent-adult/)
+- [Новогодние костюмы](https://tiktak.by/ru/karnavalnye-kostyumy/novogonie-kostumy-prokat/): Дед Мороз, Снегурочка, Снеговик
+- [Костюмы супергероев и персонажей](https://tiktak.by/ru/karnavalnye-kostyumy/karnavalnye-kostyumy-boys/)
+- [Хэллоуин](https://tiktak.by/ru/karnavalnye-kostyumy/halloween-costumes/)
+- [Костюмы зверей](https://tiktak.by/ru/karnavalnye-kostyumy/kostumy-zverei/)
+- [Аксессуары](https://tiktak.by/ru/karnavalnye-kostyumy/accessories/)
+
+## Красота и здоровье
+
+- [Ингаляторы](https://tiktak.by/ru/medical-prokat/ingaliatory/): небулайзеры для взрослых и детей
+- [Bioptron](https://tiktak.by/ru/medical-prokat/bioptron-prokat-minsk/): светотерапевтические приборы Zepter
+- [Электротерапия](https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/)
+- [Уход за малышами](https://tiktak.by/ru/medical-prokat/babycare/)
+
+## Оборудование для уборки
+
+- [Моющий пылесос](https://tiktak.by/ru/prokat-uborka/moyushchij-pylesos/)
+- [Мойки высокого давления](https://tiktak.by/ru/prokat-uborka/mojki-vysokogo-davleniya/)
+- [Мойщики окон](https://tiktak.by/ru/prokat-uborka/mojshchik-okon/)
+- [Отпариватели](https://tiktak.by/ru/prokat-uborka/otprarivateli/)
+
+## Спорт и отдых
+
+- [Велосипеды и самокаты](https://tiktak.by/ru/prokat-sports/begovely_velosipedy_samokaty/)
+- [Тренажёры](https://tiktak.by/ru/prokat-sports/trenazhery/)
+- [Туризм и активный отдых](https://tiktak.by/ru/prokat-sports/turizm-prokat/)
+- [Зимний инвентарь](https://tiktak.by/ru/prokat-sports/winter/)
+
+## Офис и контакты
+
+- **Адрес**: ул. Литературная, 22, Минск
+- **Режим работы**: пн–пт 10:00–19:00, сб–вс 10:00–15:00
+- **Телефон**: +375 44 745-40-40
+- **Email**: info@tiktak.by
+- **Онлайн-бронирование**: https://tiktak.by/ru/
+- **Доставка**: курьером пн–пт, в выходные через Яндекс.Доставку
+
+## Условия проката
+
+- Оплата: наличные, банковская карта, ЕРИП
+- Онлайн-бронирование доступно для всех категорий

@@ -5,11 +5,12 @@ use bb\Db;
 use bb\models\User;
 
 session_start();
-ini_set("display_errors", 1);
+ini_set('display_errors', (isset($_SESSION['svoi']) && $_SESSION['svoi'] == 8941) ? 1 : 0);
 error_reporting(E_ALL);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Base.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/bron.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Zayavka.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Db.php'); //
@@ -82,6 +83,7 @@ echo '
 .z_btn_del { background-color: #dc3545; }
 .z_btn_missed { background-color: #ffc107; color: #333; }
 .zayavk_btn svg, .zayavk_btn path, .zayavk_btn polyline, .zayavk_btn line { pointer-events: none; }
+input[data-due="1"] { border: 2px solid #d00; color: #d00; font-weight: bold; }
 </style>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ' . Base::getBarCodeReaderScript() . '
@@ -125,6 +127,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 			document.getElementById('free_inv_n_' + id).style.display = "inline-block";
 			document.getElementById('info_div_' + id).style.display = "inline-block";
 			document.getElementById('br_valid_' + id).style.display = "inline-block";
+			document.getElementById('ms_div_' + id).style.display = "block";
+			document.getElementById('pd_div_' + id).style.display = "block";
 		}
 		else {
 			btn.value = "оформить звонок";
@@ -136,6 +140,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 			document.getElementById('free_inv_n_' + id).style.display = "none";
 			document.getElementById('info_div_' + id).style.display = "none";
 			document.getElementById('br_valid_' + id).style.display = "none";
+			document.getElementById('ms_div_' + id).style.display = "none";
+			document.getElementById('pd_div_' + id).style.display = "none";
 		}
 	}
 
@@ -198,6 +204,21 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 
 
 	function reload() { location = '/bb/index.php' };
+
+	function showDelPanel(id) {
+		document.getElementById('del_panel_' + id).style.display = 'block';
+		document.getElementById('del_but_'   + id).style.display = 'none';
+	}
+	function hideDelPanel(id) {
+		document.getElementById('del_panel_' + id).style.display = 'none';
+		document.getElementById('del_but_'   + id).style.display = 'inline-flex';
+		document.getElementById('del_txt_'   + id).value = '';
+	}
+	function submitDelPanel(id, type) {
+		document.getElementById('del_cmt_' + id).value = document.getElementById('del_txt_' + id).value.trim();
+		var btn = type === 'spam' ? 'del_spam_' + id : (type === 'reject' ? 'del_reject_' + id : 'del_other_' + id);
+		document.getElementById(btn).click();
+	}
 
 
 
@@ -284,6 +305,10 @@ if (isset($_POST['action'])) {
 			$br_upd->update();
 			unset($br_upd);
 
+			// планируемая дата выдачи + авто-перевод new -> in_work (z_status/planned_date не трогаются bron::update)
+			$pd = isset($planned_date) && $planned_date !== '' ? "'" . $mysqli->real_escape_string($planned_date) . "'" : 'NULL';
+			$mysqli->query("UPDATE rent_orders SET planned_date=$pd, z_status=IF(z_status='new','in_work',z_status) WHERE order_id='" . (int)$order_id . "'");
+
 			break;
 
 		case 'недозвон':
@@ -295,6 +320,35 @@ if (isset($_POST['action'])) {
 			$br_upd->update();
 			unset($br_upd);
 
+			// первый контакт переводит new -> in_work
+			$mysqli->query("UPDATE rent_orders SET z_status=IF(z_status='new','in_work',z_status) WHERE order_id='" . (int)$order_id . "'");
+
+			break;
+
+		case 'сменить модель':
+			try {
+				\bb\classes\Zayavka::load((int)$order_id)->changeModel((int)$new_model_id);
+			} catch (\RuntimeException $e) {
+				die('Не удалось сменить модель: ' . htmlspecialchars($e->getMessage()));
+			}
+			break;
+
+		case 'отказ':
+			try {
+				$cmt = isset($reason_comment) && $reason_comment !== '' ? $reason_comment : null;
+				\bb\classes\Zayavka::load((int)$order_id)->setStatus('rejected', 'changed_mind', $cmt);
+			} catch (\RuntimeException $e) {
+				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
+			}
+			break;
+
+		case 'спам':
+			try {
+				$cmt = isset($reason_comment) && $reason_comment !== '' ? $reason_comment : null;
+				\bb\classes\Zayavka::load((int)$order_id)->setStatus('spam', null, $cmt);
+			} catch (\RuntimeException $e) {
+				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
+			}
 			break;
 
 		case 'самовывоз':
@@ -317,11 +371,13 @@ if (isset($_POST['action'])) {
 
 
 		case 'удалить':
-
-			$br = new \bb\classes\bron();
-			$br->br_load($order_id);
-			$br->arch_copy();
-			$br->del_br();
+			// soft-delete: пишем статус 'deleted' и архивируем (физически не теряем)
+			try {
+				$cmt = isset($reason_comment) && $reason_comment !== '' ? $reason_comment : null;
+				\bb\classes\Zayavka::load((int)$order_id)->softDelete(null, $cmt);
+			} catch (\RuntimeException $e) {
+				die('Ошибка: ' . htmlspecialchars($e->getMessage()));
+			}
 
 			break;
 
@@ -329,7 +385,7 @@ if (isset($_POST['action'])) {
 }
 
 
-$query_or = "SELECT * FROM rent_orders WHERE type2='zayavka' ORDER BY (info2 IS NULL OR info2 = '') DESC, validity";
+$query_or = "SELECT * FROM rent_orders WHERE type2='zayavka' AND z_status IN ('new','in_work') ORDER BY z_status='new' DESC, (planned_date IS NULL) ASC, planned_date ASC, validity";
 $result_or = $mysqli->query($query_or);
 if (!$result_or) {
 	die('Сбой при доступе к базе данных: ' . $query_or . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -347,7 +403,7 @@ echo '
       <th style="width:80px; text-align:center;">Фото</th>
 	  <th style="width:350px; text-align:center;">Товар</th>
       <th style="width:350px; text-align:center;">коментари<br>сортировать по дате заявки <button type="button" data-sort="start" class="sort-btn" value="новые наверх">новые наверх</button></th>
-	  <th style="width:81px; text-align:center;">дата действия<br><button type="button" data-sort="finish" class="sort-btn" value="новые наверх">новые наверх</button></th>
+	  <th style="width:110px; text-align:center;"><button type="button" data-sort="finish" data-label="срок заявки" class="sort-btn" value="новые наверх" style="cursor:pointer;background:none;border:none;padding:2px 0;font-weight:bold;font-size:inherit;">срок заявки ↕</button><br><button type="button" data-sort="plan" data-label="план. выдача" class="sort-btn" value="новые наверх" style="cursor:pointer;background:none;border:none;padding:2px 0;font-size:11px;">план. выдача ↕</button></th>
 	  <!--<th style="width:90px; text-align:center;">созд/подтв</th>-->
       <th style="text-align:center;">действия</th>
 	</tr>
@@ -386,9 +442,12 @@ while ($ord = $result_or->fetch_assoc()) {
 
 
 
-	$is_new = ($br_line->info2 === null || $br_line->info2 === '');
+	$is_new = ($ord['z_status'] === 'new');
+	$noPhone = ((int)$br_line->phone <= 1);
+	$rowStyle = $is_new ? 'background-color:#e3f2fd;' : '';
+	if ($noPhone) { $rowStyle .= 'border-left:4px solid #b00;'; }
 	echo '
-	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '"' . ($is_new ? ' style="background-color:#e3f2fd;"' : '') . '>
+	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '" data-plan="' . htmlspecialchars($ord['planned_date'] ?? '') . '"' . ($rowStyle ? ' style="' . $rowStyle . '"' : '') . '>
 		<td style="text-align: center;"><img src="' . $br_line->small_pic . '" style="max-height: 80px; max-width: 80px; width: auto; object-fit: contain;" /></td>
 		<td ' . ($it_free_num > 0 ? 'style="background-color:#acf398;"' : '') . '>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" <br />
 		' . (User::getCurrentUser()->isAdmin() ? 'br_id:' . $br_line->order_id : '') . '
@@ -408,6 +467,17 @@ while ($ord = $result_or->fetch_assoc()) {
 		echo '<img style="width:25px; height:25px; float:right;" src="' . $off_pic[$free_i_of] . '"/>';
 	}
 
+	echo '
+<div id="ms_div_' . $br_line->order_id . '" style="display:none;margin-top:6px;font-size:11px;position:relative;">
+    <div class="ms-wrap" style="display:inline-block;position:relative;vertical-align:middle;">
+        <input type="text" class="ms-input" placeholder="сменить модель…" autocomplete="off"
+               data-form="order_' . $br_line->order_id . '"
+               style="width:160px;font-size:11px;padding:2px 4px;">
+        <input type="hidden" name="new_model_id" class="ms-hidden" form="order_' . $br_line->order_id . '">
+        <div class="ms-dropdown" style="display:none;position:absolute;top:100%;left:0;width:300px;background:#fff;border:1px solid #ccc;border-radius:4px;z-index:500;max-height:180px;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.15);"></div>
+    </div>
+    <button type="submit" name="action" form="order_' . $br_line->order_id . '" value="сменить модель" class="ms-submit" style="font-size:11px;" onclick="return confirm(\'Сменить модель заявки?\');">сменить</button>
+</div>';
 	echo '</td>
 		<td ' . ($br_line->appr_id > 0 ? 'style="background-color:#acf398;"' : '') . '>
 		    <div style="width: 788px;">
@@ -419,6 +489,8 @@ while ($ord = $result_or->fetch_assoc()) {
 	}
 	if ($br_line->phone > 1) {
 		echo Base::phone_print($br_line->phone) . '<br>';
+	} else {
+		echo '<span style="color:#b00;font-weight:bold;">⚠ нет телефона — ищите контакт в комментарии</span><br>';
 	}
 	echo '
 
@@ -431,8 +503,14 @@ while ($ord = $result_or->fetch_assoc()) {
 				<textarea rows="5" cols="70" name="info" id="info_' . $br_line->order_id . '" form="order_' . $br_line->order_id . '"></textarea><br />
       		</div>
       	</td>
-		<td>' . date("d.m.y", $br_line->validity) . '
-      		<div style="position:relative; z-index:2; background-color:#FFF;"><input style="display:none;" type="date" name="br_valid" id="br_valid_' . $br_line->order_id . '" form="order_' . $br_line->order_id . '" value="' . date("Y-m-d", $br_line->validity) . '"></div>
+		<td style="text-align:center;">' . date("d.m.y", $br_line->validity) . '
+      		<div style="position:relative; z-index:2; background-color:#FFF;"><input style="display:none;" type="date" name="br_valid" id="br_valid_' . $br_line->order_id . '" form="order_' . $br_line->order_id . '" value="' . date("Y-m-d", $br_line->validity) . '"></div>'
+      		. (!empty($ord['planned_date']) ? '<div style="margin-top:4px;font-size:11px;color:#0a5c36;">📅 ' . htmlspecialchars($ord['planned_date']) . '</div>' : '')
+      		. '
+      		<div id="pd_div_' . $br_line->order_id . '" style="display:none;margin-top:4px;">
+      		<div style="font-size:10px;color:#0a5c36;">план. выдача:</div>
+      		<input type="date" name="planned_date" form="order_' . $br_line->order_id . '" value="' . htmlspecialchars($ord['planned_date'] ?? '') . '" style="font-size:11px;"' . ((!empty($ord['planned_date']) && $ord['planned_date'] <= date('Y-m-d')) ? ' data-due="1"' : '') . '>
+      		</div>
       		</td>
     	<!--<td ' . ($br_line->web == 1 ? 'style="background-color:#F60"' : '') . '>' . $lp_list[$br_line->cr_who_id] . '/' . $lp_list[$br_line->appr_id] . '</td>-->
 		<td>
@@ -446,7 +524,20 @@ while ($ord = $result_or->fetch_assoc()) {
 				<button type="button" name="action" class="zayavk_btn z_btn_save" data-tooltip="Оформить звонок" id="edit_show_' . $br_line->order_id . '" value="оформить звонок" onclick="show_edit(\'' . $br_line->order_id . '\');">' . $svg_phone . '</button>
 				<button type="submit" name="action" class="zayavk_btn z_btn_save" data-tooltip="Сохранить звонок" id="save_podtv_' . $br_line->order_id . '" value="сохранить звонок" style="display:none;">' . $svg_check . '</button>
       	  		<button type="submit" name="action" class="zayavk_btn z_btn_missed" data-tooltip="Недозвон" id="obnov_' . $br_line->order_id . '" value="недозвон" onclick="return confirm(\'Отметить недозвон?\');">' . $svg_phone_off . '</button>
-				<button type="submit" name="action" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="return confirm(\'Вы точно хотите удалить эту бронь?\');" value="удалить">' . $svg_trash . '</button>
+				<button type="button" class="zayavk_btn z_btn_del" data-tooltip="Удалить" id="del_but_' . $br_line->order_id . '" onclick="showDelPanel(\'' . $br_line->order_id . '\');">' . $svg_trash . '</button>
+				<!-- hidden submit triggers for the delete panel -->
+				<button type="submit" name="action" value="спам"    id="del_spam_' . $br_line->order_id . '"   style="display:none;"></button>
+				<button type="submit" name="action" value="отказ"   id="del_reject_' . $br_line->order_id . '" style="display:none;"></button>
+				<button type="submit" name="action" value="удалить" id="del_other_' . $br_line->order_id . '"  style="display:none;"></button>
+				<input type="hidden" name="reason_comment" id="del_cmt_' . $br_line->order_id . '" value="">
+			</div>
+			<div id="del_panel_' . $br_line->order_id . '" style="display:none;margin-top:6px;background:#fff3f3;border:1px solid #f5c6cb;border-radius:4px;padding:8px;">
+				<div style="font-size:11px;font-weight:bold;margin-bottom:6px;">Причина:</div>
+				<button type="button" onclick="submitDelPanel(\'' . $br_line->order_id . '\',\'spam\')"   style="background:#6c757d;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">Спам</button>
+				<button type="button" onclick="submitDelPanel(\'' . $br_line->order_id . '\',\'reject\')" style="background:#fd7e14;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">Отказ клиента</button>
+				<button type="button" onclick="submitDelPanel(\'' . $br_line->order_id . '\',\'other\')"  style="background:#dc3545;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">Другое</button>
+				<button type="button" onclick="hideDelPanel(\'' . $br_line->order_id . '\')"             style="background:#aaa;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">Отмена</button>
+				<textarea id="del_txt_' . $br_line->order_id . '" placeholder="Комментарий (необязательно)" rows="2" style="display:block;width:100%;margin-top:6px;font-size:11px;box-sizing:border-box;"></textarea>
 			</div>
 			</form>
 		</td>
@@ -529,36 +620,90 @@ function user_select($id)
 	// Function to sort table
 	function sortTable(e) {
 		let sortType = e.target.dataset.sort;
+		let label = e.target.dataset.label;
 		let switcher = 1;
-		console.log(e.target.value);
 		if (e.target.value == 'новые наверх') {
-			e.target.innerHTML = 'старые наверх';
-			e.target.value = 'старые наверх';
 			switcher = -1;
-		}
-		else {
-			e.target.innerHTML = 'новые наверх';
-			e.target.value = 'новые наверх';
+			e.target.value = 'старые наверх';
+			e.target.innerHTML = label ? label + ' ▼' : 'старые наверх';
+		} else {
 			switcher = 1;
+			e.target.value = 'новые наверх';
+			e.target.innerHTML = label ? label + ' ▲' : 'новые наверх';
 		}
-		var table = document.querySelector('table'); // Select the table
-		var rows = Array.from(table.rows); // Convert HTMLCollection to Array
-
-		rows.shift(); // Remove the header row if exists
-
-		// Sort rows Array
+		var table = document.querySelector('table');
+		var rows = Array.from(table.rows);
+		rows.shift();
 		rows.sort(function (a, b) {
-			var dateA = new Date(a.getAttribute('data-' + sortType)); // Convert to Date object
-			var dateB = new Date(b.getAttribute('data-' + sortType)); // Convert to Date object
-			return (dateA - dateB) * switcher; // Sort in ascending order
+			var valA = a.getAttribute('data-' + sortType) || '';
+			var valB = b.getAttribute('data-' + sortType) || '';
+			if (!valA && !valB) return 0;
+			if (!valA) return 1;
+			if (!valB) return -1;
+			return (new Date(valA) - new Date(valB)) * switcher;
 		});
-
-		// Append sorted rows back into the table
 		for (let row of rows) {
 			table.appendChild(row);
 		}
 	}
 
+</script>
+
+<script>
+// Live model search for "сменить модель" inputs on the board
+(function(){
+  var timers = {};
+
+  function initWrap(wrap) {
+    var input    = wrap.querySelector('.ms-input');
+    var hidden   = wrap.querySelector('.ms-hidden');
+    var dropdown = wrap.querySelector('.ms-dropdown');
+    if (!input || input._msInit) return;
+    input._msInit = true;
+
+    function close(){ dropdown.style.display = 'none'; }
+
+    input.addEventListener('input', function(){
+      clearTimeout(timers[input._msId]);
+      hidden.value = '';
+      var q = input.value.trim();
+      if (q.length < 2) { close(); return; }
+      timers[input._msId] = setTimeout(function(){
+        fetch('/bb/model_search.php?q=' + encodeURIComponent(q))
+          .then(function(r){ return r.json(); })
+          .then(function(items){
+            if (!items.length) { close(); return; }
+            dropdown.innerHTML = '';
+            items.forEach(function(item){
+              var d = document.createElement('div');
+              d.textContent = '#' + item.id + ' ' + item.label;
+              var color = item.free_count > 0 ? '#155a1a' : '#a04000';
+              d.style.cssText = 'padding:5px 8px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;color:' + color + ';font-weight:600;';
+              d.addEventListener('mousedown', function(e){
+                e.preventDefault();
+                input.value = '#' + item.id + ' ' + item.label;
+                hidden.value = item.id;
+                close();
+              });
+              d.addEventListener('mouseover', function(){ d.style.background='#e8f0fe'; });
+              d.addEventListener('mouseout',  function(){ d.style.background=''; });
+              dropdown.appendChild(d);
+            });
+            dropdown.style.display = 'block';
+          });
+      }, 200);
+    });
+
+    input.addEventListener('blur', function(){ setTimeout(close, 150); });
+  }
+
+  var counter = 0;
+  document.querySelectorAll('.ms-wrap').forEach(function(wrap){
+    var input = wrap.querySelector('.ms-input');
+    if (input) { input._msId = 'ms' + (counter++); }
+    initWrap(wrap);
+  });
+})();
 </script>
 </body>
 

@@ -1,6 +1,6 @@
 <?php
 session_start();
-ini_set("display_errors", 1);
+ini_set('display_errors', (isset($_SESSION['svoi']) && $_SESSION['svoi'] == 8941) ? 1 : 0);
 error_reporting(E_ALL);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Db.php'); //

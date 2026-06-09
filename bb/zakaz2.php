@@ -1,8 +1,10 @@
 <?php
 session_start();
-ini_set("display_errors",1);
+ini_set('display_errors', (isset($_SESSION['svoi']) && $_SESSION['svoi'] == 8941) ? 1 : 0);
 error_reporting(E_ALL);
 
+
+require_once __DIR__ . '/auth_guard.php';
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php'); // включаем подключение к базе данных
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/KBron.php');
 

@@ -194,6 +194,19 @@ class RedirectsController extends BaseController
             if (!$isRegex && !str_starts_with($sourceUrl, '/')) {
                 $sourceUrl = '/' . $sourceUrl;
             }
+
+            // Check for duplicate source_url
+            $exists = DB::table('redirects')
+                ->where('source_url', $sourceUrl)
+                ->where('id', '!=', $id)
+                ->exists();
+            if ($exists) {
+                return response()->json([
+                    'error'      => 'source_url already exists',
+                    'source_url' => $sourceUrl,
+                ], 422);
+            }
+
             $payload['source_url'] = $sourceUrl;
         }
 

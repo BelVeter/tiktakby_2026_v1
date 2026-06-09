@@ -17,6 +17,7 @@ class bron {
 	public $user_id;
 
 	public $insert_id;
+	public $is_duplicate = false;
 
 	public $order_id;
 	public $type; // strong, zayavka
@@ -355,26 +356,23 @@ class bron {
    * @return bron
    */
   public static function createZayavka($model_id, $phone, $family, $name, $otch, \DateTime $validityDate, $info, $webYN){
+    $za = new \bb\classes\Zayavka();
+    $res = $za->create([
+      'model_id'  => $model_id,
+      'phone'     => $phone,
+      'family'    => $family,
+      'info'      => $info,
+      'web'       => $webYN,
+      'validity'  => $validityDate->getTimestamp(),
+    ], 'crm');
 
-    //$query = "INSERT INTO rent_orders VALUES ('', 'zayavka', '$ac_date', '$tel', '', '$f', '$i', '$o', '', '$deliv_addr', '$validity', '', '$model_id', '".$model_m['tovar_rent_cat_id']."', 'zayavka', '".Base::getAdvCompId()."', '$info', '', '1', '".time()."', '', '', '', '', '', '', '".$_SERVER['REMOTE_ADDR']."', '', '')";
     $z = new self();
-    $z->type = 'zayavka';
-    $z->order_date = (new \DateTime())->getTimestamp();
-    $z->phone=$phone;
-    $z->family=$family;
-    $z->name = $name;
-    $z->otch = $otch;
-    $z->validity = $validityDate->getTimestamp();
+    $z->type2 = 'zayavka';
     $z->model_id = $model_id;
-      $model = Model::getById($model_id);
-    $z->cat_id = $model->getCatId();
-    $z->type2='zayavka';
-    $z->info=$info;
-    $z->web = $webYN;
-    $z->cr_time=time();
-
-    $z->insert();
-
+    // insert_id points to the actual zayavka (new one, or the existing one on duplicate),
+    // so callers can link the originating zvonok to it (spec §6).
+    $z->insert_id = $res->orderId ?: ($res->existing ? $res->existing->order_id : null);
+    $z->is_duplicate = $res->isDuplicate;
     return $z;
   }
 
@@ -517,7 +515,9 @@ class bron {
 	function insert() {
 		//if (substr($this->inv_n, 0, 3)!='702' && substr($this->inv_n, 0, 3)!='761') {//!!! пока что стирка карнавальных костюмов и платьев невозможна в принципе. Потом посмотрим.
 
-			$query = "INSERT INTO rent_orders VALUES ('', '$this->type', '$this->order_date', '$this->phone', '$this->phone_yn', '$this->family', '$this->name', '$this->otch', '$this->fio_yn', '$this->address', '$this->validity', '$this->inv_n', '$this->model_id', '$this->cat_id', '$this->type2', '$this->client_id', '$this->info','$this->info2', '$this->web', '$this->cr_time', '$this->cr_who_id', '$this->ch_time', '$this->ch_who_id', '$this->status', '$this->appr_id', '$this->appr_time', '$this->cr_ip', '$this->place_status', '$this->rem_type')";
+			$query = "INSERT INTO rent_orders
+				(`type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
+				VALUES ('$this->type', '$this->order_date', '$this->phone', '$this->phone_yn', '$this->family', '$this->name', '$this->otch', '$this->fio_yn', '$this->address', '$this->validity', '$this->inv_n', '$this->model_id', '$this->cat_id', '$this->type2', '$this->client_id', '$this->info', '$this->info2', '$this->web', '$this->cr_time', '$this->cr_who_id', '$this->ch_time', '$this->ch_who_id', '$this->status', '$this->appr_id', '$this->appr_time', '$this->cr_ip', '$this->place_status', '$this->rem_type')";
 			//dd($query);
       $result = $this->mysqli->query($query);
 			if (!$result) {die('Сбой при доступе к базе данных: '.$query.' ('.$this->mysqli->connect_errno.') '.$this->mysqli->connect_error);}
@@ -526,6 +526,10 @@ class bron {
 		//}
 	}
 
+	// ВНИМАНИЕ: SET-список ниже намеренно НЕ содержит z_status / z_reject_reason / planned_date —
+	// эти поля заявок управляются классом bb\classes\Zayavka, и bron::update() их не должен трогать
+	// (иначе перезатрёт статус/дату). При добавлении новой колонки в rent_orders реши осознанно,
+	// нужна ли она здесь.
 	function update() {//!!! обновить функцию обновления
 
 		$query_upd = "UPDATE rent_orders SET `type`='$this->type', `order_date`='$this->order_date', `phone`='$this->phone', `phone_yn`='$this->phone_yn', `family`='$this->family', `name`='$this->name', `otch`='$this->otch', `fio_yn`='$this->fio_yn', `address`='$this->address', `validity`='$this->validity', `inv_n`='$this->inv_n', `model_id`='$this->model_id', `cat_id`='$this->cat_id', `type2`='$this->type2', `client_id`='$this->client_id', `info`='$this->info', `info2`='$this->info2', `web`='$this->web', `cr_time`='$this->cr_time', `cr_who_id`='$this->cr_who_id', `ch_time`='$this->ch_time', `ch_who_id`='$this->ch_who_id', `status`='$this->status', `appr_id`='$this->appr_id', `appr_time`='$this->appr_time', `cr_ip`='$this->cr_ip', place_status='$this->place_status', rem_type='$this->rem_type' WHERE `order_id`='$this->order_id'";
@@ -802,7 +806,9 @@ class bron {
         }
 
 		//копирование брони в архив   !!!переработать копирование брони в архив
-		$query_arch = "INSERT INTO rent_orders_arch SELECT '', '".time()."', '".$user."', order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, `validity`, `inv_n`, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, status, `appr_id`, `appr_time`, `cr_ip`, `place_status`, `rem_type` FROM rent_orders WHERE order_id='$this->order_id'";
+		$query_arch = "INSERT INTO rent_orders_arch
+			(arch_time, arch_who, order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
+			SELECT '".time()."', '".$user."', order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type FROM rent_orders WHERE order_id='$this->order_id'";
 		$result_arch = $this->mysqli->query($query_arch);
 		if (!$result_arch) {die('Сбой при доступе к базе данных: '.$query_arch.' ('.$this->mysqli->connect_errno.') '.$this->mysqli->connect_error);}
 
@@ -889,6 +895,9 @@ class bron {
                     //обновляем бронь - делаем бронью
 
                     $this->update();
+
+                    //заявка превратилась в бронь — помечаем для аналитики спроса
+                    $this->mysqli->query("UPDATE rent_orders SET z_status='done' WHERE order_id='".(int)$this->order_id."'");
 
 
                     //разблокируем таблицы

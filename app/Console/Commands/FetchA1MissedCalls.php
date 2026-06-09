@@ -89,8 +89,12 @@ class FetchA1MissedCalls extends Command
             return 1;
         }
 
-        // 3. Отфильтровать пропущенные
+        // 3. Отфильтровать пропущенные (только входящие — исходящие без ответа не считаются пропущенными)
         $missed = array_filter($records, function ($r) {
+            $type = strtolower($r['callType'] ?? '');
+            if (str_contains($type, 'outgoing') || str_contains($type, 'out')) {
+                return false;
+            }
             return in_array($r['callStatus'] ?? '', self::MISSED_STATUSES);
         });
 
@@ -205,7 +209,7 @@ class FetchA1MissedCalls extends Command
     private function refreshToken(string $refreshToken): string
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $refreshToken,
+            'Authorization' => $refreshToken,
         ])->put(self::BASE_URL . '/auth/tokens');
 
         if (in_array($response->status(), [401, 403], true)) {

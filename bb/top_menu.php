@@ -1,4 +1,6 @@
-<?php include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php'); ?>
+<?php 
+require_once __DIR__ . '/auth_guard.php';
+include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php'); ?>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <!--<a class="navbar-brand" href="#">second try</a> -->
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"

@@ -229,4 +229,8 @@
     @endif
   @endif
 
+@section('json-ld')
+    {!! $p->getSchemaJsonLd() !!}
+@endsection
+
 @endsection

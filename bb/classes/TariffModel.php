@@ -210,7 +210,184 @@ class TariffModel
 
         return 0;
     }
+    /**
+     * Build Schema.org Offer array for the primary rental period (L3 product page).
+     *
+     * Always generates 4 fixed breakpoints (×1, ×2, ×3, ×4) for the given step,
+     * using getAmmountForDaysPeriod() — the same interpolation the L2 card uses.
+     * This means week-based products always show 1/2/3/4 weeks even when the DB
+     * only has a subset of those tariff rows.
+     *
+     * @param  string $primaryStep  'day' | 'week' | 'month'
+     * @param  string $url          Absolute canonical URL of the product page
+     * @return array|null           Single Offer array, array of Offer arrays, or null
+     */
+    public function getSchemaOffers($primaryStep, $url)
+    {
+        if (count($this->getTarifs()) === 0) return null;
 
+        $unitCodeMap = ['day' => 'DAY', 'week' => 'WEE', 'month' => 'MON'];
+        $stepDaysMap = ['day' => 1,     'week' => 7,     'month' => 30];
 
+        $unitCode = $unitCodeMap[$primaryStep] ?? 'DAY';
+        $stepDays = $stepDaysMap[$primaryStep] ?? 1;
+
+        $offers = [];
+        for ($qty = 1; $qty <= 4; $qty++) {
+            // Prefer exact tariff row; fall back to interpolation for missing breakpoints
+            $exactPrice = null;
+            foreach ($this->getTarifs() as $t) {
+                if ($t->step === $primaryStep && (int)$t->kol_vo === $qty) {
+                    $exactPrice = $t->getTotalAmount();
+                    break;
+                }
+            }
+            $price = $exactPrice !== null ? $exactPrice : $this->getAmmountForDaysPeriod($stepDays * $qty);
+            if ($price <= 0) continue;
+
+            $offers[] = [
+                '@type'              => 'Offer',
+                'priceCurrency'      => 'BYN',
+                'price'              => number_format($price, 2, '.', ''),
+                'priceSpecification' => [
+                    '@type'             => 'UnitPriceSpecification',
+                    'price'             => number_format($price, 2, '.', ''),
+                    'priceCurrency'     => 'BYN',
+                    'referenceQuantity' => [
+                        '@type'    => 'QuantitativeValue',
+                        'value'    => (string) $qty,
+                        'unitCode' => $unitCode,
+                    ],
+                ],
+                'url'    => $url,
+                'seller' => [
+                    '@type' => 'LocalBusiness',
+                    'name'  => 'ТикТак Прокат',
+                    'url'   => 'https://tiktak.by',
+                ],
+                'hasMerchantReturnPolicy' => [
+                    '@type' => 'MerchantReturnPolicy',
+                    'applicableCountry' => 'BY',
+                    'returnPolicyCategory' => 'https://schema.org/MerchantReturnUnlimitedWindow',
+                    'returnMethod' => [
+                        'https://schema.org/ReturnInStore',
+                        'https://schema.org/ReturnByMail'
+                    ],
+                    'returnFees' => 'https://schema.org/FreeReturn'
+                ],
+                'shippingDetails' => [
+                    [
+                        '@type' => 'OfferShippingDetails',
+                        'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '0.00', 'currency' => 'BYN' ],
+                        'eligibleTransactionVolume' => [ '@type' => 'PriceSpecification', 'minPrice' => 30.00, 'priceCurrency' => 'BYN' ],
+                        'deliveryTime' => [
+                            '@type' => 'ShippingDeliveryTime',
+                            'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
+                            'transitTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ]
+                        ],
+                        'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ]
+                    ],
+                    [
+                        '@type' => 'OfferShippingDetails',
+                        'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '10.00', 'currency' => 'BYN' ],
+                        'eligibleTransactionVolume' => [ '@type' => 'PriceSpecification', 'maxPrice' => 29.99, 'priceCurrency' => 'BYN' ],
+                        'deliveryTime' => [
+                            '@type' => 'ShippingDeliveryTime',
+                            'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
+                            'transitTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ]
+                        ],
+                        'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ]
+                    ]
+                ],
+            ];
+        }
+
+        if (count($offers) === 0) return null;
+        if (count($offers) === 1) return $offers[0];
+        return $offers;
+    }
+
+    /**
+     * Build a single Schema.org Offer for the cheapest available tariff (L2 listing).
+     *
+     * Returns the tariff with the fewest days (= lowest entry price), regardless of
+     * step type.  This gives Google the real minimum price a customer can pay.
+     *
+     * @param  string $url  Absolute canonical URL of the product page
+     * @return array|null   Single Offer array, or null if no tariffs exist
+     */
+    public function getSchemaMinOffer($url)
+    {
+        $unitCodeMap = ['day' => 'DAY', 'week' => 'WEE', 'month' => 'MON'];
+
+        $minTariff = null;
+        $minDays   = PHP_INT_MAX;
+        foreach ($this->getTarifs() as $t) {
+            $days = $t->getDaysCalculatedNumber();
+            if ($days > 0 && $days < $minDays) {
+                $minDays   = $days;
+                $minTariff = $t;
+            }
+        }
+
+        if (!$minTariff) return null;
+
+        $unitCode = $unitCodeMap[$minTariff->step] ?? 'DAY';
+        return [
+            '@type'              => 'Offer',
+            'priceCurrency'      => 'BYN',
+            'price'              => number_format($minTariff->getTotalAmount(), 2, '.', ''),
+            'priceSpecification' => [
+                '@type'             => 'UnitPriceSpecification',
+                'price'             => number_format($minTariff->getTotalAmount(), 2, '.', ''),
+                'priceCurrency'     => 'BYN',
+                'referenceQuantity' => [
+                    '@type'    => 'QuantitativeValue',
+                    'value'    => (string) $minTariff->kol_vo,
+                    'unitCode' => $unitCode,
+                ],
+            ],
+            'url'    => $url,
+            'seller' => [
+                '@type' => 'LocalBusiness',
+                'name'  => 'ТикТак Прокат',
+                'url'   => 'https://tiktak.by',
+            ],
+            'hasMerchantReturnPolicy' => [
+                '@type' => 'MerchantReturnPolicy',
+                'applicableCountry' => 'BY',
+                'returnPolicyCategory' => 'https://schema.org/MerchantReturnUnlimitedWindow',
+                'returnMethod' => [
+                    'https://schema.org/ReturnInStore',
+                    'https://schema.org/ReturnByMail'
+                ],
+                'returnFees' => 'https://schema.org/FreeReturn'
+            ],
+            'shippingDetails' => [
+                [
+                    '@type' => 'OfferShippingDetails',
+                    'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '0.00', 'currency' => 'BYN' ],
+                    'eligibleTransactionVolume' => [ '@type' => 'PriceSpecification', 'minPrice' => 30.00, 'priceCurrency' => 'BYN' ],
+                    'deliveryTime' => [
+                        '@type' => 'ShippingDeliveryTime',
+                        'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
+                        'transitTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ]
+                    ],
+                    'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ]
+                ],
+                [
+                    '@type' => 'OfferShippingDetails',
+                    'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '10.00', 'currency' => 'BYN' ],
+                    'eligibleTransactionVolume' => [ '@type' => 'PriceSpecification', 'maxPrice' => 29.99, 'priceCurrency' => 'BYN' ],
+                    'deliveryTime' => [
+                        '@type' => 'ShippingDeliveryTime',
+                        'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
+                        'transitTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ]
+                    ],
+                    'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ]
+                ]
+            ],
+        ];
+    }
 
 }
