@@ -245,17 +245,28 @@ class PagesListingController extends BaseController
 
         $dbUrl = "/public/img/topmenu/{$filename}";
 
-        DB::table('pages')->updateOrInsert(
-            [
-                'level_code' => $resolved['level_code'],
-                'url_key' => $slug,
-                'lang' => 'ru'
-            ],
-            [
-                'h1_pic_url' => $dbUrl,
-                'change_time' => now()
-            ]
-        );
+        $matchColumns = [
+            'level_code' => $resolved['level_code'],
+            'url_key' => $slug,
+            'lang' => 'ru'
+        ];
+
+        $updateData = [
+            'h1_pic_url' => $dbUrl,
+            'change_time' => now()
+        ];
+
+        if (!DB::table('pages')->where($matchColumns)->exists()) {
+            $updateData += [
+                'title'         => '',
+                'h1'            => '',
+                'h1_long_text'  => '',
+                'block_2_title' => '',
+                'code_block_2'  => '',
+            ];
+        }
+
+        DB::table('pages')->updateOrInsert($matchColumns, $updateData);
 
         return $this->show($request, $slug);
     }
@@ -315,8 +326,6 @@ class PagesListingController extends BaseController
                 : null;
         }
         
-        $updateData['change_time'] = now();
-
         if (empty($updateData)) {
             return response()->json([
                 'error' => 'bad_request',
@@ -324,14 +333,26 @@ class PagesListingController extends BaseController
             ], 400);
         }
 
-        DB::table('pages')->updateOrInsert(
-            [
-                'level_code' => $levelCode,
-                'url_key' => $slug,
-                'lang' => 'ru'
-            ],
-            $updateData
-        );
+        $updateData['change_time'] = now();
+
+        $matchColumns = [
+            'level_code' => $levelCode,
+            'url_key' => $slug,
+            'lang' => 'ru'
+        ];
+
+        if (!DB::table('pages')->where($matchColumns)->exists()) {
+            $updateData += [
+                'title'         => '',
+                'h1'            => '',
+                'h1_pic_url'    => '',
+                'h1_long_text'  => '',
+                'block_2_title' => '',
+                'code_block_2'  => '',
+            ];
+        }
+
+        DB::table('pages')->updateOrInsert($matchColumns, $updateData);
 
         // Fetch updated record
         return $this->show($request, $slug);
