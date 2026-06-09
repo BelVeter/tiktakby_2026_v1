@@ -27,6 +27,7 @@ class MainPage
   private $code_block_1;
   private $block_2_title;
   private $code_block_2;
+  private $faq;
 
   private $change_time;
 
@@ -538,6 +539,43 @@ class MainPage
     $this->code_block_1 = $code_block_1;
   }
 
+  /**
+   * @return array  [{question: string, answer: string}, ...]
+   */
+  public function getFaqArray(): array
+  {
+    if (empty($this->faq)) return [];
+    $decoded = json_decode($this->faq, true);
+    return is_array($decoded) ? $decoded : [];
+  }
+
+  public function setFaqJson($faqJson): void
+  {
+    if (empty($faqJson)) {
+      $this->faq = null;
+      return;
+    }
+    $decoded = json_decode($faqJson, true);
+    if (!is_array($decoded)) {
+      $this->faq = null;
+      return;
+    }
+    $clean = [];
+    foreach ($decoded as $item) {
+      $q = trim($item['question'] ?? '');
+      $a = trim($item['answer'] ?? '');
+      if ($q !== '' && $a !== '') {
+        $clean[] = ['question' => $q, 'answer' => $a];
+      }
+    }
+    $this->faq = count($clean) > 0 ? json_encode($clean, JSON_UNESCAPED_UNICODE) : null;
+  }
+
+  public function setFaqFromArray(array $faqArray): void
+  {
+    $this->setFaqJson(json_encode($faqArray, JSON_UNESCAPED_UNICODE));
+  }
+
 
   /**
    * @param $text
@@ -1023,7 +1061,8 @@ class MainPage
   {
     $mysqli = Db::getInstance()->getConnection();
 
-    $query = "INSERT INTO pages SET level_code='$this->level_code', url_key='$this->url_key', lang='$this->lang', title='" . addslashes($this->title) . "', meta_description='" . addslashes($this->meta_description) . "', h1='" . addslashes($this->h1) . "', h1_pic_url='$this->h1_pic_url', h1_long_text='" . addslashes($this->h1_long_text) . "', code_block_1='" . addslashes($this->code_block_1) . "', block_2_title='" . addslashes($this->block_2_title) . "', code_block_2='" . addslashes($this->code_block_2) . "'";
+    $faqStr = $this->faq === null ? 'NULL' : "'" . addslashes($this->faq) . "'";
+    $query = "INSERT INTO pages SET level_code='$this->level_code', url_key='$this->url_key', lang='$this->lang', title='" . addslashes($this->title) . "', meta_description='" . addslashes($this->meta_description) . "', h1='" . addslashes($this->h1) . "', h1_pic_url='$this->h1_pic_url', h1_long_text='" . addslashes($this->h1_long_text) . "', code_block_1='" . addslashes($this->code_block_1) . "', block_2_title='" . addslashes($this->block_2_title) . "', code_block_2='" . addslashes($this->code_block_2) . "', faq=" . $faqStr;
     $result = $mysqli->query($query);
     if (!$result) {
       die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -1042,7 +1081,8 @@ class MainPage
   {
     $mysqli = Db::getInstance()->getConnection();
 
-    $query = "UPDATE pages SET level_code='$this->level_code', url_key='$this->url_key',lang='$this->lang', title='" . addslashes($this->title) . "', meta_description='" . addslashes($this->meta_description) . "', h1='" . addslashes($this->h1) . "', h1_pic_url='$this->h1_pic_url', h1_long_text='" . addslashes($this->h1_long_text) . "', code_block_1='" . addslashes($this->code_block_1) . "', block_2_title='" . addslashes($this->block_2_title) . "', code_block_2='" . addslashes($this->code_block_2) . "' WHERE id='$this->id'";
+    $faqStr = $this->faq === null ? 'NULL' : "'" . addslashes($this->faq) . "'";
+    $query = "UPDATE pages SET level_code='$this->level_code', url_key='$this->url_key',lang='$this->lang', title='" . addslashes($this->title) . "', meta_description='" . addslashes($this->meta_description) . "', h1='" . addslashes($this->h1) . "', h1_pic_url='$this->h1_pic_url', h1_long_text='" . addslashes($this->h1_long_text) . "', code_block_1='" . addslashes($this->code_block_1) . "', block_2_title='" . addslashes($this->block_2_title) . "', code_block_2='" . addslashes($this->code_block_2) . "', faq=" . $faqStr . " WHERE id='$this->id'";
 
     $result = $mysqli->query($query);
     if (!$result) {
@@ -1110,6 +1150,7 @@ class MainPage
     $p->setCodeBlock1($row['code_block_1']);
     $p->setBlock2Title($row['block_2_title']);
     $p->setCodeBlock2($row['code_block_2']);
+    $p->setFaqJson($row['faq'] ?? '');
     $p->setChangeTime($row['change_time']);
 
     return $p;

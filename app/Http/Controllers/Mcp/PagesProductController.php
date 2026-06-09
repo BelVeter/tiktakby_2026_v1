@@ -28,6 +28,7 @@ class PagesProductController extends BaseController
                 rmw.m_pic_alt,
                 rmw.l2_alt,
                 rmw.breadcrumbs_name,
+                rmw.faq,
                 rmw.change_time,
                 (
                     SELECT CONCAT('/ru/', r2.url_razdel_name, '/', sr2.url_sub_razdel_name, '/', tc2.cat_url_key, '/', rmw.page_addr)
@@ -61,6 +62,7 @@ class PagesProductController extends BaseController
                     'has_l2_pic_alt' => !empty($model->l2_alt),
                     'has_description' => !empty($model->main_descr),
                     'has_breadcrumb_name' => !empty($model->breadcrumbs_name),
+                    'has_faq' => !empty($model->faq),
                 ],
                 'updated_at' => $model->change_time,
             ];
@@ -111,6 +113,7 @@ class PagesProductController extends BaseController
             'l2_pic_alt' => null,
             'description' => null,
             'breadcrumb_name' => $displayName, // Defaults to h1 if empty
+            'faq' => null,
         ];
 
         $currentValues = [
@@ -121,6 +124,7 @@ class PagesProductController extends BaseController
             'l2_pic_alt' => $model->l2_alt ?: null,
             'description' => $model->main_descr ?: null,
             'breadcrumb_name' => $model->breadcrumbs_name ?: null,
+            'faq' => $model->faq ? json_decode($model->faq, true) : null,
         ];
 
         $data = [
@@ -137,6 +141,7 @@ class PagesProductController extends BaseController
                 'has_l2_pic_alt' => !empty($model->l2_alt),
                 'has_description' => !empty($model->main_descr),
                 'has_breadcrumb_name' => !empty($model->breadcrumbs_name),
+                'has_faq' => !empty($model->faq),
             ],
             'updated_at' => $model->change_time,
         ];
@@ -168,6 +173,9 @@ class PagesProductController extends BaseController
             'l2_pic_alt' => 'nullable|string|max:125',
             'description' => 'nullable|string',
             'breadcrumb_name' => 'nullable|string|max:100',
+            'faq' => 'nullable|array',
+            'faq.*.question' => 'required_with:faq|string|max:500',
+            'faq.*.answer' => 'required_with:faq|string|max:5000',
         ]);
         
         // Map API fields to DB columns
@@ -189,6 +197,12 @@ class PagesProductController extends BaseController
         }
         if (array_key_exists('breadcrumb_name', $validated)) {
             $updateData['breadcrumbs_name'] = $validated['breadcrumb_name'] ?? '';
+        }
+        if (array_key_exists('faq', $validated)) {
+            $faqArr = $validated['faq'] ?? null;
+            $updateData['faq'] = ($faqArr && count($faqArr) > 0)
+                ? json_encode($faqArr, JSON_UNESCAPED_UNICODE)
+                : null;
         }
         
         $updateData['change_time'] = date('Y-m-d H:i:s'); // rent_model_web.change_time is DATETIME

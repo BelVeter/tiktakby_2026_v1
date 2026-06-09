@@ -90,6 +90,7 @@ if (isset($_POST['form_check'])) {
         $mw->setTarifLinePeriod($_POST['tarif_line_period']);
         $mw->setTarifBaseDays($_POST['tarif_base_days']);
         $mw->setKeywords(str_replace(['"', "'"], '', $_POST['keywords']));
+        $mw->setFaqJson($_POST['faq_json'] ?? '');
         $mw->setStatus($_POST['status']);
 
 
@@ -384,6 +385,22 @@ if (isset($_POST['form_check'])) {
           </textarea>
           </div>
         </div>
+        
+        <div class="row mt-4">
+          <div class="col-12">
+            <h5 class="fw-bold">FAQ (вопросы-ответы) для SEO</h5>
+            <div id="faq-items-container">
+              <!-- Пары вопрос/ответ будут добавляться сюда через JS -->
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="faq-add-btn">
+              + Добавить вопрос
+            </button>
+            <input type="hidden" name="faq_json" id="faq_json" value="">
+            <div class="form-text text-muted mt-1">
+              Будет отображаться аккордеоном на странице товара и как FAQPage JSON-LD в Google.
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="col-5">
@@ -545,6 +562,68 @@ if (isset($_POST['form_check'])) {
     });
   </script>
   <script src="/bb/assets/js/model_web_new.js?v=4"></script>
+  <script>
+    (function() {
+      function createFaqItem(question, answer) {
+        var idx = Date.now() + Math.random();
+        return '<div class="faq-item card mb-2 p-3" data-idx="' + idx + '">' +
+          '<div class="d-flex justify-content-between align-items-start mb-2">' +
+            '<strong>Вопрос/Ответ</strong>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger faq-remove-btn">✕</button>' +
+          '</div>' +
+          '<input type="text" class="form-control mb-2 faq-question" placeholder="Вопрос..." value="' + escHtml(question) + '">' +
+          '<textarea class="form-control faq-answer" rows="3" placeholder="Ответ...">' + escHtml(answer) + '</textarea>' +
+        '</div>';
+      }
+      
+      function escHtml(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      }
+
+      function collectFaq() {
+        var items = document.querySelectorAll('.faq-item');
+        var result = [];
+        items.forEach(function(item) {
+          var q = item.querySelector('.faq-question').value.trim();
+          var a = item.querySelector('.faq-answer').value.trim();
+          if (q && a) result.push({question: q, answer: a});
+        });
+        document.getElementById('faq_json').value = JSON.stringify(result);
+      }
+
+      <?php if(isset($mw) && is_object($mw)): ?>
+      var existingJson = <?= json_encode($mw->getFaqArray(), JSON_UNESCAPED_UNICODE) ?>;
+      var container = document.getElementById('faq-items-container');
+      if (existingJson && Array.isArray(existingJson)) {
+        existingJson.forEach(function(item) {
+          container.insertAdjacentHTML('beforeend', createFaqItem(item.question, item.answer));
+        });
+      }
+
+      var addBtn = document.getElementById('faq-add-btn');
+      if(addBtn) {
+          addBtn.addEventListener('click', function() {
+            container.insertAdjacentHTML('beforeend', createFaqItem('', ''));
+          });
+      }
+
+      if(container) {
+          container.addEventListener('click', function(e) {
+            if (e.target.classList.contains('faq-remove-btn')) {
+              e.target.closest('.faq-item').remove();
+            }
+          });
+      }
+
+      var form = document.getElementById('main-form');
+      if (form) {
+          form.addEventListener('submit', function() {
+            collectFaq();
+          });
+      }
+      <?php endif; ?>
+    })();
+  </script>
 </body>
 
 </html>

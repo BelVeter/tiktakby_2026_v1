@@ -3133,9 +3133,159 @@ if ($client_id > 0) {
 		}
 	}
 </script>
+
+<?php if ($client_id == 0): ?>
+<div id="client_suggestions" style="display:none; margin:8px 0;"></div>
+<script>
+(function() {
+    var suggestTimer = null;
+    var lastQuery = '';
+
+    function triggerSuggest() {
+        if ((document.getElementById('client_id').value * 1) > 0) return;
+        clearTimeout(suggestTimer);
+        suggestTimer = setTimeout(doSuggest, 500);
+    }
+
+    function doSuggest() {
+        var family = (document.getElementById('family').value || '').trim();
+        var name   = (document.getElementById('name').value   || '').trim();
+        var otch   = (document.getElementById('otch').value   || '').trim();
+        var phone  = (document.getElementById('phone_1').value || '').replace(/[^0-9]/g, '');
+        var pas_ln = (document.getElementById('pas_ln').value  || '').trim();
+        var pas_n  = (document.getElementById('pas_n').value   || '').trim();
+
+        if (family.length < 3 && phone.length < 7 && pas_ln.length < 6 && pas_n.length < 4) {
+            hideSuggestions();
+            return;
+        }
+
+        var q = family + '|' + name + '|' + phone + '|' + pas_ln + '|' + pas_n;
+        if (q === lastQuery) return;
+        lastQuery = q;
+
+        var fd = new FormData();
+        fd.append('family', family);
+        fd.append('name',   name);
+        fd.append('otch',   otch);
+        fd.append('phone',  phone);
+        fd.append('pas_ln', pas_ln);
+        fd.append('pas_n',  pas_n);
+
+        fetch('/bb/ajax_client_suggest.php', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { renderSuggestions(d.candidates || []); })
+            .catch(function() {});
+    }
+
+    function escH(s) {
+        if (!s) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function renderSuggestions(list) {
+        var div = document.getElementById('client_suggestions');
+        if (!list.length) { div.style.display = 'none'; return; }
+
+        var html = '<div style="background:#fff8e1;border:1px solid #ffc107;padding:10px;border-radius:4px;">'
+            + '<b style="font-size:14px;">&#9888; Похожие клиенты уже есть в базе &mdash; выберите нужного или продолжайте вводить нового:</b>'
+            + '<table border="1" cellspacing="0" style="margin-top:8px;width:100%;font-size:12px;border-collapse:collapse;">'
+            + '<tr style="background:#f5f5f5;">'
+            + '<th style="padding:4px;">Балл</th>'
+            + '<th style="padding:4px;">ФИО</th>'
+            + '<th style="padding:4px;">Телефоны</th>'
+            + '<th style="padding:4px;">Паспорт / Личный №</th>'
+            + '<th style="padding:4px;">Адрес проживания</th>'
+            + '<th style="padding:4px;" title="Прошлых сделок">Сделок</th>'
+            + '<th style="padding:4px;"></th>'
+            + '</tr>';
+
+        list.forEach(function(c) {
+            var bg = c.score >= 100 ? '#28a745' : (c.score >= 50 ? '#fd7e14' : '#6c757d');
+            var addr = [
+                c.city ? 'г.'+escH(c.city) : '',
+                c.str  ? 'ул.'+escH(c.str) : '',
+                c.dom  ? 'д.'+escH(c.dom)  : '',
+                c.kv   ? 'кв.'+escH(c.kv)  : ''
+            ].filter(Boolean).join(', ');
+
+            html += '<tr>'
+                + '<td style="padding:4px;text-align:center;"><span style="background:'+bg+';color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold;">'+c.score+'</span></td>'
+                + '<td style="padding:4px;"><b>'+escH(c.family)+' '+escH(c.name)+' '+escH(c.otch)+'</b><br/><small style="color:#666;">ID:'+c.client_id+'</small></td>'
+                + '<td style="padding:4px;">'+escH(c.phone_1)+'<br/>'+escH(c.phone_2)+'</td>'
+                + '<td style="padding:4px;">'+escH(c.pas_n)+'<br/><small>'+escH(c.pas_ln)+'</small></td>'
+                + '<td style="padding:4px;">'+addr+'</td>'
+                + '<td style="padding:4px;text-align:center;">'+(c.arch_n||0)+'</td>'
+                + '<td style="padding:4px;"><button type="button" data-c="' + escH(JSON.stringify(c)) + '" '
+                + 'onclick="selectSuggestedClient(JSON.parse(this.getAttribute(\'data-c\'))); return false;" '
+                + 'style="background:#007bff;color:#fff;border:none;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:12px;">&#10003; Использовать</button></td>'
+                + '</tr>';
+        });
+
+        html += '</table></div>';
+        div.innerHTML = html;
+        div.style.display = 'block';
+    }
+
+    function hideSuggestions() {
+        var div = document.getElementById('client_suggestions');
+        if (div) div.style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        ['family','name','otch','phone_1','pas_ln','pas_n'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('input', triggerSuggest);
+        });
+    });
+})();
+
+function selectSuggestedClient(c) {
+    var fields = ['family','name','otch','phone_1','phone_2','pas_n','pas_ln',
+                  'pas_who','city','str','dom','kv','reg_city','reg_str','reg_dom','reg_kv','info'];
+    fields.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = c[id] || '';
+    });
+
+    if (c.pas_date_fmt) {
+        var pd = document.getElementById('pas_date');
+        if (pd) pd.value = c.pas_date_fmt;
+    }
+
+    document.getElementById('client_id').value     = c.client_id;
+    document.getElementById('client_update').value = 0; // 0 - режим просмотра
+
+    var hdr = document.getElementById('client_header');
+    if (hdr) {
+        hdr.innerHTML = 'Информация о клиенте (&#8470;' + c.client_id + '): '
+            + '<input type="button" value="редактировать информацию клиента" id="cl_edit_button" onclick="hide_client(); return false;" />';
+    }
+
+    // Блокируем поля, так как клиент выбран из базы (режим просмотра)
+    var fieldsToDisable = ['family','name','otch','str','dom','kv','city','pas_n','pas_ln','pas_date','pas_who','reg_str','reg_dom','reg_kv','reg_city','phone_1','phone_2','info','address_copy', 'action_save_cl'];
+    fieldsToDisable.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = true;
+    });
+
+    var saveBtn = document.getElementById('action_save_cl');
+    if (saveBtn) {
+        saveBtn.value = 'обновить информацию только по клиенту';
+    }
+
+    document.getElementById('client_suggestions').style.display = 'none';
+}
+</script>
+<?php endif; ?>
+
 <?php
 echo '
-<br /><input type="submit" name="action" id="action_save_cl" ' . ($client_id > 0 ? 'value="обновить информацию только по клиенту" disabled="disabled"' : 'value="сохранить только клиента"') . ' onclick="return form_check_cl();" /> 
+<br /><input type="submit" name="action" id="action_save_cl" ' . ($client_id > 0 ? 'value="обновить информацию только по клиенту" disabled="disabled"' : 'value="сохранить только клиента"') . ' onclick="return form_check_cl();" />
 ';
 
 

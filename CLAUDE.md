@@ -192,8 +192,8 @@ All MCP controllers extend `BaseController` (envelope/cache/data-freshness helpe
 | `ExportController` | `/export/monthly/{topic}` | 1 — streaming CSV for `operations`, `revenue`, `pnl`, `traffic` |
 | `CallsController` | `/calls/*` | 9 — recordings list, file stream, CDR, pending-analysis queue, get/submit/reset analysis, get/submit daily summary |
 | `MarketingController` | `/marketing/conversions` | 1 — UTM-attributed conversion events with entity details |
-| `PagesListingController` | `/pages/listing`, `/pages/listing/{slug}` | 3 — GET list, GET show, PATCH upsert SEO fields for L2 categories (`pages` table) |
-| `PagesProductController` | `/pages/product`, `/pages/product/{slug}` | 3 — GET list, GET show, PATCH update SEO fields for L3 models (`rent_model_web`) |
+| `PagesListingController` | `/pages/listing`, `/pages/listing/{slug}`, `/pages/listing/{slug}/image` | 4 — GET list, GET show, PATCH upsert SEO fields for L2 categories (`pages` table; supports `faq` JSON array → FAQPage Schema.org), POST upload+resize hero image (1440×635 JPG, saves to `/public/img/topmenu/`, updates `h1_pic_url`) |
+| `PagesProductController` | `/pages/product`, `/pages/product/{slug}` | 3 — GET list, GET show, PATCH update SEO fields for L3 models (`rent_model_web`; supports `faq` JSON array) |
 | `SmsController` | `/sms/send` | 1 — POST send SMS via RocketSMS (`phone`, `text`, optional `sender`) |
 | `RedirectsController` | `/redirects`, `/redirects/{id}`, `/redirects/bulk` | 5 — GET list (filters+pagination), POST create, PATCH update, DELETE, POST bulk upsert; clears `CheckRedirects` cache on every write |
 

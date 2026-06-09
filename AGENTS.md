@@ -130,11 +130,11 @@ Sequence:
 | Group | Tables |
 |-------|--------|
 | Catalog | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_rent_cat`, `tovar_list`, `tovar_properties` |
-| Rental | `rent_deals_act`, `rent_orders`, `rent_model_web`, `rent_tarif_act`, `rent_sub_deals_act`, `deals` |
+| Rental | `rent_deals_act`, `rent_orders`, `rent_model_web` (includes `faq` TEXT/JSON column), `rent_tarif_act`, `rent_sub_deals_act`, `deals` |
 | Clients | `clients`, `clients_arch`, `users`, `logpass` |
 | Handbooks | `rash_items`, `doh_items` (contain `is_active` column for entry form filtering) |
 | Orders | `rent_orders`, `rent_orders_arch`, `karn_brons`, `karn_brons_arch` |
-| Content | `pages`, `video_links`, `dop_photos` |
+| Content | `pages` (includes `faq` TEXT/JSON column), `video_links`, `dop_photos` |
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, is_regex, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
 | A1 API | `a1_call_recordings`, `a1_recordings_fetch_log`, `a1_cdr`, `a1_cdr_fetch_log`, `a1_call_analysis`, `a1_daily_summaries` |
