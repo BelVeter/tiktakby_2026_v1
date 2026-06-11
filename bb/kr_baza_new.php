@@ -22,6 +22,7 @@ require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/ModelWeb.php'); // вклю
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/TariffModel.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Model.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Client.php'); // включаем класс
+require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Zayavka.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/bron.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Category.php'); // включаем класс
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/Razdel.php'); // включаем класс
