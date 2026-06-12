@@ -601,7 +601,15 @@
                         "type": [
                             "number",
                             "null"
-                        ]
+                        ],
+                        "description": "Average deal duration in days for this category (full deal, from start_date to return_date), averaged across rent_deals_act + rent_deals_arch for deals starting in the period. Null if no deals."
+                    },
+                    "avg_first_rent_days": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Average duration of the first-issuance sub-deal in days (sub-deal type IN first_rent, takeaway_plan). Computed from UNIX timestamps sd.to - sd.from, divided by 86400. Null if no first-rent sub-deals in period."
                     }
                 }
             },
@@ -1098,7 +1106,15 @@
                         "type": [
                             "number",
                             "null"
-                        ]
+                        ],
+                        "description": "Average deal duration per deal in days for this model (rented_days / deals_in_period). Zero if no deals."
+                    },
+                    "avg_first_rent_days": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Average duration of the initial issuance sub-deal in days (sub-deal type IN first_rent, takeaway_plan). Computed from sd.to - sd.from (UNIX seconds) / 86400. Null if the model had no first-rent sub-deals in the period."
                     }
                 }
             },
@@ -3202,7 +3218,7 @@
         "/inventory/utilization": {
             "get": {
                 "operationId": "tiktak_inventory_utilization",
-                "summary": "Per-model utilization = rented_seconds / (avg_units \u00d7 period) + avg_rental_days_per_deal. Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).",
+                "summary": "Per-model utilization = rented_seconds / (avg_units \u00d7 period). Also returns avg_rental_days_per_deal (total rented days / deals) and avg_first_rent_days (avg duration of first-issuance sub-deals, type IN first_rent/takeaway_plan). Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
