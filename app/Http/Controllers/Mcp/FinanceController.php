@@ -424,8 +424,11 @@ class FinanceController extends BaseController
      *     acc_date period and tovar_rent_cat. Deals resolved via item_inv_n.
      *   - avg_deal_byn = revenue / deals.
      *   - avg_rental_days computed per category from the deal table directly
-     *     (full rental duration, not clipped to the query period) — this gives
-     *     a meaningful "how long does a typical deal last" for ad bid calculation.
+     *     (full rental duration start_date → return_date, averaged across
+     *     rent_deals_act + rent_deals_arch). Gives "how long a typical deal lasts".
+     *   - avg_first_rent_days = AVG of (sd.to - sd.from) / 86400 for sub-deals
+     *     with type IN ('first_rent', 'takeaway_plan'). Measures only the initial
+     *     issuance period, not renewals. Null if no qualifying sub-deals in period.
      */
     public function revenueByCategory(RangeRequest $request): JsonResponse
     {
@@ -466,7 +469,8 @@ class FinanceController extends BaseController
                     tc.tovar_rent_cat_id AS category_id,
                     tc.rent_cat_name     AS category_name,
                     ROUND(SUM(sd.r_paid + sd.delivery_paid), 2) AS revenue_byn,
-                    COUNT(DISTINCT sd.deal_id) AS deals
+                    COUNT(DISTINCT sd.deal_id) AS deals,
+                    ROUND(AVG(CASE WHEN sd.`type` IN ('first_rent', 'takeaway_plan') THEN GREATEST(0, CAST(sd.`to` AS SIGNED) - CAST(sd.`from` AS SIGNED)) ELSE NULL END) / 86400, 1) AS avg_first_rent_days
                 FROM {$sdSub} sd
                 JOIN {$daSub} da ON da.deal_id = sd.deal_id
                 JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
@@ -570,6 +574,7 @@ class FinanceController extends BaseController
                     'deals'           => $deals,
                     'avg_deal_byn'    => $avgDealByn,
                     'avg_rental_days' => $avgDays,
+                    'avg_first_rent_days' => $r->avg_first_rent_days !== null ? (float) $r->avg_first_rent_days : null,
                 ];
             }, $revenueRows);
         });

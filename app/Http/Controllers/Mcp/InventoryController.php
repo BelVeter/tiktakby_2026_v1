@@ -277,6 +277,24 @@ class InventoryController extends BaseController
                 ];
             }
 
+            $sdSub = $this->unifiedSubDealsSubquery();
+            $frSql = "
+                SELECT ti.model_id,
+                       ROUND(AVG(GREATEST(0, CAST(sd.`to` AS SIGNED) - CAST(sd.`from` AS SIGNED))) / 86400, 1) AS avg_first_rent_days
+                FROM {$daSub} da
+                JOIN {$sdSub} sd ON sd.deal_id = da.deal_id
+                {$joins}
+                WHERE {$whereSql}
+                  AND sd.`type` IN ('first_rent', 'takeaway_plan')
+                GROUP BY ti.model_id
+            ";
+            $frRows = DB::select($frSql, array_merge($joinParams, $whereParams));
+            
+            $firstRentMap = [];
+            foreach ($frRows as $fr) {
+                $firstRentMap[$fr->model_id] = (float) $fr->avg_first_rent_days;
+            }
+
             $out = [];
             foreach ($allModelIds as $mid) {
                 $uFrom = $unitsAtFrom[$mid] ?? 0;
@@ -288,6 +306,7 @@ class InventoryController extends BaseController
                 $rentDays = round($entry['rented_seconds'] / 86400, 2);
                 $util     = round($entry['rented_seconds'] / ($avgU * $periodSeconds), 4);
                 $avgRentalDaysPerDeal = $entry['deals'] > 0 ? round($rentDays / $entry['deals'], 1) : 0;
+                $avgFirstRentDays     = isset($firstRentMap[$mid]) ? $firstRentMap[$mid] : null;
 
                 $out[] = [
                     'model_id'        => (int) $mid,
@@ -298,6 +317,7 @@ class InventoryController extends BaseController
                     'deals_in_period' => $entry['deals'],
                     'rented_days'     => $rentDays,
                     'avg_rental_days_per_deal' => $avgRentalDaysPerDeal,
+                    'avg_first_rent_days' => $avgFirstRentDays,
                     'utilization'     => min(1.0, $util),
                 ];
             }
