@@ -7,7 +7,7 @@
 <header class="container-fluid d-none d-md-block" style="max-width: var(--max-app-size);">
     <div class="row header-desktop">
         <div class="col header-logo-col">
-            <a href="/ru/"><img src="/public/img/logo_main.jpg" alt="Tiktak.lt logo" width="227" height="90"></a>
+            <a href="/ru/"><img src="/public/img/logo_main.jpg" alt="Tiktak.by logo" width="227" height="90"></a>
             <h4><a href="/ru/">прокат детских товаров</a></h4>
         </div>
         <div class="col-9 header-col2">
