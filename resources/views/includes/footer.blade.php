@@ -10,7 +10,7 @@
         <div class="row footer-row-1 justify-content-center">
             <div class="col-12 col-sm-6 col-md-4 col footer-logo-col text-center text-md-start">
                 <a href="/{{$header->getLang()}}/"><img class="footer-logo-img" src="/public/svg/logo-footer.svg"
-                        alt="Tiktak.lt logo"></a>
+                        alt="Tiktak.by logo"></a>
             </div>
             <div
                 class="col-12 col-sm-6 col-md-4 footer-map-coll d-flex align-items-center justify-content-center justify-content-md-start mt-3 mt-md-0">
