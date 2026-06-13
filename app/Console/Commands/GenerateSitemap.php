@@ -4,10 +4,11 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class GenerateSitemap extends Command
 {
-    protected $signature = 'sitemap:generate';
+    protected $signature = 'sitemap:generate {--no-verify : Skip the HTTP 200-status verification pass}';
     protected $description = 'Generate sitemap.xml from database catalog structure';
 
     private const BASE_URL = 'https://tiktak.by';
@@ -125,6 +126,10 @@ class GenerateSitemap extends Command
             ];
         }
 
+        if (!$this->option('no-verify')) {
+            $urls = $this->filterReachable($urls);
+        }
+
         $xml = $this->buildXml($urls);
         $paths = [base_path('sitemap.xml'), public_path('sitemap.xml')];
         foreach ($paths as $path) {
@@ -133,6 +138,96 @@ class GenerateSitemap extends Command
 
         $this->info('Sitemap generated: ' . count($urls) . ' URLs → ' . implode(', ', $paths));
         return 0;
+    }
+
+    // HTTP-коды, по которым URL ТОЧНО лишний в sitemap:
+    // редиректы (страница переехала) и «навсегда нет» (gone).
+    // Намеренно НЕ трогаем 5xx, 403, 429 и сетевые сбои (null) — это транзиентные
+    // состояния / троттлинг, по ним нельзя судить, что страница невалидна.
+    private const SITEMAP_DROP_CODES = [301, 302, 303, 307, 308, 404, 410];
+
+    /**
+     * Отсеивает из sitemap URL, которые на самом деле редиректят (3xx) или удалены (404/410).
+     *
+     * Зачем: генератор строит адреса напрямую из структуры каталога в БД, но часть
+     * категорий/моделей на лету редиректится приложением на родителя (источники
+     * разнородные — Laravel-роуты, .htaccess, легаси; таблица `redirects` их НЕ
+     * покрывает). По правилам SEO в sitemap должны быть только конечные 200-страницы.
+     *
+     * Проверка идёт HEAD-запросами небольшими пачками (Http::pool) с паузой между ними,
+     * редиректы НЕ следуются — 301 так и остаётся 301 и выкидывается. Малый размер пачки
+     * и пауза нужны, чтобы Cloudflare/origin не отдавал ложные 5xx/429 под залпом запросов
+     * (иначе валидные 200-страницы отвалились бы ложно). Команда запускается раз в неделю
+     * в 03:00, нагрузка незаметна.
+     *
+     * Консервативность: исключаем ТОЛЬКО по явным «плохим» кодам (см. SITEMAP_DROP_CODES).
+     * Любой неопределённый ответ (200, 5xx, 429, таймаут) трактуем как «оставить» — лучше
+     * сохранить лишний URL, чем выкинуть рабочую страницу.
+     *
+     * Защита от обнуления: если по итогу отсеялось > 15% списка (сайт лёг / массовый
+     * троттлинг во время генерации) — считаем проверку ненадёжной и оставляем ВЕСЬ список.
+     */
+    private function filterReachable(array $urls): array
+    {
+        $total = \count($urls);
+        if ($total === 0) {
+            return $urls;
+        }
+
+        $statusByLoc = [];
+        $locs = array_column($urls, 'loc');
+        $chunks = array_chunk($locs, 10);
+
+        foreach ($chunks as $i => $batch) {
+            try {
+                $responses = Http::pool(function ($pool) use ($batch) {
+                    foreach ($batch as $loc) {
+                        $pool->as($loc)
+                            ->timeout(8)
+                            ->withOptions(['allow_redirects' => false])
+                            ->head($loc);
+                    }
+                });
+            } catch (\Throwable $e) {
+                $responses = [];
+            }
+
+            foreach ($batch as $loc) {
+                $resp = $responses[$loc] ?? null;
+                $statusByLoc[$loc] = ($resp && !$resp instanceof \Throwable) ? $resp->status() : null;
+            }
+
+            // Пауза между пачками — бережём origin/Cloudflare от залпа.
+            if ($i < \count($chunks) - 1) {
+                usleep(200000); // 0.2s
+            }
+        }
+
+        $kept = array_values(array_filter($urls, function ($u) use ($statusByLoc) {
+            $status = $statusByLoc[$u['loc']] ?? null;
+            return !in_array($status, self::SITEMAP_DROP_CODES, true);
+        }));
+
+        $keptCount = \count($kept);
+        $dropped = $total - $keptCount;
+
+        // Защита: подозрительно много отсеяно — проверка ненадёжна, ничего не режем.
+        if ($dropped > $total * 0.15) {
+            $this->warn("Verification flagged {$dropped}/{$total} URLs (>15%) — treating check as unreliable, keeping ALL URLs.");
+            return $urls;
+        }
+
+        if ($dropped > 0) {
+            $this->warn("Excluded {$dropped} redirecting/gone URL(s) from sitemap:");
+            foreach ($urls as $u) {
+                $status = $statusByLoc[$u['loc']] ?? null;
+                if (in_array($status, self::SITEMAP_DROP_CODES, true)) {
+                    $this->line("  [{$status}] {$u['loc']}");
+                }
+            }
+        }
+
+        return $kept;
     }
 
     private function formatDate(?string $value): ?string
