@@ -45,7 +45,7 @@
                 <div class="col">
                   <nav aria-label="breadcrumb">
                     <ol class="breadcrumb bg-transparent">
-                      <li class="breadcrumb-item d-none d-sm-inline-block"><a href="/ru/">Главная</a></li>
+                      <li class="breadcrumb-item d-none d-sm-inline-block"><a href="/ru">Главная</a></li>
                       <li class="breadcrumb-item active d-none d-sm-inline-block" aria-current="page">Страница не найдена :(</li>
                     </ol>
                   </nav>

@@ -31,7 +31,7 @@
             </svg>
             <p class="cart-page__state-title">Корзина пуста</p>
             <p class="cart-page__state-subtitle">Добавляйте товары из каталога, чтобы оформить заказ</p>
-            <a href="/ru/" class="cart-page__btn-catalog">Перейти в каталог</a>
+            <a href="/ru" class="cart-page__btn-catalog">Перейти в каталог</a>
         </div>
 
         {{-- Cart content --}}
@@ -156,7 +156,7 @@
             <p class="cart-page__state-title" style="color: #4CAF50;">Заказ оформлен!</p>
             <p class="cart-page__state-subtitle" id="cart-success-message">Оператор свяжется с вами в ближайшее время.</p>
             <div id="cart-success-details"></div>
-            <a href="/ru/" class="cart-page__btn-catalog" style="margin-top: 20px;">Вернуться в каталог</a>
+            <a href="/ru" class="cart-page__btn-catalog" style="margin-top: 20px;">Вернуться в каталог</a>
         </div>
     </div>
 

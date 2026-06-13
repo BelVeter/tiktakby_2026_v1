@@ -26,8 +26,11 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Fix: /ru and /ru/ are also physical directories, route directly to Laravel
-    RewriteRule ^ru/?$ index.php [L,QSA]
+    # Canonical homepage is /ru (no trailing slash). Serve /ru directly to Laravel;
+    # /ru/ falls through to the trailing-slash redirect below (301 -> /ru).
+    # NOTE: requires the physical ~/public_html/ru directory to be absent, otherwise
+    # mod_dir DirectorySlash would 301 /ru -> /ru/ before this rule runs.
+    RewriteRule ^ru$ index.php [L,QSA]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
