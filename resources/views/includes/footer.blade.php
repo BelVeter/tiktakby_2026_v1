@@ -9,7 +9,7 @@
         <img class="footer-back-img" src="/public/png/footer-back.png">
         <div class="row footer-row-1 justify-content-center">
             <div class="col-12 col-sm-6 col-md-4 col footer-logo-col text-center text-md-start">
-                <a href="/{{$header->getLang()}}/"><img class="footer-logo-img" src="/public/svg/logo-footer.svg"
+                <a href="/{{$header->getLang()}}"><img class="footer-logo-img" src="/public/svg/logo-footer.svg"
                         alt="Tiktak.by logo"></a>
             </div>
             <div

@@ -104,7 +104,7 @@
 
     <div class="header-main-full-width d-none d-md-block">
         <div class="container-app header-main-block">
-            <a class="header-logo-composite" href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
+            <a class="header-logo-composite" href="/{{app('request')->lang ? app('request')->lang : 'ru'}}">
                 <span class="logo-text-tiktak"><span class="c-blue">Tik</span><span class="c-dark">T</span><span
                         class="c-blue">a</span><span class="c-dark">k</span></span>
                 <img src="/public/png/logo_icon.png"
@@ -291,7 +291,7 @@
 
                     <div class="mobile-logo-center">
                         <a class="header-logo-composite"
-                            href="/{{app('request')->lang ? app('request')->lang : 'ru'}}/">
+                            href="/{{app('request')->lang ? app('request')->lang : 'ru'}}">
                             <span class="logo-text-tiktak"><span class="c-blue">Tik</span><span
                                     class="c-dark">T</span><span class="c-blue">a</span><span
                                     class="c-dark">k</span></span>
