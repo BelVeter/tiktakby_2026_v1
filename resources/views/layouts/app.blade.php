@@ -85,7 +85,12 @@
       crossorigin="anonymous" referrerpolicy="no-referrer" />
   </noscript>
   @yield('style')
-  @yield('canonical')
+  @hasSection('canonical')
+    @yield('canonical')
+  @else
+    {{-- Default self-referencing canonical for pages that don't set one (e.g. static About-family pages). Matches the hreflang below. --}}
+    <link rel="canonical" href="{{ $canonical_url ?? url()->current() }}">
+  @endif
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
