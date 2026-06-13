@@ -7,8 +7,8 @@
 <header class="container-fluid d-none d-md-block" style="max-width: var(--max-app-size);">
     <div class="row header-desktop">
         <div class="col header-logo-col">
-            <a href="/ru/"><img src="/public/img/logo_main.jpg" alt="Tiktak.by logo" width="227" height="90"></a>
-            <h4><a href="/ru/">прокат детских товаров</a></h4>
+            <a href="/ru"><img src="/public/img/logo_main.jpg" alt="Tiktak.by logo" width="227" height="90"></a>
+            <h4><a href="/ru">прокат детских товаров</a></h4>
         </div>
         <div class="col-9 header-col2">
             <div class="header-line1">
@@ -94,7 +94,7 @@
 
         </div>
         <div class="col text-center">
-            <a href="/ru/"><img src="/public/logo.png" style="height: 40px;"></a>
+            <a href="/ru"><img src="/public/logo.png" style="height: 40px;"></a>
         </div>
         <div class="col text-right pt-1">
             <button class="navbar-toggler navbar-dark" type="button" data-toggle="collapse" data-target="#navbar" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">

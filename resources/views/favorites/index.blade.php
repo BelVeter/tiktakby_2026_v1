@@ -46,7 +46,7 @@
                 пока пусто</p>
             <p style="font-family: 'Nunito', sans-serif; font-size: 16px; color: #bbb; margin-bottom: 24px;">Нажмите на
                 сердечко на карточке товара, чтобы добавить его в избранное</p>
-            <a href="/ru/"
+            <a href="/ru"
                 style="display: inline-block; padding: 12px 32px; background: #3180D1; color: #fff; border-radius: 8px; font-family: 'Nunito', sans-serif; font-weight: 600; font-size: 16px; text-decoration: none; transition: background 0.2s;">
                 Перейти в каталог
             </a>

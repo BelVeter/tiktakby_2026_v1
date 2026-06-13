@@ -67,7 +67,7 @@ class CatMainPage
     public function __construct($lang = 'ru')
     {
         $this->breadCrumbsArray = [];
-        $this->breadCrumbsArray['Главная'] = '/ru/';
+        $this->breadCrumbsArray['Главная'] = '/ru';
     }
 
     /**

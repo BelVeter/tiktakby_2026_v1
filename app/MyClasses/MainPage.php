@@ -290,7 +290,7 @@ class MainPage
         $this->breadCrumbsArray['Nuomos paslauga'] = '/lt/';
         break;
       default:
-        $this->breadCrumbsArray['Главная'] = '/ru/';
+        $this->breadCrumbsArray['Главная'] = '/ru';
         break;
     }
   }

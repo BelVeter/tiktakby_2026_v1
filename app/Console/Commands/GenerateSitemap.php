@@ -16,7 +16,7 @@ class GenerateSitemap extends Command
     {
         $urls = [];
 
-        $urls[] = ['loc' => self::BASE_URL . '/ru/', 'changefreq' => 'weekly', 'priority' => '1.0'];
+        $urls[] = ['loc' => self::BASE_URL . '/ru', 'changefreq' => 'weekly', 'priority' => '1.0'];
 
         $staticPages = ['about', 'conditions', 'delivery', 'payment', 'contacts', 'policy', 'premium-start'];
         foreach ($staticPages as $page) {

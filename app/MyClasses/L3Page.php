@@ -68,7 +68,7 @@ class L3Page
         $this->breadcrumbs['Nuomos paslauga'] = '/lt/';
         break;
       default:
-        $this->breadcrumbs['Главная'] = '/ru/';
+        $this->breadcrumbs['Главная'] = '/ru';
         break;
     }
 
