@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 
 class GenerateSitemap extends Command
 {
-    protected $signature = 'sitemap:generate {--no-verify : Skip the HTTP 200-status verification pass}';
+    protected $signature = 'sitemap:generate {--verify : Check each URL via HEAD request and exclude redirects/404s (slow, audit use only)}';
     protected $description = 'Generate sitemap.xml from database catalog structure';
 
     private const BASE_URL = 'https://tiktak.by';
@@ -126,7 +126,7 @@ class GenerateSitemap extends Command
             ];
         }
 
-        if (!$this->option('no-verify')) {
+        if ($this->option('verify')) {
             $urls = $this->filterReachable($urls);
         }
 

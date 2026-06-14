@@ -437,6 +437,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://tiktak.by/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/darsonval-prokat</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -3872,6 +3877,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://tiktak.by/ru/prokat-detskih-tovarov/ergoryukzaki/velokresla/velokreslo_bellelli_b_one_standart</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://tiktak.by/ru/prokat-detskih-tovarov/ergoryukzaki/velokresla/velokreslo_bellelli_mr_fox_clever</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -3893,6 +3903,21 @@
   </url>
   <url>
     <loc>https://tiktak.by/ru/prokat-detskih-tovarov/ergoryukzaki/velokresla/velokreslo_polisport_bilby_junior_rf</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://tiktak.by/ru/prokat-detskih-tovarov/ergoryukzaki/velokresla/velokreslo_polisport_boodie</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://tiktak.by/ru/prokat-detskih-tovarov/ergoryukzaki/velokresla/velokreslo_polisport_koolah_29</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://tiktak.by/ru/prokat-detskih-tovarov/ergoryukzaki/velokresla/velokreslo_polisport_koolah_ff</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -4027,6 +4052,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie/detskie-kolyaski-naprokat/teutonia_beyou_v3</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie/koliaski-prokat-minsk/Babyzen_Yoyo_0</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -4073,6 +4103,11 @@
   </url>
   <url>
     <loc>https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie/koliaski-prokat-minsk/koliaska_dlia_novorozhdennogo_prokat_minsk_cybex_priam_gray</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie/koliaski-prokat-minsk/koliaska_teutonia_beyou_v3</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -4213,6 +4248,11 @@
   </url>
   <url>
     <loc>https://tiktak.by/ru/prokat-detskih-tovarov/toys-for-rent/batuty-gorki-prokat/smoby_macqween</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://tiktak.by/ru/prokat-detskih-tovarov/toys-for-rent/domiki/domik_igrovoi_forest_house_baby_care</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
