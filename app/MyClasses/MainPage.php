@@ -1283,9 +1283,15 @@ class MainPage
               && !preg_match('/\d+\s*(см|кг|лет|мес|×)/iu', $producerStr);
           if ($brandIsValid) {
               $item['item']['brand'] = ['@type' => 'Brand', 'name' => $producerStr];
+          } else {
+              $item['item']['brand'] = ['@type' => 'Brand', 'name' => 'Без бренда'];
           }
 
           $desc = $m->getModelMetaDescription();
+          if (!$desc) {
+              $productName = html_entity_decode(strip_tags($m->getNameNoBr()), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+              $desc = "Аренда " . $productName . " в Минске.";
+          }
           if ($desc) {
               $item['item']['description'] = html_entity_decode($desc, ENT_QUOTES | ENT_HTML5, 'UTF-8');
           }
@@ -1307,6 +1313,8 @@ class MainPage
                   ? 'https://schema.org/InStock'
                   : 'https://schema.org/OutOfStock';
               $item['item']['offers'] = $schemaOffer;
+          } else {
+              continue; // Do not output Product if it has no offers (to avoid Google validation error)
           }
 
           $additionalProps = [];
@@ -1344,7 +1352,7 @@ class MainPage
           '@type'           => 'ItemList',
           'name'            => $this->getH1(0),
           'url'             => $this->getCanonicalUrlBy() ?: request()->url(),
-          'numberOfItems'   => $this->getTotalModelsNum(),
+          'numberOfItems'   => count($schemaItems),
           'itemListElement' => $schemaItems,
       ];
 
