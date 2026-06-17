@@ -666,6 +666,8 @@ class L3Page
               }
               unset($offer);
           }
+      } else {
+          return ''; // OPTION B: No offers -> No Product Schema
       }
 
       // Images: all slider photos as absolute URLs
@@ -721,6 +723,8 @@ class L3Page
 
       if ($l3BrandValid) {
           $l3Schema['brand'] = ['@type' => 'Brand', 'name' => $l3Producer];
+      } else {
+          $l3Schema['brand'] = ['@type' => 'Brand', 'name' => 'Без бренда'];
       }
 
       $l3AdditionalProps = [
