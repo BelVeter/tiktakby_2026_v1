@@ -19,9 +19,14 @@
   @if($p->hasH1LongText())
     <div class="cat-header-container">
       @if($p->getH1PicUrl())
-        <div class="cat-header_picture"><img src="{{$p->getH1PicUrl()}}"></div>
+        <div class="cat-header_picture">
+          <picture>
+            <source media="(max-width: 768px)" srcset="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=">
+            <img src="{{$p->getH1PicUrl()}}" alt="{{$p->getH1()}}">
+          </picture>
+        </div>
       @endif
-      <div class="cat-header_text" @if(!$p->getH1PicUrl()) style="flex-basis: 100%; max-width: 100%;" @endif>
+      <div class="cat-header_text {{ !$p->getH1PicUrl() ? 'is-fullwidth' : '' }}">
         <!-- Хлебные крошки -->
         <div class="breadcrumb-line breadcrumb-long-text-mobile">
           <div class="row">
