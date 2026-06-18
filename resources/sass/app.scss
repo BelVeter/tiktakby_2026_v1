@@ -1536,6 +1536,10 @@ a.button-more {
     @media screen and (max-width: 899px) {
         width: 100%;
     }
+
+    @media screen and (max-width: 768px) {
+        display: none;
+    }
 }
 
 .cat-header_picture img {
@@ -1559,6 +1563,11 @@ a.button-more {
     padding-left: 3.2%;
     width: 50%;
     max-width: 600px;
+
+    &.is-fullwidth {
+        flex-basis: 100%;
+        max-width: 100%;
+    }
 
     @media screen and (max-width: 899px) {
         width: 100%;
