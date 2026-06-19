@@ -7,11 +7,7 @@
 @section('style')
   <link rel="stylesheet" href="/public/css/pages/l2.css?v=4">
 @endsection
-@if($url = $p->getCanonicalUrlBy())
-  @section('canonical')
-    <link rel="canonical" href="{{ $url }}">
-  @endsection
-@endif
+
 
 
 @section('content')
