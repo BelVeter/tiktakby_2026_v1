@@ -627,7 +627,7 @@ class Model
                     LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id = multi_web.model_id
                     LEFT JOIN rent_model_web ON multi_web.model_id = rent_model_web.model_id
                     LEFT JOIN tovar_rent ON tovar_rent.tovar_rent_id = tovar_rent_items.model_id
-                    WHERE tovar_rent_cat.main_sub_razdel_id=" . $subRazdel->getIdSubRazdel() . " $filterAddOnQuery
+                    WHERE tovar_rent_cat.main_sub_razdel_id=" . $subRazdel->getIdSubRazdel() . " AND tovar_rent_items.item_id>0 $filterAddOnQuery
                     GROUP BY multi_web.model_id
                     ORDER BY `free_num` DESC";
     $result = $mysqli->query($query);
