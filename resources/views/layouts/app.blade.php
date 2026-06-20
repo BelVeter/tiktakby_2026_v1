@@ -85,12 +85,18 @@
       crossorigin="anonymous" referrerpolicy="no-referrer" />
   </noscript>
   @yield('style')
-  @hasSection('canonical')
-    @yield('canonical')
-  @else
-    {{-- Default self-referencing canonical for pages that don't set one (e.g. static About-family pages). Matches the hreflang below. --}}
-    <link rel="canonical" href="{{ $canonical_url ?? url()->current() }}">
-  @endif
+  @php
+      $final_canonical = null;
+      if (isset($canonical_url)) {
+          $final_canonical = $canonical_url;
+      } elseif (isset($p) && method_exists($p, 'getCanonicalUrlBy')) {
+          $final_canonical = $p->getCanonicalUrlBy();
+      }
+      if (!$final_canonical) {
+          $final_canonical = url()->current();
+      }
+  @endphp
+  <link rel="canonical" href="{{ $final_canonical }}">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -152,8 +158,8 @@
   <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="64x64">--}}
   <link rel="apple-touch-icon" sizes="32x32" href="/public/favicon-32x32.png">
 
-  <link rel="alternate" hreflang="ru" href="{{ $canonical_url ?? url()->current() }}" />
-  <link rel="alternate" hreflang="x-default" href="{{ $canonical_url ?? url()->current() }}" />
+  <link rel="alternate" hreflang="ru" href="{{ $final_canonical }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ $final_canonical }}" />
 
   <title>@yield('page-title')</title>
 </head>

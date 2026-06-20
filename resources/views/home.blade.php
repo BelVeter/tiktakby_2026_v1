@@ -3,9 +3,7 @@
 
 @section('page-title', 'Прокат детских товаров Минск')
 @section('meta-description', $p->getMetaDescription())
-@section('canonical')
-    <link rel="canonical" href="https://tiktak.by/ru">
-@endsection
+
 @section('content')
     <!-- slider -->
     <div class="container-app">

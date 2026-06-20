@@ -35,7 +35,11 @@
       "Bash(xargs -I{} bash -c 'grep -L \"models/User\" \"{}\" 2>/dev/null')",
       "Bash(grep -n 'function getTarifs\\\\|function getDaysCalculatedNumber\\\\|function getTotalAmount\\\\|class Tariff\\\\|public $step\\\\|public $kol_vo\\\\|$step\\\\|$kol_vo' /home/dmitry/sites/tiktakby/bb/classes/TariffModel.php)",
       "Bash(php artisan *)",
-      "Bash(docker-compose ps *)"
+      "Bash(docker-compose ps *)",
+      "Bash(curl -s -o /dev/null -w \"URL: /ru  -> HTTP %{http_code}  redirect: %{redirect_url}\\\\n\" -A \"Mozilla/5.0\" https://tiktak.by/ru)",
+      "Bash(curl -s -o /dev/null -w \"URL: /ru/ -> HTTP %{http_code}  redirect: %{redirect_url}\\\\n\" -A \"Mozilla/5.0\" https://tiktak.by/ru/)",
+      "Bash(curl -sI -A \"Mozilla/5.0\" https://tiktak.by/ru)",
+      "Bash(curl -sI -A \"Mozilla/5.0\" https://tiktak.by/ru/)"
     ]
   }
 }

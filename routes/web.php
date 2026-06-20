@@ -151,32 +151,32 @@ Route::get(
 Route::get(
     '/{lang}/{razdel}',
     'App\Http\Controllers\CatController@razdelMainPage'
-)->name('razdelPage');
+)->where('lang', 'ru')->name('razdelPage');
 
 Route::get(
     '/{lang}/{razdel}/{subrazdel}',
     'App\Http\Controllers\CatController@subRazdelMainPage'
-)->name('subRazdelPage');
+)->where('lang', 'ru')->name('subRazdelPage');
 
 Route::get(
     '/{lang}/{razdel}/{subrazdel}/{category}',
     'App\Http\Controllers\CatController@categoryMainPage'
-)->name('categoryPage');
+)->where('lang', 'ru')->name('categoryPage');
 
 Route::post(
     '/{lang}/{razdel}/{subrazdel}/{category}/{model}',
     'App\Http\Controllers\L3Controller@l3Order2'
-);
+)->where('lang', 'ru');
 
 Route::get(
     '/{lang}/{razdel}/{subrazdel}/{category}/{model}',
     'App\Http\Controllers\L3Controller@l3ShowPage2'
-)->name('l3page');
+)->where('lang', 'ru')->name('l3page');
 
 Route::get(
     '/{lang}/{r1}/{r2}/{r3}/{r4}/{model}',
     'App\Http\Controllers\L3Controller@l3ShowPageLegacy'
-);
+)->where('lang', 'ru');
 
 // --- Fallback (404) ---
 Route::fallback('App\Http\Controllers\RedirectController@notFound');
