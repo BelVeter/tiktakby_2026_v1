@@ -2,18 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\InteractsWithA1Api;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
 
 class FetchA1MissedCalls extends Command
 {
+    use InteractsWithA1Api;
+
     protected $signature   = 'a1:fetch-missed-calls {--period=15 : Период выборки в минутах (с перекрытием)}';
     protected $description = 'Получает пропущенные звонки из A1 ВАТС API и сохраняет в MySQL';
-
-    private const TOKENS_FILE = 'a1_tokens.json';
 
     private const MISSED_STATUSES = [
         'NOT_ANSWERED_COMMON',
@@ -28,11 +27,9 @@ class FetchA1MissedCalls extends Command
         'ANSWERED_BY_ORIGINAL_CLIENT',
     ];
 
-    private const BASE_URL = 'https://vats.a1.by/crm-api/open-api/v1';
-
     public function handle(): int
     {
-        $lock = Cache::lock('a1_api_mutex', 120);
+        $lock = $this->a1Lock();
         if (!$lock->get()) {
             Log::warning('A1 MissedCalls: не удалось захватить a1_api_mutex, пропускаем запуск');
             return 0;
@@ -58,30 +55,19 @@ class FetchA1MissedCalls extends Command
         $end   = time();
         $start = $end - ($periodMinutes * 60);
 
-        // 1. Авторизация
+        // Авторизация + CDR через общий трейт (единый лок/токен/троттлинг/re-auth)
         try {
-            $accessToken = $this->getAccessToken($companyId, $apiKey);
-        } catch (\Exception $e) {
-            Log::error('A1 MissedCalls: ошибка авторизации — ' . $e->getMessage());
-            $this->logFetch('error', 0, 0, $e->getMessage(), $start, $end);
-            $this->error('A1: ошибка авторизации: ' . $e->getMessage());
-            return 1;
-        }
+            $response = $this->a1AuthGet('/cdr', [
+                'company_id' => $companyId,
+                'start'      => $start,
+                'end'        => $end,
+            ]);
 
-        // 2. Получить CDR
-        try {
-            $records = $this->fetchCdr($accessToken, $companyId, $start, $end);
-
-            if ($records === null) {
-                Log::warning('A1 MissedCalls: токен отклонён (401/403), форсируем re-auth');
-                $this->forgetTokens();
-                $accessToken = $this->getAccessToken($companyId, $apiKey);
-                $records = $this->fetchCdr($accessToken, $companyId, $start, $end);
+            if (!$response->successful()) {
+                throw new \RuntimeException('CDR запрос провалился: HTTP ' . $response->status() . ' — ' . $response->body());
             }
 
-            if ($records === null) {
-                throw new \RuntimeException('CDR: токен отклонён даже после re-auth (401/403)');
-            }
+            $records = $this->a1UnwrapList($response->json(), ['data', 'items', 'records', 'calls']);
         } catch (\Exception $e) {
             Log::error('A1 MissedCalls: ошибка CDR — ' . $e->getMessage());
             $this->logFetch('error', 0, 0, $e->getMessage(), $start, $end);
@@ -159,112 +145,6 @@ class FetchA1MissedCalls extends Command
             'period_start'  => $pStart,
             'period_end'    => $pEnd,
         ]);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // Авторизация / токены
-    // ─────────────────────────────────────────────────────────────
-
-    private function getAccessToken(string $companyId, string $apiKey): string
-    {
-        $tokens = $this->loadTokens();
-
-        if (!empty($tokens['access_token']) && !empty($tokens['access_expires_at'])) {
-            if ($tokens['access_expires_at'] > time() + 300) {
-                return $tokens['access_token'];
-            }
-        }
-
-        if (!empty($tokens['refresh_token']) && !empty($tokens['refresh_expires_at'])) {
-            if ($tokens['refresh_expires_at'] > time() + 60) {
-                try {
-                    return $this->refreshToken($tokens['refresh_token']);
-                } catch (\Exception $e) {
-                    Log::warning('A1: refresh_token не сработал, повторная авторизация: ' . $e->getMessage());
-                }
-            }
-        }
-
-        return $this->authorize($companyId, $apiKey);
-    }
-
-    private function authorize(string $companyId, string $apiKey): string
-    {
-        $credential = base64_encode($companyId . ':' . $apiKey);
-
-        $response = Http::withHeaders([
-            'Authorization' => $credential,
-        ])->get(self::BASE_URL . '/auth/tokens');
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('Авторизация A1 провалилась: HTTP ' . $response->status() . ' — ' . $response->body());
-        }
-
-        $data = $response->json();
-        $this->saveTokens($data);
-
-        return $data['access_token'];
-    }
-
-    private function refreshToken(string $refreshToken): string
-    {
-        $response = Http::withHeaders([
-            'Authorization' => $refreshToken,
-        ])->put(self::BASE_URL . '/auth/tokens');
-
-        if (in_array($response->status(), [401, 403], true)) {
-            throw new \RuntimeException('refresh_token отклонён (HTTP ' . $response->status() . ')');
-        }
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('Refresh failed: HTTP ' . $response->status());
-        }
-
-        $data = $response->json();
-        $this->saveTokens($data);
-
-        return $data['access_token'];
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // CDR
-    // ─────────────────────────────────────────────────────────────
-
-    private function fetchCdr(string $accessToken, string $companyId, int $start, int $end): ?array
-    {
-        $response = Http::withHeaders([
-            'Authentication' => $accessToken,
-        ])->get(self::BASE_URL . '/cdr', [
-            'company_id' => $companyId,
-            'start'      => $start,
-            'end'        => $end,
-        ]);
-
-        if (in_array($response->status(), [401, 403], true)) {
-            return null;
-        }
-
-        if ($response->status() === 429) {
-            throw new \RuntimeException('Rate limit A1 API (429)');
-        }
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('CDR запрос провалился: HTTP ' . $response->status() . ' — ' . $response->body());
-        }
-
-        $data = $response->json();
-
-        if (isset($data[0]) || $data === []) {
-            return $data;
-        }
-
-        foreach (['data', 'items', 'records', 'calls'] as $key) {
-            if (isset($data[$key]) && is_array($data[$key])) {
-                return $data[$key];
-            }
-        }
-
-        return $data;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -412,41 +292,5 @@ class FetchA1MissedCalls extends Command
     {
         $digits = preg_replace('/\D/', '', $phone);
         return strlen($digits) >= 7 ? substr($digits, -7) : '';
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // Токены (файловое хранилище)
-    // ─────────────────────────────────────────────────────────────
-
-    private function tokensPath(): string
-    {
-        return storage_path('app/' . self::TOKENS_FILE);
-    }
-
-    private function loadTokens(): array
-    {
-        $path = $this->tokensPath();
-        if (!file_exists($path)) {
-            return [];
-        }
-        $data = json_decode(file_get_contents($path), true);
-        return is_array($data) ? $data : [];
-    }
-
-    private function forgetTokens(): void
-    {
-        @unlink($this->tokensPath());
-    }
-
-    private function saveTokens(array $data): void
-    {
-        $now = time();
-        $tokens = [
-            'access_token'       => $data['access_token']  ?? '',
-            'access_expires_at'  => $now + 86400,
-            'refresh_token'      => $data['refresh_token'] ?? '',
-            'refresh_expires_at' => $now + 604800,
-        ];
-        file_put_contents($this->tokensPath(), json_encode($tokens, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     }
 }
