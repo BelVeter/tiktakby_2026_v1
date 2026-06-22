@@ -45,6 +45,23 @@
                     </div>
                 @endif
             </div> <!-- end of row -->
+            @isset($totalPages)
+                @if($totalPages > 1)
+                    <div class="row">
+                        <div class="col-12 d-flex justify-content-center align-items-center" style="gap:15px; margin:20px 0;">
+                            @if($currentPage > 1)
+                                <a class="btn btn-outline-primary" rel="prev"
+                                   href="{{ $paginationBase . ($currentPage - 1 > 1 ? '&page=' . ($currentPage - 1) : '') }}">« Назад</a>
+                            @endif
+                            <span>Страница {{ $currentPage }} из {{ $totalPages }}</span>
+                            @if($currentPage < $totalPages)
+                                <a class="btn btn-outline-primary" rel="next"
+                                   href="{{ $paginationBase . '&page=' . ($currentPage + 1) }}">Вперёд »</a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+            @endisset
             @if($p->getShowAgeFilter()==1)
                 <div class="row">
                     <div class="col-12 age-filters-container">

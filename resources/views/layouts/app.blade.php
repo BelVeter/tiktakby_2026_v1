@@ -11,9 +11,6 @@
 <head>
   <!-- Global site tag (gtag.js) - Yandex webmaster -->
   <meta name="yandex-verification" content="7348006d2698d8b8" />
-  <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-15543442-1"></script>
-
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-WWTHNS0FYG"></script>
   <script>
@@ -96,6 +93,9 @@
           $final_canonical = url()->current();
       }
   @endphp
+  @isset($robots)
+  <meta name="robots" content="{{ $robots }}">
+  @endisset
   <link rel="canonical" href="{{ $final_canonical }}">
   <script type="application/ld+json">
   {
