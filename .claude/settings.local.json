@@ -39,7 +39,11 @@
       "Bash(curl -s -o /dev/null -w \"URL: /ru  -> HTTP %{http_code}  redirect: %{redirect_url}\\\\n\" -A \"Mozilla/5.0\" https://tiktak.by/ru)",
       "Bash(curl -s -o /dev/null -w \"URL: /ru/ -> HTTP %{http_code}  redirect: %{redirect_url}\\\\n\" -A \"Mozilla/5.0\" https://tiktak.by/ru/)",
       "Bash(curl -sI -A \"Mozilla/5.0\" https://tiktak.by/ru)",
-      "Bash(curl -sI -A \"Mozilla/5.0\" https://tiktak.by/ru/)"
+      "Bash(curl -sI -A \"Mozilla/5.0\" https://tiktak.by/ru/)",
+      "Bash(curl -s https://tiktak.by/bb/tz_check.php)",
+      "Bash(curl -sI https://tiktak.by/)",
+      "Bash(curl -sI -H \"Host: tiktak.by\" https://87.232.64.24/ -k --max-time 10)",
+      "Bash(python3)"
     ]
   }
 }
