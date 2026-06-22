@@ -12,9 +12,24 @@ use PhpParser\Node\Expr\AssignOp\Mod;
 
 class SearchController extends Controller
 {
-    //
+    /** Кол-во карточек на страницу листинга (как в каталоге, MainPage). */
+    private const LISTING_LIMIT = 24;
+
+    /**
+     * Строит карточки только для одной страницы пагинации (срез по LISTING_LIMIT),
+     * чтобы не плодить N+1 на сотнях моделей. Возвращает общее число найденных моделей.
+     */
+    private function buildPageModels(CatMainPage $p, $modelIdArray, int $page): int
+    {
+        $ids = is_array($modelIdArray) ? array_values($modelIdArray) : [];
+        $slice = array_slice($ids, ($page - 1) * self::LISTING_LIMIT, self::LISTING_LIMIT);
+        foreach ($slice as $mid) {
+            if ($l2m = L2ModelWeb::getL2ModelWebById($mid)) $p->addL2ModelWeb($l2m);
+        }
+        return count($ids);
+    }
+
     public function search($lang, Request $req) {
-      $time1 = new \DateTime();
         $text = trim($req->input('search'));
         $p = new CatMainPage();
 
@@ -23,16 +38,18 @@ class SearchController extends Controller
         $p->addBreadCrumbItem('поиск', '');
 
         $modelIdArray = ModelWeb::getModelIdsFullTextSearch($text);
-      $time2 = new \DateTime();
-        if (is_array($modelIdArray) && count($modelIdArray)>0) {
-            foreach ($modelIdArray as $mid) {
-                if ($l2m = L2ModelWeb::getL2ModelWebById($mid)) $p->addL2ModelWeb($l2m);
-            }
-        }
-      $time3 = new \DateTime();
-        //$p->setBlock1('start: '.$time1->format("H:i::s").'<br>'.'start2: '.$time2->format("H:i::s").'<br>'.'start3: '.$time3->format("H:i::s").'<br>');
+        $page = max(1, (int) $req->input('page', 1));
+        $total = $this->buildPageModels($p, $modelIdArray, $page);
 
-        return view('search', ['p' => $p]);
+        // Результаты внутреннего поиска не индексируем (служебная страница),
+        // но ссылочный вес пропускаем на карточки товаров.
+        return view('search', [
+            'p' => $p,
+            'robots' => 'noindex,follow',
+            'currentPage' => $page,
+            'totalPages' => (int) ceil($total / self::LISTING_LIMIT),
+            'paginationBase' => '/ru/search?search=' . urlencode($text),
+        ]);
     }
 
     public function ageFilter($lang, Request $req) {
@@ -70,14 +87,25 @@ class SearchController extends Controller
         $p->setShowAgeFilter(1);
 
         $modelIdArray = Model::getModelIdsArrayByAge($from, $to);
+        $page = max(1, (int) $req->input('page', 1));
+        $total = $this->buildPageModels($p, $modelIdArray, $page);
 
-        if (is_array($modelIdArray) && count($modelIdArray)>0) {
-            foreach ($modelIdArray as $mid) {
-                if ($l2m = L2ModelWeb::getL2ModelWebById($mid)) $p->addL2ModelWeb($l2m);
-            }
+        $viewData = [
+            'p' => $p,
+            'currentPage' => $page,
+            'totalPages' => (int) ceil($total / self::LISTING_LIMIT),
+            'paginationBase' => '/ru/filter?age_from=' . $from . '&age_to=' . $to,
+        ];
+        if (($req->has('age_from') || $req->has('age_to')) && $page === 1) {
+            // Индексируемый лендинг по возрасту (1-я стр.): self-canonical в точной
+            // форме ссылки (как в шаблонах: /ru/filter?age_from=X&age_to=Y).
+            $viewData['canonical_url'] = 'https://tiktak.by/ru/filter?age_from=' . $from . '&age_to=' . $to;
+        } else {
+            // Голый /ru/filter без параметров либо страница пагинации >1 — не индексируем.
+            $viewData['robots'] = 'noindex,follow';
         }
 
-        return view('search', ['p' => $p]);
+        return view('search', $viewData);
     }
 
     public function producerFilter($lang, Request $req){
@@ -89,13 +117,25 @@ class SearchController extends Controller
         $p->addBreadCrumbItem('по возрасту', '');
 
         $modelIdArray = Model::getModelIdsArrayByProducer($producer);
+        $page = max(1, (int) $req->input('page', 1));
+        $total = $this->buildPageModels($p, $modelIdArray, $page);
 
-        if (is_array($modelIdArray) && count($modelIdArray)>0) {
-            foreach ($modelIdArray as $mid) {
-                if ($l2m = L2ModelWeb::getL2ModelWebById($mid)) $p->addL2ModelWeb($l2m);
-            }
+        $viewData = [
+            'p' => $p,
+            'currentPage' => $page,
+            'totalPages' => (int) ceil($total / self::LISTING_LIMIT),
+            'paginationBase' => '/ru/producer?producer=' . urlencode((string) $producer),
+        ];
+        if ($producer !== null && $producer !== '' && $total > 0 && $page === 1) {
+            // Индексируемый лендинг производителя (1-я стр.): self-canonical.
+            // urlencode() повторяет ту же кодировку, что и ссылки в шаблонах
+            // (Producer::getNameUrlEncoded()), чтобы canonical точно совпал с href.
+            $viewData['canonical_url'] = 'https://tiktak.by/ru/producer?producer=' . urlencode($producer);
+        } else {
+            // Пусто (нет производителя/товаров) либо страница пагинации >1 — не индексируем.
+            $viewData['robots'] = 'noindex,follow';
         }
 
-        return view('search', ['p' => $p]);
+        return view('search', $viewData);
     }
 }
