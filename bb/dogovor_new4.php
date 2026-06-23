@@ -2070,6 +2070,18 @@ if (isset($_POST['action'])) {
 
 				$tov->del_item();
 
+				// товар списан безвозвратно - чистим зависшие записи "на выбытие"/"в ремонте" по этому inv_n,
+				// иначе они остаются в rent_orders навсегда (item_load/del_br не трогают rent_orders)
+				foreach (['out', 'remont'] as $br_type2) {
+					$orphan_brons = \bb\classes\bron::getBronsForInv($item_inv_n_or, $br_type2);
+					if ($orphan_brons) {
+						foreach ($orphan_brons as $orphan_bron) {
+							$orphan_bron->arch_copy();
+							$orphan_bron->del_br();
+						}
+					}
+				}
+
 				$del_text .= '<br><span style="color: red; font-size: 22px; font-weight: bold;">Товар списан!</span>';
 
 				unset($tov);
