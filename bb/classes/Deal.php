@@ -193,55 +193,54 @@ class Deal
 
     $mysqli = Db::getInstance()->getConnection();
 
-    $query = "SELECT deal_id from rent_deals_arch WHERE deal_id='$dealId'";
+    $query = "SELECT deal_id FROM rent_deals_arch WHERE deal_id='$dealId'";
     $result = $mysqli->query($query);
     if (!$result) {
       die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
-    if ($result->num_rows>0){
-      Db::startTransaction();
+    if ($result->num_rows === 0) return false;
 
-      $query = "SELECT deal_id from rent_deals_arch";
-      $result = $mysqli->query($query);
-      if (!$result) {
-        die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-      }
+    Db::startTransaction();
 
-      $newDealId = false;
-
-      $row = $result->fetch_assoc();//initialise prevDlId
-      $prevDlId = $row['deal_id'];
-
-      while ($row = $result->fetch_assoc()){//choosing new deal id if gap more than 1
-        $nextDealId = $row['deal_id'];
-        if (($nextDealId-$prevDlId)>1){
-          $newDealId = $prevDlId+1;
-          break;
-        }
-        $prevDlId = $nextDealId;
-      }
-
-      if ($newDealId) {
-        //update subDealsArch id
-        $query = "UPDATE rent_sub_deals_arch SET deal_id='$newDealId' WHERE deal_id='$dealId'";
-        $result = $mysqli->query($query);
-        if (!$result) {
-          die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-        }
-
-        //update dealsArch
-        $query = "UPDATE rent_deals_arch SET deal_id='$newDealId' WHERE deal_id='$dealId'";
-        $result = $mysqli->query($query);
-        if (!$result) {
-          die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-        }
-
-        Db::commitTransaction();
-        return true;
-      }
+    // Search for a gap across BOTH tables (arch and act) with ORDER BY to ensure correct gap detection.
+    // A gap in arch alone is not safe — the same ID might be live in act.
+    $query = "SELECT deal_id FROM (SELECT deal_id FROM rent_deals_arch UNION SELECT deal_id FROM rent_deals_act) AS all_ids ORDER BY deal_id";
+    $result = $mysqli->query($query);
+    if (!$result) {
+      Db::rollBackTransaction();
+      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
 
-    return false;
+    $newDealId = false;
+    $prevDlId = 0;
+
+    while ($row = $result->fetch_assoc()) {
+      if (($row['deal_id'] - $prevDlId) > 1) {
+        $newDealId = $prevDlId + 1;
+        break;
+      }
+      $prevDlId = $row['deal_id'];
+    }
+
+    if (!$newDealId) {
+      Db::rollBackTransaction();
+      die('dealIdArchDublicateFix: не найден свободный deal_id для разрешения конфликта (deal_id=' . $dealId . '). Сообщите Диме.');
+    }
+
+    $query = "UPDATE rent_sub_deals_arch SET deal_id='$newDealId' WHERE deal_id='$dealId'";
+    if (!$mysqli->query($query)) {
+      Db::rollBackTransaction();
+      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    }
+
+    $query = "UPDATE rent_deals_arch SET deal_id='$newDealId' WHERE deal_id='$dealId'";
+    if (!$mysqli->query($query)) {
+      Db::rollBackTransaction();
+      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    }
+
+    Db::commitTransaction();
+    return true;
   }
 
 
@@ -653,6 +652,7 @@ class Deal
 //      Base::varDamp($deal);
 //      Base::varDamp($subDeals);
 
+      self::dealIdArchDublicateFix($deal_id);
       $deal->archCopy();
 
       foreach ($subDeals as $subDeal) {
