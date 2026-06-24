@@ -193,55 +193,91 @@ class Deal
 
     $mysqli = Db::getInstance()->getConnection();
 
-    $query = "SELECT deal_id from rent_deals_arch WHERE deal_id='$dealId'";
+    $query = "SELECT deal_id FROM rent_deals_arch WHERE deal_id='$dealId'";
     $result = $mysqli->query($query);
     if (!$result) {
       die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
-    if ($result->num_rows>0){
-      Db::startTransaction();
+    if ($result->num_rows === 0) return false;
 
-      $query = "SELECT deal_id from rent_deals_arch";
-      $result = $mysqli->query($query);
-      if (!$result) {
-        die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-      }
+    Db::startTransaction();
 
-      $newDealId = false;
-
-      $row = $result->fetch_assoc();//initialise prevDlId
-      $prevDlId = $row['deal_id'];
-
-      while ($row = $result->fetch_assoc()){//choosing new deal id if gap more than 1
-        $nextDealId = $row['deal_id'];
-        if (($nextDealId-$prevDlId)>1){
-          $newDealId = $prevDlId+1;
-          break;
-        }
-        $prevDlId = $nextDealId;
-      }
-
-      if ($newDealId) {
-        //update subDealsArch id
-        $query = "UPDATE rent_sub_deals_arch SET deal_id='$newDealId' WHERE deal_id='$dealId'";
-        $result = $mysqli->query($query);
-        if (!$result) {
-          die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-        }
-
-        //update dealsArch
-        $query = "UPDATE rent_deals_arch SET deal_id='$newDealId' WHERE deal_id='$dealId'";
-        $result = $mysqli->query($query);
-        if (!$result) {
-          die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-        }
-
-        Db::commitTransaction();
-        return true;
-      }
+    // Search for a gap across BOTH tables (arch and act) with ORDER BY to ensure correct gap detection.
+    // A gap in arch alone is not safe — the same ID might be live in act.
+    $query = "SELECT deal_id FROM (SELECT deal_id FROM rent_deals_arch UNION SELECT deal_id FROM rent_deals_act) AS all_ids ORDER BY deal_id";
+    $result = $mysqli->query($query);
+    if (!$result) {
+      Db::rollBackTransaction();
+      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
     }
 
-    return false;
+    $newDealId = false;
+    $prevDlId = 0;
+
+    while ($row = $result->fetch_assoc()) {
+      if (($row['deal_id'] - $prevDlId) > 1) {
+        $newDealId = $prevDlId + 1;
+        break;
+      }
+      $prevDlId = $row['deal_id'];
+    }
+
+    if (!$newDealId) {
+      Db::rollBackTransaction();
+      die('dealIdArchDublicateFix: не найден свободный deal_id для разрешения конфликта (deal_id=' . $dealId . '). Сообщите Диме.');
+    }
+
+    $query = "UPDATE rent_sub_deals_arch SET deal_id='$newDealId' WHERE deal_id='$dealId'";
+    if (!$mysqli->query($query)) {
+      Db::rollBackTransaction();
+      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    }
+
+    $query = "UPDATE rent_deals_arch SET deal_id='$newDealId' WHERE deal_id='$dealId'";
+    if (!$mysqli->query($query)) {
+      Db::rollBackTransaction();
+      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    }
+
+    Db::commitTransaction();
+    return true;
+  }
+
+  /**
+   * Returns a safe deal_id value for INSERT INTO rent_deals_act.
+   *
+   * MySQL reuses auto_increment IDs when the highest-ID row is deleted (e.g. after
+   * an immediate carnival deal archive). If that ID already exists in rent_deals_arch
+   * (UNIQUE constraint), the later archive INSERT would fail.
+   *
+   * Returns '' (empty string) when no conflict — MySQL uses auto_increment normally.
+   * Returns an explicit integer > MAX(both tables) when the upcoming auto_increment
+   * ID already exists in arch. Inserting with an explicit ID also bumps the
+   * auto_increment counter, so the fix is self-healing for subsequent inserts.
+   * Works inside transactions (no DDL needed).
+   */
+  public static function getSafeDealIdForInsert()
+  {
+    $mysqli = Db::getInstance()->getConnection();
+
+    $r = $mysqli->query(
+      "SELECT AUTO_INCREMENT FROM information_schema.TABLES
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'rent_deals_act'"
+    );
+    if (!$r) return '';
+    $nextId = (int)$r->fetch_assoc()['AUTO_INCREMENT'];
+
+    $r2 = $mysqli->query("SELECT deal_id FROM rent_deals_arch WHERE deal_id = '$nextId'");
+    if (!$r2 || $r2->num_rows === 0) return ''; // no conflict
+
+    $r3 = $mysqli->query(
+      "SELECT GREATEST(
+         (SELECT COALESCE(MAX(deal_id), 0) FROM rent_deals_act),
+         (SELECT COALESCE(MAX(deal_id), 0) FROM rent_deals_arch)
+       ) + 1 AS safe_id"
+    );
+    if (!$r3) return '';
+    return (int)$r3->fetch_assoc()['safe_id'];
   }
 
 
@@ -653,6 +689,7 @@ class Deal
 //      Base::varDamp($deal);
 //      Base::varDamp($subDeals);
 
+      self::dealIdArchDublicateFix($deal_id);
       $deal->archCopy();
 
       foreach ($subDeals as $subDeal) {

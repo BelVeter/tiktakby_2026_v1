@@ -2,6 +2,7 @@
 session_start();
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Db.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Base.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Deal.php');
 
 isset($_SESSION['svoi']) ? : $_SESSION['svoi'] = 0;
 if ($_SESSION['svoi'] != 8941) {
@@ -125,8 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $deal_set  = $mysqli->real_escape_string($itRow['item_set'] ?? '');
         $sub_place = intval($itRow['item_place'] ?? $office);
 
+        $_safe_deal_id = \bb\classes\Deal::getSafeDealIdForInsert();
         $mysqli->query("INSERT INTO rent_deals_act VALUES(
-            '', '$client_id', '$inv', '$start_ts', '$ret_ts',
+            '$_safe_deal_id', '$client_id', '$inv', '$start_ts', '$ret_ts',
             '0', '0.00', '0.00', '$rtp', '0.00',
             '0.00', 'BYN', 'active', '',
             '$user_id', '$user_id', '$now', '$now', '$start_ts',
