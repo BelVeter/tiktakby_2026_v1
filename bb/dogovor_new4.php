@@ -2262,15 +2262,16 @@ if (isset($_POST['action'])) {
 
 				//определяем на кого вешать
 				$deal_status = '';
+				$_safe_deal_id = Deal::getSafeDealIdForInsert();
 				if ($takeaway_status == 'later') {//помечаем сделку как бронь для карнавалов. т.к. товар по карнавалам не бронируется
 					$deal_status = 'bron';
-					$query = "INSERT INTO rent_deals_act VALUES('', '$client_id', '$item_inv_n', '$takeaway_pl_date', '$return_date', '$delivery', '$delivery_price', '', '$r_to_pay', '', '$coll_amount', '$coll_cur', '$deal_status', '$deal_info', '$acc_person', '" . $_SESSION['user_id'] . "', '" . time() . "', '" . time() . "', '$start_date', '$deal_item_set', '$sub_dl_place')";
+					$query = "INSERT INTO rent_deals_act VALUES('$_safe_deal_id', '$client_id', '$item_inv_n', '$takeaway_pl_date', '$return_date', '$delivery', '$delivery_price', '', '$r_to_pay', '', '$coll_amount', '$coll_cur', '$deal_status', '$deal_info', '$acc_person', '" . $_SESSION['user_id'] . "', '" . time() . "', '" . time() . "', '$start_date', '$deal_item_set', '$sub_dl_place')";
 					if (!$mysqli->query($query)) {
 						$done = "no";
 						echo 'Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error;
 					}
 				} elseif ($takeaway_status == 'now') {//помечаем сделку как бронь для карнавалов. т.к. товар по карнавалам не бронируется
-					$query = "INSERT INTO rent_deals_act VALUES('', '$client_id', '$item_inv_n', '$start_date', '$return_date', '$delivery', '$delivery_price', '', '$r_to_pay', '', '$coll_amount', '$coll_cur', '$deal_status', '$deal_info', '$acc_person', '" . $_SESSION['user_id'] . "', '" . time() . "', '" . time() . "', '$start_date', '$deal_item_set', '$sub_dl_place')";
+					$query = "INSERT INTO rent_deals_act VALUES('$_safe_deal_id', '$client_id', '$item_inv_n', '$start_date', '$return_date', '$delivery', '$delivery_price', '', '$r_to_pay', '', '$coll_amount', '$coll_cur', '$deal_status', '$deal_info', '$acc_person', '" . $_SESSION['user_id'] . "', '" . time() . "', '" . time() . "', '$start_date', '$deal_item_set', '$sub_dl_place')";
 					if (!$mysqli->query($query)) {
 						$done = "no";
 						echo 'Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error;

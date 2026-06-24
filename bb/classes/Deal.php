@@ -243,6 +243,43 @@ class Deal
     return true;
   }
 
+  /**
+   * Returns a safe deal_id value for INSERT INTO rent_deals_act.
+   *
+   * MySQL reuses auto_increment IDs when the highest-ID row is deleted (e.g. after
+   * an immediate carnival deal archive). If that ID already exists in rent_deals_arch
+   * (UNIQUE constraint), the later archive INSERT would fail.
+   *
+   * Returns '' (empty string) when no conflict — MySQL uses auto_increment normally.
+   * Returns an explicit integer > MAX(both tables) when the upcoming auto_increment
+   * ID already exists in arch. Inserting with an explicit ID also bumps the
+   * auto_increment counter, so the fix is self-healing for subsequent inserts.
+   * Works inside transactions (no DDL needed).
+   */
+  public static function getSafeDealIdForInsert()
+  {
+    $mysqli = Db::getInstance()->getConnection();
+
+    $r = $mysqli->query(
+      "SELECT AUTO_INCREMENT FROM information_schema.TABLES
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'rent_deals_act'"
+    );
+    if (!$r) return '';
+    $nextId = (int)$r->fetch_assoc()['AUTO_INCREMENT'];
+
+    $r2 = $mysqli->query("SELECT deal_id FROM rent_deals_arch WHERE deal_id = '$nextId'");
+    if (!$r2 || $r2->num_rows === 0) return ''; // no conflict
+
+    $r3 = $mysqli->query(
+      "SELECT GREATEST(
+         (SELECT COALESCE(MAX(deal_id), 0) FROM rent_deals_act),
+         (SELECT COALESCE(MAX(deal_id), 0) FROM rent_deals_arch)
+       ) + 1 AS safe_id"
+    );
+    if (!$r3) return '';
+    return (int)$r3->fetch_assoc()['safe_id'];
+  }
+
 
   /**
    * @param $id
