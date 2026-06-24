@@ -1156,6 +1156,17 @@ class RTF_Template{
      */
     public function parse($block_name, $value, $start_tag = '\{', $end_tag = '\}'){
        $this->content = str_ireplace($start_tag.$block_name.$end_tag, $value, $this->content);
+       // RTF editors (LibreOffice, Word for Mac) encode ASCII placeholders as \uNNN<fallback>.
+       // LibreOffice uses '*', Word uses '?' — cover both.
+       $uni_star = '';
+       $uni_q    = '';
+       for ($i = 0, $len = strlen($block_name); $i < $len; $i++) {
+           $code     = ord($block_name[$i]);
+           $uni_star .= '\\u' . $code . '*';
+           $uni_q    .= '\\u' . $code . '?';
+       }
+       $this->content = str_ireplace($start_tag.$uni_star.$end_tag, $value, $this->content);
+       $this->content = str_ireplace($start_tag.$uni_q.$end_tag,    $value, $this->content);
     }//
     /*************************************************************************/
     /**
