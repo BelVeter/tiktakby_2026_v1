@@ -22,7 +22,7 @@ class PagesListingProductsTest extends McpTestCase
 
         $first = $rows[0];
         foreach (['model_id', 'model_name', 'model_url', 'brand',
-                  'total_units', 'free_units', 'is_available',
+                  'active_units', 'free_units', 'is_available',
                   'price_per_week_byn', 'price_per_day_byn'] as $field) {
             $this->assertArrayHasKey($field, $first, "field '{$field}' must be present");
         }
@@ -37,7 +37,7 @@ class PagesListingProductsTest extends McpTestCase
             $this->assertIsInt($row['model_id']);
             $this->assertIsString($row['model_name']);
             $this->assertIsString($row['model_url']);
-            $this->assertIsInt($row['total_units']);
+            $this->assertIsInt($row['active_units']);
             $this->assertIsInt($row['free_units']);
             $this->assertIsBool($row['is_available']);
             $this->assertTrue(
@@ -47,6 +47,10 @@ class PagesListingProductsTest extends McpTestCase
             $this->assertTrue(
                 $row['price_per_week_byn'] === null || is_float($row['price_per_week_byn']),
                 'price_per_week_byn must be float or null'
+            );
+            $this->assertTrue(
+                $row['price_per_day_byn'] === null || is_float($row['price_per_day_byn']),
+                'price_per_day_byn must be float or null'
             );
         }
     }
@@ -63,14 +67,14 @@ class PagesListingProductsTest extends McpTestCase
         }
     }
 
-    public function test_free_units_never_exceed_total_units(): void
+    public function test_free_units_never_exceed_active_units(): void
     {
         $rows = $this->mcp('pages/listing/buster/products')->json('data');
         foreach ($rows as $row) {
             $this->assertLessThanOrEqual(
-                $row['total_units'],
+                $row['active_units'],
                 $row['free_units'],
-                "free_units must not exceed total_units for model {$row['model_id']}"
+                "free_units must not exceed active_units for model {$row['model_id']}"
             );
         }
     }
@@ -121,5 +125,14 @@ class PagesListingProductsTest extends McpTestCase
     public function test_requires_bearer_token(): void
     {
         $this->assertRequiresToken('pages/listing/buster/products');
+    }
+
+    public function test_razdel_slug_returns_envelope_with_correct_level(): void
+    {
+        // razdel-level slug: covers the longest JOIN chain in buildCatalogJoin()
+        $r = $this->mcp('pages/listing/prokat-detskih-tovarov/products');
+        $this->assertEnvelope($r);
+        $this->assertNotEmpty($r->json('data'), 'razdel must contain products');
+        $r->assertJsonPath('query.level', 'razdel');
     }
 }

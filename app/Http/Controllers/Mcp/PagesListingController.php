@@ -390,7 +390,7 @@ class PagesListingController extends BaseController
                     rmw.l2_name                              AS model_name,
                     rmw.page_addr                            AS model_url,
                     NULLIF(tr.producer, '')                  AS brand,
-                    COALESCE(total_sub.total_units, 0)       AS total_units,
+                    COALESCE(inv_sub.active_units, 0)        AS active_units,
                     COALESCE(free_sub.free_units, 0)         AS free_units,
                     prices.price_per_week_byn,
                     prices.price_per_day_byn
@@ -398,10 +398,10 @@ class PagesListingController extends BaseController
                 JOIN tovar_rent tr ON tr.tovar_rent_id = rmw.model_id
                 {$catalogJoin}
                 LEFT JOIN (
-                    SELECT model_id, COUNT(*) AS total_units
+                    SELECT model_id, COUNT(*) AS active_units
                     FROM tovar_rent_items
                     GROUP BY model_id
-                ) total_sub ON total_sub.model_id = rmw.model_id
+                ) inv_sub ON inv_sub.model_id = rmw.model_id
                 LEFT JOIN (
                     SELECT model_id, COUNT(*) AS free_units
                     FROM tovar_rent_items
@@ -418,6 +418,7 @@ class PagesListingController extends BaseController
                 ) prices ON prices.model_id = rmw.model_id
                 WHERE rmw.lang = 'ru' AND rmw.status = 'show'
                 ORDER BY free_units DESC, price_per_week_byn DESC
+                -- NULLs sort last in DESC (MySQL treats NULL < any value); intended behavior
             ", $params);
 
             return array_map(fn ($r) => [
@@ -425,7 +426,7 @@ class PagesListingController extends BaseController
                 'model_name'         => $r->model_name,
                 'model_url'          => $r->model_url,
                 'brand'              => $r->brand,
-                'total_units'        => (int) $r->total_units,
+                'active_units'       => (int) $r->active_units,
                 'free_units'         => (int) $r->free_units,
                 'is_available'       => (int) $r->free_units > 0,
                 'price_per_week_byn' => $r->price_per_week_byn !== null ? (float) $r->price_per_week_byn : null,
