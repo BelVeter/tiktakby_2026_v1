@@ -286,28 +286,14 @@ class TariffModel
                     'returnFees' => 'https://schema.org/FreeReturn'
                 ],
                 'shippingDetails' => [
-                    [
-                        '@type' => 'OfferShippingDetails',
-                        'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '0.00', 'currency' => 'BYN' ],
-                        'eligibleTransactionVolume' => [ '@type' => 'PriceSpecification', 'minPrice' => 30.00, 'priceCurrency' => 'BYN' ],
-                        'deliveryTime' => [
-                            '@type' => 'ShippingDeliveryTime',
-                            'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
-                            'transitTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ]
-                        ],
-                        'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ]
+                    '@type' => 'OfferShippingDetails',
+                    'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '10.00', 'currency' => 'BYN' ],
+                    'deliveryTime' => [
+                        '@type' => 'ShippingDeliveryTime',
+                        'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
+                        'transitTime'  => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
                     ],
-                    [
-                        '@type' => 'OfferShippingDetails',
-                        'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '10.00', 'currency' => 'BYN' ],
-                        'eligibleTransactionVolume' => [ '@type' => 'PriceSpecification', 'maxPrice' => 29.99, 'priceCurrency' => 'BYN' ],
-                        'deliveryTime' => [
-                            '@type' => 'ShippingDeliveryTime',
-                            'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
-                            'transitTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ]
-                        ],
-                        'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ]
-                    ]
+                    'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ],
                 ],
             ];
         }
@@ -384,28 +370,14 @@ class TariffModel
                 'returnFees' => 'https://schema.org/FreeReturn'
             ],
             'shippingDetails' => [
-                [
-                    '@type' => 'OfferShippingDetails',
-                    'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '0.00', 'currency' => 'BYN' ],
-                    'eligibleTransactionVolume' => [ '@type' => 'PriceSpecification', 'minPrice' => 30.00, 'priceCurrency' => 'BYN' ],
-                    'deliveryTime' => [
-                        '@type' => 'ShippingDeliveryTime',
-                        'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
-                        'transitTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ]
-                    ],
-                    'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ]
+                '@type' => 'OfferShippingDetails',
+                'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '10.00', 'currency' => 'BYN' ],
+                'deliveryTime' => [
+                    '@type' => 'ShippingDeliveryTime',
+                    'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
+                    'transitTime'  => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
                 ],
-                [
-                    '@type' => 'OfferShippingDetails',
-                    'shippingRate' => [ '@type' => 'MonetaryAmount', 'value' => '10.00', 'currency' => 'BYN' ],
-                    'eligibleTransactionVolume' => [ '@type' => 'PriceSpecification', 'maxPrice' => 29.99, 'priceCurrency' => 'BYN' ],
-                    'deliveryTime' => [
-                        '@type' => 'ShippingDeliveryTime',
-                        'handlingTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ],
-                        'transitTime' => [ '@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY' ]
-                    ],
-                    'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ]
-                ]
+                'shippingDestination' => [ '@type' => 'DefinedRegion', 'addressCountry' => 'BY', 'addressRegion' => 'Минск' ],
             ],
         ];
     }
