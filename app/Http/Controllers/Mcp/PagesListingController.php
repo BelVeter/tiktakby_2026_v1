@@ -397,7 +397,10 @@ class PagesListingController extends BaseController
                 FROM rent_model_web rmw
                 JOIN tovar_rent tr ON tr.tovar_rent_id = rmw.model_id
                 {$catalogJoin}
-                LEFT JOIN (
+                -- INNER JOIN: a model must have >=1 physical item to appear on the
+                -- listing page, matching the site rendering (tovar_rent_items.item_id>0
+                -- in Model::getModelIdsArrayBy*). Drops phantom 'show' models with no stock.
+                JOIN (
                     SELECT model_id, COUNT(*) AS active_units
                     FROM tovar_rent_items
                     GROUP BY model_id

@@ -79,6 +79,21 @@ class PagesListingProductsTest extends McpTestCase
         }
     }
 
+    public function test_every_model_has_at_least_one_unit(): void
+    {
+        // Site parity: listing pages only show models with >=1 physical item
+        // (tovar_rent_items.item_id>0). Models with zero stock must not appear.
+        $rows = $this->mcp('pages/listing/autokresla/products')->json('data');
+        $this->assertNotEmpty($rows);
+        foreach ($rows as $row) {
+            $this->assertGreaterThanOrEqual(
+                1,
+                $row['active_units'],
+                "model {$row['model_id']} appears but has zero units — phantom product"
+            );
+        }
+    }
+
     public function test_sorted_by_free_units_desc(): void
     {
         $rows = $this->mcp('pages/listing/buster/products')->json('data');
