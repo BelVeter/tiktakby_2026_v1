@@ -4586,6 +4586,86 @@
                     }
                 }
             }
+        },
+        "/pages/listing/{slug}/products": {
+            "get": {
+                "summary": "List products for a listing page",
+                "description": "Returns all rental models shown on the listing page with this slug. Supports all catalog levels: razdel, subrazdel (L2), and category (L3). Used by content pipelines as authoritative product source instead of HTML scraping.",
+                "operationId": "getListingProducts",
+                "tags": [
+                    "Pages"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "description": "Catalog slug at any level: razdel (e.g. 'prokat-detskih-tovarov'), subrazdel (e.g. 'autokresla'), or category (e.g. 'buster')",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success — list of models sorted by free_units DESC, price DESC",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "query": {
+                                            "type": "object",
+                                            "properties": {
+                                                "slug":  { "type": "string" },
+                                                "level": { "type": "string", "enum": ["razdel", "subrazdel", "category"] }
+                                            }
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "model_id":           { "type": "integer" },
+                                                    "model_name":         { "type": "string" },
+                                                    "model_url":          { "type": "string" },
+                                                    "brand":              { "type": "string", "nullable": true },
+                                                    "active_units":       { "type": "integer" },
+                                                    "free_units":         { "type": "integer" },
+                                                    "is_available":       { "type": "boolean" },
+                                                    "price_per_week_byn": { "type": "number", "nullable": true },
+                                                    "price_per_day_byn":  { "type": "number", "nullable": true }
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "currency": { "type": "string", "example": "BYN" },
+                                                "warnings": { "type": "array" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Slug not found in catalog",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error":   { "type": "string", "example": "not_found" },
+                                        "message": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "tags": [
