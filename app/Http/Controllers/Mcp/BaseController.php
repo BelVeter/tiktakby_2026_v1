@@ -75,7 +75,7 @@ abstract class BaseController extends Controller
             'query' => $query,
             'data'  => $data,
             'meta'  => $mergedMeta,
-        ]);
+        ], 200, [], JSON_PRESERVE_ZERO_FRACTION);
     }
 
     /**

@@ -161,6 +161,7 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /pages/listing/{slug}` | Read L2 category SEO fields (from `pages` table) with site defaults |
 |        | `PATCH /pages/listing/{slug}` | Upsert L2 category SEO fields (`meta_title`, `meta_description`, `h1`, `intro_text`, `seo_text`, `h1_pic_url`, `faq`) |
 |        | `POST /pages/listing/{slug}/image` | Upload and resize hero-image for L2 category (saves as JPG, updates h1_pic_url) |
+|        | `GET /pages/listing/{slug}/products` | List all rental models shown on a listing page (razdel/subrazdel/category). Returns `model_id`, `model_name`, `brand`, `active_units`, `free_units`, `is_available`, prices. Sorted `free_units DESC`. |
 |        | `GET /pages/product` | List all L3 product models with their SEO completion status |
 |        | `GET /pages/product/{slug}` | Read L3 model SEO fields (from `rent_model_web`) |
 |        | `PATCH /pages/product/{slug}` | Update L3 model SEO fields (`meta_title`, `meta_description`, `main_pic_alt`, `l2_pic_alt`, `description`, `breadcrumb_name`, `faq`) |

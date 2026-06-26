@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Mcp;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\MyClasses\MainPage;
@@ -356,6 +357,131 @@ class PagesListingController extends BaseController
 
         // Fetch updated record
         return $this->show($request, $slug);
+    }
+
+    /**
+     * GET /api/mcp/v1/pages/listing/{slug}/products
+     *
+     * Returns all rental models shown on the listing page with this slug.
+     * Supports all catalog levels (razdel, subrazdel, category).
+     * Inventory counts use the same status logic as /inventory/free-tree.
+     * Pre-aggregated subqueries prevent M:N inflation for multi-category models.
+     */
+    public function products(Request $request, string $slug): JsonResponse
+    {
+        $resolved = $this->resolveListingSlug($slug);
+
+        if (!$resolved) {
+            return response()->json([
+                'error'   => 'not_found',
+                'message' => "Listing page with slug '{$slug}' not found in catalog.",
+            ], 404);
+        }
+
+        $levelCode = $resolved['level_code'];
+        $key = $this->cacheKey('pages.listing.products', ['slug' => $slug]);
+
+        $data = $this->cacheRemember($key, self::TTL_DEFAULT, function () use ($slug, $levelCode) {
+            [$catalogJoin, $params] = $this->buildCatalogJoin($levelCode, $slug);
+
+            $rows = DB::select("
+                SELECT DISTINCT
+                    rmw.model_id,
+                    rmw.l2_name                              AS model_name,
+                    rmw.page_addr                            AS model_url,
+                    NULLIF(tr.producer, '')                  AS brand,
+                    COALESCE(inv_sub.active_units, 0)        AS active_units,
+                    COALESCE(free_sub.free_units, 0)         AS free_units,
+                    prices.price_per_week_byn,
+                    prices.price_per_day_byn
+                FROM rent_model_web rmw
+                JOIN tovar_rent tr ON tr.tovar_rent_id = rmw.model_id
+                {$catalogJoin}
+                -- INNER JOIN: a model must have >=1 physical item to appear on the
+                -- listing page, matching the site rendering (tovar_rent_items.item_id>0
+                -- in Model::getModelIdsArrayBy*). Drops phantom 'show' models with no stock.
+                JOIN (
+                    SELECT model_id, COUNT(*) AS active_units
+                    FROM tovar_rent_items
+                    GROUP BY model_id
+                ) inv_sub ON inv_sub.model_id = rmw.model_id
+                LEFT JOIN (
+                    SELECT model_id, COUNT(*) AS free_units
+                    FROM tovar_rent_items
+                    WHERE active_deal_id = 0
+                      AND (status IS NULL OR status NOT IN ('в аренде','бронь','ремонт','списан'))
+                    GROUP BY model_id
+                ) free_sub ON free_sub.model_id = rmw.model_id
+                LEFT JOIN (
+                    SELECT model_id,
+                        MIN(CASE WHEN step = 'week' AND kol_vo = 1 THEN rent_amount END) AS price_per_week_byn,
+                        MIN(CASE WHEN step = 'day'  AND kol_vo = 1 THEN rent_amount END) AS price_per_day_byn
+                    FROM rent_tarif_act
+                    GROUP BY model_id
+                ) prices ON prices.model_id = rmw.model_id
+                WHERE rmw.lang = 'ru' AND rmw.status = 'show'
+                ORDER BY free_units DESC, price_per_week_byn DESC
+                -- NULLs sort last in DESC (MySQL treats NULL < any value); intended behavior
+            ", $params);
+
+            return array_map(fn ($r) => [
+                'model_id'           => (int) $r->model_id,
+                'model_name'         => $r->model_name,
+                'model_url'          => $r->model_url,
+                'brand'              => $r->brand,
+                'active_units'       => (int) $r->active_units,
+                'free_units'         => (int) $r->free_units,
+                'is_available'       => (int) $r->free_units > 0,
+                'price_per_week_byn' => $r->price_per_week_byn !== null ? (float) $r->price_per_week_byn : null,
+                'price_per_day_byn'  => $r->price_per_day_byn !== null ? (float) $r->price_per_day_byn : null,
+            ], $rows);
+        });
+
+        return $this->envelope(
+            array_merge($request->query(), ['slug' => $slug, 'level' => $levelCode]),
+            $data
+        );
+    }
+
+    /**
+     * Builds the catalog JOIN fragment and bound parameters for the given level/slug.
+     * Called by products() to filter models to the specific listing page.
+     * Note: the main query already JOINs tovar_rent tr for brand; the category-level
+     * join reuses that alias by adding only the tovar_rent_cat join condition.
+     *
+     * @return array{0: string, 1: array}  [sql_fragment, bound_params]
+     */
+    private function buildCatalogJoin(string $levelCode, string $slug): array
+    {
+        if ($levelCode === 'category') {
+            // tr is already joined in the outer query for brand; add category filter
+            return [
+                'JOIN tovar_rent_cat tc    ON tc.tovar_rent_cat_id = tr.tovar_rent_cat_id
+                                         AND tc.cat_url_key = ?',
+                [$slug],
+            ];
+        }
+
+        if ($levelCode === 'subrazdel') {
+            return [
+                'JOIN tovar_rent_cat tc    ON tc.tovar_rent_cat_id = tr.tovar_rent_cat_id
+                 JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tc.tovar_rent_cat_id
+                 JOIN sub_razdel sr        ON sr.id_sub_razdel = sc.id_sub_razdel
+                                         AND sr.url_sub_razdel_name = ?',
+                [$slug],
+            ];
+        }
+
+        // razdel
+        return [
+            'JOIN tovar_rent_cat tc    ON tc.tovar_rent_cat_id = tr.tovar_rent_cat_id
+             JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tc.tovar_rent_cat_id
+             JOIN sub_razdel sr        ON sr.id_sub_razdel = sc.id_sub_razdel
+             JOIN razdel_subrazdel rs  ON rs.id_sub_razdel = sr.id_sub_razdel
+             JOIN razdel r             ON r.id_razdel = rs.id_razdel
+                                     AND r.url_razdel_name = ?',
+            [$slug],
+        ];
     }
 
     /**
