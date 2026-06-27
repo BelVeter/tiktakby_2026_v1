@@ -32,16 +32,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Option 1: Docker (Recommended)**
 ```bash
-docker-compose up -d
+docker compose up -d
 # App: http://localhost
 # PhpMyAdmin: http://localhost:8088
 # Database: localhost:33060
 
 # Run commands inside container
-docker-compose exec app php artisan migrate
-docker-compose exec app npm run dev
-docker-compose exec app php artisan test
+docker compose exec app php artisan migrate
+docker compose exec app npm run dev
+docker compose exec app php artisan test
+
+# PHP syntax check
+docker compose exec -T app php -l path/to/file.php
 ```
+
+> **Note**: use `docker compose` (без дефиса, новый синтаксис). `docker-compose` недоступен на этой машине.
 
 **Option 2: Laragon (Windows)**
 ```bash

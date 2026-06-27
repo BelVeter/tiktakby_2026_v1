@@ -55,7 +55,7 @@ Route::post('/cart/check-availability', 'App\Http\Controllers\CartController@che
 Route::get(
     '/{lang}/',
     'App\Http\Controllers\MainController@showPage'
-);
+)->where('lang', 'ru');
 
 // --- Тестовая страница ---
 Route::get('/test/', 'App\Http\Controllers\RedirectController@testPage');
