@@ -3592,7 +3592,7 @@
         "/calls/recordings": {
             "get": {
                 "operationId": "tiktak_calls_recordings_list",
-                "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_number, caller_part, callee_part, call_duration, file_size, file_url, ai_status, ai_business_note. Binary file via /calls/recordings/{uuid}/file.",
+                "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_number, caller_part, callee_part, call_duration, file_size, file_url (null if audio deleted or historical import), has_audio (bool), downloaded_at, ai_status, ai_business_note. Binary audio via /calls/recordings/{uuid}/file — only valid when has_audio=true.",
                 "parameters": [
                     {
                         "in": "query",
@@ -3746,7 +3746,7 @@
         "/calls/pending-analysis": {
             "get": {
                 "operationId": "tiktak_calls_pending_analysis",
-                "summary": "Returns recordings where ai_status='pending'. Auto-resets stale 'processing' records (>2h) to 'pending'. Marks returned records as 'processing'. Each row includes file_url for download.",
+                "summary": "Returns recordings where ai_status='pending' AND has_audio=1 (audio file present on disk). Auto-resets stale 'processing' records (>2h) to 'pending'. Marks returned records as 'processing'. Each row includes file_url for download. Historical imports (has_audio=0) never appear here.",
                 "parameters": [
                     {
                         "in": "query",
@@ -3979,6 +3979,47 @@
                     },
                     "404": {
                         "description": "No analysis record found for this uuid."
+                    }
+                }
+            }
+        },
+        "/calls/recordings/import-completed": {
+            "post": {
+                "operationId": "tiktak_calls_recordings_import_completed",
+                "summary": "Bulk import historical recordings with fully completed AI analysis. Sets has_audio=0 (no audio file on server). Skips duplicates by record_name. Accepts up to 1000 records per request. Bypasses the pending-analysis queue.",
+                "description": "Accepts a JSON array of objects, a wrapped {\"records\":[...]} object, or a single object. Required per item: record_name (string), call_date (YYYY-MM-DD HH:MM:SS). Optional: transcript, ai_summary, ai_result, ai_result_detail, discussed_items (array), missed_item, client_sentiment, consultant_sentiment, ai_business_note, caller_part or caller_number, callee_part, call_duration (int seconds), file_size (int bytes). Returns {imported: N, skipped: N}.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "oneOf": [
+                                    {
+                                        "type": "array",
+                                        "items": { "$ref": "#/components/schemas/ImportedRecording" },
+                                        "maxItems": 1000
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "records": {
+                                                "type": "array",
+                                                "items": { "$ref": "#/components/schemas/ImportedRecording" },
+                                                "maxItems": 1000
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Import result in {query, data, meta} envelope. data.imported = rows inserted, data.skipped = rows skipped (duplicates + malformed + invalid date)."
+                    },
+                    "422": {
+                        "description": "Payload too large (>1000 items) or no valid record_name fields found."
                     }
                 }
             }

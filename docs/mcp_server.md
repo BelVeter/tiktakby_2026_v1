@@ -153,6 +153,7 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /calls/pending-analysis` | Pending AI analysis queue; auto-marks returned records as processing |
 |        | `GET /calls/recordings/{uuid}/analysis` | Get analysis result for a recording |
 |        | `POST /calls/recordings/{uuid}/analysis` | Submit analysis (transcript, ai_summary, ai_result, discussed_items, missed_item, sentiment, ai_business_note) |
+|        | `POST /calls/recordings/import-completed` | Bulk import historical records with fully completed analysis (skips pending queue) |
 |        | `GET /calls/daily-summary/{date}` | Get AI daily summary for YYYY-MM-DD |
 |        | `POST /calls/daily-summary/{date}` | Upsert daily summary; counts auto-filled from a1_cdr |
 |        | `POST /calls/recordings/{uuid}/reset-analysis` | Reset ai_status → pending for re-processing |

@@ -413,4 +413,208 @@ class CallsTest extends McpTestCase
         $response->assertStatus(200);
         $this->assertEquals('Тихий день', $response->json('data.summary_text'));
     }
+
+    // ── POST /calls/recordings/import-completed ──────────────────
+
+    public function test_import_completed_creates_records(): void
+    {
+        $payload = [
+            [
+                'record_name'   => 'historical/1.mp3',
+                'call_date'     => '2025-01-01 10:00:00',
+                'caller_part'   => '+375291234567',
+                'transcript'    => 'Hello world',
+                'ai_summary'    => 'Test summary',
+                'ai_result'     => 'info'
+            ],
+            [
+                'record_name'   => 'historical/2.mp3',
+                'call_date'     => '2025-01-01 11:00:00',
+                'caller_part'   => '+375291234568',
+            ]
+        ];
+
+        $response = $this->postMcp('calls/recordings/import-completed', $payload);
+        $response->assertStatus(200);
+        $this->assertEquals(2, $response->json('data.imported'));
+        $this->assertEquals(0, $response->json('data.skipped'));
+
+        $this->assertEquals(2, DB::table('a1_call_recordings')->count());
+        $this->assertEquals(2, DB::table('a1_call_analysis')->where('ai_status', 'done')->count());
+
+        $analysis = DB::table('a1_call_analysis')
+            ->join('a1_call_recordings', 'a1_call_analysis.recording_uuid', '=', 'a1_call_recordings.uuid')
+            ->where('a1_call_recordings.record_name', 'historical/1.mp3')
+            ->first();
+
+        $this->assertEquals('Hello world', $analysis->transcript);
+        $this->assertEquals('info', $analysis->ai_result);
+    }
+
+    public function test_import_completed_skips_existing(): void
+    {
+        DB::table('a1_call_recordings')->insert([
+            'record_name' => 'historical/exist.mp3', 'uuid' => 'uuid-exist',
+            'call_date' => '2025-01-01 10:00:00', 'file_path' => 'dummy', 'file_size' => 0,
+        ]);
+
+        $payload = [
+            ['record_name' => 'historical/exist.mp3', 'call_date' => '2025-01-01 10:00:00'],
+            ['record_name' => 'historical/new.mp3', 'call_date' => '2025-01-01 10:00:00']
+        ];
+
+        $response = $this->postMcp('calls/recordings/import-completed', $payload);
+        $response->assertStatus(200);
+        $this->assertEquals(1, $response->json('data.imported'));
+        $this->assertEquals(1, $response->json('data.skipped'));
+    }
+
+    public function test_import_completed_malformed_items_are_counted_as_skipped(): void
+    {
+        $payload = [
+            ['record_name' => '', 'call_date' => '2025-01-01 10:00:00'],   // empty record_name
+            ['call_date'   => '2025-01-01 11:00:00'],                       // missing record_name
+            ['record_name' => 'historical/ok.mp3', 'call_date' => '2025-01-01 12:00:00'], // valid
+        ];
+
+        $response = $this->postMcp('calls/recordings/import-completed', $payload);
+        $response->assertStatus(200);
+        $this->assertEquals(1, $response->json('data.imported'));
+        $this->assertEquals(2, $response->json('data.skipped'));
+    }
+
+    public function test_import_completed_single_object_body(): void
+    {
+        $payload = [
+            'record_name' => 'historical/single.mp3',
+            'call_date'   => '2025-01-01 10:00:00',
+            'caller_part' => '+375291234567',
+        ];
+
+        $response = $this->postMcp('calls/recordings/import-completed', $payload);
+        $response->assertStatus(200);
+        $this->assertEquals(1, $response->json('data.imported'));
+        $this->assertEquals(1, DB::table('a1_call_recordings')->count());
+    }
+
+    public function test_import_completed_preserves_path_in_file_path(): void
+    {
+        $payload = [[
+            'record_name' => '1080/2024-07-12/172076716695782326',
+            'call_date'   => '2024-07-12 10:23:45',
+            'caller_part' => '+375291234567',
+        ]];
+
+        $this->postMcp('calls/recordings/import-completed', $payload)->assertStatus(200);
+
+        $rec = DB::table('a1_call_recordings')
+            ->where('record_name', '1080/2024-07-12/172076716695782326')
+            ->first();
+
+        // Path should keep folder structure, not just the basename
+        $this->assertStringContainsString('1080/2024-07-12', $rec->file_path);
+        // And must not allow path traversal
+        $this->assertStringNotContainsString('..', $rec->file_path);
+    }
+
+    public function test_import_completed_fallback_to_caller_number(): void
+    {
+        $payload = [[
+            'record_name'   => 'historical/callernumber.mp3',
+            'call_date'     => '2025-01-01 10:00:00',
+            'caller_number' => '375291234567', // no caller_part — use caller_number
+        ]];
+
+        $this->postMcp('calls/recordings/import-completed', $payload)->assertStatus(200);
+
+        $rec = DB::table('a1_call_recordings')
+            ->where('record_name', 'historical/callernumber.mp3')
+            ->first();
+        $this->assertEquals('375291234567', $rec->caller_part);
+    }
+
+    public function test_import_completed_sets_has_audio_zero(): void
+    {
+        $payload = [[
+            'record_name' => 'historical/haudio.mp3',
+            'call_date'   => '2025-01-01 10:00:00',
+        ]];
+
+        $this->postMcp('calls/recordings/import-completed', $payload)->assertStatus(200);
+
+        $rec = DB::table('a1_call_recordings')
+            ->where('record_name', 'historical/haudio.mp3')
+            ->first();
+
+        $this->assertEquals(0, $rec->has_audio);
+        $this->assertNull($rec->downloaded_at);
+    }
+
+    public function test_listing_returns_null_file_url_for_historical_records(): void
+    {
+        // Historical import: has_audio=0
+        $this->postMcp('calls/recordings/import-completed', [[
+            'record_name' => 'historical/noaudio.mp3',
+            'call_date'   => '2025-06-01 10:00:00',
+        ]])->assertStatus(200);
+
+        // Live recording: has_audio=1 (default)
+        DB::table('a1_call_recordings')->insert([
+            'record_name'   => 'live/rec.mp3',
+            'uuid'          => 'live-uuid-001',
+            'call_date'     => '2025-06-01 11:00:00',
+            'file_path'     => 'a1_recordings/live/rec.mp3',
+            'file_size'     => 1024,
+            'has_audio'     => 1,
+        ]);
+
+        $response = $this->mcp('calls/recordings', ['from' => '2025-06-01', 'to' => '2025-06-01']);
+        $response->assertStatus(200);
+
+        $data = collect($response->json('data'));
+
+        $historical = $data->firstWhere('record_name', 'historical/noaudio.mp3');
+        $this->assertNull($historical['file_url'], 'Historical record must have null file_url');
+        $this->assertFalse($historical['has_audio'], 'Historical record must have has_audio=false');
+
+        $live = $data->firstWhere('record_name', 'live/rec.mp3');
+        $this->assertNotNull($live['file_url'], 'Live record must have a file_url');
+        $this->assertTrue($live['has_audio'], 'Live record must have has_audio=true');
+    }
+
+    public function test_pending_analysis_excludes_audio_less_records(): void
+    {
+        // Historical import (has_audio=0) with pending analysis
+        // This cannot happen via import-completed (status=done), but simulate manually
+        DB::table('a1_call_recordings')->insert([
+            'record_name' => 'historical/nope.mp3', 'uuid' => 'hist-nope',
+            'call_date'   => '2025-06-01 10:00:00',
+            'file_path'   => 'historical_import/nope.mp3', 'file_size' => 0,
+            'has_audio'   => 0,
+        ]);
+        DB::table('a1_call_analysis')->insert([
+            'recording_uuid' => 'hist-nope',
+            'ai_status'      => 'pending',
+            'created_at'     => now(), 'updated_at' => now(),
+        ]);
+
+        $response = $this->mcp('calls/pending-analysis', ['from' => '2025-06-01', 'to' => '2025-06-01']);
+        $response->assertStatus(200);
+
+        // Must be empty — no audio, so agent can't process it
+        $this->assertCount(0, $response->json('data'));
+    }
+
+    public function test_import_completed_rejects_invalid_date_format(): void
+    {
+        $payload = [[
+            'record_name' => 'historical/baddate.mp3',
+            'call_date'   => '12.07.2024 10:23', // wrong format
+        ]];
+
+        $response = $this->postMcp('calls/recordings/import-completed', $payload);
+        $response->assertStatus(200);
+        $this->assertEquals(0, $response->json('data.imported'));
+        $this->assertEquals(1, $response->json('data.skipped'));
+    }
 }

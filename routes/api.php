@@ -102,6 +102,7 @@ Route::prefix('mcp/v1')
 
         // A1 Calls: recordings (existing)
         Route::get('calls/recordings', [CallsController::class, 'index'])->name('calls.recordings');
+        Route::post('calls/recordings/import-completed', [CallsController::class, 'importCompleted'])->name('calls.recordings.import-completed');
         Route::get('calls/recordings/{uuid}/file', [CallsController::class, 'streamFile'])->name('calls.recordings.file');
 
         // A1 Calls: CDR and AI analysis (new)

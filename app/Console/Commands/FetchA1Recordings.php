@@ -145,6 +145,7 @@ class FetchA1Recordings extends Command
                 'call_duration' => (int) ($rec['callDuration'] ?? 0),
                 'file_path'     => $filePath,
                 'file_size'     => $fileSize,
+                'has_audio'     => 1,
                 'downloaded_at' => date('Y-m-d H:i:s'),
             ]);
 
@@ -180,10 +181,15 @@ class FetchA1Recordings extends Command
 
     private function enforceQuota(int $deleted, int $freed): array
     {
-        $used = (int) DB::table('a1_call_recordings')->sum('file_size');
+        // Sum only records that still have audio on disk
+        $used = (int) DB::table('a1_call_recordings')
+            ->where('has_audio', 1)
+            ->sum('file_size');
 
         while (($used + self::BUFFER_BYTES) > self::QUOTA_BYTES) {
+            // Pick the oldest recording that still has audio on disk
             $oldest = DB::table('a1_call_recordings')
+                ->where('has_audio', 1)
                 ->orderBy('call_date', 'asc')
                 ->first();
 
@@ -196,9 +202,14 @@ class FetchA1Recordings extends Command
                 @unlink($diskPath);
             }
 
-            DB::table('a1_call_recordings')->where('id', $oldest->id)->delete();
-            $used    -= $oldest->file_size;
-            $freed   += $oldest->file_size;
+            // Mark as audio-deleted — keep the row so transcripts/analysis survive.
+            // Do NOT delete the DB record.
+            DB::table('a1_call_recordings')
+                ->where('id', $oldest->id)
+                ->update(['has_audio' => 0]);
+
+            $used  -= $oldest->file_size;
+            $freed += $oldest->file_size;
             $deleted++;
         }
 
