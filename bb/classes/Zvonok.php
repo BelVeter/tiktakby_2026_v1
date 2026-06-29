@@ -39,21 +39,29 @@ class Zvonok
         //spam filter
         if ($this->isSpam()) return false;
 
+        $z_name   = $mysqli->real_escape_string((string)$this->z_name);
+        $operator = $mysqli->real_escape_string((string)$this->operator);
+        $phone    = $mysqli->real_escape_string((string)$this->phone);
+        $tema     = $mysqli->real_escape_string((string)$this->tema);
+        $info     = $mysqli->real_escape_string((string)$this->info);
+        $validity = (int)$this->validityDaysNum;
+        $type1    = $mysqli->real_escape_string((string)$this->type1);
+        $model_id = (int)$this->model_id;
 
         $query_zv = "INSERT INTO zvonki SET
-                    z_name = '$this->z_name',
+                    z_name = '$z_name',
                     pr_time = 0,
-                    operator = '$this->operator',
-                    phone = '$this->phone',
-                    tema = '$this->tema',
-                    info = '".(str_replace("'", '', $this->info))."',
+                    operator = '$operator',
+                    phone = '$phone',
+                    tema = '$tema',
+                    info = '$info',
                     cr_time = '".time()."',
                     `status` = 'new',
                     react_time = 0,
                     person_id = 0,
-                    validity_days = '$this->validityDaysNum',
-                    type1 = '$this->type1',
-                    model_id = '$this->model_id'
+                    validity_days = '$validity',
+                    type1 = '$type1',
+                    model_id = '$model_id'
                     ";
 
         if (!$mysqli->query($query_zv)) {
@@ -114,7 +122,9 @@ class Zvonok
 
       $timeToConciderForDublicates = time() - 1*60*60;
 
-      $query = "SELECT zv_id FROM zvonki WHERE z_name='$this->z_name' AND info='$this->info' AND info!='' AND cr_time>'$timeToConciderForDublicates'";
+      $name = $mysqli->real_escape_string((string)$this->z_name);
+      $info = $mysqli->real_escape_string((string)$this->info);
+      $query = "SELECT zv_id FROM zvonki WHERE z_name='$name' AND info='$info' AND info!='' AND cr_time>'$timeToConciderForDublicates'";
       $result = $mysqli->query($query);
       if (!$result) {
         die('Сбой при доступе к MYSQL: '.$query.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
