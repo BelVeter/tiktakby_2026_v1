@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -55,13 +56,14 @@ class CallsController extends BaseController
             ->offset(($page - 1) * $perPage)
             ->limit($perPage)
             ->get([
-                'a1_call_recordings.uuid', 
-                'a1_call_recordings.record_name', 
-                'a1_call_recordings.call_date', 
-                'a1_call_recordings.caller_part', 
-                'a1_call_recordings.callee_part', 
-                'a1_call_recordings.call_duration', 
-                'a1_call_recordings.file_size', 
+                'a1_call_recordings.uuid',
+                'a1_call_recordings.record_name',
+                'a1_call_recordings.call_date',
+                'a1_call_recordings.caller_part',
+                'a1_call_recordings.callee_part',
+                'a1_call_recordings.call_duration',
+                'a1_call_recordings.file_size',
+                'a1_call_recordings.has_audio',
                 'a1_call_recordings.downloaded_at',
                 'a1_call_analysis.ai_status',
                 'a1_call_analysis.ai_business_note'
@@ -88,7 +90,9 @@ class CallsController extends BaseController
                 'callee_part'      => $row->callee_part,
                 'call_duration'    => (int) $row->call_duration,
                 'file_size'        => (int) $row->file_size,
-                'file_url'         => $baseUrl . $row->uuid . '/file',
+                // null when audio has been deleted or record is a historical import
+                'file_url'         => $row->has_audio ? $baseUrl . $row->uuid . '/file' : null,
+                'has_audio'        => (bool) $row->has_audio,
                 'downloaded_at'    => $row->downloaded_at,
                 'ai_status'        => $row->ai_status ?? 'pending',
                 'ai_business_note' => $row->ai_business_note,
@@ -111,6 +115,153 @@ class CallsController extends BaseController
                 'quota_bytes'      => 1_073_741_824,
                 'data_freshness'   => $lastFetch,
             ]
+        );
+    }
+
+    /**
+     * POST /api/mcp/v1/calls/recordings/import-completed
+     *
+     * Imports historical call records with their completed AI analysis in one go.
+     * Bypasses the pending-analysis queue — records are immediately written as ai_status='done'
+     * and has_audio=0 (no audio file stored on server).
+     * Skipped records are those already existing (matched by record_name) or malformed.
+     *
+     * Accepts:
+     *   - a JSON array directly: [{...}, {...}]        (up to 1000 items per request)
+     *   - an object with a 'records' key: {"records": [{...}, {...}]}
+     *   - a single object: {...}
+     *
+     * Required fields per item: record_name, call_date (YYYY-MM-DD HH:MM:SS).
+     * Optional analysis fields: transcript, ai_summary, ai_result, ai_result_detail,
+     *   discussed_items (array), missed_item, client_sentiment, consultant_sentiment,
+     *   ai_business_note, caller_part (or caller_number), callee_part,
+     *   call_duration (int, seconds), file_size (int, bytes).
+     */
+    public function importCompleted(Request $request): JsonResponse
+    {
+        $body = $request->all();
+
+        // Normalise to a sequential array of items
+        if (isset($body['records']) && is_array($body['records'])) {
+            // Wrapped format: {"records": [...]}
+            $payload = array_values($body['records']);
+        } elseif (isset($body[0]) || empty($body)) {
+            // Direct array format: [{...}, {...}] — Laravel gives numeric keys
+            $payload = array_values($body);
+        } else {
+            // Single object format: {...}
+            $payload = [$body];
+        }
+
+        if (empty($payload)) {
+            return $this->envelope([], ['imported' => 0, 'skipped' => 0], []);
+        }
+
+        // Guard against oversized batches
+        if (count($payload) > 1000) {
+            return response()->json(['error' => 'Payload too large (max 1000 records per request)'], 422);
+        }
+
+        // Collect all valid record_names for bulk existence check
+        $recordNames = [];
+        foreach ($payload as $item) {
+            if (!empty($item['record_name'])) {
+                $recordNames[] = $item['record_name'];
+            }
+        }
+
+        if (empty($recordNames)) {
+            return response()->json(['error' => 'No valid record_name fields found in payload'], 422);
+        }
+
+        $existing = DB::table('a1_call_recordings')
+            ->whereIn('record_name', array_unique($recordNames))
+            ->pluck('record_name')
+            ->toArray();
+
+        $existingMap = array_flip($existing);
+
+        $now = date('Y-m-d H:i:s');
+        $recordingsToInsert = [];
+        $analysisToInsert = [];
+        $imported = 0;
+        $skipped = 0;
+
+        foreach ($payload as $item) {
+            // Skip malformed items — count as skipped for transparency
+            if (empty($item['record_name']) || empty($item['call_date'])) {
+                $skipped++;
+                continue;
+            }
+
+            // Validate call_date format: YYYY-MM-DD HH:MM:SS
+            if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $item['call_date'])) {
+                $skipped++;
+                continue;
+            }
+
+            // Skip already existing records
+            if (isset($existingMap[$item['record_name']])) {
+                $skipped++;
+                continue;
+            }
+
+            // Sanitize record_name for file_path: remove ".." segments, keep slashes
+            $safePath = preg_replace('/\.\./u', '', $item['record_name']);
+            $safePath = trim($safePath, '/');
+
+            $uuid = (string) Str::uuid();
+            $recordingsToInsert[] = [
+                'record_name'   => $item['record_name'],
+                'uuid'          => $uuid,
+                'call_date'     => $item['call_date'],
+                'caller_part'   => $item['caller_part'] ?? $item['caller_number'] ?? '',
+                'callee_part'   => $item['callee_part'] ?? '',
+                'call_duration' => (int) ($item['call_duration'] ?? 0),
+                'file_path'     => 'historical_import/' . $safePath . '.mp3',
+                'file_size'     => (int) ($item['file_size'] ?? 0),
+                'has_audio'     => 0, // no audio file on server; analysis-only record
+                'downloaded_at' => null,
+                'created_at'    => $now,
+            ];
+
+            $analysisToInsert[] = [
+                'recording_uuid'       => $uuid,
+                'ai_status'            => 'done',
+                'transcript'           => $item['transcript'] ?? null,
+                'ai_summary'           => $item['ai_summary'] ?? null,
+                'ai_result'            => $item['ai_result'] ?? null,
+                'ai_result_detail'     => $item['ai_result_detail'] ?? null,
+                'discussed_items'      => isset($item['discussed_items']) ? json_encode($item['discussed_items']) : '[]',
+                'missed_item'          => $item['missed_item'] ?? null,
+                'client_sentiment'     => $item['client_sentiment'] ?? null,
+                'consultant_sentiment' => $item['consultant_sentiment'] ?? null,
+                'ai_business_note'     => $item['ai_business_note'] ?? null,
+                'ai_processed_at'      => $now,
+                'created_at'           => $now,
+                'updated_at'           => $now,
+            ];
+
+            // Prevent duplicates within the same payload batch
+            $existingMap[$item['record_name']] = true;
+            $imported++;
+        }
+
+        if (!empty($recordingsToInsert)) {
+            DB::transaction(function () use ($recordingsToInsert, $analysisToInsert) {
+                foreach (array_chunk($recordingsToInsert, 200) as $chunk) {
+                    DB::table('a1_call_recordings')->insert($chunk);
+                }
+                foreach (array_chunk($analysisToInsert, 200) as $chunk) {
+                    DB::table('a1_call_analysis')->insert($chunk);
+                }
+            });
+        }
+
+        return $this->envelope(
+            [],
+            ['imported' => $imported, 'skipped' => $skipped],
+            []
         );
     }
 
@@ -227,15 +378,16 @@ class CallsController extends BaseController
             ->whereNotNull('transcript')
             ->update(['ai_status' => 'transcribed', 'updated_at' => date('Y-m-d H:i:s')]);
 
-        $selectFields = ['r.uuid', 'r.call_date', 'r.caller_part', 'r.callee_part', 'r.call_duration', 'r.file_size'];
+        $selectFields = ['r.uuid', 'r.call_date', 'r.caller_part', 'r.callee_part', 'r.call_duration', 'r.file_size', 'r.has_audio'];
         if ($status === 'transcribed') {
             $selectFields[] = 'ca.transcript';
         }
 
-        // Find recordings in requested status
+        // Find recordings in requested status — only those that still have audio on disk
         $rows = DB::table('a1_call_analysis as ca')
             ->join('a1_call_recordings as r', 'r.uuid', '=', 'ca.recording_uuid')
             ->where('ca.ai_status', $status)
+            ->where('r.has_audio', 1)
             ->whereBetween('r.call_date', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->orderBy('r.call_date', 'asc')
             ->limit($limit)
@@ -254,9 +406,11 @@ class CallsController extends BaseController
 
         $baseUrl = config('app.url') . '/api/mcp/v1/calls/recordings/';
         $data = $rows->map(function ($r) use ($baseUrl) {
-            return array_merge((array) $r, [
-                'file_url' => $baseUrl . $r->uuid . '/file',
-            ]);
+            $arr = (array) $r;
+            // has_audio=1 guaranteed by the WHERE clause above, but be explicit
+            $arr['file_url'] = $baseUrl . $r->uuid . '/file';
+            unset($arr['has_audio']); // internal field, not useful to the agent here
+            return $arr;
         })->values()->all();
 
         return $this->envelope(
