@@ -512,12 +512,16 @@ class bron {
       return $br;
   }
 
+    private function esc($v): string {
+        return $this->mysqli->real_escape_string((string)$v);
+    }
+
 	function insert() {
 		//if (substr($this->inv_n, 0, 3)!='702' && substr($this->inv_n, 0, 3)!='761') {//!!! пока что стирка карнавальных костюмов и платьев невозможна в принципе. Потом посмотрим.
 
 			$query = "INSERT INTO rent_orders
 				(`type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
-				VALUES ('$this->type', '$this->order_date', '$this->phone', '$this->phone_yn', '$this->family', '$this->name', '$this->otch', '$this->fio_yn', '$this->address', '$this->validity', '$this->inv_n', '$this->model_id', '$this->cat_id', '$this->type2', '$this->client_id', '$this->info', '$this->info2', '$this->web', '$this->cr_time', '$this->cr_who_id', '$this->ch_time', '$this->ch_who_id', '$this->status', '$this->appr_id', '$this->appr_time', '$this->cr_ip', '$this->place_status', '$this->rem_type')";
+				VALUES ('{$this->esc($this->type)}', '{$this->esc($this->order_date)}', '{$this->esc($this->phone)}', '{$this->esc($this->phone_yn)}', '{$this->esc($this->family)}', '{$this->esc($this->name)}', '{$this->esc($this->otch)}', '{$this->esc($this->fio_yn)}', '{$this->esc($this->address)}', '{$this->esc($this->validity)}', '{$this->esc($this->inv_n)}', '{$this->esc($this->model_id)}', '{$this->esc($this->cat_id)}', '{$this->esc($this->type2)}', '{$this->esc($this->client_id)}', '{$this->esc($this->info)}', '{$this->esc($this->info2)}', '{$this->esc($this->web)}', '{$this->esc($this->cr_time)}', '{$this->esc($this->cr_who_id)}', '{$this->esc($this->ch_time)}', '{$this->esc($this->ch_who_id)}', '{$this->esc($this->status)}', '{$this->esc($this->appr_id)}', '{$this->esc($this->appr_time)}', '{$this->esc($this->cr_ip)}', '{$this->esc($this->place_status)}', '{$this->esc($this->rem_type)}')";
 			//dd($query);
       $result = $this->mysqli->query($query);
 			if (!$result) {die('Сбой при доступе к базе данных: '.$query.' ('.$this->mysqli->connect_errno.') '.$this->mysqli->connect_error);}
