@@ -1309,9 +1309,15 @@ class MainPage
               }
           }
           if ($schemaOffer) {
-              $schemaOffer['availability'] = $m->hasItemsAvailable()
-                  ? 'https://schema.org/InStock'
-                  : 'https://schema.org/OutOfStock';
+              if ($m->hasItemsAvailable()) {
+                  $schemaOffer['availability'] = 'https://schema.org/InStock';
+              } else {
+                  $schemaOffer['availability'] = 'https://schema.org/BackOrder';
+                  $returnDate = \bb\classes\tovar::getEarliestReturnDateForModelId((int)$m->getModelId());
+                  if ($returnDate) {
+                      $schemaOffer['availabilityStarts'] = $returnDate->format('Y-m-d');
+                  }
+              }
               $item['item']['offers'] = $schemaOffer;
           } else {
               continue; // Do not output Product if it has no offers (to avoid Google validation error)

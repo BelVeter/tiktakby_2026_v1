@@ -115,7 +115,7 @@ class Zvonok
     }
 
   /**
-   * @return bool|void
+   * @return bool
    */
   public function isDublicate(){
       $mysqli = Db::getInstance()->getConnection();
@@ -132,6 +132,89 @@ class Zvonok
       if ($result->num_rows>0) return true;
       else return false;
     }
+
+  /**
+   * Спам-фильтр для заявок на конкретный товар: та же заявка < 1ч по phone+model_id.
+   */
+  private function isDuplicateByPhoneModel(): bool {
+      if (!$this->model_id) return false;
+
+      $mysqli = Db::getInstance()->getConnection();
+      $timeCutoff = time() - 3600;
+      $phone    = $mysqli->real_escape_string((string)$this->phone);
+      $model_id = (int)$this->model_id;
+
+      $query = "SELECT zv_id FROM zvonki WHERE phone='$phone' AND model_id='$model_id' AND cr_time>'$timeCutoff'";
+      $result = $mysqli->query($query);
+      if (!$result) {
+          die('Сбой при доступе к MYSQL: '.$query.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
+      }
+      return $result->num_rows > 0;
+  }
+
+  /**
+   * Ищет существующий звонок по phone+model_id старше 1ч (повторная заявка).
+   */
+  private function findExistingByPhoneAndModel(): ?self {
+      if (!$this->model_id) return null;
+
+      $mysqli = Db::getInstance()->getConnection();
+      $timeCutoff = time() - 3600;
+      $phone    = $mysqli->real_escape_string((string)$this->phone);
+      $model_id = (int)$this->model_id;
+
+      $query = "SELECT * FROM zvonki WHERE phone='$phone' AND model_id='$model_id' AND cr_time<='$timeCutoff' ORDER BY cr_time DESC LIMIT 1";
+      $result = $mysqli->query($query);
+      if (!$result) {
+          die('Сбой при доступе к MYSQL: '.$query.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
+      }
+      if ($result->num_rows > 0) {
+          return self::getFromDbArray($result->fetch_assoc());
+      }
+      return null;
+  }
+
+  /**
+   * Обновляет существующий звонок как повторную заявку: поднимает вверх,
+   * продлевает срок, дописывает историю в info.
+   */
+  private function updateAsRepeat(self $existing): void {
+      $mysqli = Db::getInstance()->getConnection();
+
+      $changes = [];
+      if ((int)$this->validityDaysNum && (int)$this->validityDaysNum !== (int)$existing->validityDaysNum) {
+          $changes[] = 'срок: '.(int)$this->validityDaysNum.' дн.';
+      }
+      if ($this->z_name && trim((string)$this->z_name) !== trim((string)$existing->z_name)) {
+          $changes[] = 'имя: '.$this->z_name;
+      }
+
+      $note = "\n--- Повторная заявка ".date('d.m.Y H:i')." ---";
+      if ($changes) {
+          $note .= "\n".implode(' | ', $changes);
+      }
+
+      $newValidity = (int)$this->validityDaysNum ?: (int)$existing->validityDaysNum;
+      $newStatus   = ($existing->status === 'done') ? 'new' : $existing->status;
+      $newCrTime   = time();
+      $newInfo     = $mysqli->real_escape_string($existing->info.$note);
+      $newValEsc   = (int)$newValidity;
+      $id          = (int)$existing->id;
+
+      $query = "UPDATE zvonki SET
+          cr_time='$newCrTime',
+          validity_days='$newValEsc',
+          `status`='$newStatus',
+          info='$newInfo'
+          WHERE zv_id='$id'";
+
+      if (!$mysqli->query($query)) {
+          die('Сбой при доступе к базе данных: '.$mysqli->error);
+      }
+
+      $this->id       = $existing->id;
+      $this->messages = "Заявка принята!<br /> Оператор свяжется с Вами в ближайшее время. <br />";
+  }
 
     public function getMessage(){
         return $this->messages;
@@ -171,7 +254,19 @@ class Zvonok
         $z->validityDaysNum = $validityDaysNum;
         $z->model_id = $model_id;
 
-        if(!$z->isDublicate()) $z->save();
+        if ($model_id) {
+            if ($z->isDuplicateByPhoneModel()) {
+                // < 1ч: спам-дубль, игнорируем
+            } elseif ($existing = $z->findExistingByPhoneAndModel()) {
+                // > 1ч: повторная заявка — обновляем существующую запись
+                $z->updateAsRepeat($existing);
+            } else {
+                $z->save();
+            }
+        } else {
+            // Общий обратный звонок (без привязки к товару) — старая логика
+            if (!$z->isDublicate()) $z->save();
+        }
 
         return $z;
     }
