@@ -843,6 +843,44 @@ h1.l3_h1-mobile {
 
 
 
+.l3-backorder-notice {
+  font-family: 'Nunito', sans-serif;
+  color: #666;
+  margin-bottom: 10px;
+
+  .l3-backorder-status {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+
+    @media screen and (max-width: 767px) {
+      font-size: 15px;
+    }
+  }
+
+  .l3-backorder-date {
+    font-size: 13px;
+    font-weight: 400;
+    color: #666;
+    margin-top: 2px;
+
+    @media screen and (max-width: 767px) {
+      font-size: 14px;
+    }
+  }
+
+  .l3-backorder-cta {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    margin-top: 2px;
+
+    @media screen and (max-width: 767px) {
+      font-size: 14px;
+    }
+  }
+}
+
 .row__action-buttons {
   display: flex;
   flex-flow: row nowrap;

@@ -247,8 +247,10 @@ class TariffModel
 
             $offers[] = [
                 '@type'              => 'Offer',
+                'businessFunction'   => 'http://purl.org/goodrelations/v1#LeaseOut',
                 'priceCurrency'      => 'BYN',
                 'price'              => number_format($price, 2, '.', ''),
+                'priceValidUntil'    => '2027-12-31',
                 'priceSpecification' => [
                     '@type'             => 'UnitPriceSpecification',
                     'price'             => number_format($price, 2, '.', ''),
@@ -331,8 +333,10 @@ class TariffModel
         $unitCode = $unitCodeMap[$minTariff->step] ?? 'DAY';
         return [
             '@type'              => 'Offer',
+            'businessFunction'   => 'http://purl.org/goodrelations/v1#LeaseOut',
             'priceCurrency'      => 'BYN',
             'price'              => number_format($minTariff->getTotalAmount(), 2, '.', ''),
+            'priceValidUntil'    => '2027-12-31',
             'priceSpecification' => [
                 '@type'             => 'UnitPriceSpecification',
                 'price'             => number_format($minTariff->getTotalAmount(), 2, '.', ''),

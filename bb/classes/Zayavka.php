@@ -73,6 +73,46 @@ class Zayavka
         return null;
     }
 
+    /**
+     * Повторная заявка по уже активной (new/in_work) заявке: всплывает наверх списка,
+     * продлевает срок и фиксирует историю в info2. Новая строка НЕ создаётся.
+     */
+    public function bumpAsRepeat(array $d): void
+    {
+        $changes = [];
+        if (!empty($d['validity']) && (int)$d['validity'] !== (int)$this->validity) {
+            $changes[] = 'срок: ' . date('d.m.Y', (int)$d['validity']);
+        }
+        if (!empty($d['family']) && trim((string)$d['family']) !== trim((string)$this->family)) {
+            $changes[] = 'имя: ' . $d['family'];
+        }
+
+        $note = 'Повторная заявка';
+        if ($changes) { $note .= ' — ' . implode(' | ', $changes); }
+        if (!empty($d['info'])) { $note .= '. ' . $d['info']; }
+
+        $hist = '<p class="bron_hist_unit">' . date('d.m H:i') . ': ' . $this->esc($note) . '</p>';
+        $this->info2 = (string)$this->info2 . $hist;
+
+        $sets = ["info2='" . $this->esc($this->info2) . "'"];
+        if (!empty($d['validity'])) {
+            $sets[] = 'validity=' . (int)$d['validity'];
+            $this->validity = (int)$d['validity'];
+        }
+        // in_work → new: всплывает в верхнюю группу списка (сортировка z_status='new' DESC)
+        if ($this->z_status === 'in_work') {
+            $sets[] = "z_status='new'";
+            $this->z_status = 'new';
+        }
+        $sets[] = 'ch_time=' . time();
+        $this->ch_time = time();
+
+        $sql = "UPDATE rent_orders SET " . implode(', ', $sets) . " WHERE order_id=" . (int)$this->order_id;
+        if (!$this->conn->query($sql)) {
+            throw new \RuntimeException('bumpAsRepeat failed: ' . $this->conn->error);
+        }
+    }
+
     public static function load(int $orderId, $conn = null): self
     {
         $c = $conn ?: Db::getInstance()->getConnection();
@@ -188,9 +228,12 @@ class Zayavka
 
         $existing = $this->findActiveDuplicate($modelId, $phone ?: null);
         if ($existing) {
+            // active dup → no new row, but surface the repeat: bump to top, extend
+            // validity, log history (spec: повторная заявка не должна молча теряться)
+            $existing->bumpAsRepeat($d);
             $res->isDuplicate = true;
             $res->existing = $existing;
-            return $res; // active dup → no new row
+            return $res;
         }
 
         $catId = 0;

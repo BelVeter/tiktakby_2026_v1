@@ -657,12 +657,21 @@ class L3Page
       // Build Schema.org offers via TariffModel — filtered by primary rental period
       $l3SchemaOffers = $this->getTarifModel() ? $this->getTarifModel()->getSchemaOffers($l3PrimaryStep, $l3Url) : null;
       if ($l3SchemaOffers) {
-          $availability = $this->model->hasFreeItems() ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
+          if ($this->model->hasFreeItems()) {
+              $availability = 'https://schema.org/InStock';
+              $availabilityStarts = null;
+          } else {
+              $availability = 'https://schema.org/BackOrder';
+              $returnDate = \bb\classes\tovar::getEarliestReturnDateForModelId((int)$this->model->model_id);
+              $availabilityStarts = $returnDate ? $returnDate->format('Y-m-d') : null;
+          }
           if (isset($l3SchemaOffers['@type'])) {
               $l3SchemaOffers['availability'] = $availability;
+              if ($availabilityStarts) $l3SchemaOffers['availabilityStarts'] = $availabilityStarts;
           } else {
               foreach ($l3SchemaOffers as &$offer) {
                   $offer['availability'] = $availability;
+                  if ($availabilityStarts) $offer['availabilityStarts'] = $availabilityStarts;
               }
               unset($offer);
           }

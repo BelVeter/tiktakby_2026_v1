@@ -77,6 +77,22 @@
   </div>
 
 
+  @if(!$p->model->hasFreeItems())
+    @php
+      $l3ReturnDate = \bb\classes\tovar::getEarliestReturnDateForModelId($p->getModelId());
+      $l3Months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    @endphp
+    <div class="l3-backorder-notice">
+      <div class="l3-backorder-status">Товар находится в прокате</div>
+      @if($l3ReturnDate)
+        <div class="l3-backorder-date">
+          Ожидается возврат {{ $l3ReturnDate->format('j') }} {{ $l3Months[(int)$l3ReturnDate->format('n') - 1] }}
+        </div>
+      @endif
+      <div class="l3-backorder-cta">Оставьте заявку — мы сообщим о наличии!</div>
+    </div>
+  @endif
+
   <div class="row__action-buttons">
 
 
