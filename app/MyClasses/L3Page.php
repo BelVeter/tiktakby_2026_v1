@@ -765,7 +765,34 @@ class L3Page
 
       $l3Schema['additionalProperty'] = $l3AdditionalProps;
 
-      return '<script type="application/ld+json">' . json_encode($l3Schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+      $output = '<script type="application/ld+json">' . json_encode($l3Schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+
+      // FAQPage JSON-LD (if product page has FAQ)
+      $l3FaqItems = $this->getFaqArray();
+      if (!empty($l3FaqItems)) {
+          $l3FaqEntities = [];
+          foreach ($l3FaqItems as $l3FaqItem) {
+              if (!isset($l3FaqItem['question']) || !isset($l3FaqItem['answer']) || trim($l3FaqItem['question']) === '' || trim($l3FaqItem['answer']) === '') continue;
+              $l3FaqEntities[] = [
+                  '@type' => 'Question',
+                  'name'  => trim($l3FaqItem['question']),
+                  'acceptedAnswer' => [
+                      '@type' => 'Answer',
+                      'text'  => trim(nl2br(strip_tags($l3FaqItem['answer'], '<a><b><strong><i><em><ul><li><ol><p><br><h1><h2><h3><h4><h5><h6>'))),
+                  ],
+              ];
+          }
+          if (!empty($l3FaqEntities)) {
+              $l3FaqSchema = [
+                  '@context'   => 'https://schema.org',
+                  '@type'      => 'FAQPage',
+                  'mainEntity' => $l3FaqEntities,
+              ];
+              $output .= '<script type="application/ld+json">' . json_encode($l3FaqSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+          }
+      }
+
+      return $output;
   }
 
   private static function formatHeightRanges(array $ranges): string
