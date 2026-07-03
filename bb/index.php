@@ -277,6 +277,10 @@ $role = UserRole::getCurrentRole();
         <img src="/bb/assets/images/jpg/subscr.jpg" style="width: 50px;">
         <span>Подписки</span>
     </a>
+    <a class="menu-link" href="/bb/geo_heatmap.php">
+        <img src="/bb/assets/images/png/menu-reports.png" style="width: 50px;">
+        <span>Карта выдач</span>
+    </a>
 
 </div>
 <!-- смена для курьеров

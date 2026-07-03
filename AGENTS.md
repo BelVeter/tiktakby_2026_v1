@@ -131,7 +131,7 @@ Sequence:
 |-------|--------|
 | Catalog | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_rent_cat`, `tovar_list`, `tovar_properties` |
 | Rental | `rent_deals_act`, `rent_orders`, `rent_model_web` (includes `faq` TEXT/JSON column), `rent_tarif_act`, `rent_sub_deals_act`, `deals` |
-| Clients | `clients`, `clients_arch`, `users`, `logpass` |
+| Clients | `clients`, `clients_arch`, `clients_geo`, `users`, `logpass` |
 | Handbooks | `rash_items`, `doh_items` (contain `is_active` column for entry form filtering) |
 | Orders | `rent_orders`, `rent_orders_arch`, `karn_brons`, `karn_brons_arch` |
 | Content | `pages` (includes `faq` TEXT/JSON column), `video_links`, `dop_photos` |

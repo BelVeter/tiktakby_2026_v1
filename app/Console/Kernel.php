@@ -54,6 +54,16 @@ class Kernel extends ConsoleKernel
         $schedule->command('a1:fetch-recordings', ['--period' => 4320])
             ->dailyAt('04:35')
             ->withoutOverlapping();
+
+        // Геокодирование: активные клиенты — каждые 30 минут
+        $schedule->command('geo:geocode-clients', ['--mode' => 'regular'])
+            ->everyThirtyMinutes()
+            ->withoutOverlapping();
+
+        // Геокодирование: добор квоты — 28-го числа каждого месяца в 03:00
+        $schedule->command('geo:geocode-clients', ['--mode' => 'quota-filler'])
+            ->monthlyOn(28, '03:00')
+            ->withoutOverlapping();
     }
 
     /**
