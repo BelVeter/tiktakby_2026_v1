@@ -116,6 +116,12 @@ class GeocodeClients extends Command
     {
         $this->info('Starting quota filler mode...');
 
+        $isLastDayOfMonth = Carbon::now()->format('Y-m-d') === Carbon::now()->endOfMonth()->format('Y-m-d');
+        if (!$isLastDayOfMonth) {
+            $this->info('Quota filler mode only runs on the last day of the month to preserve quota for regular syncs.');
+            return;
+        }
+
         // 40,000 requests per month is the free tier.
         $totalQuota = 40000;
 
