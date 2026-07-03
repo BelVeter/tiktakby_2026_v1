@@ -36,4 +36,8 @@ return [
         'throttle_ms' => env('A1_THROTTLE_MS', 1200),
     ],
 
+    'google_maps' => [
+        'api_key' => env('GOOGLE_MAPS_API_KEY'),
+    ],
+
 ];
