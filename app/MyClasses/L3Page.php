@@ -772,13 +772,13 @@ class L3Page
       if (!empty($l3FaqItems)) {
           $l3FaqEntities = [];
           foreach ($l3FaqItems as $l3FaqItem) {
-              if (empty($l3FaqItem['question']) || empty($l3FaqItem['answer'])) continue;
+              if (!isset($l3FaqItem['question']) || !isset($l3FaqItem['answer']) || trim($l3FaqItem['question']) === '' || trim($l3FaqItem['answer']) === '') continue;
               $l3FaqEntities[] = [
                   '@type' => 'Question',
                   'name'  => trim($l3FaqItem['question']),
                   'acceptedAnswer' => [
                       '@type' => 'Answer',
-                      'text'  => trim(strip_tags($l3FaqItem['answer'], '<a><b><strong><i><em><ul><li><ol><p><br><h1><h2><h3><h4><h5><h6>')),
+                      'text'  => trim(nl2br(strip_tags($l3FaqItem['answer'], '<a><b><strong><i><em><ul><li><ol><p><br><h1><h2><h3><h4><h5><h6>'))),
                   ],
               ];
           }

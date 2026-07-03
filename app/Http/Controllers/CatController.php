@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\MyClasses\CatMainPage;
 use App\MyClasses\L2ModelWeb;
 use App\MyClasses\MainPage;
 use bb\classes\Category;
@@ -11,13 +10,25 @@ use bb\classes\ModelWeb;
 use Illuminate\Http\Request;
 
 class CatController extends Controller{
+    // Legacy /ru/prokat/{cat} route (old menu_items-based catalog, table no longer exists).
+    // "karnaval" aggregated several categories under one legacy menu item with no modern equivalent page.
     public function CatMainPage($cat, Request $req){
 
-        $p=CatMainPage::getPageForCatByUrlName($cat);
-        //$p = CatMainPage::getPageByCatId(4);
-        //dd($p);
-//        if (!$p) return view('not_found');
-        return view('catpage', ['p' => $p]);
+        if ($cat === 'karnaval') {
+            return redirect('/ru/karnavalnye-kostyumy', 301);
+        }
+
+        $category = Category::getByUrlName($cat, 'ru');
+        if (!$category) {
+            return response()->view('not_found', [], 404);
+        }
+
+        $url = $category->getUrlForPage('ru');
+        if ($url === '/ru/') {
+            return response()->view('not_found', [], 404);
+        }
+
+        return redirect($url, 301);
     }
 
     public function razdelMainPage($lang, $razdelName, Request $req) {

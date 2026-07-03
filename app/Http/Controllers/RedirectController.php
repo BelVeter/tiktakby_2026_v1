@@ -22,7 +22,7 @@ class RedirectController extends Controller
 
     public function karnavalRedirect()
     {
-        return redirect('/ru/prokat-detskih-tovarovkarnavalnye-kostyumy', 301);
+        return redirect('/ru/karnavalnye-kostyumy', 301);
     }
 
     // --- Bioptron alias ---

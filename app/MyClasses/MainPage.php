@@ -1369,13 +1369,13 @@ class MainPage
       if (!empty($faqItems)) {
           $faqEntities = [];
           foreach ($faqItems as $faqItem) {
-              if (empty($faqItem['question']) || empty($faqItem['answer'])) continue;
+              if (!isset($faqItem['question']) || !isset($faqItem['answer']) || trim($faqItem['question']) === '' || trim($faqItem['answer']) === '') continue;
               $faqEntities[] = [
                   '@type' => 'Question',
                   'name'  => trim($faqItem['question']),
                   'acceptedAnswer' => [
                       '@type' => 'Answer',
-                      'text'  => trim(strip_tags($faqItem['answer'], '<a><b><strong><i><em><ul><li><ol><p><br><h1><h2><h3><h4><h5><h6>')),
+                      'text'  => trim(nl2br(strip_tags($faqItem['answer'], '<a><b><strong><i><em><ul><li><ol><p><br><h1><h2><h3><h4><h5><h6>'))),
                   ],
               ];
           }
