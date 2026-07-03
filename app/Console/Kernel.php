@@ -60,9 +60,9 @@ class Kernel extends ConsoleKernel
             ->everyThirtyMinutes()
             ->withoutOverlapping();
 
-        // Геокодирование: добор квоты — 28-го числа каждого месяца в 03:00
+        // Геокодирование: добор квоты — в последний день каждого месяца в 03:00
         $schedule->command('geo:geocode-clients', ['--mode' => 'quota-filler'])
-            ->monthlyOn(28, '03:00')
+            ->lastDayOfMonth('03:00')
             ->withoutOverlapping();
     }
 
