@@ -156,8 +156,8 @@ $points_js = implode(",\n", $points);
                 });
             }
         </script>
-        <!-- Подключаем Google Maps API с библиотекой visualization -->
-        <script async defer src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode($apiKey) ?>&libraries=visualization&callback=initMap"></script>
+        <!-- Подключаем Google Maps API с библиотекой visualization (версия 3.64 нужна для HeatmapLayer) -->
+        <script async defer src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode($apiKey) ?>&v=3.64&libraries=visualization&callback=initMap"></script>
     <?php endif; ?>
 
 </div>
