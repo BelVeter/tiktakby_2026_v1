@@ -15,7 +15,7 @@ Base::loginCheck(array(0, 3, 5, 7));
 
 $dotenv = \Dotenv\Dotenv::createImmutable($_SERVER['DOCUMENT_ROOT']);
 $dotenv->safeLoad();
-$apiKey = $_ENV['GOOGLE_MAPS_API_KEY'] ?? '';
+// $apiKey = $_ENV['GOOGLE_MAPS_API_KEY'] ?? ''; // Больше не нужно для Leaflet
 
 $mysqli = \bb\Db::getInstance()->getConnection();
 
@@ -63,7 +63,7 @@ if ($stmt) {
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         if (!empty($row['lat']) && !empty($row['lng'])) {
-            $points[] = "{location: new google.maps.LatLng({$row['lat']}, {$row['lng']}), weight: 1}";
+            $points[] = "[{$row['lat']}, {$row['lng']}, 1]";
         }
     }
     $stmt->close();
@@ -90,6 +90,9 @@ $points_js = implode(",\n", $points);
         #map { height: 600px; width: 100%; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .stats { margin-bottom: 10px; font-weight: bold; color: #555; }
     </style>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 </head>
 <body>
 
@@ -119,46 +122,50 @@ $points_js = implode(",\n", $points);
         Найдено выдач с координатами за период: <?= count($points) ?>
     </div>
 
-    <?php if (empty($apiKey)): ?>
-        <p style="color:red;">Ошибка: GOOGLE_MAPS_API_KEY не установлен в .env</p>
-    <?php else: ?>
-        <div id="map"></div>
+    <div id="map"></div>
 
-        <script>
-            let map, heatmap;
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet Heatmap Plugin -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
-            function initMap() {
-                // Центрируем на Минск
-                map = new google.maps.Map(document.getElementById("map"), {
-                    zoom: 11,
-                    center: { lat: 53.9006, lng: 27.5590 },
-                    mapTypeId: "roadmap",
-                });
+    <script>
+        // Инициализируем карту (Центрируем на Минск)
+        var map = L.map('map').setView([53.9006, 27.5590], 11);
 
-                const heatMapData = [
-                    <?= $points_js ?>
-                ];
+        // Добавляем базовый слой OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 18
+        }).addTo(map);
 
-                heatmap = new google.maps.visualization.HeatmapLayer({
-                    data: heatMapData,
-                    map: map,
-                    radius: 20,
-                    opacity: 0.7
-                });
+        // Данные для тепловой карты: [lat, lng, intensity]
+        var heatMapData = [
+            <?= $points_js ?>
+        ];
 
-                // Добавляем маркер офиса
-                const officeLocation = { lat: 53.9401009, lng: 27.5680041 };
-                new google.maps.Marker({
-                    position: officeLocation,
-                    map: map,
-                    title: "Офис TIKTAK.BY (Литературная 22)",
-                    icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-                });
-            }
-        </script>
-        <!-- Подключаем Google Maps API с библиотекой visualization (версия 3.64 нужна для HeatmapLayer) -->
-        <script async defer src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode($apiKey) ?>&v=3.64&libraries=visualization&callback=initMap"></script>
-    <?php endif; ?>
+        // Добавляем тепловой слой
+        var heat = L.heatLayer(heatMapData, {
+            radius: 20,
+            blur: 15,
+            maxZoom: 17
+        }).addTo(map);
+
+        // Добавляем маркер офиса
+        var officeIcon = L.icon({
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        L.marker([53.9401009, 27.5680041], {icon: officeIcon})
+            .addTo(map)
+            .bindPopup('Офис TIKTAK.BY (Литературная 22)');
+    </script>
 
 </div>
 
