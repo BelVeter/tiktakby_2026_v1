@@ -1362,7 +1362,34 @@ class MainPage
           'itemListElement' => $schemaItems,
       ];
 
-      return '<script type="application/ld+json">' . json_encode($schemaData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+      $output = '<script type="application/ld+json">' . json_encode($schemaData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+
+      // FAQPage JSON-LD (if page has FAQ)
+      $faqItems = $this->getFaqArray();
+      if (!empty($faqItems)) {
+          $faqEntities = [];
+          foreach ($faqItems as $faqItem) {
+              if (empty($faqItem['question']) || empty($faqItem['answer'])) continue;
+              $faqEntities[] = [
+                  '@type' => 'Question',
+                  'name'  => trim($faqItem['question']),
+                  'acceptedAnswer' => [
+                      '@type' => 'Answer',
+                      'text'  => trim(strip_tags($faqItem['answer'], '<a><b><strong><i><em><ul><li><ol><p><br><h1><h2><h3><h4><h5><h6>')),
+                  ],
+              ];
+          }
+          if (!empty($faqEntities)) {
+              $faqSchema = [
+                  '@context'   => 'https://schema.org',
+                  '@type'      => 'FAQPage',
+                  'mainEntity' => $faqEntities,
+              ];
+              $output .= '<script type="application/ld+json">' . json_encode($faqSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+          }
+      }
+
+      return $output;
   }
 
   private static function formatHeightRanges(array $ranges): string
