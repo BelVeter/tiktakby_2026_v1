@@ -80,6 +80,45 @@ if ($stmt) {
     $stmt->close();
 }
 
+// Всего клиентов за период vs сколько из них не распознано геокодером
+$total_clients = 0;
+$unrecognized_clients = 0;
+
+$count_query = "
+    SELECT geo_status, COUNT(DISTINCT client_id) AS cnt FROM (
+        SELECT d.client_id, g.geo_status
+        FROM rent_sub_deals_act s
+        JOIN rent_deals_act d ON s.deal_id = d.deal_id
+        LEFT JOIN clients_geo g ON d.client_id = g.client_id
+        WHERE s.type IN ('first_rent', 'takeaway_plan')
+          AND s.acc_date BETWEEN ? AND ?
+          $delivery_condition
+        UNION ALL
+        SELECT d.client_id, g.geo_status
+        FROM rent_sub_deals_arch s
+        JOIN rent_deals_arch d ON s.deal_id = d.deal_id
+        LEFT JOIN clients_geo g ON d.client_id = g.client_id
+        WHERE s.type IN ('first_rent', 'takeaway_plan')
+          AND s.acc_date BETWEEN ? AND ?
+          $delivery_condition
+    ) t
+    GROUP BY geo_status
+";
+
+$count_stmt = $mysqli->prepare($count_query);
+if ($count_stmt) {
+    $count_stmt->bind_param("iiii", $start_ts, $end_ts, $start_ts, $end_ts);
+    $count_stmt->execute();
+    $count_result = $count_stmt->get_result();
+    while ($row = $count_result->fetch_assoc()) {
+        $total_clients += (int)$row['cnt'];
+        if ((int)$row['geo_status'] !== 1) {
+            $unrecognized_clients += (int)$row['cnt'];
+        }
+    }
+    $count_stmt->close();
+}
+
 $points_js = implode(",\n", $heatmap_points);
 
 $grouped_js_array = [];
@@ -139,7 +178,8 @@ $grouped_js = implode(",\n", $grouped_js_array);
     </form>
 
     <div class="stats">
-        Найдено выдач с координатами за период: <?= count($heatmap_points) ?> (без учета системной точки Минска)
+        Найдено выдач с координатами за период: <?= count($heatmap_points) ?> (без учета системной точки Минска)<br>
+        Всего адресов клиентов за период: <?= $total_clients ?>, не распознано геокодером: <?= $unrecognized_clients ?>
     </div>
 
     <div id="map"></div>
