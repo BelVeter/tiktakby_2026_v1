@@ -324,7 +324,8 @@ For deeper details, see `AGENTS.md`:
 - [RocketSMS API Integration](docs/rocketsms_api.md)
 
 **Project Notes & Backlog**:
-- [docs/db_notes.md](docs/db_notes.md) — DB gotchas + архитектура заявок/звонков. **Читать перед правками `rent_orders`/`rent_orders_arch`/`zvonki`/заявок.** Главная ловушка: позиционные `INSERT ... VALUES` ломаются при добавлении колонок — всегда проверять перед `ALTER TABLE ADD COLUMN`.
+- [docs/db_notes.md](docs/db_notes.md) — DB gotchas + архитектура заявок/звонков. **Читать перед правками `rent_orders`/`rent_orders_arch`/`zvonki`/заявок.** Главная ловушка: позиционные `INSERT ... VALUES` ломаются при добавлении колонок — всегда проверять перед `ALTER TABLE ADD COLUMN`. Там же (п.7) — известный баг: `php artisan migrate` сломан на проде для любой новой миграции (ionCube Loader), обходной путь через прямой SQL.
 - [docs/backlog.md](docs/backlog.md) — техдолг и отложенные задачи (вкл. чистку найденного легаси).
+- [docs/geo_address_fix.md](docs/geo_address_fix.md) — методика разбора нераспознанных адресов клиентов (`clients_geo.geo_status=2`) для тепловой карты `bb/geo_heatmap.php`: словарь минских сокращений улиц, AI-нормализация + проверка через Google Geocoding API, когда включать Яндекс-фоллбек, когда эскалировать на человека.
 
 **Working preference (owner):** владелец писал базу сам ~10 лет (самоучка), есть легаси. При каждом удобном случае предлагать **мелкие безопасные (low-risk) правки** кода, который и так трогаем; массовый рефакторинг легаси — только по явному запросу.

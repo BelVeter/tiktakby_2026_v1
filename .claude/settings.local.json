@@ -44,7 +44,8 @@
       "Bash(curl -sI https://tiktak.by/)",
       "Bash(curl -sI -H \"Host: tiktak.by\" https://87.232.64.24/ -k --max-time 10)",
       "Bash(python3)",
-      "Bash(grep -n '^class\\\\|^  class\\\\|extends\\\\|getFaqArray\\\\|\\\\$faq\\\\b' /home/dmitry/sites/tiktakby/app/MyClasses/CatMainPage.php)"
+      "Bash(grep -n '^class\\\\|^  class\\\\|extends\\\\|getFaqArray\\\\|\\\\$faq\\\\b' /home/dmitry/sites/tiktakby/app/MyClasses/CatMainPage.php)",
+      "Bash(python3 -c \"import paramiko; print\\('paramiko:', paramiko.__version__\\)\")"
     ]
   }
 }

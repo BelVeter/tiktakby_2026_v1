@@ -106,7 +106,7 @@ class GeocodeClients extends Command
                          ->where('clients_geo.geo_updated_at', '<', Carbon::now()->subDays(7));
                   });
             })
-            ->select('clients.client_id', 'clients.city', 'clients.str', 'clients.dom')
+            ->select('clients.client_id', 'clients.city', 'clients.str', 'clients.dom', 'clients_geo.corrected_address')
             ->get();
 
         $this->info("Found {$clientsToGeocode->count()} active clients to geocode.");
@@ -165,21 +165,26 @@ class GeocodeClients extends Command
         $failed = 0;
 
         foreach ($clients as $client) {
-            // Clean up address parts, strip control characters (e.g. \x01 in legacy data)
-            $city = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $client->city));
-            $str  = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $client->str));
-            $dom  = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $client->dom));
+            // Ручная правка адреса (см. docs/geo_address_fix.md) имеет приоритет над сырыми полями клиента
+            if (!empty($client->corrected_address)) {
+                $address = $client->corrected_address . ', Беларусь';
+            } else {
+                // Clean up address parts, strip control characters (e.g. \x01 in legacy data)
+                $city = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $client->city));
+                $str  = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $client->str));
+                $dom  = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $client->dom));
 
-            if (empty($city) && empty($str)) {
-                // No usable address data at all
-                $this->updateStatus($client->client_id, 2);
-                $failed++;
-                continue;
+                if (empty($city) && empty($str)) {
+                    // No usable address data at all
+                    $this->updateStatus($client->client_id, 2);
+                    $failed++;
+                    continue;
+                }
+
+                // Append country for better accuracy (prevents mismatches in other countries)
+                $address = "{$city}, {$str} {$dom}, Беларусь";
             }
 
-            // Append country for better accuracy (prevents mismatches in other countries)
-            $address = "{$city}, {$str} {$dom}, Беларусь";
-            
             $url = "https://maps.googleapis.com/maps/api/geocode/json";
             
             try {
