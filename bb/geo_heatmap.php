@@ -27,7 +27,8 @@ $delivery_type = isset($_POST['delivery_type']) ? $_POST['delivery_type'] : 'all
 $start_ts = strtotime($from_date . ' 00:00:00');
 $end_ts = strtotime($to_date . ' 23:59:59');
 
-$points = [];
+$heatmap_points = [];
+$grouped = [];
 
 $delivery_condition = "";
 if ($delivery_type === 'courier') {
@@ -63,13 +64,29 @@ if ($stmt) {
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         if (!empty($row['lat']) && !empty($row['lng'])) {
-            $points[] = "[{$row['lat']}, {$row['lng']}, 1]";
+            // Игнорируем дефолтный центр Минска (глюк геокодинга, когда нет точного адреса)
+            if (round($row['lat'], 4) == 53.9006 && round($row['lng'], 4) == 27.5590) {
+                continue; 
+            }
+            $heatmap_points[] = "[{$row['lat']}, {$row['lng']}, 1]";
+            
+            $key = $row['lat'] . '_' . $row['lng'];
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['lat' => $row['lat'], 'lng' => $row['lng'], 'c' => 0];
+            }
+            $grouped[$key]['c']++;
         }
     }
     $stmt->close();
 }
 
-$points_js = implode(",\n", $points);
+$points_js = implode(",\n", $heatmap_points);
+
+$grouped_js_array = [];
+foreach ($grouped as $p) {
+    $grouped_js_array[] = "[{$p['lat']}, {$p['lng']}, {$p['c']}]";
+}
+$grouped_js = implode(",\n", $grouped_js_array);
 
 ?>
 <!DOCTYPE html>
@@ -93,6 +110,7 @@ $points_js = implode(",\n", $points);
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-fullscreen/dist/leaflet.fullscreen.css" />
 </head>
 <body>
 
@@ -119,7 +137,7 @@ $points_js = implode(",\n", $points);
     </form>
 
     <div class="stats">
-        Найдено выдач с координатами за период: <?= count($points) ?>
+        Найдено выдач с координатами за период: <?= count($heatmap_points) ?> (без учета системной точки Минска)
     </div>
 
     <div id="map"></div>
@@ -128,10 +146,17 @@ $points_js = implode(",\n", $points);
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <!-- Leaflet Heatmap Plugin -->
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <!-- Leaflet Fullscreen Plugin -->
+    <script src="https://unpkg.com/leaflet-fullscreen/dist/Leaflet.fullscreen.min.js"></script>
 
     <script>
         // Инициализируем карту (Центрируем на Минск)
-        var map = L.map('map').setView([53.9006, 27.5590], 11);
+        var map = L.map('map', {
+            fullscreenControl: true,
+            fullscreenControlOptions: {
+                position: 'topleft'
+            }
+        }).setView([53.9006, 27.5590], 11);
 
         // Добавляем базовый слой OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -150,6 +175,19 @@ $points_js = implode(",\n", $points);
             blur: 15,
             maxZoom: 17
         }).addTo(map);
+
+        // Данные для tooltips при наведении
+        var groupedData = [
+            <?= $grouped_js ?>
+        ];
+
+        groupedData.forEach(function(p) {
+            L.circleMarker([p[0], p[1]], {
+                radius: 12,
+                color: 'transparent',
+                fillColor: 'transparent'
+            }).addTo(map).bindTooltip('Кол-во выдач: ' + p[2]);
+        });
 
         // Добавляем маркер офиса
         var officeIcon = L.icon({
