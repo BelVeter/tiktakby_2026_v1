@@ -33,9 +33,13 @@
     RewriteRule ^ru$ index.php [L,QSA]
 
     # Redirect Trailing Slashes If Not A Folder...
+    # Emit an absolute https:// URL (not the bare path %1). TLS is terminated at the
+    # proxy, so Apache sees the request as http and would otherwise rebuild the 301
+    # Location with http:// — downgrading e.g. https://tiktak.by/ru/ -> http://tiktak.by/ru.
+    # Same explicit-https technique as the X-Forwarded-Proto rule above.
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
+    RewriteRule ^ https://%{HTTP:Host}%1 [L,R=301]
 
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
