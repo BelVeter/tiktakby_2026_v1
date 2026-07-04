@@ -277,10 +277,12 @@ $role = UserRole::getCurrentRole();
         <img src="/bb/assets/images/jpg/subscr.jpg" style="width: 50px;">
         <span>Подписки</span>
     </a>
+    <?php if (User::getCurrentUser()->isOwner()): ?>
     <a class="menu-link" href="/bb/geo_heatmap.php">
         <img src="/bb/assets/images/png/menu-reports.png" style="width: 50px;">
         <span>Карта выдач</span>
     </a>
+    <?php endif; ?>
 
 </div>
 <!-- смена для курьеров
