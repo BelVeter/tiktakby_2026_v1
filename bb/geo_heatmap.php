@@ -111,6 +111,8 @@ $grouped_js = implode(",\n", $grouped_js_array);
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-fullscreen/dist/leaflet.fullscreen.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
 </head>
 <body>
 
@@ -148,6 +150,8 @@ $grouped_js = implode(",\n", $grouped_js_array);
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <!-- Leaflet Fullscreen Plugin -->
     <script src="https://unpkg.com/leaflet-fullscreen/dist/Leaflet.fullscreen.min.js"></script>
+    <!-- Leaflet MarkerCluster Plugin -->
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
     <script>
         // Инициализируем карту (Центрируем на Минск)
@@ -169,25 +173,47 @@ $grouped_js = implode(",\n", $grouped_js_array);
             <?= $points_js ?>
         ];
 
-        // Добавляем тепловой слой
+        // Добавляем тепловой слой (фон)
         var heat = L.heatLayer(heatMapData, {
-            radius: 20,
-            blur: 15,
-            maxZoom: 17
+            radius: 25,
+            blur: 20,
+            maxZoom: 17,
+            minOpacity: 0.3
         }).addTo(map);
 
-        // Данные для tooltips при наведении
-        var groupedData = [
-            <?= $grouped_js ?>
-        ];
-
-        groupedData.forEach(function(p) {
-            L.circleMarker([p[0], p[1]], {
-                radius: 12,
-                color: 'transparent',
-                fillColor: 'transparent'
-            }).addTo(map).bindTooltip('Кол-во выдач: ' + p[2]);
+        // Создаем группу кластеров для агрегации цифр
+        var markers = L.markerClusterGroup({
+            showCoverageOnHover: false,
+            maxClusterRadius: 50, // Радиус объединения точек
+            iconCreateFunction: function(cluster) {
+                // Используем стандартные стили MarkerCluster, они полупрозрачные
+                var count = cluster.getChildCount();
+                var c = ' marker-cluster-';
+                if (count < 10) {
+                    c += 'small';
+                } else if (count < 50) {
+                    c += 'medium';
+                } else {
+                    c += 'large';
+                }
+                return new L.DivIcon({ html: '<div><span>' + count + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+            }
         });
+
+        // Добавляем невидимые маркеры в кластер, чтобы он считал их количество
+        heatMapData.forEach(function(p) {
+            // Для одиночных точек без кластера делаем маркер прозрачным, 
+            // чтобы не мусорить на карте (видно только тепловое пятно)
+            var transparentIcon = L.divIcon({
+                className: 'transparent-marker',
+                html: '<div style="width: 1px; height: 1px;"></div>'
+            });
+            var m = L.marker([p[0], p[1]], { icon: transparentIcon });
+            m.bindTooltip('Выдач в этой точке: 1');
+            markers.addLayer(m);
+        });
+
+        map.addLayer(markers);
 
         // Добавляем маркер офиса
         var officeIcon = L.icon({

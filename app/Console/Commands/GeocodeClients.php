@@ -24,6 +24,7 @@ class GeocodeClients extends Command
     protected $description = 'Geocode client addresses using Google Maps API';
 
     private $apiKey;
+    private $yandexApiKey;
 
     /**
      * Create a new command instance.
@@ -44,6 +45,7 @@ class GeocodeClients extends Command
     {
         // Use config() — env() returns null after php artisan config:cache
         $this->apiKey = config('services.google_maps.api_key');
+        $this->yandexApiKey = config('services.yandex_maps.api_key');
         
         if (!$this->apiKey) {
             $this->error('GOOGLE_MAPS_API_KEY is not set (check config/services.php and .env)');
@@ -189,12 +191,60 @@ class GeocodeClients extends Command
                 $data = $response->json();
 
                 if ($response->successful()) {
+                    $isGoogleSuccess = false;
+                    $lat = null;
+                    $lng = null;
+
                     if ($data['status'] === 'OK' && !empty($data['results'])) {
-                        $location = $data['results'][0]['geometry']['location'];
-                        $this->updateStatus($client->client_id, 1, $location['lat'], $location['lng']);
+                        // Если Google нашел частичное совпадение (например, только город вместо улицы)
+                        $isPartial = !empty($data['results'][0]['partial_match']);
+                        
+                        // Если совпадение полное, берем координаты Google
+                        if (!$isPartial) {
+                            $location = $data['results'][0]['geometry']['location'];
+                            $lat = $location['lat'];
+                            $lng = $location['lng'];
+                            $isGoogleSuccess = true;
+                        }
+                    } elseif (in_array($data['status'], ['OVER_QUERY_LIMIT', 'OVER_DAILY_LIMIT'])) {
+                        $this->error("Google Quota exceeded. Aborting.");
+                        break;
+                    }
+
+                    // Если Google не нашел или нашел только частично, пробуем Яндекс (если есть ключ)
+                    if (!$isGoogleSuccess && $this->yandexApiKey) {
+                        $this->info("Google fallback for client {$client->client_id}. Trying Yandex...");
+                        
+                        $yandexUrl = "https://geocode-maps.yandex.ru/1.x/";
+                        $yandexResponse = Http::get($yandexUrl, [
+                            'apikey' => $this->yandexApiKey,
+                            'format' => 'json',
+                            'geocode' => $address
+                        ]);
+
+                        if ($yandexResponse->successful()) {
+                            $yData = $yandexResponse->json();
+                            $featureMembers = $yData['response']['GeoObjectCollection']['featureMember'] ?? [];
+                            
+                            if (!empty($featureMembers)) {
+                                // Yandex возвращает координаты в формате "lng lat" (через пробел)
+                                $pos = $featureMembers[0]['GeoObject']['Point']['pos'] ?? '';
+                                $coords = explode(' ', $pos);
+                                if (count($coords) === 2) {
+                                    $lng = $coords[0];
+                                    $lat = $coords[1];
+                                    $isGoogleSuccess = true; // Отмечаем как успех
+                                }
+                            }
+                        }
+                    }
+
+                    // Финальное сохранение результатов
+                    if ($isGoogleSuccess && $lat && $lng) {
+                        $this->updateStatus($client->client_id, 1, $lat, $lng);
                         $success++;
-                    } elseif ($data['status'] === 'ZERO_RESULTS' || $data['status'] === 'INVALID_REQUEST') {
-                        // The address is genuinely unresolvable
+                    } elseif ($data['status'] === 'ZERO_RESULTS' || $data['status'] === 'INVALID_REQUEST' || !$isGoogleSuccess) {
+                        // The address is genuinely unresolvable by both engines
                         $this->updateStatus($client->client_id, 2);
                         $failed++;
                     } else {
