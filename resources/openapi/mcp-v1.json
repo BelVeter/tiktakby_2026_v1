@@ -3592,7 +3592,7 @@
         "/calls/recordings": {
             "get": {
                 "operationId": "tiktak_calls_recordings_list",
-                "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_number, caller_part, callee_part, call_duration, file_size, file_url (null if audio deleted or historical import), has_audio (bool), downloaded_at, ai_status, ai_business_note. Binary audio via /calls/recordings/{uuid}/file — only valid when has_audio=true.",
+                "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_number, caller_part, callee_part, call_duration, file_size, file_url (null if audio deleted or historical import), has_audio (bool), downloaded_at, ai_status, ai_business_note, ai_summary, client_sentiment, consultant_sentiment, ai_result, ai_result_detail. Binary audio via /calls/recordings/{uuid}/file — only valid when has_audio=true.",
                 "parameters": [
                     {
                         "in": "query",
