@@ -184,6 +184,9 @@ The project uses two distinct methods for database interaction due to its hybrid
 - `Deploy.php` changed → update the Deploy section
 - Routes changed (`web.php`) → update the Routes section
 - New important specifics discovered → update Known Specifics
+- **MCP API endpoint changed** (new fields, new params, new endpoint) → update **both**:
+  1. `resources/openapi/mcp-v1.json` — the `responses` schema for that endpoint (not just `summary`!)
+  2. `docs/mcp_server.md` — the endpoint table description
 
 ### Project rules:
 - **Closures in `web.php` are FORBIDDEN** — they break `route:cache` on production
