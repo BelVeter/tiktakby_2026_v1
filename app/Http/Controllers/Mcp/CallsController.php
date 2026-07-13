@@ -66,7 +66,12 @@ class CallsController extends BaseController
                 'a1_call_recordings.has_audio',
                 'a1_call_recordings.downloaded_at',
                 'a1_call_analysis.ai_status',
-                'a1_call_analysis.ai_business_note'
+                'a1_call_analysis.ai_business_note',
+                'a1_call_analysis.ai_summary',
+                'a1_call_analysis.client_sentiment',
+                'a1_call_analysis.consultant_sentiment',
+                'a1_call_analysis.ai_result',
+                'a1_call_analysis.ai_result_detail'
             ]);
 
         $totalSizeBytes = (int) Cache::remember('a1.recordings.total_size', 300, function () {
@@ -96,6 +101,11 @@ class CallsController extends BaseController
                 'downloaded_at'    => $row->downloaded_at,
                 'ai_status'        => $row->ai_status ?? 'pending',
                 'ai_business_note' => $row->ai_business_note,
+                'ai_summary'           => $row->ai_summary,
+                'client_sentiment'     => $row->client_sentiment,
+                'consultant_sentiment' => $row->consultant_sentiment,
+                'ai_result'            => $row->ai_result,
+                'ai_result_detail'     => $row->ai_result_detail,
             ];
         })->values()->all();
 
