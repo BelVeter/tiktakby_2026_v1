@@ -3,7 +3,7 @@
     "info": {
         "title": "TikTak.by MCP Analytics API",
         "version": "2.2.1",
-        "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date \u2014 when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) \u2014 matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
+        "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
     },
     "servers": [
         {
@@ -806,7 +806,7 @@
                 "properties": {
                     "office_id": {
                         "type": "integer",
-                        "description": "0 = synthetic '\u041a\u0443\u0440\u044c\u0435\u0440' pseudo-office (delivery_yn='1' sub-deals)."
+                        "description": "0 = synthetic 'Курьер' pseudo-office (delivery_yn='1' sub-deals)."
                     },
                     "office_name": {
                         "type": [
@@ -843,7 +843,7 @@
             },
             "InventoryFreeTreeData": {
                 "type": "array",
-                "description": "Catalog tree: section \u2192 subsection \u2192 category \u2192 model.",
+                "description": "Catalog tree: section → subsection → category → model.",
                 "items": {
                     "type": "object",
                     "properties": {
@@ -1089,7 +1089,7 @@
                     },
                     "avg_units": {
                         "type": "number",
-                        "description": "(units_at_from + units_at_to) / 2 \u2014 utilization denominator."
+                        "description": "(units_at_from + units_at_to) / 2 — utilization denominator."
                     },
                     "deals_in_period": {
                         "type": "integer"
@@ -1417,7 +1417,7 @@
                     },
                     "office_id": {
                         "type": "integer",
-                        "description": "0 = synthetic '\u041a\u0443\u0440\u044c\u0435\u0440' pseudo-office."
+                        "description": "0 = synthetic 'Курьер' pseudo-office."
                     },
                     "office_name": {
                         "type": [
@@ -1440,7 +1440,7 @@
                     },
                     "unique_clients_proxy": {
                         "type": "integer",
-                        "description": "DISTINCT deal_id of issuance sub-deals \u2014 proxy for unique customers visiting that office in that period."
+                        "description": "DISTINCT deal_id of issuance sub-deals — proxy for unique customers visiting that office in that period."
                     },
                     "revenue_byn": {
                         "$ref": "#/components/schemas/AmountBYN"
@@ -1590,7 +1590,7 @@
                     },
                     "total_revenue_byn": {
                         "$ref": "#/components/schemas/AmountBYN",
-                        "description": "Pre-aggregated per item to avoid M:N inflation through subrazdel_category \u00d7 razdel_subrazdel."
+                        "description": "Pre-aggregated per item to avoid M:N inflation through subrazdel_category × razdel_subrazdel."
                     },
                     "issuance_events": {
                         "type": "integer"
@@ -3030,7 +3030,7 @@
         "/finance/expenses": {
             "get": {
                 "operationId": "tiktak_finance_expenses",
-                "summary": "doh_rash expenses by period \u00d7 type2 \u00d7 channel.",
+                "summary": "doh_rash expenses by period × type2 × channel.",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3077,7 +3077,7 @@
         "/operations/funnel": {
             "get": {
                 "operationId": "tiktak_operations_funnel",
-                "summary": "Lead \u2192 deal \u2192 sub-deal \u2192 return funnel with conversion rates. issuance_events = sub_deal type IN first_rent/takeaway_plan (matches /bb/reports.php deal counts).",
+                "summary": "Lead → deal → sub-deal → return funnel with conversion rates. issuance_events = sub_deal type IN first_rent/takeaway_plan (matches /bb/reports.php deal counts).",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3158,7 +3158,7 @@
         "/operations/by-location": {
             "get": {
                 "operationId": "tiktak_operations_by_location",
-                "summary": "Per-office deals + revenue + issuance_events + renewal_events. office_id=0 is the synthetic '\u041a\u0443\u0440\u044c\u0435\u0440' row (delivery_yn='1' sub-deals).",
+                "summary": "Per-office deals + revenue + issuance_events + renewal_events. office_id=0 is the synthetic 'Курьер' row (delivery_yn='1' sub-deals).",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3218,7 +3218,7 @@
         "/inventory/utilization": {
             "get": {
                 "operationId": "tiktak_inventory_utilization",
-                "summary": "Per-model utilization = rented_seconds / (avg_units \u00d7 period). Also returns avg_rental_days_per_deal (total rented days / deals) and avg_first_rent_days (avg duration of first-issuance sub-deals, type IN first_rent/takeaway_plan). Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).",
+                "summary": "Per-model utilization = rented_seconds / (avg_units × period). Also returns avg_rental_days_per_deal (total rented days / deals) and avg_first_rent_days (avg duration of first-issuance sub-deals, type IN first_rent/takeaway_plan). Historical inventory at date = active items (buy_date<=ts) + archived items still alive (buy_date<=ts AND arch_time>=ts).",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3315,7 +3315,7 @@
         "/customers/cohorts": {
             "get": {
                 "operationId": "tiktak_customers_cohorts",
-                "summary": "Monthly cohort \u00d7 observed retention matrix.",
+                "summary": "Monthly cohort × observed retention matrix.",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3378,7 +3378,7 @@
         "/geo/clients-by-city": {
             "get": {
                 "operationId": "tiktak_geo_clients_by_city",
-                "summary": "Distinct clients \u00d7 deals \u00d7 revenue by trimmed/lower-cased city.",
+                "summary": "Distinct clients × deals × revenue by trimmed/lower-cased city.",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3400,7 +3400,7 @@
         "/locations/performance": {
             "get": {
                 "operationId": "tiktak_locations_performance",
-                "summary": "Per-period \u00d7 per-office revenue, deals, issuance_events. Office attribution via sub_deal.place + delivery_yn (per-payment). office_id=0 is the \u041a\u0443\u0440\u044c\u0435\u0440 pseudo-office. avg_payment_byn is per sub-deal payment, not per deal.",
+                "summary": "Per-period × per-office revenue, deals, issuance_events. Office attribution via sub_deal.place + delivery_yn (per-payment). office_id=0 is the Курьер pseudo-office. avg_payment_byn is per sub-deal payment, not per deal.",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3492,7 +3492,7 @@
         "/carnival/funnel": {
             "get": {
                 "operationId": "tiktak_carnival_funnel",
-                "summary": "Carnival booking funnel: bookings \u2192 approved \u2192 issued \u2192 returned. Source: karn_brons + karn_brons_arch (separate from regular rentals).",
+                "summary": "Carnival booking funnel: bookings → approved → issued → returned. Source: karn_brons + karn_brons_arch (separate from regular rentals).",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3527,7 +3527,7 @@
         "/carnival/revenue": {
             "get": {
                 "operationId": "tiktak_carnival_revenue",
-                "summary": "Per-period carnival revenue by payment channel (k1/k2/terminal/bank). NOTE: this is the karn_brons pre-booking system \u2014 separate from /finance/revenue which sums rent_sub_deals. DO NOT sum both \u2014 that double-counts carnival revenue.",
+                "summary": "Per-period carnival revenue by payment channel (k1/k2/terminal/bank). NOTE: this is the karn_brons pre-booking system — separate from /finance/revenue which sums rent_sub_deals. DO NOT sum both — that double-counts carnival revenue.",
                 "parameters": [
                     {
                         "$ref": "#/components/parameters/from"
@@ -3592,7 +3592,7 @@
         "/calls/recordings": {
             "get": {
                 "operationId": "tiktak_calls_recordings_list",
-                "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_number, caller_part, callee_part, call_duration, file_size, file_url (null if audio deleted or historical import), has_audio (bool), downloaded_at, ai_status, ai_business_note, ai_summary, client_sentiment, consultant_sentiment, ai_result, ai_result_detail. Binary audio via /calls/recordings/{uuid}/file — only valid when has_audio=true.",
+                "summary": "List A1 VATS recordings. Returns uuid, call_date, caller_number, caller_part, callee_part, call_duration, file_size, file_url (null if audio deleted or historical import), has_audio (bool), downloaded_at, ai_status, ai_business_note, ai_summary, client_sentiment, consultant_sentiment, ai_result, ai_result_detail. transcript is excluded — fetch it via GET /calls/recordings/{uuid}/analysis. Binary audio via /calls/recordings/{uuid}/file — only valid when has_audio=true.",
                 "parameters": [
                     {
                         "in": "query",
@@ -3646,7 +3646,158 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Paginated recordings list in {query, data, meta} envelope."
+                        "description": "Paginated recordings list in {query, data, meta} envelope.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "query": {
+                                            "type": "object",
+                                            "properties": {
+                                                "from": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "to": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "caller": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "callee": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                }
+                                            }
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "uuid": {
+                                                        "type": "string"
+                                                    },
+                                                    "record_name": {
+                                                        "type": "string"
+                                                    },
+                                                    "call_date": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "caller_number": {
+                                                        "type": "string"
+                                                    },
+                                                    "caller_part": {
+                                                        "type": "string"
+                                                    },
+                                                    "callee_part": {
+                                                        "type": "string"
+                                                    },
+                                                    "call_duration": {
+                                                        "type": "integer",
+                                                        "description": "Duration in seconds"
+                                                    },
+                                                    "file_size": {
+                                                        "type": "integer",
+                                                        "description": "File size in bytes"
+                                                    },
+                                                    "file_url": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "URL to stream MP3. Null if audio was deleted or record is a historical import."
+                                                    },
+                                                    "has_audio": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "downloaded_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "nullable": true
+                                                    },
+                                                    "ai_status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "pending",
+                                                            "processing",
+                                                            "done",
+                                                            "error"
+                                                        ],
+                                                        "description": "Current AI analysis status"
+                                                    },
+                                                    "ai_business_note": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "Short business note from AI"
+                                                    },
+                                                    "ai_summary": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "Brief AI-generated summary of the call"
+                                                    },
+                                                    "client_sentiment": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": [
+                                                            "positive",
+                                                            "neutral",
+                                                            "negative"
+                                                        ],
+                                                        "description": "Detected client sentiment"
+                                                    },
+                                                    "consultant_sentiment": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": [
+                                                            "positive",
+                                                            "neutral",
+                                                            "negative"
+                                                        ],
+                                                        "description": "Detected consultant sentiment"
+                                                    },
+                                                    "ai_result": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "Overall call outcome"
+                                                    },
+                                                    "ai_result_detail": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "Detailed explanation of the outcome"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_rows": {
+                                                    "type": "integer"
+                                                },
+                                                "page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total_size_bytes": {
+                                                    "type": "integer"
+                                                },
+                                                "quota_bytes": {
+                                                    "type": "integer"
+                                                },
+                                                "currency": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -3686,7 +3837,7 @@
         "/calls/cdr": {
             "get": {
                 "operationId": "tiktak_calls_cdr",
-                "summary": "CDR list \u2014 all calls (incoming/outgoing/missed) fetched from A1 VATS. Includes recording_uuid if a recording exists.",
+                "summary": "CDR list — all calls (incoming/outgoing/missed) fetched from A1 VATS. Includes recording_uuid if a recording exists.",
                 "parameters": [
                     {
                         "in": "query",
@@ -3996,7 +4147,9 @@
                                 "oneOf": [
                                     {
                                         "type": "array",
-                                        "items": { "$ref": "#/components/schemas/ImportedRecording" },
+                                        "items": {
+                                            "$ref": "#/components/schemas/ImportedRecording"
+                                        },
                                         "maxItems": 1000
                                     },
                                     {
@@ -4004,7 +4157,9 @@
                                         "properties": {
                                             "records": {
                                                 "type": "array",
-                                                "items": { "$ref": "#/components/schemas/ImportedRecording" },
+                                                "items": {
+                                                    "$ref": "#/components/schemas/ImportedRecording"
+                                                },
                                                 "maxItems": 1000
                                             }
                                         }
@@ -4163,7 +4318,7 @@
         "/redirects/bulk": {
             "post": {
                 "operationId": "tiktak_redirects_bulk",
-                "summary": "Bulk upsert redirect rules (INSERT \u2026 ON DUPLICATE KEY UPDATE).",
+                "summary": "Bulk upsert redirect rules (INSERT … ON DUPLICATE KEY UPDATE).",
                 "description": "Accepts up to 200 redirect items. Existing rows (matched by source_url) are updated; new rows are inserted. Cache is cleared once after the entire batch. Useful for SEO migrations.",
                 "requestBody": {
                     "required": true,
@@ -4658,8 +4813,17 @@
                                         "query": {
                                             "type": "object",
                                             "properties": {
-                                                "slug":  { "type": "string" },
-                                                "level": { "type": "string", "enum": ["razdel", "subrazdel", "category"] }
+                                                "slug": {
+                                                    "type": "string"
+                                                },
+                                                "level": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "razdel",
+                                                        "subrazdel",
+                                                        "category"
+                                                    ]
+                                                }
                                             }
                                         },
                                         "data": {
@@ -4667,23 +4831,49 @@
                                             "items": {
                                                 "type": "object",
                                                 "properties": {
-                                                    "model_id":           { "type": "integer" },
-                                                    "model_name":         { "type": "string" },
-                                                    "model_url":          { "type": "string" },
-                                                    "brand":              { "type": "string", "nullable": true },
-                                                    "active_units":       { "type": "integer" },
-                                                    "free_units":         { "type": "integer" },
-                                                    "is_available":       { "type": "boolean" },
-                                                    "price_per_week_byn": { "type": "number", "nullable": true },
-                                                    "price_per_day_byn":  { "type": "number", "nullable": true }
+                                                    "model_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "model_name": {
+                                                        "type": "string"
+                                                    },
+                                                    "model_url": {
+                                                        "type": "string"
+                                                    },
+                                                    "brand": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "active_units": {
+                                                        "type": "integer"
+                                                    },
+                                                    "free_units": {
+                                                        "type": "integer"
+                                                    },
+                                                    "is_available": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "price_per_week_byn": {
+                                                        "type": "number",
+                                                        "nullable": true
+                                                    },
+                                                    "price_per_day_byn": {
+                                                        "type": "number",
+                                                        "nullable": true
+                                                    }
                                                 }
                                             }
                                         },
                                         "meta": {
                                             "type": "object",
                                             "properties": {
-                                                "currency": { "type": "string", "example": "BYN" },
-                                                "warnings": { "type": "array" }
+                                                "currency": {
+                                                    "type": "string",
+                                                    "example": "BYN"
+                                                },
+                                                "warnings": {
+                                                    "type": "array"
+                                                }
                                             }
                                         }
                                     }
@@ -4698,8 +4888,13 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "error":   { "type": "string", "example": "not_found" },
-                                        "message": { "type": "string" }
+                                        "error": {
+                                            "type": "string",
+                                            "example": "not_found"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
                                     }
                                 }
                             }
