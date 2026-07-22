@@ -91,6 +91,10 @@ class SpecRuntimeParityTest extends McpTestCase
             'carnival/funnel'              => ['carnival/funnel',              $range,                                                                        'object',    null],
             'carnival/seasonality'         => ['carnival/seasonality',         ['years' => 5],                                                                'array_row', null],
             'carnival/revenue'             => ['carnival/revenue',             $range + ['granularity' => 'year'],                                            'array_row', null],
+
+            // Pages (SEO content)
+            'pages/product'                => ['pages/product',                ['per_page' => 1],                                                             'array_row', null],
+            'pages/history'                => ['pages/history',                ['per_page' => 1],                                                             'array_row', null],
         ];
     }
 
@@ -176,7 +180,7 @@ class SpecRuntimeParityTest extends McpTestCase
     public function test_spec_version_matches(): void
     {
         $this->assertSame(
-            '2.2.1',
+            '2.3.0',
             $this->spec['info']['version'],
             'bumping spec without updating this assertion is a footgun — update both together'
         );

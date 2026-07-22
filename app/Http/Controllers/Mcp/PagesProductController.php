@@ -2,224 +2,601 @@
 
 namespace App\Http\Controllers\Mcp;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
-
+/**
+ * SEO fields of L3 product pages (`rent_model_web`).
+ *
+ * Canonical URL resolution (important): the page URL is built through the
+ * single-parent chain the site itself uses in ModelWeb::getUrlPageAddress —
+ *
+ *     rent_model_web.model_id
+ *       -> tovar_rent.tovar_rent_cat_id
+ *       -> tovar_rent_cat.main_sub_razdel_id
+ *       -> sub_razdel.main_razdel_id
+ *       -> razdel
+ *
+ * NOT through the many-to-many `subrazdel_category` × `razdel_subrazdel` chain.
+ * A model whose category is linked to several subrazdels renders under several
+ * URLs, but only this one carries <link rel="canonical"> and only this one is
+ * in sitemap.xml. Resolving through the M:N chain produced a non-canonical URL
+ * for ~14% of models and NULL for ~130 that do have a canonical URL.
+ */
 class PagesProductController extends BaseController
 {
+    /** API field => rent_model_web column. Order defines seo_score/summary order. */
+    private const FIELD_MAP = [
+        'meta_title'       => 'title',
+        'meta_description' => 'meta_description',
+        'h1'               => 'item_name_main',
+        'l2_name'          => 'l2_name',
+        'main_pic_alt'     => 'm_pic_alt',
+        'main_pic_title'   => 'm_a_title',
+        'l2_pic_alt'       => 'l2_alt',
+        'description'      => 'main_descr',
+        'breadcrumb_name'  => 'breadcrumbs_name',
+        'faq'              => 'faq',
+    ];
+
+    /**
+     * Fields rendered inside an HTML attribute or <title>; markup in them
+     * breaks the tag. bb/classes/ModelWeb::setMetaDescription strips quotes on
+     * the admin side, the API used to write raw.
+     */
+    private const PLAIN_TEXT_FIELDS = [
+        'meta_title', 'meta_description', 'main_pic_alt',
+        'main_pic_title', 'l2_pic_alt', 'breadcrumb_name',
+    ];
+
+    private const WRITE_RULES = [
+        'meta_title'       => 'nullable|string|max:70',
+        'meta_description' => 'nullable|string|max:160',
+        'h1'               => 'nullable|string|max:255',
+        'l2_name'          => 'nullable|string|max:255',
+        'main_pic_alt'     => 'nullable|string|max:125',
+        'main_pic_title'   => 'nullable|string|max:125',
+        'l2_pic_alt'       => 'nullable|string|max:125',
+        'description'      => 'nullable|string',
+        'breadcrumb_name'  => 'nullable|string|max:100',
+        'faq'              => 'nullable|array',
+        'faq.*.question'   => 'required_with:faq|string|max:500',
+        'faq.*.answer'     => 'required_with:faq|string|max:5000',
+    ];
+
+    private const MAX_BULK_ITEMS = 100;
+
     /**
      * GET /api/mcp/v1/pages/product
-     * Returns all product pages with their SEO fields status.
+     *
+     * Filters, pagination and `fields=full` exist so a content pass over ~1000
+     * pages does not need one request per page: the endpoint is behind
+     * throttle:60,1, and reading every product body used to cost 982 requests.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        // Build canonical URL for each model via a correlated subquery.
-        // We need exactly one URL per model (subrazdel_category is many-to-many,
-        // joining naively would produce duplicate rows).
-        $models = DB::select("
-            SELECT 
-                rmw.page_addr as slug,
-                rmw.item_name_main as name,
-                rmw.model_id,
-                rmw.title,
-                rmw.meta_description,
-                rmw.main_descr,
-                rmw.m_pic_alt,
-                rmw.l2_alt,
-                rmw.breadcrumbs_name,
-                rmw.faq,
-                rmw.change_time,
-                (
-                    SELECT CONCAT('/ru/', r2.url_razdel_name, '/', sr2.url_sub_razdel_name, '/', tc2.cat_url_key, '/', rmw.page_addr)
-                    FROM tovar_rent tr2
-                    JOIN tovar_rent_cat tc2 ON tc2.tovar_rent_cat_id = tr2.tovar_rent_cat_id
-                    JOIN subrazdel_category sc2 ON sc2.tovar_rent_cat_id = tc2.tovar_rent_cat_id
-                    JOIN sub_razdel sr2 ON sr2.id_sub_razdel = sc2.id_sub_razdel
-                    JOIN razdel_subrazdel rs2 ON rs2.id_sub_razdel = sr2.id_sub_razdel
-                    JOIN razdel r2 ON r2.id_razdel = rs2.id_razdel
-                    WHERE tr2.tovar_rent_id = rmw.model_id
-                    ORDER BY r2.razdel_order_num, sr2.order_num_sub_razd
-                    LIMIT 1
-                ) as full_url
-            FROM rent_model_web rmw
-            WHERE rmw.lang = 'ru'
-              AND rmw.status = 'show'
-            ORDER BY rmw.sort_n, rmw.item_name_main
-        ");
+        $validated = $request->validate([
+            'razdel'     => 'nullable|string|max:100',
+            'subrazdel'  => 'nullable|string|max:100',
+            'category'   => 'nullable|string|max:100',
+            'search'     => 'nullable|string|max:100',
+            'missing'    => 'nullable|string|max:255',
+            'status'     => 'nullable|in:show,not_show,all',
+            'has_stock'  => 'nullable|boolean',
+            'indexable'  => 'nullable|boolean',
+            'fields'     => 'nullable|in:summary,full',
+            'summary'    => 'nullable|boolean',
+            'page'       => 'nullable|integer|min:1',
+            'per_page'   => 'nullable|integer|min:1|max:500',
+        ]);
 
-        $result = [];
-        foreach ($models as $model) {
-            $result[] = [
-                'level' => 'product',
-                'slug' => $model->slug,
-                'name' => $model->name,
-                'full_url' => $model->full_url,
-                'seo_score' => [
-                    'has_meta_title' => !empty($model->title),
-                    'has_meta_description' => !empty($model->meta_description),
-                    'has_main_pic_alt' => !empty($model->m_pic_alt),
-                    'has_l2_pic_alt' => !empty($model->l2_alt),
-                    'has_description' => !empty($model->main_descr),
-                    'has_breadcrumb_name' => !empty($model->breadcrumbs_name),
-                    'has_faq' => !empty($model->faq),
-                ],
-                'updated_at' => $model->change_time,
-            ];
+        $missing = $this->parseMissing($validated['missing'] ?? null);
+        if ($missing === false) {
+            return response()->json([
+                'error'   => 'bad_request',
+                'message' => 'Unknown field in `missing`. Allowed: ' . implode(', ', array_keys(self::FIELD_MAP)),
+            ], 422);
         }
 
-        return $this->envelope($request->query(), $result);
+        $rows = $this->fetchRows([
+            'razdel'    => $validated['razdel']    ?? null,
+            'subrazdel' => $validated['subrazdel'] ?? null,
+            'category'  => $validated['category']  ?? null,
+            'search'    => $validated['search']    ?? null,
+            'status'    => $validated['status'] ?? 'show',
+            // boolean() normalises "0"/"false"/"off"; validated() would hand
+            // back the raw string, and the string "false" is truthy in PHP.
+            'has_stock' => $request->has('has_stock') ? $request->boolean('has_stock') : null,
+            'indexable' => $request->has('indexable') ? $request->boolean('indexable') : null,
+            'missing'   => $missing,
+        ]);
+
+        $full     = ($validated['fields'] ?? 'summary') === 'full';
+        $perPage  = (int) ($validated['per_page'] ?? 100);
+        $page     = (int) ($validated['page'] ?? 1);
+        $total    = count($rows);
+        $pageRows = array_slice($rows, ($page - 1) * $perPage, $perPage);
+
+        $data = array_map(fn ($r) => $this->presentRow($r, $full), $pageRows);
+
+        $meta = [
+            'total_rows'    => $total,
+            'returned_rows' => count($data),
+            'page'          => $page,
+            'per_page'      => $perPage,
+            'summary'       => $this->buildSummary($rows, $request->boolean('summary')),
+        ];
+
+        return $this->envelope($request->query(), $data, $meta);
     }
 
     /**
      * GET /api/mcp/v1/pages/product/{slug}
      */
-    public function show(Request $request, string $slug)
+    public function show(Request $request, string $slug): JsonResponse
     {
-        $model = DB::selectOne("
-            SELECT 
-                rmw.*,
-                r.url_razdel_name,
-                sr.url_sub_razdel_name,
-                tc.cat_url_key
-            FROM rent_model_web rmw
-            JOIN tovar_rent tr ON tr.tovar_rent_id = rmw.model_id
-            JOIN tovar_rent_cat tc ON tc.tovar_rent_cat_id = tr.tovar_rent_cat_id
-            JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tc.tovar_rent_cat_id
-            JOIN sub_razdel sr ON sr.id_sub_razdel = sc.id_sub_razdel
-            JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
-            JOIN razdel r ON r.id_razdel = rs.id_razdel
-            WHERE rmw.lang = 'ru'
-              AND rmw.page_addr = ?
-            LIMIT 1
-        ", [$slug]);
-        
-        if (!$model) {
-            return response()->json([
-                'error' => 'not_found',
-                'message' => "Product page with slug '{$slug}' not found."
-            ], 404);
+        $rows = $this->fetchRows(['slug' => $slug, 'status' => 'all']);
+
+        if (empty($rows)) {
+            return $this->notFound($slug);
+        }
+        if (count($rows) > 1) {
+            return $this->slugConflict($slug, $rows);
         }
 
-        $fullUrl = "/ru/{$model->url_razdel_name}/{$model->url_sub_razdel_name}/{$model->cat_url_key}/{$model->page_addr}";
-        $displayName = $model->item_name_main;
+        $row      = $rows[0];
+        $current  = $this->currentValues($row);
+        $warnings = [];
 
-        // Default values when empty
-        $defaultValues = [
-            'meta_title' => null, // Typically set manually, no generic default in code
-            'meta_description' => null,
-            'h1' => $displayName, // Read-only
-            'main_pic_alt' => null,
-            'l2_pic_alt' => null,
-            'description' => null,
-            'breadcrumb_name' => $displayName, // Defaults to h1 if empty
-            'faq' => null,
-        ];
+        // <title>@yield('page-title')</title> has no fallback on L3 (unlike L2,
+        // where PagesListingController advertises a generated default), so an
+        // empty `title` column ships an empty <title> tag.
+        if ($current['meta_title'] === null) {
+            $warnings[] = [
+                'code'    => 'empty_meta_title',
+                'message' => 'meta_title is empty — the L3 template has no fallback, the page renders <title></title>.',
+            ];
+        }
+        if ($row->full_url === null) {
+            $warnings[] = [
+                'code'    => 'no_canonical_url',
+                'message' => 'The model has no canonical URL (category is not wired to a main subrazdel/razdel), so the page is unreachable and absent from sitemap.xml.',
+            ];
+        }
 
-        $currentValues = [
-            'meta_title' => $model->title ?: null,
-            'meta_description' => $model->meta_description ?: null,
-            'h1' => $model->item_name_main ?: null, // Keep for context
-            'main_pic_alt' => $model->m_pic_alt ?: null,
-            'l2_pic_alt' => $model->l2_alt ?: null,
-            'description' => $model->main_descr ?: null,
-            'breadcrumb_name' => $model->breadcrumbs_name ?: null,
-            'faq' => $model->faq ? json_decode($model->faq, true) : null,
-        ];
-
-        $data = [
-            'level' => 'product',
-            'slug' => $slug,
-            'name' => $displayName,
-            'full_url' => $fullUrl,
-            'current_values' => $currentValues,
-            'default_values' => $defaultValues,
-            'seo_score' => [
-                'has_meta_title' => !empty($model->title),
-                'has_meta_description' => !empty($model->meta_description),
-                'has_main_pic_alt' => !empty($model->m_pic_alt),
-                'has_l2_pic_alt' => !empty($model->l2_alt),
-                'has_description' => !empty($model->main_descr),
-                'has_breadcrumb_name' => !empty($model->breadcrumbs_name),
-                'has_faq' => !empty($model->faq),
-            ],
-            'updated_at' => $model->change_time,
-        ];
-
-        return $this->envelope($request->query(), $data);
+        return $this->envelope($request->query(), $this->presentRow($row, true), ['warnings' => $warnings]);
     }
 
     /**
      * PATCH /api/mcp/v1/pages/product/{slug}
      */
-    public function update(Request $request, string $slug)
+    public function update(Request $request, string $slug): JsonResponse
     {
-        $exists = DB::table('rent_model_web')
-            ->where('page_addr', $slug)
-            ->where('lang', 'ru')
-            ->exists();
-            
-        if (!$exists) {
-            return response()->json([
-                'error' => 'not_found',
-                'message' => "Product page with slug '{$slug}' not found."
-            ], 404);
+        $rows = $this->fetchRows(['slug' => $slug, 'status' => 'all']);
+
+        if (empty($rows)) {
+            return $this->notFound($slug);
+        }
+        if (count($rows) > 1) {
+            return $this->slugConflict($slug, $rows);
         }
 
-        $validated = $request->validate([
-            'meta_title' => 'nullable|string|max:70',
-            'meta_description' => 'nullable|string|max:160',
-            'main_pic_alt' => 'nullable|string|max:125',
-            'l2_pic_alt' => 'nullable|string|max:125',
-            'description' => 'nullable|string',
-            'breadcrumb_name' => 'nullable|string|max:100',
-            'faq' => 'nullable|array',
-            'faq.*.question' => 'required_with:faq|string|max:500',
-            'faq.*.answer' => 'required_with:faq|string|max:5000',
-        ]);
-        
-        // Map API fields to DB columns
-        $updateData = [];
-        if (array_key_exists('meta_title', $validated)) {
-            $updateData['title'] = $validated['meta_title'] ?? '';
-        }
-        if (array_key_exists('meta_description', $validated)) {
-            $updateData['meta_description'] = $validated['meta_description'] ?? '';
-        }
-        if (array_key_exists('main_pic_alt', $validated)) {
-            $updateData['m_pic_alt'] = $validated['main_pic_alt'] ?? '';
-        }
-        if (array_key_exists('l2_pic_alt', $validated)) {
-            $updateData['l2_alt'] = $validated['l2_pic_alt'] ?? '';
-        }
-        if (array_key_exists('description', $validated)) {
-            $updateData['main_descr'] = $validated['description'] ?? '';
-        }
-        if (array_key_exists('breadcrumb_name', $validated)) {
-            $updateData['breadcrumbs_name'] = $validated['breadcrumb_name'] ?? '';
-        }
-        if (array_key_exists('faq', $validated)) {
-            $faqArr = $validated['faq'] ?? null;
-            $updateData['faq'] = ($faqArr && count($faqArr) > 0)
-                ? json_encode($faqArr, JSON_UNESCAPED_UNICODE)
-                : null;
-        }
-        
-        $updateData['change_time'] = date('Y-m-d H:i:s'); // rent_model_web.change_time is DATETIME
+        $validated = $request->validate(self::WRITE_RULES);
+        $outcome   = $this->applyToRow($rows[0], $validated);
 
-        if (empty($updateData)) {
+        if ($outcome['status'] === 'no_fields') {
             return response()->json([
-                'error' => 'bad_request',
-                'message' => 'No valid fields provided for update.'
+                'error'   => 'bad_request',
+                'message' => 'No valid fields provided for update.',
             ], 400);
         }
 
-        DB::table('rent_model_web')
-            ->where('page_addr', $slug)
-            ->where('lang', 'ru')
-            ->update($updateData);
-
-        // Fetch updated record
         return $this->show($request, $slug);
+    }
+
+    /**
+     * PATCH /api/mcp/v1/pages/product/bulk
+     *
+     * Partial success by design: each item reports its own status so one bad
+     * slug in a batch of 100 does not discard 99 good writes.
+     */
+    public function bulkUpdate(Request $request): JsonResponse
+    {
+        $request->validate([
+            'pages'        => 'required|array|min:1|max:' . self::MAX_BULK_ITEMS,
+            'pages.*.slug' => 'required|string|max:255',
+        ]);
+
+        $results = [];
+        foreach ($request->input('pages') as $i => $item) {
+            $slug = (string) ($item['slug'] ?? '');
+
+            $fields    = array_diff_key($item, ['slug' => null]);
+            $validator = Validator::make($fields, self::WRITE_RULES);
+            if ($validator->fails()) {
+                $results[] = $this->bulkResult($i, $slug, 'invalid', [], $validator->errors()->toArray());
+                continue;
+            }
+
+            $rows = $this->fetchRows(['slug' => $slug, 'status' => 'all']);
+            if (empty($rows)) {
+                $results[] = $this->bulkResult($i, $slug, 'not_found');
+                continue;
+            }
+            if (count($rows) > 1) {
+                $results[] = $this->bulkResult($i, $slug, 'conflict');
+                continue;
+            }
+
+            $outcome = $this->applyToRow($rows[0], $validator->validated());
+            if ($outcome['status'] === 'no_fields') {
+                $results[] = $this->bulkResult($i, $slug, 'invalid', [], ['fields' => ['No writable fields provided.']]);
+                continue;
+            }
+
+            $results[] = $this->bulkResult($i, $slug, $outcome['status'], $outcome['changed']);
+        }
+
+        $counts = array_count_values(array_column($results, 'status'));
+
+        return $this->envelope($request->query(), $results, [
+            'total_rows' => count($results),
+            'summary'    => [
+                'updated'   => $counts['updated']   ?? 0,
+                'unchanged' => $counts['unchanged'] ?? 0,
+                'not_found' => $counts['not_found'] ?? 0,
+                'conflict'  => $counts['conflict']  ?? 0,
+                'invalid'   => $counts['invalid']   ?? 0,
+            ],
+        ]);
+    }
+
+    // ─── writing ──────────────────────────────────────────────────────────────
+
+    /**
+     * Validate-and-write one row, addressed by primary key.
+     *
+     * The old implementation updated `WHERE page_addr = ?`, which silently
+     * wrote to every row sharing a slug (six such groups exist, one of them
+     * two genuinely different models).
+     *
+     * @return array{status:string, changed:string[]}
+     */
+    private function applyToRow(object $row, array $validated): array
+    {
+        $before     = $this->currentValues($row);
+        $updateData = [];
+        $after      = [];
+
+        foreach (self::FIELD_MAP as $field => $column) {
+            if (!array_key_exists($field, $validated)) {
+                continue;
+            }
+            $value = $validated[$field];
+
+            if ($field === 'faq') {
+                $after[$field]       = ($value && count($value) > 0) ? $value : null;
+                $updateData[$column] = $after[$field] ? json_encode($value, JSON_UNESCAPED_UNICODE) : null;
+                continue;
+            }
+
+            if (in_array($field, self::PLAIN_TEXT_FIELDS, true)) {
+                $value = $this->sanitizePlainText($value);
+            }
+
+            $after[$field]       = ($value === null || $value === '') ? null : $value;
+            $updateData[$column] = $value ?? '';
+        }
+
+        if (empty($updateData)) {
+            return ['status' => 'no_fields', 'changed' => []];
+        }
+
+        // change_time is TIMESTAMP ... ON UPDATE CURRENT_TIMESTAMP — the column
+        // maintains itself, no need to set it here.
+        DB::table('rent_model_web')->where('web_id', $row->web_id)->update($updateData);
+
+        $changed = $this->recordContentVersion('product', $row->slug, $before, $after);
+
+        return ['status' => $changed ? 'updated' : 'unchanged', 'changed' => $changed];
+    }
+
+    /**
+     * Strip markup and attribute-breaking characters from a field that ends up
+     * inside <title> or an HTML attribute (meta description, alt, title=).
+     */
+    private function sanitizePlainText(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = strip_tags($value);
+        $value = str_replace(['"', '<', '>'], '', $value);
+        $value = preg_replace('/\s+/u', ' ', $value);
+
+        return trim($value);
+    }
+
+    // ─── reading ──────────────────────────────────────────────────────────────
+
+    /**
+     * One query serving index/show/update. Every join is single-parent, so no
+     * row multiplication and no need for DISTINCT.
+     *
+     * @param  array<string,mixed> $filters
+     * @return object[]
+     */
+    private function fetchRows(array $filters): array
+    {
+        $where  = ["rmw.lang = 'ru'"];
+        $params = [];
+
+        $status = $filters['status'] ?? 'show';
+        if ($status !== 'all') {
+            $where[]  = 'rmw.status = ?';
+            $params[] = $status;
+        }
+
+        if (!empty($filters['slug'])) {
+            $where[]  = 'rmw.page_addr = ?';
+            $params[] = $filters['slug'];
+        }
+        if (!empty($filters['razdel'])) {
+            $where[]  = 'r.url_razdel_name = ?';
+            $params[] = $filters['razdel'];
+        }
+        if (!empty($filters['subrazdel'])) {
+            $where[]  = 'sr.url_sub_razdel_name = ?';
+            $params[] = $filters['subrazdel'];
+        }
+        if (!empty($filters['category'])) {
+            $where[]  = 'c.cat_url_key = ?';
+            $params[] = $filters['category'];
+        }
+        if (!empty($filters['search'])) {
+            $like     = '%' . $filters['search'] . '%';
+            $where[]  = '(rmw.item_name_main LIKE ? OR rmw.l2_name LIKE ? OR rmw.page_addr LIKE ?)';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+        if (isset($filters['has_stock']) && $filters['has_stock'] !== null) {
+            $where[] = $filters['has_stock']
+                ? 'COALESCE(inv.units, 0) > 0'
+                : 'COALESCE(inv.units, 0) = 0';
+        }
+        if (isset($filters['indexable']) && $filters['indexable'] !== null) {
+            $indexable = "(rmw.status = 'show' AND r.url_razdel_name IS NOT NULL AND COALESCE(inv.units, 0) > 0)";
+            $where[]   = $filters['indexable'] ? $indexable : "NOT {$indexable}";
+        }
+        if (!empty($filters['missing'])) {
+            // OR: "pages missing at least one of these fields" — the shape a
+            // content work queue needs.
+            $parts = [];
+            foreach ($filters['missing'] as $column) {
+                $parts[] = "(rmw.`{$column}` IS NULL OR rmw.`{$column}` = '')";
+            }
+            $where[] = '(' . implode(' OR ', $parts) . ')';
+        }
+
+        $whereSql = implode("\n              AND ", $where);
+
+        return DB::select("
+            SELECT
+                rmw.web_id,
+                rmw.model_id,
+                rmw.page_addr              AS slug,
+                rmw.item_name_main         AS name,
+                rmw.l2_name,
+                rmw.title,
+                rmw.meta_description,
+                rmw.main_descr,
+                rmw.m_pic_alt,
+                rmw.m_a_title,
+                rmw.l2_alt,
+                rmw.breadcrumbs_name,
+                rmw.faq,
+                rmw.status,
+                rmw.change_time,
+                r.url_razdel_name          AS razdel_slug,
+                sr.url_sub_razdel_name     AS subrazdel_slug,
+                c.cat_url_key              AS category_slug,
+                COALESCE(inv.units, 0)     AS active_units,
+                CASE WHEN r.url_razdel_name IS NOT NULL
+                     THEN CONCAT('/ru/', r.url_razdel_name, '/', sr.url_sub_razdel_name, '/', c.cat_url_key, '/', rmw.page_addr)
+                END                        AS full_url
+            FROM rent_model_web rmw
+            LEFT JOIN tovar_rent tr      ON tr.tovar_rent_id     = rmw.model_id
+            LEFT JOIN tovar_rent_cat c   ON c.tovar_rent_cat_id  = tr.tovar_rent_cat_id AND c.cat_url_key <> ''
+            LEFT JOIN sub_razdel sr      ON sr.id_sub_razdel     = c.main_sub_razdel_id AND sr.url_sub_razdel_name <> ''
+            LEFT JOIN razdel r           ON r.id_razdel          = sr.main_razdel_id    AND r.url_razdel_name <> ''
+            LEFT JOIN (
+                SELECT model_id, COUNT(*) AS units
+                FROM tovar_rent_items
+                GROUP BY model_id
+            ) inv ON inv.model_id = rmw.model_id
+            WHERE {$whereSql}
+            ORDER BY rmw.sort_n, rmw.item_name_main
+        ", $params);
+    }
+
+    /** API-shaped values of a row; null for "not filled in". */
+    private function currentValues(object $row): array
+    {
+        return [
+            'meta_title'       => $row->title            ?: null,
+            'meta_description' => $row->meta_description ?: null,
+            'h1'               => $row->name             ?: null,
+            'l2_name'          => $row->l2_name          ?: null,
+            'main_pic_alt'     => $row->m_pic_alt        ?: null,
+            'main_pic_title'   => $row->m_a_title        ?: null,
+            'l2_pic_alt'       => $row->l2_alt           ?: null,
+            'description'      => $row->main_descr       ?: null,
+            'breadcrumb_name'  => $row->breadcrumbs_name ?: null,
+            'faq'              => $row->faq ? json_decode($row->faq, true) : null,
+        ];
+    }
+
+    private function presentRow(object $row, bool $withValues): array
+    {
+        $current = $this->currentValues($row);
+
+        $out = [
+            'level'          => 'product',
+            'slug'           => $row->slug,
+            'model_id'       => (int) $row->model_id,
+            'name'           => $row->name,
+            'full_url'       => $row->full_url,
+            'razdel_slug'    => $row->razdel_slug,
+            'subrazdel_slug' => $row->subrazdel_slug,
+            'category_slug'  => $row->category_slug,
+            'status'         => $row->status,
+            'active_units'   => (int) $row->active_units,
+            'is_indexable'   => $row->status === 'show' && $row->full_url !== null && (int) $row->active_units > 0,
+            'seo_score'      => $this->seoScore($current),
+            'updated_at'     => $row->change_time,
+        ];
+
+        if ($withValues) {
+            $out['current_values'] = $current;
+            $out['default_values'] = [
+                // The L3 template has no fallbacks: whatever is empty here ships empty.
+                'meta_title'       => null,
+                'meta_description' => null,
+                'h1'               => $row->name,
+                'l2_name'          => $row->name,
+                'main_pic_alt'     => null,
+                'main_pic_title'   => null,
+                'l2_pic_alt'       => null,
+                'description'      => null,
+                'breadcrumb_name'  => $row->name,
+                'faq'              => null,
+            ];
+        }
+
+        return $out;
+    }
+
+    /** @param array<string,mixed> $current */
+    private function seoScore(array $current): array
+    {
+        $score = [];
+        foreach (array_keys(self::FIELD_MAP) as $field) {
+            $score['has_' . $field] = !empty($current[$field]);
+        }
+
+        return $score;
+    }
+
+    /**
+     * Missing-field counters over the whole filtered set (not just the page),
+     * plus an optional per-category breakdown — the inventory a content pass
+     * needs in order to plan work without pulling every row.
+     *
+     * @param object[] $rows
+     */
+    private function buildSummary(array $rows, bool $withBreakdown): array
+    {
+        $missing = array_fill_keys(array_keys(self::FIELD_MAP), 0);
+        $buckets = [];
+
+        foreach ($rows as $row) {
+            $current = $this->currentValues($row);
+            $key     = ($row->razdel_slug ?? '-') . '|' . ($row->subrazdel_slug ?? '-') . '|' . ($row->category_slug ?? '-');
+
+            if ($withBreakdown && !isset($buckets[$key])) {
+                $buckets[$key] = [
+                    'razdel_slug'    => $row->razdel_slug,
+                    'subrazdel_slug' => $row->subrazdel_slug,
+                    'category_slug'  => $row->category_slug,
+                    'total'          => 0,
+                    'missing'        => array_fill_keys(array_keys(self::FIELD_MAP), 0),
+                ];
+            }
+            if ($withBreakdown) {
+                $buckets[$key]['total']++;
+            }
+
+            foreach (array_keys(self::FIELD_MAP) as $field) {
+                if (empty($current[$field])) {
+                    $missing[$field]++;
+                    if ($withBreakdown) {
+                        $buckets[$key]['missing'][$field]++;
+                    }
+                }
+            }
+        }
+
+        $summary = [
+            'total_matching' => count($rows),
+            'missing'        => $missing,
+        ];
+
+        if ($withBreakdown) {
+            usort($buckets, fn ($a, $b) => $b['total'] <=> $a['total']);
+            $summary['by_category'] = array_values($buckets);
+        }
+
+        return $summary;
+    }
+
+    // ─── helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * @return string[]|false  DB columns to test for emptiness, or false when
+     *                         an unknown field name was requested.
+     */
+    private function parseMissing(?string $raw)
+    {
+        if ($raw === null || trim($raw) === '') {
+            return [];
+        }
+
+        $columns = [];
+        foreach (array_filter(array_map('trim', explode(',', $raw))) as $field) {
+            if (!isset(self::FIELD_MAP[$field])) {
+                return false;
+            }
+            $columns[] = self::FIELD_MAP[$field];
+        }
+
+        return $columns;
+    }
+
+    private function bulkResult(int $index, string $slug, string $status, array $changed = [], array $errors = []): array
+    {
+        return [
+            'index'          => $index,
+            'slug'           => $slug,
+            'status'         => $status,
+            'changed_fields' => $changed,
+            'errors'         => $errors ?: null,
+        ];
+    }
+
+    private function notFound(string $slug): JsonResponse
+    {
+        return response()->json([
+            'error'   => 'not_found',
+            'message' => "Product page with slug '{$slug}' not found.",
+        ], 404);
+    }
+
+    /** @param object[] $rows */
+    private function slugConflict(string $slug, array $rows): JsonResponse
+    {
+        return response()->json([
+            'error'   => 'slug_conflict',
+            'message' => "Slug '{$slug}' maps to " . count($rows) . " rows in rent_model_web. "
+                       . 'Refusing to read or write an ambiguous page — deduplicate page_addr in the admin panel first.',
+            'models'  => array_map(fn ($r) => [
+                'web_id'   => (int) $r->web_id,
+                'model_id' => (int) $r->model_id,
+                'name'     => $r->name,
+                'full_url' => $r->full_url,
+            ], $rows),
+        ], 409);
     }
 }

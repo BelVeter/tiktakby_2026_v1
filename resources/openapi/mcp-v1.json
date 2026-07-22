@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "TikTak.by MCP Analytics API",
-        "version": "2.2.1",
+        "version": "2.3.0",
         "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
     },
     "servers": [
@@ -1897,6 +1897,359 @@
                         "maxLength": 1000
                     }
                 }
+            },
+            "PagesProductRow": {
+                "type": "object",
+                "description": "One L3 product page. `current_values`/`default_values` are present only with fields=full.",
+                "properties": {
+                    "level": {
+                        "type": "string",
+                        "enum": [
+                            "product"
+                        ]
+                    },
+                    "slug": {
+                        "type": "string",
+                        "description": "rent_model_web.page_addr — last URL segment."
+                    },
+                    "model_id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "item_name_main; also the page <h1>."
+                    },
+                    "full_url": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Canonical path, resolved through tovar_rent_cat.main_sub_razdel_id → sub_razdel.main_razdel_id (the chain the site uses for <link rel=canonical> and sitemap.xml). null when the category is not wired into the catalog tree — the page then has no URL at all."
+                    },
+                    "razdel_slug": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "subrazdel_slug": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "category_slug": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "show",
+                            "not_show"
+                        ]
+                    },
+                    "active_units": {
+                        "type": "integer",
+                        "description": "Rows in tovar_rent_items for this model."
+                    },
+                    "is_indexable": {
+                        "type": "boolean",
+                        "description": "status=show AND canonical URL exists AND active_units>0 — the same rule sitemap.xml applies."
+                    },
+                    "seo_score": {
+                        "type": "object",
+                        "properties": {
+                            "has_meta_title": {
+                                "type": "boolean"
+                            },
+                            "has_meta_description": {
+                                "type": "boolean"
+                            },
+                            "has_h1": {
+                                "type": "boolean"
+                            },
+                            "has_l2_name": {
+                                "type": "boolean"
+                            },
+                            "has_main_pic_alt": {
+                                "type": "boolean"
+                            },
+                            "has_main_pic_title": {
+                                "type": "boolean"
+                            },
+                            "has_l2_pic_alt": {
+                                "type": "boolean"
+                            },
+                            "has_description": {
+                                "type": "boolean"
+                            },
+                            "has_breadcrumb_name": {
+                                "type": "boolean"
+                            },
+                            "has_faq": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "current_values": {
+                        "type": "object",
+                        "description": "Current stored values; null means the field is empty.",
+                        "properties": {
+                            "meta_title": {
+                                "type": "string",
+                                "nullable": true,
+                                "maxLength": 70
+                            },
+                            "meta_description": {
+                                "type": "string",
+                                "nullable": true,
+                                "maxLength": 160
+                            },
+                            "h1": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "rent_model_web.item_name_main — the <h1> of the product page."
+                            },
+                            "l2_name": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Card title on listing pages."
+                            },
+                            "main_pic_alt": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "main_pic_title": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "title= attribute of the main image (m_a_title)."
+                            },
+                            "l2_pic_alt": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "description": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Body copy (HTML). Not sanitised."
+                            },
+                            "breadcrumb_name": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "faq": {
+                                "type": "array",
+                                "nullable": true,
+                                "description": "FAQ entries rendered as FAQPage schema.org markup.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "question": {
+                                            "type": "string",
+                                            "maxLength": 500
+                                        },
+                                        "answer": {
+                                            "type": "string",
+                                            "maxLength": 5000
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default_values": {
+                        "type": "object",
+                        "description": "Current stored values; null means the field is empty.",
+                        "properties": {
+                            "meta_title": {
+                                "type": "string",
+                                "nullable": true,
+                                "maxLength": 70
+                            },
+                            "meta_description": {
+                                "type": "string",
+                                "nullable": true,
+                                "maxLength": 160
+                            },
+                            "h1": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "rent_model_web.item_name_main — the <h1> of the product page."
+                            },
+                            "l2_name": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Card title on listing pages."
+                            },
+                            "main_pic_alt": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "main_pic_title": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "title= attribute of the main image (m_a_title)."
+                            },
+                            "l2_pic_alt": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "description": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Body copy (HTML). Not sanitised."
+                            },
+                            "breadcrumb_name": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "faq": {
+                                "type": "array",
+                                "nullable": true,
+                                "description": "FAQ entries rendered as FAQPage schema.org markup.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "question": {
+                                            "type": "string",
+                                            "maxLength": 500
+                                        },
+                                        "answer": {
+                                            "type": "string",
+                                            "maxLength": 5000
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "PagesProductInput": {
+                "type": "object",
+                "description": "Partial update. Only the keys present are written. meta_title/meta_description/*_alt/main_pic_title/breadcrumb_name are stripped of tags and quotes (they land inside <title> or an HTML attribute); description and h1 keep their markup.",
+                "properties": {
+                    "meta_title": {
+                        "type": "string",
+                        "maxLength": 70
+                    },
+                    "meta_description": {
+                        "type": "string",
+                        "maxLength": 160
+                    },
+                    "h1": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "l2_name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "main_pic_alt": {
+                        "type": "string",
+                        "maxLength": 125
+                    },
+                    "main_pic_title": {
+                        "type": "string",
+                        "maxLength": 125
+                    },
+                    "l2_pic_alt": {
+                        "type": "string",
+                        "maxLength": 125
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "breadcrumb_name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "faq": {
+                        "type": "array",
+                        "nullable": true,
+                        "description": "FAQ entries rendered as FAQPage schema.org markup.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "question": {
+                                    "type": "string",
+                                    "maxLength": 500
+                                },
+                                "answer": {
+                                    "type": "string",
+                                    "maxLength": 5000
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "PagesProductBulkResultRow": {
+                "type": "object",
+                "properties": {
+                    "index": {
+                        "type": "integer",
+                        "description": "Position in the submitted array."
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "updated",
+                            "unchanged",
+                            "not_found",
+                            "conflict",
+                            "invalid"
+                        ]
+                    },
+                    "changed_fields": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "errors": {
+                        "type": "object",
+                        "nullable": true
+                    }
+                }
+            },
+            "PagesHistoryRow": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "page_type": {
+                        "type": "string",
+                        "enum": [
+                            "listing",
+                            "product"
+                        ]
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "field": {
+                        "type": "string",
+                        "description": "API field name, not the DB column."
+                    },
+                    "old_value": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "new_value": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "source": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                }
             }
         },
         "responses": {
@@ -2853,6 +3206,342 @@
                                             "example": 10
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "PagesProductListEnvelope": {
+                "description": "Paginated list of L3 product pages with SEO completeness counters.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "object"
+                                },
+                                "data": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PagesProductRow"
+                                    }
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_rows": {
+                                            "type": "integer"
+                                        },
+                                        "currency": {
+                                            "type": "string"
+                                        },
+                                        "data_freshness": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warning"
+                                            }
+                                        },
+                                        "returned_rows": {
+                                            "type": "integer"
+                                        },
+                                        "page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        },
+                                        "summary": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_matching": {
+                                                    "type": "integer"
+                                                },
+                                                "missing": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "meta_title": {
+                                                            "type": "integer"
+                                                        },
+                                                        "meta_description": {
+                                                            "type": "integer"
+                                                        },
+                                                        "h1": {
+                                                            "type": "integer"
+                                                        },
+                                                        "l2_name": {
+                                                            "type": "integer"
+                                                        },
+                                                        "main_pic_alt": {
+                                                            "type": "integer"
+                                                        },
+                                                        "main_pic_title": {
+                                                            "type": "integer"
+                                                        },
+                                                        "l2_pic_alt": {
+                                                            "type": "integer"
+                                                        },
+                                                        "description": {
+                                                            "type": "integer"
+                                                        },
+                                                        "breadcrumb_name": {
+                                                            "type": "integer"
+                                                        },
+                                                        "faq": {
+                                                            "type": "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "by_category": {
+                                                    "type": "array",
+                                                    "description": "Present only with summary=1.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "razdel_slug": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "subrazdel_slug": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "category_slug": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "total": {
+                                                                "type": "integer"
+                                                            },
+                                                            "missing": {
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "PagesProductSingleEnvelope": {
+                "description": "One L3 product page with its current and default SEO values.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "object"
+                                },
+                                "data": {
+                                    "$ref": "#/components/schemas/PagesProductRow"
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_rows": {
+                                            "type": "integer"
+                                        },
+                                        "currency": {
+                                            "type": "string"
+                                        },
+                                        "data_freshness": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warning"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "PagesProductBulkEnvelope": {
+                "description": "Per-item outcome of a bulk SEO update.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "object"
+                                },
+                                "data": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PagesProductBulkResultRow"
+                                    }
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_rows": {
+                                            "type": "integer"
+                                        },
+                                        "currency": {
+                                            "type": "string"
+                                        },
+                                        "data_freshness": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warning"
+                                            }
+                                        },
+                                        "summary": {
+                                            "type": "object",
+                                            "properties": {
+                                                "updated": {
+                                                    "type": "integer"
+                                                },
+                                                "unchanged": {
+                                                    "type": "integer"
+                                                },
+                                                "not_found": {
+                                                    "type": "integer"
+                                                },
+                                                "conflict": {
+                                                    "type": "integer"
+                                                },
+                                                "invalid": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "PagesHistoryEnvelope": {
+                "description": "Field-level change log of SEO content written through this API.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "object"
+                                },
+                                "data": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PagesHistoryRow"
+                                    }
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_rows": {
+                                            "type": "integer"
+                                        },
+                                        "currency": {
+                                            "type": "string"
+                                        },
+                                        "data_freshness": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warning"
+                                            }
+                                        },
+                                        "returned_rows": {
+                                            "type": "integer"
+                                        },
+                                        "page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "SlugConflict": {
+                "description": "The slug maps to more than one rent_model_web row; reading or writing it would be ambiguous.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string",
+                                    "enum": [
+                                        "slug_conflict"
+                                    ]
+                                },
+                                "message": {
+                                    "type": "string"
+                                },
+                                "models": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "web_id": {
+                                                "type": "integer"
+                                            },
+                                            "model_id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "full_url": {
+                                                "type": "string",
+                                                "nullable": true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "PageNotFound": {
+                "description": "No page with this slug.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string",
+                                    "enum": [
+                                        "not_found"
+                                    ]
+                                },
+                                "message": {
+                                    "type": "string"
                                 }
                             }
                         }
@@ -4572,25 +5261,143 @@
         },
         "/pages/product": {
             "get": {
-                "summary": "List L3 models",
-                "description": "Returns all catalog L3 models with their SEO fields completion status.",
+                "operationId": "tiktak_pages_product_list",
+                "summary": "List L3 product pages with SEO completeness.",
+                "description": "Inventory of product pages backed by `rent_model_web`. Filter down to a work queue (`missing=`, `category=`, `indexable=`), pull the editable values in the same request (`fields=full`) and read per-field gap counters from `meta.summary` — the endpoint is behind throttle:60,1, so a page-by-page crawl of ~1000 models is not viable.",
                 "tags": [
                     "Pages"
                 ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "razdel",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Filter by razdel slug (canonical parent)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "subrazdel",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Filter by subrazdel slug (canonical parent)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "category",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Filter by L2 category slug."
+                    },
+                    {
+                        "in": "query",
+                        "name": "search",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "LIKE match on name, listing card name or slug."
+                    },
+                    {
+                        "in": "query",
+                        "name": "missing",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Comma-separated field names; returns pages missing AT LEAST ONE of them. Allowed: meta_title, meta_description, h1, l2_name, main_pic_alt, main_pic_title, l2_pic_alt, description, breadcrumb_name, faq."
+                    },
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "show",
+                                "not_show",
+                                "all"
+                            ],
+                            "default": "show"
+                        },
+                        "description": "rent_model_web.status filter."
+                    },
+                    {
+                        "in": "query",
+                        "name": "has_stock",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "Restrict to models with (1) or without (0) physical items."
+                    },
+                    {
+                        "in": "query",
+                        "name": "indexable",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "Restrict to pages that are (1) or are not (0) eligible for sitemap.xml."
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "summary",
+                                "full"
+                            ],
+                            "default": "summary"
+                        },
+                        "description": "`full` adds current_values/default_values to every row."
+                    },
+                    {
+                        "in": "query",
+                        "name": "summary",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "description": "Add meta.summary.by_category breakdown."
+                    },
+                    {
+                        "in": "query",
+                        "name": "per_page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 100,
+                            "maximum": 500
+                        },
+                        "description": "Items per page."
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "description": "Page number."
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Success",
-                        "content": {
-                            "application/json": []
-                        }
+                        "$ref": "#/components/responses/PagesProductListEnvelope"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
                     }
                 }
             }
         },
         "/pages/product/{slug}": {
             "get": {
-                "summary": "Get L3 SEO data",
-                "description": "Read L3 product SEO fields (from rent_model_web).",
+                "operationId": "tiktak_pages_product_show",
+                "summary": "Read SEO fields of one L3 product page.",
+                "description": "Returns current and default values. Pages whose category is not wired into the catalog tree are served with `full_url: null` and a `no_canonical_url` warning rather than a 404.",
                 "tags": [
                     "Pages"
                 ],
@@ -4601,21 +5408,29 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "description": "rent_model_web.page_addr."
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
-                        "content": {
-                            "application/json": []
-                        }
+                        "$ref": "#/components/responses/PagesProductSingleEnvelope"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/PageNotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/SlugConflict"
                     }
                 }
             },
             "patch": {
-                "summary": "Update L3 SEO data",
-                "description": "Update L3 product SEO fields (meta_title, meta_description, main_pic_alt, l2_pic_alt, description, breadcrumb_name, faq).",
+                "operationId": "tiktak_pages_product_update",
+                "summary": "Update SEO fields of one L3 product page.",
+                "description": "Partial update addressed by primary key. Returns the refreshed page. Every changed field is recorded in mcp_content_versions and readable via GET /pages/history.",
                 "tags": [
                     "Pages"
                 ],
@@ -4626,7 +5441,8 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "description": "rent_model_web.page_addr."
                     }
                 ],
                 "requestBody": {
@@ -4634,56 +5450,29 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "meta_title": {
-                                        "type": "string",
-                                        "maxLength": 70
-                                    },
-                                    "meta_description": {
-                                        "type": "string",
-                                        "maxLength": 160
-                                    },
-                                    "main_pic_alt": {
-                                        "type": "string",
-                                        "maxLength": 125
-                                    },
-                                    "l2_pic_alt": {
-                                        "type": "string",
-                                        "maxLength": 125
-                                    },
-                                    "description": {
-                                        "type": "string"
-                                    },
-                                    "breadcrumb_name": {
-                                        "type": "string",
-                                        "maxLength": 100
-                                    },
-                                    "faq": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "question": {
-                                                    "type": "string"
-                                                },
-                                                "answer": {
-                                                    "type": "string"
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                "$ref": "#/components/schemas/PagesProductInput"
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Success",
-                        "content": {
-                            "application/json": []
-                        }
+                        "$ref": "#/components/responses/PagesProductSingleEnvelope"
+                    },
+                    "400": {
+                        "description": "No writable fields in the body."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/PageNotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/SlugConflict"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
                     }
                 }
             }
@@ -4899,6 +5688,153 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/pages/product/bulk": {
+            "patch": {
+                "operationId": "tiktak_pages_product_bulk",
+                "summary": "Update SEO fields of up to 100 L3 pages in one request.",
+                "description": "Partial success: each item carries its own status, so a bad slug does not discard the rest of the batch. HTTP 422 is returned only when the envelope itself is malformed (missing `pages`, more than 100 items, an item without `slug`).",
+                "tags": [
+                    "Pages"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "pages"
+                                ],
+                                "properties": {
+                                    "pages": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "maxItems": 100,
+                                        "items": {
+                                            "allOf": [
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "slug"
+                                                    ],
+                                                    "properties": {
+                                                        "slug": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "$ref": "#/components/schemas/PagesProductInput"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PagesProductBulkEnvelope"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                }
+            }
+        },
+        "/pages/history": {
+            "get": {
+                "operationId": "tiktak_pages_history",
+                "summary": "Change log of SEO content written through this API.",
+                "description": "One row per changed field for both L2 listing and L3 product pages. Edits made in the legacy admin panel are not recorded.",
+                "tags": [
+                    "Pages"
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "page_type",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "listing",
+                                "product"
+                            ]
+                        },
+                        "description": "Restrict to one page level."
+                    },
+                    {
+                        "in": "query",
+                        "name": "slug",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Restrict to one page."
+                    },
+                    {
+                        "in": "query",
+                        "name": "field",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Restrict to one API field name."
+                    },
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Inclusive lower bound on the change date."
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Inclusive upper bound on the change date."
+                    },
+                    {
+                        "in": "query",
+                        "name": "per_page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 100,
+                            "maximum": 500
+                        },
+                        "description": "Items per page."
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "description": "Page number."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PagesHistoryEnvelope"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
                     }
                 }
             }

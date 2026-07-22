@@ -405,4 +405,68 @@ abstract class BaseController extends Controller
 
         return $warnings;
     }
+
+    /**
+     * Append one mcp_content_versions row per actually-changed field.
+     *
+     * McpAuditLogMiddleware logs query params only, so without this a PATCH
+     * body leaves no server-side trace and content edits cannot be rolled back
+     * or attributed. Never throws: a broken history table must not fail a write
+     * that already succeeded.
+     *
+     * @param  string               $pageType 'listing' | 'product'
+     * @param  array<string,mixed>  $before   API field => value before the write
+     * @param  array<string,mixed>  $after    API field => value after the write
+     * @return string[]                       names of fields that actually changed
+     */
+    protected function recordContentVersion(string $pageType, string $slug, array $before, array $after): array
+    {
+        $rows    = [];
+        $changed = [];
+        $now     = now();
+
+        foreach ($after as $field => $newValue) {
+            $oldValue = $before[$field] ?? null;
+
+            $oldFlat = $this->flattenVersionValue($oldValue);
+            $newFlat = $this->flattenVersionValue($newValue);
+            if ($oldFlat === $newFlat) {
+                continue;
+            }
+
+            $changed[] = $field;
+            $rows[]    = [
+                'page_type'  => $pageType,
+                'page_slug'  => mb_substr($slug, 0, 191),
+                'field'      => $field,
+                'old_value'  => $oldFlat,
+                'new_value'  => $newFlat,
+                'source'     => 'mcp_api',
+                'ip'         => request()->ip(),
+                'created_at' => $now,
+            ];
+        }
+
+        if (!empty($rows)) {
+            try {
+                DB::table('mcp_content_versions')->insert($rows);
+            } catch (\Throwable $e) {
+                \Log::error('mcp_content_versions insert failed: ' . $e->getMessage());
+            }
+        }
+
+        return $changed;
+    }
+
+    /** Normalise a field value to the nullable string stored in the history table. */
+    private function flattenVersionValue($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_array($value)) {
+            return json_encode($value, JSON_UNESCAPED_UNICODE);
+        }
+        return (string) $value;
+    }
 }
