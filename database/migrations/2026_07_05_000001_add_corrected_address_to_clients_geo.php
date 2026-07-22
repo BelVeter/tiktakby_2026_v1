@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddCorrectedAddressColumnToClientsGeo20260705 extends Migration
+class AddCorrectedAddressToClientsGeo extends Migration
 {
     /**
      * Run the migrations.
