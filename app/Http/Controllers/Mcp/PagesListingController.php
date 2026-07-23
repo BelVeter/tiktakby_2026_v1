@@ -299,7 +299,14 @@ class PagesListingController extends BaseController
         ]);
 
         $levelCode = $resolved['level_code'];
-        
+
+        // Snapshot before the write so the change log can store a real diff.
+        $before = $this->apiValues(
+            DB::table('pages')
+                ->where(['level_code' => $levelCode, 'url_key' => $slug, 'lang' => 'ru'])
+                ->first()
+        );
+
         // Map API fields to DB columns
         $updateData = [];
         if (array_key_exists('meta_title', $validated)) {
@@ -355,8 +362,35 @@ class PagesListingController extends BaseController
 
         DB::table('pages')->updateOrInsert($matchColumns, $updateData);
 
+        $after = $this->apiValues(
+            DB::table('pages')->where($matchColumns)->first()
+        );
+        $this->recordContentVersion('listing', $slug, $before, array_intersect_key($after, $validated));
+
         // Fetch updated record
         return $this->show($request, $slug);
+    }
+
+    /**
+     * API-shaped view of a `pages` row (null = not filled in).
+     * Shared by show() and the change-log diff.
+     */
+    private function apiValues(?object $page): array
+    {
+        $val = static function (string $column) use ($page) {
+            $raw = $page->$column ?? null;
+            return ($raw === null || $raw === '') ? null : $raw;
+        };
+
+        return [
+            'meta_title'       => $val('title'),
+            'meta_description' => $val('meta_description'),
+            'h1'               => $val('h1'),
+            'intro_text'       => $val('h1_long_text'),
+            'seo_text'         => $val('code_block_1'),
+            'h1_pic_url'       => $val('h1_pic_url'),
+            'faq'              => $val('faq') ? json_decode($page->faq, true) : null,
+        ];
     }
 
     /**

@@ -13,6 +13,7 @@ use App\Http\Controllers\Mcp\LocationsController;
 use App\Http\Controllers\Mcp\MarketingController;
 use App\Http\Controllers\Mcp\MetaController;
 use App\Http\Controllers\Mcp\OperationsController;
+use App\Http\Controllers\Mcp\PagesHistoryController;
 use App\Http\Controllers\Mcp\PagesListingController;
 use App\Http\Controllers\Mcp\PagesProductController;
 use App\Http\Controllers\Mcp\RedirectsController;
@@ -128,8 +129,13 @@ Route::prefix('mcp/v1')
         Route::patch('pages/listing/{slug}', [PagesListingController::class, 'update'])->name('pages.listing.update');
 
         Route::get('pages/product',          [PagesProductController::class, 'index'])->name('pages.product.index');
+        // `bulk` must precede `{slug}` — otherwise it is swallowed as a slug.
+        Route::patch('pages/product/bulk',   [PagesProductController::class, 'bulkUpdate'])->name('pages.product.bulk');
         Route::get('pages/product/{slug}',   [PagesProductController::class, 'show'])->name('pages.product.show');
         Route::patch('pages/product/{slug}', [PagesProductController::class, 'update'])->name('pages.product.update');
+
+        // Change log of SEO content written through this API (both levels)
+        Route::get('pages/history',          [PagesHistoryController::class, 'index'])->name('pages.history');
 
 
         // Redirects management (CRUD + bulk)

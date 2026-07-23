@@ -47,6 +47,9 @@
 | `Mcp/BaseController` | abstract — `envelope()`, `cacheRemember()`, `dataFreshness()`, TTL constants |
 | `Mcp/MarketingController` | `/marketing/conversions` — UTM-attributed conversion events for all conversion types |
 | `Mcp/RedirectsController` | `/redirects/*` — redirects CRUD API and bulk upsert |
+| `Mcp/PagesListingController` | `/pages/listing/*` — SEO fields of L2 catalog pages (`pages` table), hero-image upload, `/products` listing |
+| `Mcp/PagesProductController` | `/pages/product*` — SEO fields of L3 product pages (`rent_model_web`): filtered list, single read/PATCH, bulk PATCH. `full_url` is the canonical URL (`tovar_rent_cat.main_sub_razdel_id` → `sub_razdel.main_razdel_id`) — never resolve it through `subrazdel_category` |
+| `Mcp/PagesHistoryController` | `/pages/history` — field-level change log of SEO content written via the API (`mcp_content_versions`) |
 | `BbAudioController` | `/bb-internal/audio/{uuid}` — streams audio files to bb/ interface with cookie auth |
 
 See `docs/mcp_server.md` and `resources/openapi/mcp-v1.json` for the full endpoint catalog.
@@ -100,7 +103,7 @@ Blade templates. Main layout: `layouts/app.blade.php` (contains version number f
 - Language redirects `/en/*`, `/lt/*` → `/ru/*`
 - Catalog: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
 - Fallback → 404 page
-- **MCP API** (`routes/api.php`): `GET /api/mcp/v1/*` — 31 analytics endpoints + `/health` + `/openapi.json` + `/redirects/*`, middleware chain `mcp.json → mcp.token → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+.
+- **MCP API** (`routes/api.php`): `/api/mcp/v1/*` — 58 endpoints + `/health` + `/openapi.json`; mostly GET analytics, plus writes on `/pages/*` (SEO content), `/redirects/*` and `/sms/send`. Middleware chain `mcp.json → mcp.token → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+.
 
   **Methodology (locked 2026-05-14, reproduces legacy admin reports — see `docs/mcp_server.md`):**
   - Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` by `acc_date` (not deal `cr_time`).
@@ -138,7 +141,7 @@ Sequence:
 | Redirects | `redirects` (source_url, target_url, status_code, is_active, is_regex, hit_count, last_hit_at) |
 | System | `migrations`, `users`, `personal_access_tokens` |
 | A1 API | `a1_call_recordings` (has `has_audio tinyint DEFAULT 1` — set to 0 when file deleted from disk to preserve transcripts; never delete rows), `a1_recordings_fetch_log`, `a1_cdr`, `a1_cdr_fetch_log`, `a1_call_analysis`, `a1_daily_summaries` |
-| MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent); plus `idx_mcp_*` performance indexes on `rent_deals_arch`, `rent_sub_deals_arch`, `doh_rash`, `clients`, `karn_brons`, `karn_brons_arch`, `rent_orders`, `rent_orders_arch`, `rent_deals_act` (migration `2026_05_09_000001_add_mcp_analytics_indexes`) |
+| MCP | `mcp_api_log` (ip, method, endpoint, query_params, status_code, response_ms, user_agent — **query params only, request bodies are not stored**); `mcp_content_versions` (page_type, page_slug, field, old_value, new_value, source, ip — one row per SEO field changed through `PATCH /pages/*`, read via `GET /pages/history`); plus `idx_mcp_*` performance indexes on `rent_deals_arch`, `rent_sub_deals_arch`, `doh_rash`, `clients`, `karn_brons`, `karn_brons_arch`, `rent_orders`, `rent_orders_arch`, `rent_deals_act` (migration `2026_05_09_000001_add_mcp_analytics_indexes`) |
 | Marketing | `tiktak_utms` (entity_type, entity_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, created_at). Written by `UtmTracker::track()`. entity_types: `zvonki`, `rent_orders`, `karn_brons`, `kb_zayavki`, `phone_click`, `add_to_cart_click` |
 
 ## Data Access Strategy

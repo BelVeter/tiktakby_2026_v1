@@ -163,15 +163,51 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `PATCH /pages/listing/{slug}` | Upsert L2 category SEO fields (`meta_title`, `meta_description`, `h1`, `intro_text`, `seo_text`, `h1_pic_url`, `faq`) |
 |        | `POST /pages/listing/{slug}/image` | Upload and resize hero-image for L2 category (saves as JPG, updates h1_pic_url) |
 |        | `GET /pages/listing/{slug}/products` | List all rental models shown on a listing page (razdel/subrazdel/category). Returns `model_id`, `model_name`, `brand`, `active_units`, `free_units`, `is_available`, prices. Sorted `free_units DESC`. |
-|        | `GET /pages/product` | List all L3 product models with their SEO completion status |
-|        | `GET /pages/product/{slug}` | Read L3 model SEO fields (from `rent_model_web`) |
-|        | `PATCH /pages/product/{slug}` | Update L3 model SEO fields (`meta_title`, `meta_description`, `main_pic_alt`, `l2_pic_alt`, `description`, `breadcrumb_name`, `faq`) |
+|        | `GET /pages/product` | List L3 product pages with SEO completion status. Filters: `razdel`, `subrazdel`, `category`, `search`, `missing=` (CSV of field names, "missing at least one"), `status=show\|not_show\|all`, `has_stock`, `indexable`; `fields=full` adds the editable values, `summary=1` adds a per-category breakdown; paginated (`per_page` max 500, default 100) |
+|        | `GET /pages/product/{slug}` | Read L3 model SEO fields (from `rent_model_web`). 409 when the slug maps to several rows |
+|        | `PATCH /pages/product/{slug}` | Update L3 model SEO fields (`meta_title`, `meta_description`, `h1`, `l2_name`, `main_pic_alt`, `main_pic_title`, `l2_pic_alt`, `description`, `breadcrumb_name`, `faq`) |
+|        | `PATCH /pages/product/bulk` | Update up to 100 pages in one request. Body `{"pages":[{"slug": …, …fields}]}`; each item reports `updated\|unchanged\|not_found\|conflict\|invalid` |
+|        | `GET /pages/history` | Field-level change log of SEO content written through this API (`mcp_content_versions`). Filters: `page_type`, `slug`, `field`, `from`, `to` |
 | SMS    | `POST /sms/send` | Send an SMS message using RocketSMS (`phone`, `text`, optional `sender`) |
 | Redirects | `GET /redirects` | List redirects with optional filters: `is_active`, `is_regex`, `search` (LIKE on source/target); paginated (`per_page` max 500, default 100) |
 |        | `POST /redirects` | Create a single redirect (`source_url`, `target_url`, required; `status_code` 301/302, `is_active`, `is_regex`, `comment` optional). Non-regex URLs auto-prefixed with `/`. Returns 422 on duplicate `source_url`. |
 |        | `PATCH /redirects/{id}` | Partial update — only provided fields are modified. At least one field required. |
 |        | `DELETE /redirects/{id}` | Delete redirect by id. |
 |        | `POST /redirects/bulk` | Bulk upsert up to 200 redirects. Body: `{"redirects": [...]}`. Uses `INSERT … ON DUPLICATE KEY UPDATE` on `source_url`. All writes immediately clear `redirects_exact_map` + `redirects_regex_list` cache keys used by `CheckRedirects` middleware. |
+
+## L3 product pages — URL resolution and gotchas
+
+**`full_url` is the canonical URL, resolved through the single-parent chain the site itself uses**
+(`ModelWeb::getUrlPageAddress`):
+
+```
+rent_model_web.model_id → tovar_rent.tovar_rent_cat_id → tovar_rent_cat.main_sub_razdel_id
+                        → sub_razdel.main_razdel_id → razdel
+```
+
+Do **not** resolve it through `subrazdel_category` × `razdel_subrazdel`. A category linked to several
+subrazdels renders the same product under several working URLs, but only the chain above carries
+`<link rel="canonical">` and only it appears in `sitemap.xml`. The M:N chain used before 2026-07 returned
+a non-canonical URL for ~14% of models and `NULL` for ~130 models that do have one.
+`tests/Feature/Mcp/PagesProductTest::test_full_url_matches_the_canonical_chain` guards this.
+
+- `full_url: null` + `no_canonical_url` warning = the category is not wired into the catalog tree, so the
+  page has no URL at all and is absent from the sitemap. Such pages are still readable and writable
+  (they used to 404 while a PATCH silently succeeded).
+- `is_indexable` = `status='show'` AND canonical URL exists AND `active_units > 0` — the same rule
+  `GenerateSitemap` applies. Use `?indexable=1` to get the pages worth optimising.
+- `page_addr` is not unique: several rows can share a slug. Both read and write answer **409
+  `slug_conflict`** listing the colliding `web_id`/`model_id` instead of guessing (the previous
+  implementation updated every matching row).
+- `meta_title`, `meta_description`, `*_pic_alt`, `main_pic_title` and `breadcrumb_name` are stripped of
+  tags and `"`/`<`/`>` before storage — they end up inside `<title>` or an HTML attribute rendered by an
+  unescaped `@yield`. `description` and `h1` keep their markup.
+- **The L3 template has no meta fallbacks.** An empty `title` column ships a literally empty `<title>` tag
+  (unlike L2, where `PagesListingController` advertises generated defaults); `show` returns an
+  `empty_meta_title` warning for those pages.
+- Every changed field is written to `mcp_content_versions` and readable via `GET /pages/history`.
+  Edits made in the legacy admin (`bb/model_web.php`) are **not** recorded there.
+- After a content change, purge the Cloudflare cache — the HTML is cached at the edge.
 
 ## Marketing conversions — data model
 
