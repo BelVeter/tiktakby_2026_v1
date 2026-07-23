@@ -201,7 +201,15 @@ a non-canonical URL for ~14% of models and `NULL` for ~130 models that do have o
   implementation updated every matching row).
 - `meta_title`, `meta_description`, `*_pic_alt`, `main_pic_title` and `breadcrumb_name` are stripped of
   tags and `"`/`<`/`>` before storage — they end up inside `<title>` or an HTML attribute rendered by an
-  unescaped `@yield`. `description` and `h1` keep their markup.
+  unescaped `@yield`. `description` and `h1` keep their markup. Tag removal is a regex over well-formed
+  tags, **not** `strip_tags()`: the latter treats a lone `<` as an opening tag and would store
+  «Коляска весом <5 кг для прогулок» as «Коляска весом».
+- **`sql_mode` is empty on production** — MySQL truncates oversized values instead of raising an error.
+  `description` and the encoded `faq` are therefore rejected with 422 above 60 000 bytes (TEXT holds
+  65 535). Any new write path into these tables needs the same guard.
+- `h1` (`item_name_main`) and `l2_name` may be edited but not blanked (`filled` rule) — the same value is
+  the product name in the admin panel and in `bb/` printed forms. It is never copied into deal or order
+  tables, so editing it is display-only and safe.
 - **The L3 template has no meta fallbacks.** An empty `title` column ships a literally empty `<title>` tag
   (unlike L2, where `PagesListingController` advertises generated defaults); `show` returns an
   `empty_meta_title` warning for those pages.

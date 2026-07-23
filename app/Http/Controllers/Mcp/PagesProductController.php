@@ -51,11 +51,21 @@ class PagesProductController extends BaseController
         'main_pic_title', 'l2_pic_alt', 'breadcrumb_name',
     ];
 
+    /**
+     * Largest value accepted for a TEXT column, in bytes. MySQL TEXT holds
+     * 65535 bytes and `sql_mode` is empty on production, so anything longer
+     * would be silently truncated rather than rejected. The longest body copy
+     * in the catalog today is ~17 KB.
+     */
+    private const MAX_TEXT_BYTES = 60000;
+
     private const WRITE_RULES = [
         'meta_title'       => 'nullable|string|max:70',
         'meta_description' => 'nullable|string|max:160',
-        'h1'               => 'nullable|string|max:255',
-        'l2_name'          => 'nullable|string|max:255',
+        // `filled`: h1/l2_name may be edited but not blanked — item_name_main is
+        // the product name everywhere (page <h1>, admin lists, bb/ printouts).
+        'h1'               => 'sometimes|filled|string|max:255',
+        'l2_name'          => 'sometimes|filled|string|max:255',
         'main_pic_alt'     => 'nullable|string|max:125',
         'main_pic_title'   => 'nullable|string|max:125',
         'l2_pic_alt'       => 'nullable|string|max:125',
@@ -184,7 +194,16 @@ class PagesProductController extends BaseController
         }
 
         $validated = $request->validate(self::WRITE_RULES);
-        $outcome   = $this->applyToRow($rows[0], $validated);
+
+        $contentErrors = $this->contentErrors($validated);
+        if (!empty($contentErrors)) {
+            return response()->json([
+                'error'  => 'Validation failed.',
+                'errors' => $contentErrors,
+            ], 422);
+        }
+
+        $outcome = $this->applyToRow($rows[0], $validated);
 
         if ($outcome['status'] === 'no_fields') {
             return response()->json([
@@ -217,6 +236,12 @@ class PagesProductController extends BaseController
             $validator = Validator::make($fields, self::WRITE_RULES);
             if ($validator->fails()) {
                 $results[] = $this->bulkResult($i, $slug, 'invalid', [], $validator->errors()->toArray());
+                continue;
+            }
+
+            $contentErrors = $this->contentErrors($validator->validated());
+            if (!empty($contentErrors)) {
+                $results[] = $this->bulkResult($i, $slug, 'invalid', [], $contentErrors);
                 continue;
             }
 
@@ -306,17 +331,58 @@ class PagesProductController extends BaseController
     /**
      * Strip markup and attribute-breaking characters from a field that ends up
      * inside <title> or an HTML attribute (meta description, alt, title=).
+     *
+     * Deliberately NOT strip_tags(): it treats a lone "<" as the start of a tag
+     * and eats everything after it, so "меньше <5 кг для детей" would be stored
+     * as "меньше". Only well-formed tags are removed; leftover angle brackets
+     * and quotes are then dropped as characters.
      */
     private function sanitizePlainText(?string $value): ?string
     {
         if ($value === null) {
             return null;
         }
-        $value = strip_tags($value);
-        $value = str_replace(['"', '<', '>'], '', $value);
-        $value = preg_replace('/\s+/u', ' ', $value);
 
-        return trim($value);
+        $stripped = preg_replace('~</?[a-zA-Z][^>]*>~u', '', $value);
+        $value    = $stripped ?? $value;          // null = malformed UTF-8, keep as-is
+        $value    = str_replace(['"', '<', '>'], '', $value);
+        $collapsed = preg_replace('/\s+/u', ' ', $value);
+
+        return trim($collapsed ?? $value);
+    }
+
+    /**
+     * Guards the app cannot express as validation rules.
+     *
+     * Production runs with an empty `sql_mode`, so oversized values are
+     * silently truncated by MySQL instead of raising an error — the length of
+     * anything headed for a TEXT column has to be checked here, in bytes.
+     *
+     * @param  array<string,mixed> $validated
+     * @return array<string,string[]>  field => messages (empty when fine)
+     */
+    private function contentErrors(array $validated): array
+    {
+        $errors = [];
+
+        foreach ($validated as $field => $value) {
+            if (is_string($value) && !mb_check_encoding($value, 'UTF-8')) {
+                $errors[$field][] = 'Value is not valid UTF-8.';
+            }
+        }
+
+        if (isset($validated['description']) && strlen($validated['description']) > self::MAX_TEXT_BYTES) {
+            $errors['description'][] = 'Value exceeds ' . self::MAX_TEXT_BYTES . ' bytes and would be truncated by the database.';
+        }
+
+        if (!empty($validated['faq'])) {
+            $encoded = json_encode($validated['faq'], JSON_UNESCAPED_UNICODE);
+            if ($encoded === false || strlen($encoded) > self::MAX_TEXT_BYTES) {
+                $errors['faq'][] = 'Encoded FAQ exceeds ' . self::MAX_TEXT_BYTES . ' bytes and would be truncated by the database.';
+            }
+        }
+
+        return $errors;
     }
 
     // ─── reading ──────────────────────────────────────────────────────────────

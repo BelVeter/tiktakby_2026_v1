@@ -2126,7 +2126,7 @@
             },
             "PagesProductInput": {
                 "type": "object",
-                "description": "Partial update. Only the keys present are written. meta_title/meta_description/*_alt/main_pic_title/breadcrumb_name are stripped of tags and quotes (they land inside <title> or an HTML attribute); description and h1 keep their markup.",
+                "description": "Partial update. Only the keys present are written. meta_title/meta_description/*_alt/main_pic_title/breadcrumb_name are stripped of well-formed tags and of the characters \" < > (they land inside <title> or an HTML attribute); description and h1 keep their markup. Values headed for a TEXT column (description, faq) are rejected with 422 above 60000 bytes — production runs with an empty sql_mode, so MySQL would truncate them silently.",
                 "properties": {
                     "meta_title": {
                         "type": "string",
@@ -2138,11 +2138,13 @@
                     },
                     "h1": {
                         "type": "string",
-                        "maxLength": 255
+                        "maxLength": 255,
+                        "description": "Product page <h1> (item_name_main). May be edited but not blanked — it is the product name in the admin panel and printed forms too."
                     },
                     "l2_name": {
                         "type": "string",
-                        "maxLength": 255
+                        "maxLength": 255,
+                        "description": "Card title on listing pages. May be edited but not blanked."
                     },
                     "main_pic_alt": {
                         "type": "string",
@@ -2157,7 +2159,8 @@
                         "maxLength": 125
                     },
                     "description": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Body copy (HTML). Not sanitised. Max 60000 bytes."
                     },
                     "breadcrumb_name": {
                         "type": "string",

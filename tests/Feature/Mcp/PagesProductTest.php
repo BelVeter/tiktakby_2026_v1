@@ -263,6 +263,56 @@ class PagesProductTest extends McpTestCase
         $this->assertSame('Коляска Chicco', $r->json('data.current_values.main_pic_alt'));
     }
 
+    /**
+     * strip_tags() would treat the lone "<" as an opening tag and swallow the
+     * rest of the string; only well-formed tags may be removed.
+     */
+    public function test_patch_keeps_text_after_a_lone_angle_bracket(): void
+    {
+        $row = $this->anyLinkedRow();
+
+        $r = $this->patchProduct($row->page_addr, ['meta_description' => 'Коляска весом <5 кг для прогулок']);
+        $this->assertSame('Коляска весом 5 кг для прогулок', $r->json('data.current_values.meta_description'));
+    }
+
+    /**
+     * sql_mode is empty on production, so MySQL truncates oversized values
+     * instead of failing — length has to be rejected in the app, in bytes.
+     */
+    public function test_patch_rejects_description_larger_than_the_text_column(): void
+    {
+        $row = $this->anyLinkedRow();
+        $before = DB::table('rent_model_web')->where('web_id', $row->web_id)->value('main_descr');
+
+        $this->patchProduct($row->page_addr, ['description' => str_repeat('д', 40000)]) // 80 000 bytes
+            ->assertStatus(422);
+
+        $this->assertSame($before, DB::table('rent_model_web')->where('web_id', $row->web_id)->value('main_descr'));
+    }
+
+    public function test_bulk_marks_oversized_description_invalid(): void
+    {
+        $row = $this->anyLinkedRow();
+
+        $r = $this->patchMcp('pages/product/bulk', ['pages' => [
+            ['slug' => $row->page_addr, 'description' => str_repeat('д', 40000)],
+        ]]);
+
+        $this->assertSame('invalid', $r->json('data.0.status'));
+        $this->assertArrayHasKey('description', $r->json('data.0.errors'));
+    }
+
+    /** item_name_main is the product name everywhere — editable, but not erasable. */
+    public function test_patch_refuses_to_blank_h1_or_l2_name(): void
+    {
+        $row = $this->anyLinkedRow();
+
+        $this->patchProduct($row->page_addr, ['h1' => ''])->assertStatus(422);
+        $this->patchProduct($row->page_addr, ['l2_name' => null])->assertStatus(422);
+
+        $this->assertNotSame('', DB::table('rent_model_web')->where('web_id', $row->web_id)->value('item_name_main'));
+    }
+
     /** HTML body copy must survive untouched — only attribute fields are stripped. */
     public function test_patch_keeps_html_in_description(): void
     {
