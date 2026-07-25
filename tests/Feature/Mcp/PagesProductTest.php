@@ -13,12 +13,59 @@ use Illuminate\Support\Facades\DB;
  *   PATCH /pages/product/bulk
  *   GET   /pages/history
  *
- * Runs against the real catalog (legacy tables have no factories); every write
- * is rolled back by DatabaseTransactions.
+ * Runs against the real catalog — legacy tables have no factories.
+ *
+ * DatabaseTransactions cannot undo any of it: `rent_model_web` is MyISAM, so
+ * writes land immediately and survive the rollback. Until this was handled the
+ * suite left a trail behind every run — cloned rows from duplicateRow() and
+ * real catalog rows still carrying test copy. Each row this class touches is
+ * therefore snapshotted and put back by hand in tearDown.
  */
 class PagesProductTest extends McpTestCase
 {
     use DatabaseTransactions;
+
+    private const SLUG_INDEX = 'uniq_page_addr_lang';
+
+    /** web_id => full row as it looked before the test, restored in tearDown. */
+    private array $rowSnapshots = [];
+
+    /** Rows created by duplicateRow(), deleted in tearDown. */
+    private array $clonedWebIds = [];
+
+    private bool $slugIndexDropped = false;
+
+    protected function tearDown(): void
+    {
+        foreach ($this->clonedWebIds as $webId) {
+            DB::table('rent_model_web')->where('web_id', $webId)->delete();
+        }
+
+        foreach ($this->rowSnapshots as $webId => $row) {
+            DB::table('rent_model_web')->where('web_id', $webId)->update($row);
+        }
+
+        // Only after the clones are gone, or the unique index cannot be rebuilt.
+        $this->restoreSlugIndex();
+
+        $this->clonedWebIds  = [];
+        $this->rowSnapshots  = [];
+
+        parent::tearDown();
+    }
+
+    /** Remember a row's current contents so tearDown can undo whatever the test does to it. */
+    private function snapshotRow(int $webId): void
+    {
+        if (isset($this->rowSnapshots[$webId])) {
+            return;
+        }
+
+        $row = (array) DB::table('rent_model_web')->where('web_id', $webId)->first();
+        unset($row['web_id']);
+
+        $this->rowSnapshots[$webId] = $row;
+    }
 
     /** A model that has a canonical URL, used as the happy-path fixture. */
     private function anyLinkedRow(): object
@@ -38,6 +85,9 @@ class PagesProductTest extends McpTestCase
         if (!$row) {
             $this->markTestSkipped('no linked L3 model in this dataset');
         }
+
+        // Most callers go on to PATCH this row, and MyISAM will keep the change.
+        $this->snapshotRow((int) $row->web_id);
 
         return $row;
     }
@@ -423,7 +473,14 @@ class PagesProductTest extends McpTestCase
     public function test_history_endpoint_lists_recorded_changes(): void
     {
         $row = $this->anyLinkedRow();
-        $this->patchProduct($row->page_addr, ['meta_title' => 'История заголовка']);
+
+        // A version row is only written when the value actually changes, so the
+        // title has to differ from whatever this fixture currently holds —
+        // otherwise the PATCH is a no-op and there is no history to list.
+        $current = DB::table('rent_model_web')->where('web_id', $row->web_id)->value('title');
+        $title   = $current === 'История заголовка A' ? 'История заголовка B' : 'История заголовка A';
+
+        $this->patchProduct($row->page_addr, ['meta_title' => $title]);
 
         $r = $this->mcp('pages/history', ['page_type' => 'product', 'slug' => $row->page_addr]);
         $r->assertStatus(200);
@@ -455,11 +512,55 @@ class PagesProductTest extends McpTestCase
         ]);
     }
 
-    /** Clone a rent_model_web row (new web_id, same page_addr) to force a slug collision. */
+    /**
+     * Clone a rent_model_web row (new web_id, same page_addr) to force a slug
+     * collision.
+     *
+     * `uniq_page_addr_lang` exists precisely to make this state unreachable, so
+     * the index comes off for the duration of the test. The endpoints still owe
+     * a 409 if a collision ever turns up — from a restore, a legacy script, or
+     * a copy of the database predating the constraint — and that is what these
+     * tests pin down.
+     */
     private function duplicateRow(int $webId): void
     {
+        $this->dropSlugIndex();
+
         $copy = (array) DB::table('rent_model_web')->where('web_id', $webId)->first();
         unset($copy['web_id']);
+
         DB::table('rent_model_web')->insert($copy);
+
+        $this->clonedWebIds[] = (int) DB::getPdo()->lastInsertId();
+    }
+
+    private function dropSlugIndex(): void
+    {
+        if ($this->slugIndexDropped || !$this->slugIndexExists()) {
+            return;
+        }
+
+        DB::statement('ALTER TABLE rent_model_web DROP INDEX ' . self::SLUG_INDEX);
+        $this->slugIndexDropped = true;
+    }
+
+    private function restoreSlugIndex(): void
+    {
+        if (!$this->slugIndexDropped) {
+            return;
+        }
+
+        DB::statement(
+            'ALTER TABLE rent_model_web ADD UNIQUE INDEX ' . self::SLUG_INDEX . ' (page_addr(191), lang)'
+        );
+        $this->slugIndexDropped = false;
+    }
+
+    private function slugIndexExists(): bool
+    {
+        return !empty(DB::select(
+            'SHOW INDEX FROM rent_model_web WHERE Key_name = ?',
+            [self::SLUG_INDEX]
+        ));
     }
 }
