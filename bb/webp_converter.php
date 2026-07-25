@@ -163,9 +163,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
             throw new Exception("Failed to execute query: " . $mysqli->error);
         }
 
-        $model = $result->fetch_assoc();
+        // Every web row of this model, not just the first: a model carries one
+        // row per language, and duplicated slugs add more. Converting only the
+        // first row left the others pointing at .jpg files that this same
+        // function had already deleted from disk — six pages in production ended
+        // up that way, and re-enabling en/lt would reproduce it for every model.
+        $webRows = [];
+        while ($row = $result->fetch_assoc()) {
+            $webRows[] = $row;
+        }
 
-        if (!$model) {
+        if (!$webRows) {
             logConversion("Model $model_id not found", 'ERROR');
             echo json_encode(['success' => false, 'msg' => 'Модель не найдена']);
             exit;
@@ -176,69 +184,73 @@ if (isset($_POST['action']) && $_POST['action'] === 'convert_model') {
         exit;
     }
 
-    $web_id = $model['web_id'];
-    $updates = [];
     $converted_count = 0;
     $errors = [];
 
     try {
-        $fields = ['l2_pic' => $model['l2_pic'], 'm_pic_big' => $model['m_pic_big'], 'logo' => $model['logo']];
+        foreach ($webRows as $model) {
+            $web_id = $model['web_id'];
+            $updates = [];
 
-        foreach ($fields as $colName => $path) {
-            // Пропускаем пустые пути и внешние URL (начинаются с http:// или https://)
-            if (empty($path) || preg_match('#^https?://#i', $path)) {
-                continue;
-            }
+            $fields = ['l2_pic' => $model['l2_pic'], 'm_pic_big' => $model['m_pic_big'], 'logo' => $model['logo']];
 
-            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-            if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
-                continue;
-            }
+            foreach ($fields as $colName => $path) {
+                // Пропускаем пустые пути и внешние URL (начинаются с http:// или https://)
+                if (empty($path) || preg_match('#^https?://#i', $path)) {
+                    continue;
+                }
+
+                $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+                if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                    continue;
+                }
 
 
-            $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
-            $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
+                $newRelativePath = substr($path, 0, strrpos($path, '.')) . '.webp';
+                $newAbsolutePath = $_SERVER['DOCUMENT_ROOT'] . $newRelativePath;
 
-            $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
-            if (!file_exists($absolutePath)) {
-                // Если оригинал отсутствует, но WebP уже есть (общий файл) - просто обновляем БД
-                if (file_exists($newAbsolutePath)) {
+                $absolutePath = $_SERVER['DOCUMENT_ROOT'] . $path;
+                if (!file_exists($absolutePath)) {
+                    // Если оригинал отсутствует, но WebP уже есть (общий файл) - просто обновляем БД.
+                    // Сюда же попадает вторая строка модели, чей .jpg удалён при обработке первой.
+                    if (file_exists($newAbsolutePath)) {
+                        $updates[$colName] = $newRelativePath;
+                        $converted_count++;
+                    } else {
+                        $errors[] = "Файл не найден на диске: $path";
+                        logConversion("Missing file for model $model_id (web_id $web_id), field $colName: $path", 'WARNING');
+                    }
+                    continue;
+                }
+
+                // Конвертируем используя helper функцию
+                $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
+
+                if ($conversionResult['success']) {
                     $updates[$colName] = $newRelativePath;
                     $converted_count++;
+                    // Удаляем старый файл ТОЛЬКО после успешной конвертации и проверки
+                    if (!unlink($absolutePath)) {
+                        $errors[] = "Не удалось удалить исходный файл: $path";
+                    }
                 } else {
-                    $errors[] = "Файл не найден на диске: $path";
-                    logConversion("Missing file for model $model_id, field $colName: $path", 'WARNING');
+                    $errors[] = $conversionResult['error'];
                 }
-                continue;
             }
 
-            // Конвертируем используя helper функцию
-            $conversionResult = convertImageToWebP($absolutePath, $newAbsolutePath, $ext);
-
-            if ($conversionResult['success']) {
-                $updates[$colName] = $newRelativePath;
-                $converted_count++;
-                // Удаляем старый файл ТОЛЬКО после успешной конвертации и проверки
-                if (!unlink($absolutePath)) {
-                    $errors[] = "Не удалось удалить исходный файл: $path";
+            // Обновляем rent_model_web (используем стандартный подход как в Db.php)
+            if (!empty($updates)) {
+                $setClauses = [];
+                foreach ($updates as $col => $val) {
+                    $escaped_val = $mysqli->real_escape_string($val);
+                    $setClauses[] = "$col = '$escaped_val'";
                 }
-            } else {
-                $errors[] = $conversionResult['error'];
-            }
-        }
 
-        // Обновляем rent_model_web (используем стандартный подход как в Db.php)
-        if (!empty($updates)) {
-            $setClauses = [];
-            foreach ($updates as $col => $val) {
-                $escaped_val = $mysqli->real_escape_string($val);
-                $setClauses[] = "$col = '$escaped_val'";
-            }
-
-            $sql = "UPDATE rent_model_web SET " . implode(", ", $setClauses) . " WHERE web_id = " . intval($web_id);
-            if (!$mysqli->query($sql)) {
-                logConversion("Failed to execute UPDATE: " . $mysqli->error . " SQL: $sql", 'ERROR');
-                $errors[] = "Ошибка обновления БД: " . $mysqli->error;
+                $sql = "UPDATE rent_model_web SET " . implode(", ", $setClauses) . " WHERE web_id = " . intval($web_id);
+                if (!$mysqli->query($sql)) {
+                    logConversion("Failed to execute UPDATE: " . $mysqli->error . " SQL: $sql", 'ERROR');
+                    $errors[] = "Ошибка обновления БД: " . $mysqli->error;
+                }
             }
         }
 

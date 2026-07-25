@@ -27,7 +27,12 @@ if (isset($_POST['form_check'])) {
 
   $urlCode = $_POST['url_code'];
 
-  $hasUrlDublicates = \bb\classes\ModelWeb::hasDublicatesPageUrlCode($urlCode, $modelId);
+  // The page being edited must not report itself as its own duplicate. A page
+  // that does not exist yet has no web_id, and 0 never matches a real row.
+  $currentMw = \bb\classes\ModelWeb::getByModelId($modelId, $lang, 0);
+  $currentWebId = $currentMw ? $currentMw->getWebId() : 0;
+
+  $hasUrlDublicates = \bb\classes\ModelWeb::hasDublicatesPageUrlCode($urlCode, $lang, $currentWebId);
 
   $result->status = 'ok';
   $result->hasUrlDublicates = $hasUrlDublicates;

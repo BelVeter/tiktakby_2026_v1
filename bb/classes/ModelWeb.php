@@ -852,15 +852,33 @@ class ModelWeb
   }
 
   /**
-   * @param $urlCode
-   * @param $modelIdToExclude
-   * @return false|mixed|void
+   * Is this slug already claimed by another page in the same language?
+   *
+   * Scoped by `lang`: one product keeps the same URL tail in ru/en/lt, so a
+   * translation is a separate page rather than a collision.
+   *
+   * Excluded by `web_id`, not `model_id` — a model can end up holding more than
+   * one row per language, and those extra rows are exactly the collisions worth
+   * catching (five of the six live in production in 2026-07 are of that shape,
+   * and the old model_id-based exclusion could not see any of them).
+   *
+   * @param  string     $urlCode
+   * @param  string     $lang
+   * @param  int        $excludeWebId  row being edited; 0 when creating a page
+   * @return false|mixed  model_id of the conflicting page, or false when free
    */
-  public static function hasDublicatesPageUrlCode($urlCode, $modelIdToExclude)
+  public static function hasDublicatesPageUrlCode($urlCode, $lang = 'ru', $excludeWebId = 0)
   {
     $mysqli = Db::getInstance()->getConnection();
-    $query = "SELECT web_id, model_id FROM rent_model_web WHERE page_addr = '$urlCode' AND model_id != '$modelIdToExclude'";
-    //echo $query;
+
+    if ($lang == '')
+      $lang = 'ru';
+
+    $query = "SELECT web_id, model_id FROM rent_model_web
+                WHERE page_addr = '" . $mysqli->real_escape_string($urlCode) . "'
+                  AND lang = '" . $mysqli->real_escape_string($lang) . "'
+                  AND web_id != " . intval($excludeWebId) . "
+                LIMIT 1";
     $result = $mysqli->query($query);
     if (!$result) {
       die('Сбой при проверке дубликата web адреса в MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -1072,10 +1090,21 @@ class ModelWeb
     //$q = "SELECT * FROM rent_model_web WHERE page_addr LIKE '%$url_name%'";
     //$q = "SELECT * FROM rent_model_web WHERE page_addr = '$url_name'";
 
+    // page_addr comes straight from the {model} route segment, so it has to be
+    // escaped — an apostrophe used to break the query and print it to the page.
+    //
+    // ORDER BY web_id: page_addr carries no uniqueness constraint, and six slugs
+    // in production answer to two rows. Without an explicit order MySQL is free
+    // to hand back either of them, which decides — per request — whose title and
+    // whose images the page renders. Lowest web_id is the row the site has been
+    // serving all along, and the one the webp conversion kept up to date.
     $q = "SELECT rent_model_web.*, tovar_rent.tovar_rent_cat_id as cat_id
                 FROM rent_model_web
                 LEFT JOIN tovar_rent ON tovar_rent.tovar_rent_id = rent_model_web.model_id
-                WHERE page_addr = '$url_name' AND lang='$lang'";
+                WHERE page_addr = '" . $mysqli->real_escape_string($url_name) . "'
+                  AND lang = '" . $mysqli->real_escape_string($lang) . "'
+                ORDER BY rent_model_web.web_id
+                LIMIT 1";
 
     $result = $mysqli->query($q);
     if (!$result) {
