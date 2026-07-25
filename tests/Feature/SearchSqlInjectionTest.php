@@ -26,4 +26,21 @@ class SearchSqlInjectionTest extends TestCase
         $response = $this->get('/ru/search?search=' . urlencode('+велосипед* -самокат'));
         $this->assertNotEquals(500, $response->status());
     }
+
+    /**
+     * The {model} segment reaches ModelWeb::getByUrlName, which used to drop it
+     * into the WHERE clause unescaped: an apostrophe broke the query and the
+     * failure handler printed the whole statement into the response body.
+     */
+    public function test_l3_model_slug_with_single_quote_does_not_leak_sql(): void
+    {
+        $response = $this->get(
+            '/ru/karnavalnye-kostyumy/karnavalnye-kostyumy-boys/halloween-prokat/'
+            . urlencode("x' OR '1'='1")
+        );
+
+        $this->assertNotEquals(500, $response->status());
+        $this->assertStringNotContainsString('SELECT', $response->getContent());
+        $this->assertStringNotContainsString('Сбой при вставке', $response->getContent());
+    }
 }

@@ -27,7 +27,12 @@ if (isset($_POST['form_check'])) {
 
   $urlCode = $_POST['url_code'];
 
-  $hasUrlDublicates = \bb\classes\ModelWeb::hasDublicatesPageUrlCode($urlCode, $modelId);
+  // The page being edited must not report itself as its own duplicate. A page
+  // that does not exist yet has no web_id, and 0 never matches a real row.
+  $currentMw = \bb\classes\ModelWeb::getByModelId($modelId, $lang, 0);
+  $currentWebId = $currentMw ? $currentMw->getWebId() : 0;
+
+  $hasUrlDublicates = \bb\classes\ModelWeb::hasDublicatesPageUrlCode($urlCode, $lang, $currentWebId);
 
   $result->status = 'ok';
   $result->hasUrlDublicates = $hasUrlDublicates;
@@ -190,6 +195,25 @@ if (isset($_POST['form_check'])) {
             $mw->addDopCat($dopCatId, $_POST['add_cat_pic_url_' . $dopCatId]);
           }
         }
+        // Last line of defence before the write. The JS check in
+        // model_web_new.js runs the same query, but it only guards the browser:
+        // a POST that skips the script, or two submits racing each other, would
+        // otherwise reach save() and add a second page on an occupied URL.
+        // Six such collisions accumulated in production before 2026-07.
+        $slugOwner = \bb\classes\ModelWeb::hasDublicatesPageUrlCode(
+          $mw->getPageUrlCode(),
+          $lang,
+          $mw->getWebId() ? $mw->getWebId() : 0
+        );
+
+        if ($slugOwner !== false) {
+          echo '<div class="alert alert-danger">URL код <b>' . htmlspecialchars($mw->getPageUrlCode())
+            . '</b> уже занят моделью №' . htmlspecialchars($slugOwner)
+            . ' (язык: ' . htmlspecialchars($lang) . '). Страница НЕ сохранена — задайте другой URL код.</div>';
+          unset($mw);
+          break;
+        }
+
         $mw->save();
         $mw->saveDopCats();
 
