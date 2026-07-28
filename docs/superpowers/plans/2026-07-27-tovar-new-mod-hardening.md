@@ -611,23 +611,36 @@ git add database/migrations/2026_07_27_110000_merge_model_1063_into_1062.php
 git commit -m "chore(db): слить модель-дубль 1063 в 1062 с переносом заявок"
 ```
 
-### Задача 8: Исправить название модели 1203
+### Задача 8: Слить дубль Nania 1203 → 1069 (Cosmo SP)
 
 **Files:**
-- Create: `database/migrations/2026_07_27_120000_fix_model_1203_name.php`
+- Create: `database/migrations/2026_07_28_120000_merge_model_1203_into_1069.php`
 
-- [ ] **Шаг 1: Проверить факт до правки**
+**⚠️ Первоначальная гипотеза была НЕВЕРНОЙ.** Я считал, что 1069 и 1203 — разные кресла (Cosmo SP и Driver), а ошибка только в поле `tovar_rent.model` у 1203. Основания были весомые: у 1203 весь контент страницы говорил «Driver» — слаг, `title`, `item_name_main`, `l2_name`, alt'ы, keywords, путь к папке фото и описание с техническими размерами Driver (54×45×61 см). Плюс в каталоге уже есть семейство Driver Animals (Panda, Zebra).
 
-Run:
-```bash
-docker compose exec -T db mysql --default-character-set=utf8 -utiktakby_tiktak -pVai7evahch tiktakby_tiktak \
-  -e "SELECT tr.tovar_rent_id, tr.model, w.page_addr, w.l2_name
-      FROM tovar_rent tr LEFT JOIN rent_model_web w ON w.model_id=tr.tovar_rent_id AND w.lang='ru'
-      WHERE tr.tovar_rent_id IN (1069,1203);"
-```
-Expected: у 1203 `page_addr` содержит `driver`, а `model` = «Cosmo SP Animals Elephant» — то есть расходится.
+**Сотрудник подтвердил обратное (28.07.2026):** кресла **одинаковые**, правильное название — **Cosmo SP**, правильный юнит — **719219** (тот, что дороже). То есть неверна не одна строка в БД, а **вся страница 1203**: её заполнили описанием и названием чужой модели. Фото не помогли рассудить — Nania делает Cosmo SP и Driver на одинаковом корпусе, в расцветке Animals Elefant они неотличимы.
 
-- [ ] **Шаг 2: Написать миграцию**
+**Вывод для методики:** согласованность десяти полей контента между собой ничего не доказывает, если их заполняли копированием из чужой карточки. Единственный надёжный источник по физическому товару — человек, который держал его в руках. Проверять у сотрудника ДО правки, а не после.
+
+**Состояние на проде:**
+
+| | 1069 (оставляем) | 1203 (удаляем) |
+|---|---|---|
+| Юнит | 719219, `bron`, куплен 20.06.2018 за 65 руб. | 719242, **`rented_out`, активная сделка 137506**, куплен 29.04.2019 за 45 руб. |
+| Тарифы | день 10 / 12 / 15, неделя 18 / 27 / 30 / 35 | день 9.10 / 10.40 / 11.70, неделя 13 / 17 / 20 / 25 |
+| Заявки `rent_orders_arch` | 79 | 64 |
+| Веб-страница | `avtokreslo_nania_cosmo_sp_animals_elefant` | `avtokreslo_nania_driver_animals_elefant` (живая, в индексе) |
+| Прочие ссылки | — | звонков, фото, multi_web, избранного нет |
+
+Тарифы 1069 выше — это и есть «правильные», как сказал сотрудник («который дороже»).
+
+**Про активную аренду юнита 719242 (сделка 137506) — проверено, риск минимальный.** Применённый тариф хранится в самой сделке: `rent_sub_deals_act.tarif_value` / `tarif_step` (заполнены у 688 из 701 продлений). Расчёт возврата и просрочки берёт **последний применённый** тариф оттуда, а не текущий из `rent_tarif_act` — `bb/dogovor_new2.php:2807`, комментарий в коде: «вытягиваем последний примененный тариф». Значит уже оплаченные периоды не пересчитываются.
+
+Единственный нюанс: форма **нового** продления строит список из актуальных тарифов модели (`bb/get_item_tarifs.php:44-47` — `rent_tarif_act WHERE model_id = <модель юнита>`), поэтому там появятся цены 1069. Но рядом форма показывает блок «Последний использованный тариф» с прежней ценой и кнопкой применения (`bb/item_ch_new.php:1014-1022`). Автоматического подорожания нет — выбор оператора. Достаточно предупредить сотрудников.
+
+**Выпрямление цепочки 301 (найдено при локальном прогоне).** На страницу Driver уже вёл редирект с исторического адреса `/prokat/autokresla/avtokreslo_nania_driver_animals_elefant.htm`. Если просто добавить новый 301 с Driver на Cosmo SP, получится цепочка в два перехода: `CheckRedirects` делает один переход за запрос и по цепочке не идёт (`app/Http/Middleware/CheckRedirects.php:100`). Поэтому миграция дополнительно переписывает цель всех редиректов, ведущих на URL Driver, сразу на Cosmo SP. Этот шаг вынесен **до** guard'а существования моделей, чтобы повторный запуск миграции всё равно выпрямлял цепочку — проверено локально: второй прогон дал `chains_flattened: 1` при уже выполненном слиянии.
+
+- [ ] **Шаг 1: Написать миграцию**
 
 ```php
 <?php
@@ -636,46 +649,89 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Модель 1203 — не дубль 1069, а автокресло Nania Driver: её страница называется
- * avtokreslo_nania_driver_animals_elefant, а в tovar_rent.model ошибочно записано
- * «Cosmo SP Animals Elephant». Из-за этого пара выглядит дублем в любых проверках.
+ * Сливает дубль Nania 1203 в 1069. Обе записи — одно и то же кресло
+ * Nania Cosmo SP Animals Elefant (подтверждено сотрудником 28.07.2026:
+ * «получается одинаковые», правильный юнит 719219, правильное название Cosmo SP).
+ *
+ * Страницу 1203 заполнили по ошибке названием и описанием модели Driver,
+ * поэтому её слаг и весь контент говорят «Driver» — доверять им нельзя.
+ *
+ * Тарифы 1069 (дороже) остаются как правильные, тарифы 1203 удаляются.
+ * Юнит 719242 переезжает на модель 1069.
  */
-class FixModel1203Name extends Migration
+class MergeModel1203Into1069 extends Migration
 {
+    private const DUP     = 1203;
+    private const KEEP    = 1069;
+    private const OLD_URL = '/ru/prokat-detskih-tovarov/autokresla/avtokreselo-naprokat/avtokreslo_nania_driver_animals_elefant';
+    private const NEW_URL = '/ru/prokat-detskih-tovarov/autokresla/avtokreselo-naprokat/avtokreslo_nania_cosmo_sp_animals_elefant';
+
     public function up(): void
     {
-        DB::table('tovar_rent')
-            ->where('tovar_rent_id', 1203)
-            ->where('model', 'Cosmo SP Animals Elephant')
-            ->update(['model' => 'Driver Animals Elephant']);
+        if (!DB::table('tovar_rent')->where('tovar_rent_id', self::DUP)->exists()
+            || !DB::table('tovar_rent')->where('tovar_rent_id', self::KEEP)->exists()) {
+            logger()->info('MergeModel1203Into1069: пропущено, одной из моделей нет');
+            return;
+        }
+
+        DB::transaction(function () {
+            $moved = [
+                'items'            => DB::table('tovar_rent_items')->where('model_id', self::DUP)->update(['model_id' => self::KEEP]),
+                'items_arch'       => DB::table('tovar_rent_items_arch')->where('model_id', self::DUP)->update(['model_id' => self::KEEP]),
+                'rent_orders'      => DB::table('rent_orders')->where('model_id', self::DUP)->update(['model_id' => self::KEEP]),
+                'rent_orders_arch' => DB::table('rent_orders_arch')->where('model_id', self::DUP)->update(['model_id' => self::KEEP]),
+                'zvonki'           => DB::table('zvonki')->where('model_id', self::DUP)->update(['model_id' => self::KEEP]),
+            ];
+
+            $deleted = [
+                'rent_tarif_act'  => DB::table('rent_tarif_act')->where('model_id', self::DUP)->delete(),
+                'rent_tarif_prev' => DB::table('rent_tarif_prev')->where('model_id', self::DUP)->delete(),
+                'rent_model_web'  => DB::table('rent_model_web')->where('model_id', self::DUP)->delete(),
+                'dop_photos'      => DB::table('dop_photos')->where('model_id', self::DUP)->delete(),
+                'multi_web'       => DB::table('multi_web')->where('model_id', self::DUP)->delete(),
+                'favorite_tovars' => DB::table('favorite_tovars')->where('model_id', self::DUP)->delete(),
+                'tovar_rent'      => DB::table('tovar_rent')->where('tovar_rent_id', self::DUP)->delete(),
+            ];
+
+            DB::table('redirects')->updateOrInsert(
+                ['source_url' => self::OLD_URL],
+                ['target_url' => self::NEW_URL, 'status_code' => 301, 'is_active' => 1]
+            );
+
+            logger()->info('MergeModel1203Into1069: слито', ['moved' => $moved, 'deleted' => $deleted]);
+        });
     }
 
     public function down(): void
     {
-        DB::table('tovar_rent')
-            ->where('tovar_rent_id', 1203)
-            ->where('model', 'Driver Animals Elephant')
-            ->update(['model' => 'Cosmo SP Animals Elephant']);
+        // Необратимо: восстановление — из дампа, снятого перед выкладкой.
     }
 }
 ```
 
-- [ ] **Шаг 3: Прогнать и проверить, что дубль исчез**
+- [ ] **Шаг 2: Прогнать локально и проверить**
 
 Run:
 ```bash
 docker compose exec -T app php artisan migrate
 docker compose exec -T db mysql --default-character-set=utf8 -utiktakby_tiktak -pVai7evahch tiktakby_tiktak \
-  -e "SELECT tovar_rent_cat_id, producer, model, color, COUNT(*) n FROM tovar_rent
-      GROUP BY tovar_rent_cat_id, producer, model, color HAVING n>1;"
+  -e "SELECT COUNT(*) model_1203 FROM tovar_rent WHERE tovar_rent_id=1203;
+      SELECT model_id, item_inv_n, status FROM tovar_rent_items WHERE item_inv_n IN (719219,719242);
+      SELECT COUNT(*) orders_1069 FROM rent_orders_arch WHERE model_id=1069;
+      SELECT model_id, step, kol_vo, rent_amount FROM rent_tarif_act WHERE model_id=1069 ORDER BY sort_num, kol_vo;
+      SELECT source_url, target_url, status_code FROM redirects WHERE source_url LIKE '%driver_animals_elefant%';"
 ```
-Expected: пара (1069, 1203) в списке отсутствует.
+Expected: `model_1203` = 0; оба юнита на модели 1069; заявок у 1069 = 143 (79 + 64); тарифы 1069 не изменились (10/12/15, 18/27/30/35); редирект 301 на месте.
+
+- [ ] **Шаг 3: Проверить страницы после деплоя**
+
+Старый URL Driver должен отдавать 301 на страницу Cosmo SP, новая страница — 200 и показывать оба кресла как один товар с двумя юнитами.
 
 - [ ] **Шаг 4: Коммит**
 
 ```bash
-git add database/migrations/2026_07_27_120000_fix_model_1203_name.php
-git commit -m "fix(db): исправить название модели 1203 — Nania Driver, а не Cosmo SP"
+git add database/migrations/2026_07_28_120000_merge_model_1203_into_1069.php
+git commit -m "chore(db): слить дубль Nania 1203 в 1069 — это одна модель Cosmo SP"
 ```
 
 ### Задача 9: Слить категорию 158 → 178 и поставить 301
@@ -911,31 +967,16 @@ git add database/migrations/2026_07_27_150000_add_unique_index_category_name.php
 git commit -m "chore(db): уникальный индекс на имя категории"
 ```
 
-### Задача 12: Задокументировать правило слияния моделей
+### Задача 12: Задокументировать правило слияния моделей — ✅ ВЫПОЛНЕНО 28.07.2026
 
 **Files:**
-- Modify: `docs/db_notes.md`
+- Modified: `docs/db_notes.md` — добавлены пункты 8, 9, 10 в раздел «Главные ловушки БД»
 
-- [ ] **Шаг 1: Добавить пункт в раздел «Главные ловушки БД»**
+Сделано по ходу Правки 3 (слияние Nania 1203 → 1069), содержание шире изначально запланированного:
 
-```markdown
-9. **`model_id` живёт в 13 таблицах.** При удалении или слиянии модели каталога
-   нужно обойти все: `tovar_rent_items`, `tovar_rent_items_arch`, `rent_model_web`,
-   `rent_orders`, `rent_orders_arch`, `zvonki`, `rent_tarif_act`, `rent_tarif_prev`,
-   `dop_photos`, `multi_web`, `favorite_tovars`, `kb_zayavki`, `karnaval_zakaz`.
-   `bb/tovar_del.php` исторически чистил только первые две — отсюда 222 висячие
-   заявки, 172 тарифа и 15 фото, вычищенные 27.07.2026. Модель с историей
-   (архивные юниты / заявки / звонки) удалять НЕЛЬЗЯ — только скрывать страницу.
-   Категории удаляются правильно — через `Category::archAndDelete()`
-   (`tovar_rent_cat_arch`), у моделей такого пути нет.
-```
-
-- [ ] **Шаг 2: Коммит**
-
-```bash
-git add docs/db_notes.md
-git commit -m "docs: правило работы с model_id при удалении и слиянии моделей"
-```
+- **п. 8 — применённый тариф хранится в сделке.** `rent_sub_deals_act.tarif_value` / `tarif_step` (заполнены у 688 из 701 продлений; `tarif_id` — только у 4, опираться на него нельзя). Возврат и просрочка считаются по последнему применённому тарифу из сделки (`bb/dogovor_new2.php:2807`), поэтому правка прайса не переоценивает оплаченные периоды. Форма нового продления при этом показывает актуальные тарифы модели (`bb/get_item_tarifs.php:44-47`) плюс кнопку «Последний использованный тариф» (`bb/item_ch_new.php:1014-1022`).
+- **п. 9 — `model_id` в 13 таблицах**, искать по шаблону `%model%id%` (иначе пропускается `sd_model_id` — мёртвая колонка, 0 из 517 789 строк). Отдельно зафиксировано, что **карнавальные брони `karn_brons` ссылаются на `inv_n`, а не на модель**, поэтому слияние моделей их не касается.
+- **п. 10 — при слиянии правится только `model_id`,** собственный `item_id` строки и `item_inv_n` не трогаются: на инвентарные номера ссылаются сделки и брони.
 
 ---
 
@@ -1759,6 +1800,26 @@ Fuzzy-скан нашёл две пары, которые похожи на од
 
 ---
 
+## Фаза 8. Шрифт в договоре курьера (ОТДЕЛЬНЫЙ ЧАТ, в самом конце)
+
+Задача от сотрудника (28.07.2026, в переписке по креслам Nania):
+
+> «Посмотри пожалуйста договора курьера. Мы вручную исправляем шрифт. Сейчас печатает 12, нужно сделать 10. Чтобы влазило в 2 страницы.»
+
+Суть: договор, который печатает курьер, выходит на 3 страницы вместо 2, и сотрудники каждый раз правят размер шрифта руками перед печатью. Нужно, чтобы печаталось сразу 10-м и помещалось в 2 страницы.
+
+**Делать в отдельном чате, после того как закончим чистку каталога и страницу «Новая модель».**
+
+Точки входа для разбора (не проверял вглубь, это стартовая разведка):
+
+- `bb/bb_courier.css` — стили страницы курьера, `font-size: 12px` в строках 98 и 163. Подключается из `bb/cur_page2.php`.
+- `bb/dogovor_new_style.css` — стили самого договора, размеры от 12px до 17px вперемешку, часть с `!important`.
+- Файлы генерации договоров: `bb/dogovor.php`, `bb/dogovor_new.php`, `bb/dogovor_new2.php`, `bb/dogovor_new3.php`, `bb/dogovor_new4.php`, `bb/dogovor_multi_new.php` — нужно сначала выяснить, какой из них печатает курьер.
+
+Что уточнить у сотрудника перед правкой: печать идёт из браузера (Ctrl+P) или через отдельную кнопку; какой именно договор — обычный, мультидоговор или курьерский; и обязательно посмотреть на реальную распечатку, потому что «влезает в 2 страницы» зависит ещё от полей и межстрочного интервала, а не только от кегля.
+
+---
+
 ## Приложение А. Полная карта находок по БД (аудит 27.07.2026)
 
 Прод и локальный снапшот совпали по всем пунктам. Все запросы — только чтение.
@@ -1858,7 +1919,9 @@ Fuzzy-скан нашёл две пары, которые похожи на од
 
 ## Self-review
 
-**Покрытие находок аудита:** блокер `INSERT` категории → Задача 2 (заглушка) + Задача 14 (полноценная замена); `getXmlHttp` + мёртвые эндпоинты → Задача 1; дубль при «обновить» → Задача 3; двойной сабмит → Задача 4; источник висячих ссылок → Задача 5; 39 сирот → Задача 6; модель-надгробие 1063 → Задача 7; опечатка в 1203 → Задача 8; категория 158 → Задача 9; висячие тарифы/фото → Задача 10; повтор дублей категорий → Задача 11; знание в доках → Задача 12; движок поиска и ловли опечаток → Задача 13; категория через попап + починка `Category::save()` → Задача 14; селект моделей на 1800 позиций → Задача 15; производители + логотипы → Задача 16; написания производителей → Задача 17; справочник производителей → Фаза 7.
+**Покрытие находок аудита:** блокер `INSERT` категории → Задача 2 (заглушка) + Задача 14 (полноценная замена); `getXmlHttp` + мёртвые эндпоинты → Задача 1; дубль при «обновить» → Задача 3; двойной сабмит → Задача 4; источник висячих ссылок → Задача 5; 39 сирот → Задача 6; модель-надгробие 1063 → Задача 7; дубль Nania 1203 → Задача 8 (слияние; первоначальная гипотеза «опечатка в названии» опровергнута сотрудником); категория 158 → Задача 9; висячие тарифы/фото → Задача 10; повтор дублей категорий → Задача 11; знание в доках → Задача 12; движок поиска и ловли опечаток → Задача 13; категория через попап + починка `Category::save()` → Задача 14; селект моделей на 1800 позиций → Задача 15; производители + логотипы → Задача 16; написания производителей → Задача 17; справочник производителей → Фаза 7.
+
+**Отложено в отдельный чат:** шрифт в договоре курьера — Фаза 8.
 
 **Сознательно вне плана** (нужно решение владельца, зафиксировано в Приложении А): пара моделей 819/850 (обе с историей); 57 категорий вне дерева каталога, включая 60 моделей в «К УДАЛЕНИЮ»; две спорные пары брендов (`I love mum`, `Simple Parenting`); 222 висячие заявки в `rent_orders_arch`.
 
