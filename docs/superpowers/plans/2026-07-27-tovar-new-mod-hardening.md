@@ -444,7 +444,7 @@ git commit -m "fix(bb): не оставлять висячие ссылки пр
 ### Задача 6: Удалить 39 полностью несвязанных моделей
 
 **Files:**
-- Create: `database/migrations/2026_07_27_100000_cleanup_unreferenced_models.php`
+- Create: `database/migrations/2026_07_28_100000_cleanup_unreferenced_models.php`
 
 - [ ] **Шаг 1: Зафиксировать список до правок**
 
@@ -479,7 +479,7 @@ use Illuminate\Support\Facades\DB;
  * Список ID не хардкодится: условие пере-проверяется на момент запуска, поэтому
  * миграция безопасна, даже если за время до деплоя модель успела обрасти данными.
  */
-class CleanupUnreferencedModels20260727 extends Migration
+class CleanupUnreferencedModels extends Migration
 {
     private const REFERENCING_TABLES = [
         'tovar_rent_items', 'tovar_rent_items_arch', 'rent_model_web',
@@ -520,7 +520,7 @@ class CleanupUnreferencedModels20260727 extends Migration
 - [ ] **Шаг 3: Прогнать локально**
 
 Run: `docker compose exec -T app php artisan migrate`
-Expected: `Migrated: 2026_07_27_100000_cleanup_unreferenced_models`
+Expected: `Migrated: 2026_07_28_100000_cleanup_unreferenced_models`
 
 - [ ] **Шаг 4: Проверить результат**
 
@@ -534,7 +534,7 @@ Expected: `models` = 1801 (было 1840, минус 39), `still_1273` = 0.
 - [ ] **Шаг 5: Коммит**
 
 ```bash
-git add database/migrations/2026_07_27_100000_cleanup_unreferenced_models.php
+git add database/migrations/2026_07_28_100000_cleanup_unreferenced_models.php
 git commit -m "chore(db): удалить 39 моделей каталога без единой ссылки"
 ```
 
@@ -790,7 +790,7 @@ use Illuminate\Support\Facades\DB;
  * без модели никогда не будут показаны. Заявки (rent_orders_arch) и архивные
  * юниты НЕ трогаем — они нужны истории и отчётности.
  */
-class CleanupDanglingModelRefs20260727 extends Migration
+class CleanupDanglingModelRefs extends Migration
 {
     public function up(): void
     {
@@ -862,7 +862,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-class AddUniqueIndexCategoryName20260727 extends Migration
+class AddUniqueIndexCategoryName extends Migration
 {
     public function up(): void
     {
@@ -1672,7 +1672,7 @@ use Illuminate\Support\Facades\DB;
  * ВНИМАНИЕ: TRIM выполняется БЕЗ WHERE — коллация PAD SPACE считает 'Chicco ' = 'Chicco',
  * поэтому условие `producer <> TRIM(producer)` пропустило бы замыкающие пробелы.
  */
-class NormalizeProducerNames20260727 extends Migration
+class NormalizeProducerNames extends Migration
 {
     /** Написания, которые точно являются одним и тем же брендом. */
     private const MERGE = [
