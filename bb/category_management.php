@@ -42,12 +42,29 @@ if (isset($_POST['action'])) {
             break;
 
         case 'delete':
+            // Перенос категории в архив — только владелец (level 5) и coder (7).
+            if (!in_array((int) $_SESSION['level'], [5, 7], true)) {
+                die('<body>Недостаточно прав: перенос категории в архив доступен только владельцу.'
+                    . '<br /><br /><div class="top_menu"><a class="div_item" href="/bb/index.php">На главную</a></div></body></html>');
+            }
+
             if (isset($_POST['cat_id'])) {
-                \bb\Db::startTransaction();
-
                 $cat_ = \bb\classes\Category::getById($_POST['cat_id']);
-                $cat_->archAndDelete();
 
+                if (!$cat_) {
+                    die('<body>Категория не найдена.</body></html>');
+                }
+
+                // Разметка прячет кнопку при tov_num==0, но tov_num считает
+                // единицы товара, а не модели — проверяем на сервере.
+                $blockers = $cat_->archiveBlockers();
+                if (!empty($blockers)) {
+                    die('<body>' . implode('<br /><br />', $blockers)
+                        . '<br /><br /><div class="top_menu"><a class="div_item" href="/bb/category_management.php">К категориям</a></div></body></html>');
+                }
+
+                \bb\Db::startTransaction();
+                $cat_->archAndDelete();
                 \bb\Db::commitTransaction();
             }
             break;

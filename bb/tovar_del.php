@@ -28,6 +28,12 @@ function one_del () {
 		return false;
 	}
 }
+
+function one_arch () {
+	return confirm ('Модель будет перенесена в архив: она пропадёт из каталога и с сайта, '
+		+ 'но заявки, звонки и история сделок сохранятся, а тарифы, фото и текст страницы '
+		+ 'останутся снимком в архивной записи. Продолжить?');
+}
 </script>
 
 
@@ -35,25 +41,31 @@ function one_del () {
 
 //------- proverka paroley
 
-isset($_SESSION['svoi']) ? $_SESSION['svoi']=$_SESSION['svoi'] : $_SESSION['svoi']=0;
-if ($_SESSION['svoi']!=8941 || !$_SESSION['level']>4) {
-	die('
-	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-	<html xmlns="http://www.w3.org/1999/xhtml">
-	<head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<title>Авторизация</title>
-	<body>
+// Страница нужна всем сотрудникам: через неё оформляется выбытие товара.
+// Разрушающие действия отдельно ограничены can_destroy() ниже.
+//
+// Прежняя проверка `$_SESSION['level']>4` не работала: в PHP `!` связывается
+// сильнее `>`, поэтому вычислялось `(!$level) > 4` — всегда false при любом
+// уровне. Условие схлопывалось до «залогинен ли вообще», и удалить модель со
+// всеми юнитами мог любой сотрудник (docs/db_notes.md, п.13).
+\bb\Base::loginCheck();
 
-	<form action="index.php" method="post">
-		Логин:<input type="text" value="" name="login" /><br />
-		Пароль:<input type="password" value="" name="pass" /><br />
-		<input type="submit" value="войти" />
-	</form></body></html>
-	</head>
+require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/ModelArchive.php');
 
-<body>
-');
+/**
+ * Кто может переносить модель в архив и удалять единицы товара:
+ * только owner (level 5) и coder (level 7) — исходный замысел автора `>4`.
+ */
+function can_destroy()
+{
+	return isset($_SESSION['level']) && in_array((int) $_SESSION['level'], array(5, 7), true);
+}
+
+function deny_destroy()
+{
+	die('<body>Недостаточно прав для этой операции. '
+		. 'Перенос модели в архив и удаление единиц товара доступны только владельцу.<br /><br />'
+		. '<div class="top_menu"><a class="div_item" href="/bb/index.php">На главную</a></div></body></html>');
 }
 
 //-----------proverka paroley
@@ -202,6 +214,8 @@ if (isset($_POST['action'])) {
 
 		case 'удалить данный товар':
 
+			if (!can_destroy()) { deny_destroy(); }
+
 			$query_item_def = "SELECT * FROM tovar_rent_items WHERE item_id='".$item_id."'";
 			$result_item_def = $mysqli->query($query_item_def);
 			if (!$result_item_def) {
@@ -216,6 +230,33 @@ if (isset($_POST['action'])) {
 
 			if ($item_def['status']=='rented_out') {
 				die ('Товар на руках! Сначала оформите возврат.');
+			}
+
+			// Жёсткое удаление допустимо только для единицы без истории:
+			// заведена по ошибке и ни разу не сдавалась. У всего остального
+			// на инвентарный номер ссылаются сделки, брони и карнавальные
+			// брони (docs/db_notes.md, п.9) — им нужен путь через выбытие.
+			$inv_n_esc = $mysqli->real_escape_string($item_def['item_inv_n']);
+			$history = array(
+				'сделок в архиве'   => "SELECT COUNT(*) n FROM rent_deals_arch WHERE item_inv_n='$inv_n_esc'",
+				'активных сделок'   => "SELECT COUNT(*) n FROM rent_deals_act WHERE item_inv_n='$inv_n_esc'",
+				'заявок/броней'     => "SELECT COUNT(*) n FROM rent_orders WHERE inv_n='$inv_n_esc'",
+				'архивных заявок'   => "SELECT COUNT(*) n FROM rent_orders_arch WHERE inv_n='$inv_n_esc'",
+				'карнавальных брон' => "SELECT COUNT(*) n FROM karn_brons WHERE inv_n='$inv_n_esc'",
+			);
+
+			$found = array();
+			foreach ($history as $label => $q) {
+				$r = $mysqli->query($q);
+				if (!$r) die('Сбой при доступе к базе данных: '.$q.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
+				$cnt = (int) $r->fetch_assoc()['n'];
+				if ($cnt > 0) $found[] = $label.': '.$cnt;
+			}
+
+			if (!empty($found)) {
+				die ('Удалять нельзя — у товара есть история ('.implode(', ', $found).'). '
+					.'Оформите выбытие: форма внизу страницы. Тогда товар уйдёт в архив, '
+					.'а история останется целой.');
 			}
 
 			$query_del = "DELETE FROM tovar_rent_items WHERE item_id='$item_id'";
@@ -252,52 +293,33 @@ if (isset($_POST['action'])) {
 
 break;
 
-		case 'удалить все (модель и все товары)':
+		case 'перенести модель в архив':
 
-		$done="yes";
+		if (!can_destroy()) { deny_destroy(); }
 
-		$query_start = "START TRANSACTION";
-		$result_start = $mysqli->query($query_start);
-		if (!$result_start) {
-      $done="no";
-      die('Сбой при доступе к базе данных: '.$query_start.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
-    }
-
-		$query_del_mod = "DELETE FROM tovar_rent WHERE tovar_rent_id='$model_id'";
-		$result_del_mod = $mysqli->query($query_del_mod);
-		if (!$result_del_mod) {
-      $done="no";
-      die('Сбой при доступе к базе данных: '.$query_del_mod.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
-    }
-
-		$query_del_it = "DELETE FROM tovar_rent_items WHERE model_id='$model_id'";
-		$result_del_it = $mysqli->query($query_del_it);
-		if (!$result_del_it) {
-      $done="no";
-      die('Сбой при доступе к базе данных: '.$query_del_it.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
-    }
-
-		if ($done=='yes') {
-			$query_fin = "COMMIT";
-			$result_fin = $mysqli->query($query_fin);
-			if (!$result_fin) die('Сбой при доступе к базе данных: '.$query_fin.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
-		}
-		else {
-			$query_fin = "ROLLBACK'";
-			$result_fin = $mysqli->query($query_fin);
-			if (!$result_fin) die('Сбой при доступе к базе данных: '.$query_fin.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
-		}
-
-
+		// Категорию читаем ДО архивации: после неё строки в tovar_rent нет.
 		$query_model_def = "SELECT * FROM tovar_rent WHERE tovar_rent_id='".$model_id."'";
 		$result_model_def = $mysqli->query($query_model_def);
 		if (!$result_model_def) die('Сбой при доступе к базе данных: '.$query_model_def.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
 		$model_def=$result_model_def->fetch_assoc();
 
+		$blockers = \bb\classes\ModelArchive::blockers($model_id);
+		if (!empty($blockers)) {
+			die('<body>'.implode('<br /><br />', $blockers).'<br /><br />'
+				.'<div class="top_menu"><a class="div_item" href="/bb/index.php">На главную</a></div></body></html>');
+		}
+
+		$archived = \bb\classes\ModelArchive::archive($model_id, isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0);
+		if ($archived !== true) {
+			die('<body>'.$archived.'</body></html>');
+		}
+
 		die('
 					</head>
 					<body>
-				Модель и все товары успешно удалены ! <br />
+				Модель перенесена в архив. Заявки, звонки и история сделок сохранены — <br />
+				они продолжают разрешаться через <code>tovar_rent_arch</code>. <br />
+				Тарифы, фото и веб-страница сохранены снимком в архивной записи. <br />
 				<div class="top_menu">
 					<a class="div_item" href="/bb/index.php">На главную</a>
 				</div>
@@ -411,11 +433,20 @@ echo '
 </table>
 ';
 
+// Перенос модели в архив доступен владельцу и только когда все единицы товара
+// уже выбыли: иначе они останутся в остатках как товар без модели.
+$arch_btn = '';
+if (can_destroy()) {
+	$arch_btn = ($mod_tov_n == 0)
+		? '<input type="submit" name="action" value="перенести модель в архив" onclick="return one_arch ();">'
+		: '<span style="color:#777;">Перенос модели в архив станет доступен, когда по всем единицам будет оформлено выбытие.</span> ';
+}
+
 echo 'У данной модели имеется <font color="red"><strong> '.$mod_tov_n.' единиц(-ы) товара.</strong></font><br />
 <form method="post" action="tovar_del.php" style="display:inline-block;">
 <input type="hidden" name="model_id" value="'.$model_id.'">
 <input type="hidden" name="item_id" value="'.$item_id.'">
-<!--<input type="submit" name="action" value="удалить все (модель и все товары)" onclick="return one_del ();">--><input type="button" value="отмена" onclick="document.getElementById(\'cat_ch_sel\').submit();" />
+'.$arch_btn.'<input type="button" value="отмена" onclick="document.getElementById(\'cat_ch_sel\').submit();" />
 </form> <br /><br />
 ';
 
