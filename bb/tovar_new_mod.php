@@ -37,6 +37,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=1" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>
@@ -64,6 +65,18 @@ echo '
 $model_id = '';
 $cat_select_new = '';
 $model_double_text = '';
+$cat_id = 0;
+
+// Заполняются только в режиме «редактировать»; в режиме новой модели поля
+// должны быть пустыми, а не падать в notice при обращении к ключу.
+$action = '';
+$cat_def = array('rent_cat_name' => '', 'dog_name' => '');
+$model_def = array_fill_keys(array(
+	'age_from', 'age_to', 'agr_price', 'agr_price_cur', 'collateral', 'color',
+	'lom_srok', 'model', 'model_addr', 'm_sex', 'ny', 'ph_addr', 'price_new',
+	'producer', 'rez1', 'rez2', 'set', 'tale', 'tovar_rent_cat_id',
+	'weight_from', 'weight_to', 'zv',
+), '');
 
 
 if (isset($_POST['action'])) {
@@ -76,34 +89,14 @@ if (isset($_POST['action'])) {
 
 		case 'сохранить':
 
-			//получаем id категории (если нужно - создаем ее)
-			if ($cat_select_new != '0') {
-				$cat_id = $cat_select_new;
-			} else {//проверяем, есть ли такое наименование в категории, если есть - то берем id этой категории и не создаем новую, если нет - создаем новую категорию
-
-				$mysqli = \bb\Db::getInstance()->getConnection();
-
-				$query_cat_ch = "SELECT * FROM tovar_rent_cat WHERE rent_cat_name='$cat_input_new'";
-				$result_cat_ch = $mysqli->query($query_cat_ch);
-				if (!$result_cat_ch) {
-					die('Сбой при доступе к базе данных: ' . $query_cat_ch . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-				}
-				$cat_num = $result_cat_ch->num_rows;
-
-				if ($cat_num > 0) {
-					$cat_ch = $result_cat_ch->fetch_assoc();
-					$cat_id = $cat_ch['tovar_rent_cat_id'];
-				} else {
-					$mysqli = \bb\Db::getInstance()->getConnection();
-
-					$query_newcat = "INSERT INTO tovar_rent_cat VALUES('', '$cat_input_new', '$cat_input_dog_new')";
-					$result_newcat = $mysqli->query($query_newcat);
-					if (!$result_newcat) {
-						die('Сбой при доступе к базе данных: ' . $query_newcat . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-					}
-
-					$cat_id = $mysqli->insert_id;
-				}
+			// Категория выбирается живым поиском, а новая заводится в модалке
+			// через bb/ajax_category_create.php — сюда приходит только готовый id.
+			// Раньше здесь стоял позиционный INSERT на 3 колонки из 9: завести
+			// категорию с этой страницы было невозможно (docs/db_notes.md, п.1).
+			$cat_id = (int) $cat_select_new;
+			if ($cat_id < 1) {
+				die('Категория не выбрана. Найдите её в поле «Категория товара» '
+					. 'или создайте кнопкой «+ создать категорию».');
 			}
 
 			//определяем наименование производителя
@@ -207,52 +200,16 @@ if (isset($_POST['action'])) {
 
 		case 'обновить':
 			$model_start_id = $model_id;
-			//получаем id категории (если нужно - создаем ее)
-			if ($cat_select_new > 0) {
-				$cat_id = $cat_select_new;
-			} //выбрана конкретная категория без изменений категории
-			else {
 
-				if ($cat_edit_status == 'yes') {// выбрана категория и она меняется
-
-					$mysqli = \bb\Db::getInstance()->getConnection();
-
-					$query_upd = "UPDATE tovar_rent_cat SET rent_cat_name='$cat_input_new', dog_name='$cat_input_dog_new' WHERE tovar_rent_cat_id='$cat_edit_id'";
-					$result_upd = $mysqli->query($query_upd);
-					if (!$result_upd) {
-						die('Сбой при доступе к базе данных: ' . $query_upd . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-					}
-
-					$cat_id = $cat_edit_id;
-
-				} else {//категория не выбрана - создаем новую
-					//проверяем, есть ли такое наименование в категории, если есть - то берем id этой категории и не создаем новую, если нет - создаем новую категорию
-					$mysqli = \bb\Db::getInstance()->getConnection();
-
-					$query_cat_ch = "SELECT * FROM tovar_rent_cat WHERE rent_cat_name='$cat_input_new'";
-					$result_cat_ch = $mysqli->query($query_cat_ch);
-					if (!$result_cat_ch) {
-						die('Сбой при доступе к базе данных: ' . $query_cat_ch . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-					}
-					$cat_num = $result_cat_ch->num_rows;
-
-					if ($cat_num > 0) {
-						$cat_ch = $result_cat_ch->fetch_assoc();
-						$cat_id = $cat_ch['tovar_rent_cat_id'];
-					} else {
-						$mysqli = \bb\Db::getInstance()->getConnection();
-
-						$query_newcat = "INSERT INTO tovar_rent_cat VALUES('', '$cat_input_new', '$cat_input_dog_new')";
-						$result_newcat = $mysqli->query($query_newcat);
-						if (!$result_newcat) {
-							die('Сбой при доступе к базе данных: ' . $query_newcat . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-						}
-
-						$cat_id = $mysqli->insert_id;
-					}
-				}
+			// Как и в «сохранить»: id приходит из живого поиска либо из модалки.
+			// Переименование категории отсюда убрано — оно правило только название
+			// и `dog_name`, оставляя `cat_url_key` от старого имени. Полное
+			// редактирование живёт в /bb/category_management.php.
+			$cat_id = (int) $cat_select_new;
+			if ($cat_id < 1) {
+				die('Категория не выбрана. Найдите её в поле «Категория товара» '
+					. 'или создайте кнопкой «+ создать категорию».');
 			}
-			//здесь мы получаем итоговый id категории
 
 			//далее, апдейтим модель
 			$producer_select_new == '0' ? $producer_name = $producer_input_new : $producer_name = $producer_select_new;
@@ -338,69 +295,12 @@ if (isset($_POST['action'])) {
 <script language="javascript">
 
 
-	function cat_edit() {
-
-		if (document.getElementById('cat_edit_but').value == 'редактировать категорию') {
-			document.getElementById('cat_input_new').disabled = false;
-			document.getElementById('cat_input_dog_new').readOnly = false;
-
-			document.getElementById('cat_edit_id').value = document.getElementById('cat_select_new').value;
-
-			c2 = document.getElementById('cat_select_new');
-			c2 = c2.options[c2.selectedIndex].text;
-
-			document.getElementById('cat_input_new').value = c2;
-			document.getElementById('cat_select_new').disabled = true;
-
-			document.getElementById('cat_edit_status').value = 'yes';
-
-			document.getElementById('cat_edit_but').value = 'отменить редактирование категории';
-		}
-		else {
-			document.getElementById('cat_select_new').disabled = false;
-			document.getElementById('cat_edit_but').value = 'редактировать категорию';
-			document.getElementById('cat_edit_status').value = 'no';
-			document.getElementById('cat_edit_id').value = '';
-			select_ch3('cat_select_new', 'cat_input_new');
-		}
-
-	}
-
-
-	function select_ch3(sel, new_f) {
-
-		if (document.getElementById(sel).value == 0) {
-			document.getElementById(new_f).disabled = false;
-			document.getElementById('cat_input_dog_new').readOnly = false;
-			document.getElementById('cat_input_dog_new').value = '';
-		}
-		else {
-			document.getElementById(new_f).disabled = true;
-			document.getElementById('cat_input_dog_new').readOnly = true;
-			document.getElementById(new_f).value = '';
-
-			document.getElementById('cat_input_dog_new').value = '... ждите ...';
-
-			var cat_id = document.getElementById(sel).value;
-			par2 = 'dog_name_select';
-
-			var xmlhttp = getXmlHttp()
-			xmlhttp.open("POST", '/bb/cat_ch.php', true)
-			xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-			var params = 'cat_id=' + encodeURIComponent(cat_id) + '&par2=' + encodeURIComponent(par2);
-
-			xmlhttp.send(params);
-			xmlhttp.onreadystatechange = function () {
-				if (xmlhttp.readyState == 4) {
-					if (xmlhttp.status == 200) {
-						document.getElementById('cat_input_dog_new').value = xmlhttp.responseText;
-					}
-				}
-			}
-		}//end of else
-
-	}//end of select_ch3
+	// cat_edit() и select_ch3() удалены вместе со старым списком категорий.
+	// select_ch3() звал getXmlHttp(), которого в проекте нет ни в одном файле,
+	// — поэтому поле «для договора (ед.ч.)» намертво зависало на «... ждите ...»
+	// при любом выборе категории. Теперь `dog_name` приходит вместе с подсказкой
+	// из bb/ajax_category_suggest.php, второй запрос не нужен.
+	// Переименование категории живёт в /bb/category_management.php.
 
 
 	function select_ch2(sel, new_f) {
@@ -434,7 +334,8 @@ if (isset($_POST['action'])) {
 		}
 
 
-		if (document.getElementById('cat_select_new').value == "0" && document.getElementById('cat_input_new').value == "") {
+		// Категория теперь всегда приходит готовым id из живого поиска или модалки.
+		if ((document.getElementById('cat_select_new').value * 1) < 1) {
 			cat_chcc = "Категория товара, ";
 			valid = false;
 		}
@@ -521,14 +422,19 @@ $cat_list = '';
 
 
 
-//выбираем категории
 $mysqli = \bb\Db::getInstance()->getConnection();
 
-$query_cats = "SELECT * FROM tovar_rent_cat ORDER BY rent_cat_name";
-$result_cats = $mysqli->query($query_cats);
-if (!$result_cats) {
-	die('Сбой при доступе к базе данных: ' . $query_cats . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-}
+// Список категорий больше не выгружается в разметку: их 115+, и выпадающий
+// список приходилось листать глазами. Теперь живой поиск через
+// bb/ajax_category_suggest.php.
+
+// Подразделы нужны модалке создания категории: без привязки к подразделу
+// категория не попадает в меню каталога (docs/db_notes.md).
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/SubRazdel.php');
+$sub_razdels_all = \bb\classes\SubRazdel::getAll();
+usort($sub_razdels_all, function ($a, $b) {
+	return strcmp($a->getNameSubRazdelText(), $b->getNameSubRazdelText());
+});
 
 //chose tovar producers
 $query_prod = "SELECT DISTINCT producer FROM tovar_rent ORDER BY producer";
@@ -554,22 +460,20 @@ echo '
 	<tr>
 		<td>Категория товара:</td>
 		<td>
-			<select name="cat_select_new" id="cat_select_new" onchange="select_ch3(\'cat_select_new\', \'cat_input_new\');" style="width:220px;" >
-				<option value="0">ввести новую категорию</option>';
-while ($cat_names = $result_cats->fetch_assoc()) {
-	echo '<option value="' . $cat_names['tovar_rent_cat_id'] . '" ' . sel_d($cat_names['tovar_rent_cat_id'], $cat_id) . ' >' . good_print($cat_names['rent_cat_name']) . '</option>';
-}
+			<div class="catp">
+				<input type="text" id="cat_search" class="catp__input" autocomplete="off"
+					placeholder="начните вводить название категории"
+					value="' . good_print($cat_def['rent_cat_name']) . '" />
+				<div id="cat_results" class="catp__results"></div>
+				<div id="cat_chosen" class="catp__chosen"' . ($cat_id > 0 ? ' style="display:block;"' : '') . '>'
+					. ($cat_id > 0 ? 'Выбрана категория #' . (int) $cat_id . ' — ' . good_print($cat_def['rent_cat_name']) : '') . '</div>
+			</div>
+			<input type="hidden" name="cat_select_new" id="cat_select_new" value="' . (int) $cat_id . '" />
+			<input type="button" id="cat_create_open" value="+ создать категорию" />
 
-echo '
-			</select>
-
-			<input type="text" name="cat_input_new" size="30" id="cat_input_new" ' . ($action == 'редактировать' ? 'disabled="disabled"' : '') . ' />
-
-				и для договора (ед.ч.):
-			<input type="text" name="cat_input_dog_new" size="30" id="cat_input_dog_new" value="' . good_print($cat_def['dog_name']) . '"/> <br />
-			' . ($action == 'редактировать' ? '<input type="button" value="редактировать категорию" id="cat_edit_but" onclick="cat_edit();" />' : '') . '
-			<input type="hidden" name="cat_edit_status" id="cat_edit_status" value="no" />
-			<input type="hidden" name="cat_edit_id" id="cat_edit_id" value="" />
+			<br />и для договора (ед.ч.):
+			<input type="text" name="cat_input_dog_new" size="30" id="cat_input_dog_new" readonly="readonly" value="' . good_print($cat_def['dog_name']) . '"/>
+			<span class="catp-modal__hint">подставляется из категории; изменить — в <a href="/bb/category_management.php">справочнике категорий</a></span>
 			<input type="hidden" name="model_id" value="' . $model_id . '" />
 
 		</td>
@@ -732,7 +636,78 @@ echo '
 				';
 
 
+// Модалка создания категории. Поля повторяют /bb/category_management.php,
+// чтобы категория рождалась полноценной: с адресом (`cat_url_key`) и с местом
+// в дереве каталога (подраздел). Раньше со страницы модели можно было завести
+// категорию только с названием — отсюда 57 категорий вне дерева, найденных
+// аудитом 27.07.2026.
+echo '
+<div id="cat_modal" class="catp-modal">
+	<div class="catp-modal__box">
+		<h3>Новая категория</h3>
 
+		<div id="newcat_warning" class="catp__warn"></div>
+
+		<div class="catp-modal__row">
+			<label>Название (ru) *</label>
+			<input type="text" id="newcat_name" />
+		</div>
+
+		<div class="catp-modal__row">
+			<label>Название для договора, ед. ч. * <span class="catp-modal__hint">печатается в договоре: «коляска», а не «коляски»</span></label>
+			<input type="text" id="newcat_dog_name" />
+		</div>
+
+		<div class="catp-modal__row">
+			<label>URL-ключ * <span class="catp-modal__hint">адрес категории на сайте; подставляется транслитом, можно поправить</span></label>
+			<input type="text" id="newcat_url_key" />
+		</div>
+
+		<div class="catp-modal__row">
+			<label>Подраздел * <span class="catp-modal__hint">без него категория не появится в меню каталога</span></label>
+			<select id="newcat_sub_razdel">
+				<option value="0">— выберите подраздел —</option>';
+
+foreach ($sub_razdels_all as $sr) {
+	echo '<option value="' . (int) $sr->getIdSubRazdel() . '">' . good_print($sr->getNameSubRazdelText()) . '</option>';
+}
+
+echo '
+			</select>
+		</div>
+
+		<div class="catp-modal__row">
+			<label>Тип</label>
+			<select id="newcat_cat_type">
+				<option value="0">стандарт</option>
+				<option value="1">карнавал</option>
+			</select>
+		</div>
+
+		<div class="catp-modal__row">
+			<label>Сортировка</label>
+			<input type="number" id="newcat_cat_sort" value="0" />
+		</div>
+
+		<div class="catp-modal__row">
+			<label>Название (en) <span class="catp-modal__hint">необязательно, активен только /ru</span></label>
+			<input type="text" id="newcat_name_en" />
+		</div>
+
+		<div class="catp-modal__row">
+			<label>Название (lt) <span class="catp-modal__hint">необязательно</span></label>
+			<input type="text" id="newcat_name_lt" />
+		</div>
+
+		<div class="catp-modal__actions">
+			<input type="button" id="newcat_cancel" value="отмена" />
+			<input type="button" id="newcat_save" value="создать категорию" />
+		</div>
+	</div>
+</div>
+
+<script src="/bb/assets/js/category_picker.js?v=1"></script>
+';
 
 echo '</body>';
 

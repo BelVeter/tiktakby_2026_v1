@@ -304,6 +304,50 @@ class Category
             }
             $this->setId($mysqli->insert_id);
         }
+
+        $this->ensureTreeBinding();
+
+        return true;
+    }
+
+    /**
+     * Ставит категорию в дерево каталога.
+     *
+     * `main_sub_razdel_id` задаёт только КАНОНИЧЕСКИЙ адрес категории, а в
+     * навигации она появляется через связку `subrazdel_category`. Раньше
+     * `save()` писал первое и не писал второе — так и накопились 57 категорий
+     * вне дерева каталога (аудит 27.07.2026): они существуют, у них есть
+     * модели, но в меню их нет и полный URL для них не строится.
+     *
+     * Существующие привязки не трогаем: категория может осознанно висеть в
+     * нескольких подразделах — добавляем недостающую и только.
+     */
+    private function ensureTreeBinding(){
+        $subRazdelId = (int) $this->main_sub_razdel_id;
+        $catId = (int) $this->getId();
+
+        if ($subRazdelId < 1 || $catId < 1) {
+            return false;
+        }
+
+        $mysqli = Db::getInstance()->getConnection();
+
+        $query = "SELECT COUNT(*) n FROM subrazdel_category
+                   WHERE tovar_rent_cat_id='$catId' AND id_sub_razdel='$subRazdelId'";
+        $result = $mysqli->query($query);
+        if (!$result) {
+            die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+        }
+
+        if ((int) $result->fetch_assoc()['n'] > 0) {
+            return true;
+        }
+
+        $query = "INSERT INTO subrazdel_category SET id_sub_razdel='$subRazdelId', tovar_rent_cat_id='$catId'";
+        if (!$mysqli->query($query)) {
+            die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+        }
+
         return true;
     }
 
