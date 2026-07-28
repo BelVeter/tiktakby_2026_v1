@@ -9,6 +9,8 @@
 - **Local environment**: Laragon on Windows, project at `d:\sites\tiktakby_2026_v1`
 - **Git**: GitHub, repo `BelVeter/tiktakby_2026_v1`
 - **Branching**: `main` = production, feature branches (e.g. `dima2`). Branch protection on `main` — merges only via PRs
+- **Merges are SQUASH merges.** The branch's commits never become ancestors of `main` — only a single squashed commit lands. Therefore a merged branch is **dead**: committing to it again and opening a second PR makes git re-apply the already-merged commits, and every file both PRs touched conflicts (hit on PR #249, 2026-07-28). Start each change from `git checkout -b <name> origin/main` after a fresh fetch; move stray commits with `git cherry-pick`.
+- **Check mergeability before handing a PR link to the owner**: `git fetch origin && git merge-tree --write-tree --messages HEAD origin/main` — exit code 0 means no conflicts. Only the owner merges.
 - **Deploy**: `Deploy.php` (triggered via URL with secret key). Does `git reset --hard origin/main`, `composer install`, `migrate`, config/route/view caching. **NOTE**: `git clean` is DISABLED to protect user-uploaded images in `/bb/`.
 
 ## Local Development
@@ -102,6 +104,7 @@ Blade templates. Main layout: `layouts/app.blade.php` (contains version number f
 - All routes use controllers (no closures!) — required for `route:cache`
 - Language redirects `/en/*`, `/lt/*` → `/ru/*`
 - Catalog: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
+- ⚠️ **The model is resolved by `rent_model_web.page_addr` + `lang` ONLY** — `L3Controller::l3ShowPage2()` → `L3Page::getPageByUrlName()` → `ModelWeb::getByUrlNameLangSafe()`. `{razdel}/{subrazdel}/{category}` are used solely for breadcrumbs (built conditionally — an unresolved segment just omits them) and for the recommendations cache key. So every product page answers 200 under an unlimited number of paths; 404 happens only when the model slug is unknown. Verified against production 2026-07-28. Practical effects: (a) re-parenting a model to another category cannot 404 its old URL, only `<link rel="canonical">` changes; (b) crawl budget can be wasted on bogus prefixes — canonicalization is the only mitigation today.
 - Fallback → 404 page
 - **MCP API** (`routes/api.php`): `/api/mcp/v1/*` — 58 endpoints + `/health` + `/openapi.json`; mostly GET analytics, plus writes on `/pages/*` (SEO content), `/redirects/*` and `/sms/send`. Middleware chain `mcp.json → mcp.token → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+.
 

@@ -86,10 +86,20 @@ php artisan test                    # Run all tests
 git checkout -b feature/my-feature  # Create feature branch
 git push -u origin feature/my-feature  # Push and create PR
 
+# BEFORE handing over a PR link — verify it merges cleanly:
+git fetch origin && git merge-tree --write-tree --messages HEAD origin/main
+# exit code 0 = no conflicts; non-zero = fix before asking for review
+
 # Production deployment (automated)
 # Visit: https://tiktak.by/Deploy.php?key=SECRET_KEY
 # Triggers: git reset --hard, composer install, migrate, cache rebuild
 ```
+
+**⚠️ PRs are SQUASH-merged — never reuse a merged branch.** A squash merge puts a *new* commit on `main`; the branch's own commits never become ancestors of `main`. If you keep committing to that same branch and open a second PR, git re-proposes the already-merged commits and **every file touched by both PRs conflicts**. After a merge, always start the next change from a fresh base:
+```bash
+git fetch origin && git checkout -b fix/next-thing origin/main
+```
+To move work already committed to a merged branch: `git cherry-pick <new-commits>` onto the fresh branch.
 
 ## Critical Architecture Rules
 
@@ -238,6 +248,7 @@ Standalone PHP application (not Laravel):
 **Web routes**:
 - Language redirects: `/en/*`, `/lt/*` → `/ru/*` (only `/ru/` active)
 - Catalog structure: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
+- ⚠️ **L3 resolves the model by `rent_model_web.page_addr` + `lang` ONLY** (`L3Controller` → `L3Page::getPageByUrlName()` → `ModelWeb::getByUrlNameLangSafe()`). The `{razdel}/{subrazdel}/{category}` segments feed only the breadcrumbs and the recommendations-slider cache key, so **any** prefix returns 200 (`/ru/chush/chush2/chush3/<real-slug>` → 200; 404 only when the model slug itself is unknown). Consequence: moving a model between categories never 404s the old URL — only `<link rel="canonical">` changes, and it is always built from the model's real category.
 - All routes use controllers (no closures!) — required for `route:cache`
 - **2GIS YML Feed** (`GET /feed/2gis`): public XML feed of 24 rental services with minimum weekly prices; daily cached at 03:00 via `feed:generate-2gis` Artisan command; `?refresh=1` forces regeneration; source: `Feed2GisController`
 
