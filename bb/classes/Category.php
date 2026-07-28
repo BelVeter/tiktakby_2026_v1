@@ -324,12 +324,56 @@ class Category
     private function delete(){
         $mysqli = Db::getInstance()->getConnection();
 
+        // Привязку к дереву каталога снимаем вместе с категорией, иначе
+        // подраздел продолжит ссылаться на несуществующую строку.
+        $query = "DELETE FROM subrazdel_category WHERE tovar_rent_cat_id='$this->id'";
+        $result = $mysqli->query($query);
+        if (!$result) {
+            die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+        }
+
         $query = "DELETE FROM tovar_rent_cat WHERE tovar_rent_cat_id='$this->id'";
         $result = $mysqli->query($query);
         if (!$result) {
             die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
         }
         return true;
+    }
+
+    /**
+     * Что мешает перенести категорию в архив.
+     *
+     * Кнопка в интерфейсе показывается при `tov_num == 0`, но `tov_num` —
+     * это число ЕДИНИЦ товара (`COUNT(tovar_rent_items.cat_id)`), а не моделей.
+     * Категория без единиц, но с моделями кнопку получала бы, и модели остались
+     * бы без категории. Поэтому проверяем и то, и другое — на сервере, а не
+     * только в разметке.
+     *
+     * @return string[] сообщения; пустой массив = можно архивировать
+     */
+    public function archiveBlockers(){
+        $mysqli = Db::getInstance()->getConnection();
+        $id = (int) $this->id;
+        $blockers = [];
+
+        $counts = [
+            'модел(ь/и)'         => "SELECT COUNT(*) n FROM tovar_rent WHERE tovar_rent_cat_id='$id'",
+            'ед. товара в работе' => "SELECT COUNT(*) n FROM tovar_rent_items WHERE cat_id='$id'",
+        ];
+
+        foreach ($counts as $label => $query) {
+            $result = $mysqli->query($query);
+            if (!$result) {
+                return ['Сбой при доступе к базе данных: ' . $mysqli->error];
+            }
+            $n = (int) $result->fetch_assoc()['n'];
+            if ($n > 0) {
+                $blockers[] = 'В категории ещё ' . $n . ' ' . $label
+                    . '. Перенесите их в другую категорию или отправьте в архив.';
+            }
+        }
+
+        return $blockers;
     }
 
     /**
