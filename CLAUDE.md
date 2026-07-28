@@ -238,6 +238,7 @@ Standalone PHP application (not Laravel):
 **Web routes**:
 - Language redirects: `/en/*`, `/lt/*` → `/ru/*` (only `/ru/` active)
 - Catalog structure: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
+- ⚠️ **L3 resolves the model by `rent_model_web.page_addr` + `lang` ONLY** (`L3Controller` → `L3Page::getPageByUrlName()` → `ModelWeb::getByUrlNameLangSafe()`). The `{razdel}/{subrazdel}/{category}` segments feed only the breadcrumbs and the recommendations-slider cache key, so **any** prefix returns 200 (`/ru/chush/chush2/chush3/<real-slug>` → 200; 404 only when the model slug itself is unknown). Consequence: moving a model between categories never 404s the old URL — only `<link rel="canonical">` changes, and it is always built from the model's real category.
 - All routes use controllers (no closures!) — required for `route:cache`
 - **2GIS YML Feed** (`GET /feed/2gis`): public XML feed of 24 rental services with minimum weekly prices; daily cached at 03:00 via `feed:generate-2gis` Artisan command; `?refresh=1` forces regeneration; source: `Feed2GisController`
 

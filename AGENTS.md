@@ -102,6 +102,7 @@ Blade templates. Main layout: `layouts/app.blade.php` (contains version number f
 - All routes use controllers (no closures!) — required for `route:cache`
 - Language redirects `/en/*`, `/lt/*` → `/ru/*`
 - Catalog: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
+- ⚠️ **The model is resolved by `rent_model_web.page_addr` + `lang` ONLY** — `L3Controller::l3ShowPage2()` → `L3Page::getPageByUrlName()` → `ModelWeb::getByUrlNameLangSafe()`. `{razdel}/{subrazdel}/{category}` are used solely for breadcrumbs (built conditionally — an unresolved segment just omits them) and for the recommendations cache key. So every product page answers 200 under an unlimited number of paths; 404 happens only when the model slug is unknown. Verified against production 2026-07-28. Practical effects: (a) re-parenting a model to another category cannot 404 its old URL, only `<link rel="canonical">` changes; (b) crawl budget can be wasted on bogus prefixes — canonicalization is the only mitigation today.
 - Fallback → 404 page
 - **MCP API** (`routes/api.php`): `/api/mcp/v1/*` — 58 endpoints + `/health` + `/openapi.json`; mostly GET analytics, plus writes on `/pages/*` (SEO content), `/redirects/*` and `/sms/send`. Middleware chain `mcp.json → mcp.token → mcp.audit → throttle:60,1`. All responses follow the `{query, data, meta}` envelope with `meta.currency=BYN`. `/finance/pnl` injects a `D-OPEN-FY2025` warning whenever the period overlaps 2025+.
 
