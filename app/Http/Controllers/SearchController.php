@@ -108,9 +108,31 @@ class SearchController extends Controller
         return view('search', $viewData);
     }
 
+    /**
+     * Переименованные производители: старое написание => каноничное.
+     *
+     * Лендинг производителя индексируется (self-canonical ниже), а
+     * `CheckRedirects` матчит только путь, без query-строки — через модуль
+     * редиректов такой адрес не перенаправить. Поэтому 301 отдаём здесь.
+     * Ключ — нормализованная форма (нижний регистр + trim), чтобы разом
+     * покрыть и вариант с ведущим пробелом, который коллация БД не склеивает.
+     *
+     * @see database/migrations/2026_07_28_170000_normalize_producer_spellings.php
+     */
+    private const PRODUCER_RENAMED = [
+        'simple parenting' => 'Simple Parenting Doona',
+        'i love mum, рф'   => 'I love mum',
+    ];
+
     public function producerFilter($lang, Request $req){
         $producer = $req->input('producer');
         //echo 'ddd'.$producer;
+
+        $renamedTo = self::PRODUCER_RENAMED[mb_strtolower(trim((string) $producer))] ?? null;
+        if ($renamedTo !== null && $renamedTo !== $producer) {
+            return redirect('/ru/producer?producer=' . urlencode($renamedTo), 301);
+        }
+
         $p = new CatMainPage();
 
         $p->setPageTitle('Детские товары '.$producer);
