@@ -40,9 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond(['error' => 'Только POST']);
 }
 
+// Названий на en/lt форма не спрашивает: сайт русскоязычный, `/en` и `/lt`
+// редиректятся на `/ru` (routes/web.php). Колонки в таблице остаются пустыми —
+// если языки когда-нибудь включат, заполнять их будет справочник категорий.
 $name     = trim($_POST['name'] ?? '');
-$nameEn   = trim($_POST['name_en'] ?? '');
-$nameLt   = trim($_POST['name_lt'] ?? '');
 $dogName  = trim($_POST['dog_name'] ?? '');
 $urlKey   = trim($_POST['cat_url_key'] ?? '');
 $subRazd  = (int) ($_POST['main_sub_razdel_id'] ?? 0);
@@ -118,12 +119,6 @@ if (!$confirm) {
 $category = new \bb\classes\Category();
 $category->setMainSubRazdelId($subRazd);
 $category->setName($name);
-if ($nameEn !== '') {
-    $category->setName($nameEn, 'en');
-}
-if ($nameLt !== '') {
-    $category->setName($nameLt, 'lt');
-}
 $category->setDogName($dogName);
 $category->setCatUrlKey($urlKey);
 $category->setCatType($catType);

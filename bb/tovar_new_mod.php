@@ -664,22 +664,19 @@ echo '
 		</div>
 
 		<div class="catp-modal__row">
-			<label>Подраздел * <span class="catp-modal__hint">без него категория не появится в меню каталога</span></label>
-			<select id="newcat_sub_razdel">
-				<option value="0">— выберите подраздел —</option>';
-
-foreach ($sub_razdels_all as $sr) {
-	echo '<option value="' . (int) $sr->getIdSubRazdel() . '">' . good_print($sr->getNameSubRazdelText()) . '</option>';
-}
-
-echo '
-			</select>
+			<label>Подраздел * <span class="catp-modal__hint">без него категория не появится в меню каталога; кликните для списка или начните печатать</span></label>
+			<div class="catp catp--full">
+				<input type="text" id="newcat_sub_razdel_search" class="catp__input" autocomplete="off"
+					placeholder="кликните для списка или начните печатать" />
+				<div id="newcat_sub_razdel_results" class="catp__results"></div>
+			</div>
+			<input type="hidden" id="newcat_sub_razdel" value="0" />
 		</div>
 
 		<div class="catp-modal__row">
 			<label>Тип</label>
 			<select id="newcat_cat_type">
-				<option value="0">стандарт</option>
+				<option value="0" selected="selected">стандарт</option>
 				<option value="1">карнавал</option>
 			</select>
 		</div>
@@ -689,16 +686,6 @@ echo '
 			<input type="number" id="newcat_cat_sort" value="0" />
 		</div>
 
-		<div class="catp-modal__row">
-			<label>Название (en) <span class="catp-modal__hint">необязательно, активен только /ru</span></label>
-			<input type="text" id="newcat_name_en" />
-		</div>
-
-		<div class="catp-modal__row">
-			<label>Название (lt) <span class="catp-modal__hint">необязательно</span></label>
-			<input type="text" id="newcat_name_lt" />
-		</div>
-
 		<div class="catp-modal__actions">
 			<input type="button" id="newcat_cancel" value="отмена" />
 			<input type="button" id="newcat_save" value="создать категорию" />
@@ -706,7 +693,17 @@ echo '
 	</div>
 </div>
 
-<script src="/bb/assets/js/category_picker.js?v=1"></script>
+<script src="/bb/assets/js/live_picker.js?v=1"></script>
+<script>
+// Подразделы отдаём прямо в страницу: их 30, отдельный запрос не нужен.
+window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
+	return array(
+		'id'   => (int) $sr->getIdSubRazdel(),
+		'name' => $sr->getNameSubRazdelText(),
+	);
+}, $sub_razdels_all), JSON_UNESCAPED_UNICODE) . ';
+</script>
+<script src="/bb/assets/js/category_picker.js?v=2"></script>
 ';
 
 echo '</body>';

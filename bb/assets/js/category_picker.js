@@ -1,175 +1,64 @@
 /**
- * Живой поиск категории + создание новой в модалке. Без библиотек.
+ * Выбор категории на bb/tovar_new_mod.php + создание новой в модалке.
  *
- * Разметку и список подразделов отдаёт bb/tovar_new_mod.php, данные —
- * bb/ajax_category_suggest.php и bb/ajax_category_create.php.
+ * Поиск построен на общем ядре live_picker.js. Здесь — только специфика
+ * категории: подстановка `dog_name` в форму, проверка вводимого названия на
+ * дубль и опечатку, и сама модалка.
  *
  * Заменяет два сломанных механизма старой страницы:
- *   - select на 150+ категорий с onchange="select_ch3(...)", который дёргал
- *     несуществующий getXmlHttp() и навсегда вешал поле «для договора»
- *     на «... ждите ...»;
+ *   - select на 115 категорий с onchange="select_ch3(...)", который дёргал
+ *     getXmlHttp() — а он определён только во фронтовых инклюдах, и на этой
+ *     странице подключение закомментировано (tovar_new_mod.php:56). Поле
+ *     «для договора» навсегда зависало на «... ждите ...»;
  *   - создание категории позиционным INSERT на 3 колонки из 9.
  */
 (function () {
 	'use strict';
 
-	var SEARCH_DELAY = 200;
-	var MIN_QUERY = 1;
+	var CHECK_DELAY = 400;
 
+	var picker = null;
+	var subRazdelPicker = null;
 	var els = {};
-	var state = { items: [], active: -1, timer: null, confirmPending: false };
+	var confirmPending = false;
 
 	function $(id) {
 		return document.getElementById(id);
 	}
 
 	function init() {
-		els.search   = $('cat_search');
-		els.hidden   = $('cat_select_new');
-		els.results  = $('cat_results');
-		els.chosen   = $('cat_chosen');
-		els.dogName  = $('cat_input_dog_new');
-		els.openBtn  = $('cat_create_open');
-		els.modal    = $('cat_modal');
+		els.search  = $('cat_search');
+		els.hidden  = $('cat_select_new');
+		els.dogName = $('cat_input_dog_new');
+		els.openBtn = $('cat_create_open');
+		els.modal   = $('cat_modal');
 
-		if (!els.search || !els.hidden) {
+		if (!els.search || !els.hidden || !window.LivePicker) {
 			return;
 		}
 
-		els.search.addEventListener('input', onSearchInput);
-		els.search.addEventListener('keydown', onSearchKeydown);
-		els.search.addEventListener('focus', onSearchInput);
-		document.addEventListener('click', onDocumentClick);
+		picker = new window.LivePicker({
+			inputId:   'cat_search',
+			hiddenId:  'cat_select_new',
+			resultsId: 'cat_results',
+			chosenId:  'cat_chosen',
+			url:       '/bb/ajax_category_suggest.php',
+			renderMeta: function (item) {
+				return (item.tree_path ? item.tree_path : 'вне дерева каталога')
+					+ ' · моделей: ' + item.models;
+			},
+			onChoose: function (item) {
+				if (els.dogName) {
+					els.dogName.value = item.dog_name || '';
+				}
+			}
+		});
 
 		if (els.openBtn) {
 			els.openBtn.addEventListener('click', openModal);
 		}
 
 		initModal();
-	}
-
-	// ---------------------------------------------------------------- поиск
-
-	function onSearchInput() {
-		var query = els.search.value.trim();
-
-		clearTimeout(state.timer);
-
-		if (query.length < MIN_QUERY) {
-			renderResults([]);
-			return;
-		}
-
-		state.timer = setTimeout(function () {
-			request('/bb/ajax_category_suggest.php?q=' + encodeURIComponent(query), null, function (data) {
-				state.items = data.items || [];
-				state.active = -1;
-				renderResults(state.items);
-			});
-		}, SEARCH_DELAY);
-	}
-
-	function onSearchKeydown(event) {
-		if (!state.items.length) {
-			return;
-		}
-
-		if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-			event.preventDefault();
-			var step = event.key === 'ArrowDown' ? 1 : -1;
-			state.active = (state.active + step + state.items.length) % state.items.length;
-			highlight();
-		} else if (event.key === 'Enter') {
-			if (state.active >= 0) {
-				event.preventDefault();
-				choose(state.items[state.active]);
-			}
-		} else if (event.key === 'Escape') {
-			renderResults([]);
-		}
-	}
-
-	function renderResults(items) {
-		els.results.innerHTML = '';
-
-		if (!items.length) {
-			els.results.style.display = 'none';
-			return;
-		}
-
-		items.forEach(function (item, index) {
-			var row = document.createElement('div');
-			row.className = 'catp__item';
-			row.setAttribute('data-index', String(index));
-
-			var title = document.createElement('span');
-			title.className = 'catp__name';
-			title.textContent = item.name;
-			row.appendChild(title);
-
-			var meta = document.createElement('span');
-			meta.className = 'catp__meta';
-			meta.textContent = (item.tree_path ? item.tree_path : 'вне дерева каталога')
-				+ ' · моделей: ' + item.models;
-			row.appendChild(meta);
-
-			if (!item.in_tree) {
-				row.appendChild(badge('вне каталога', 'catp__badge--warn'));
-			}
-			if (item.fuzzy) {
-				row.appendChild(badge('похоже на запрос', 'catp__badge--hint'));
-			}
-
-			row.addEventListener('mouseenter', function () {
-				state.active = index;
-				highlight();
-			});
-			row.addEventListener('click', function () {
-				choose(item);
-			});
-
-			els.results.appendChild(row);
-		});
-
-		els.results.style.display = 'block';
-	}
-
-	function badge(text, extraClass) {
-		var el = document.createElement('span');
-		el.className = 'catp__badge ' + extraClass;
-		el.textContent = text;
-		return el;
-	}
-
-	function highlight() {
-		var rows = els.results.querySelectorAll('.catp__item');
-		for (var i = 0; i < rows.length; i++) {
-			rows[i].classList.toggle('catp__item--active', i === state.active);
-		}
-	}
-
-	function choose(item) {
-		els.hidden.value = item.id;
-		els.search.value = item.name;
-
-		if (els.dogName) {
-			els.dogName.value = item.dog_name || '';
-		}
-
-		els.chosen.innerHTML = '';
-		els.chosen.appendChild(document.createTextNode('Выбрана категория #' + item.id + ' — ' + item.name));
-		if (!item.in_tree) {
-			els.chosen.appendChild(badge('нет в меню каталога', 'catp__badge--warn'));
-		}
-		els.chosen.style.display = 'block';
-
-		renderResults([]);
-	}
-
-	function onDocumentClick(event) {
-		if (els.results && !els.results.contains(event.target) && event.target !== els.search) {
-			renderResults([]);
-		}
 	}
 
 	// --------------------------------------------------------------- модалка
@@ -179,12 +68,25 @@
 			return;
 		}
 
-		els.mName    = $('newcat_name');
-		els.mDog     = $('newcat_dog_name');
-		els.mUrl     = $('newcat_url_key');
-		els.mWarn    = $('newcat_warning');
-		els.mSave    = $('newcat_save');
-		els.mCancel  = $('newcat_cancel');
+		els.mName   = $('newcat_name');
+		els.mDog    = $('newcat_dog_name');
+		els.mUrl    = $('newcat_url_key');
+		els.mWarn   = $('newcat_warning');
+		els.mSave   = $('newcat_save');
+		els.mCancel = $('newcat_cancel');
+
+		// Подраздел: один контрол, два поведения. Клик по пустому полю
+		// показывает весь список (minQuery: 0), ввод — фильтрует. Список из
+		// 30 подразделов лежит в странице, запрос не нужен.
+		if (window.SUB_RAZDELS) {
+			subRazdelPicker = new window.LivePicker({
+				inputId:   'newcat_sub_razdel_search',
+				hiddenId:  'newcat_sub_razdel',
+				resultsId: 'newcat_sub_razdel_results',
+				items:     window.SUB_RAZDELS,
+				minQuery:  0
+			});
+		}
 
 		els.mCancel.addEventListener('click', closeModal);
 		els.mSave.addEventListener('click', submitModal);
@@ -201,22 +103,22 @@
 			}
 		});
 
-		// URL-ключ подставляем транслитом, пока оператор его не правил вручную.
 		els.mUrl.addEventListener('input', function () {
 			els.mUrl.dataset.touched = '1';
 		});
 
 		var checkTimer = null;
 		els.mName.addEventListener('input', function () {
-			state.confirmPending = false;
+			confirmPending = false;
 			els.mSave.value = 'создать категорию';
 
+			// URL-ключ подставляем транслитом, пока его не правили руками.
 			if (!els.mUrl.dataset.touched) {
 				els.mUrl.value = translit(els.mName.value);
 			}
 
 			clearTimeout(checkTimer);
-			checkTimer = setTimeout(checkName, SEARCH_DELAY * 2);
+			checkTimer = setTimeout(checkName, CHECK_DELAY);
 		});
 	}
 
@@ -225,8 +127,13 @@
 		els.mName.value = els.search.value.trim();
 		els.mUrl.value = translit(els.mName.value);
 		delete els.mUrl.dataset.touched;
+
+		if (subRazdelPicker) {
+			subRazdelPicker.reset();
+		}
+
 		warn('');
-		state.confirmPending = false;
+		confirmPending = false;
 		els.mSave.value = 'создать категорию';
 		els.mName.focus();
 
@@ -239,7 +146,7 @@
 		els.modal.style.display = 'none';
 	}
 
-	/** Живая проверка вводимого названия на дубль и опечатку. */
+	/** Живая проверка вводимого названия на точный дубль и на опечатку. */
 	function checkName() {
 		var name = els.mName.value.trim();
 
@@ -248,22 +155,29 @@
 			return;
 		}
 
-		request('/bb/ajax_category_suggest.php?check=1&q=' + encodeURIComponent(name), null, function (data) {
-			if (data.exact) {
-				warn('Такая категория уже есть: «' + data.exact.name + '» (#' + data.exact.id + '). '
-					+ 'Закройте окно и выберите её в списке.', 'error');
-				return;
-			}
+		window.LivePicker.request(
+			'/bb/ajax_category_suggest.php?check=1&q=' + encodeURIComponent(name),
+			null,
+			function (data) {
+				if (data.exact) {
+					warn('Такая категория уже есть: «' + data.exact.name + '» (#' + data.exact.id + '). '
+						+ 'Закройте окно и выберите её в списке.', 'error');
+					return;
+				}
 
-			if (data.similar && data.similar.length) {
-				warn('Похожие категории уже есть: ' + data.similar.map(function (item) {
-					return '«' + item.name + '»';
-				}).join(', ') + '. Проверьте, не дубль ли это.', 'hint');
-				return;
-			}
+				if (data.similar && data.similar.length) {
+					warn('Похожие категории уже есть: ' + names(data.similar)
+						+ '. Проверьте, не дубль ли это.', 'hint');
+					return;
+				}
 
-			warn('');
-		});
+				warn('');
+			}
+		);
+	}
+
+	function names(list) {
+		return list.map(function (item) { return '«' + item.name + '»'; }).join(', ');
 	}
 
 	function warn(text, kind) {
@@ -275,8 +189,6 @@
 	function submitModal() {
 		var payload = {
 			name:               els.mName.value.trim(),
-			name_en:            $('newcat_name_en').value.trim(),
-			name_lt:            $('newcat_name_lt').value.trim(),
 			dog_name:           els.mDog.value.trim(),
 			cat_url_key:        els.mUrl.value.trim(),
 			main_sub_razdel_id: $('newcat_sub_razdel').value,
@@ -284,13 +196,13 @@
 			cat_sort:           $('newcat_cat_sort').value
 		};
 
-		if (state.confirmPending) {
+		if (confirmPending) {
 			payload.confirm = '1';
 		}
 
 		els.mSave.disabled = true;
 
-		request('/bb/ajax_category_create.php', payload, function (data) {
+		window.LivePicker.request('/bb/ajax_category_create.php', payload, function (data) {
 			els.mSave.disabled = false;
 
 			if (data.error) {
@@ -299,16 +211,15 @@
 			}
 
 			if (data.needs_confirm) {
-				state.confirmPending = true;
+				confirmPending = true;
 				els.mSave.value = 'всё равно создать';
-				warn('Похожие категории: ' + data.similar.map(function (item) {
-					return '«' + item.name + '»';
-				}).join(', ') + '. Если это точно другая категория — нажмите ещё раз.', 'hint');
+				warn('Похожие категории: ' + names(data.similar)
+					+ '. Если это точно другая категория — нажмите ещё раз.', 'hint');
 				return;
 			}
 
 			if (data.ok) {
-				choose(data.category);
+				picker.choose(data.category);
 				closeModal();
 			}
 		}, function () {
@@ -342,42 +253,6 @@
 		}
 
 		return out.replace(/-+/g, '-').replace(/^-|-$/g, '');
-	}
-
-	function request(url, payload, onSuccess, onError) {
-		var xhr = new XMLHttpRequest();
-		xhr.open(payload ? 'POST' : 'GET', url, true);
-
-		if (payload) {
-			xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-		}
-
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState !== 4) {
-				return;
-			}
-			if (xhr.status !== 200) {
-				if (onError) { onError(); }
-				return;
-			}
-			try {
-				onSuccess(JSON.parse(xhr.responseText));
-			} catch (e) {
-				if (onError) { onError(); }
-			}
-		};
-
-		xhr.send(payload ? encodeForm(payload) : null);
-	}
-
-	function encodeForm(payload) {
-		var parts = [];
-		for (var key in payload) {
-			if (payload.hasOwnProperty(key)) {
-				parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(payload[key]));
-			}
-		}
-		return parts.join('&');
 	}
 
 	if (document.readyState === 'loading') {

@@ -7,6 +7,12 @@
     vertical-align: top;
 }
 
+/* Внутри модалки поле занимает всю ширину строки. */
+.catp--full {
+    display: block;
+    width: 100%;
+}
+
 .catp__input {
     width: 100%;
     box-sizing: border-box;
