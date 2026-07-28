@@ -179,6 +179,29 @@
 		});
 
 		this.results.style.display = 'block';
+		this.fitToViewport();
+	};
+
+	/**
+	 * Подгоняет список под реально свободное место на экране.
+	 *
+	 * Сотрудники работают на бюджетных ноутбуках 1366×768, где под браузером
+	 * остаётся ~600 px: фиксированная высота списка либо уезжает за нижний край,
+	 * либо занимает весь экран. Считаем место под полем и над ним; если снизу
+	 * тесно, а сверху просторнее — открываем список вверх.
+	 */
+	LivePicker.prototype.fitToViewport = function () {
+		var MIN_HEIGHT = 120;
+		var GAP = 12;
+
+		var rect = this.input.getBoundingClientRect();
+		var below = window.innerHeight - rect.bottom - GAP;
+		var above = rect.top - GAP;
+
+		var openUp = below < MIN_HEIGHT && above > below;
+
+		this.results.classList.toggle('catp__results--up', openUp);
+		this.results.style.maxHeight = Math.max(MIN_HEIGHT, Math.floor(openUp ? above : below)) + 'px';
 	};
 
 	LivePicker.prototype.highlight = function () {
