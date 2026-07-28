@@ -86,10 +86,20 @@ php artisan test                    # Run all tests
 git checkout -b feature/my-feature  # Create feature branch
 git push -u origin feature/my-feature  # Push and create PR
 
+# BEFORE handing over a PR link — verify it merges cleanly:
+git fetch origin && git merge-tree --write-tree --messages HEAD origin/main
+# exit code 0 = no conflicts; non-zero = fix before asking for review
+
 # Production deployment (automated)
 # Visit: https://tiktak.by/Deploy.php?key=SECRET_KEY
 # Triggers: git reset --hard, composer install, migrate, cache rebuild
 ```
+
+**⚠️ PRs are SQUASH-merged — never reuse a merged branch.** A squash merge puts a *new* commit on `main`; the branch's own commits never become ancestors of `main`. If you keep committing to that same branch and open a second PR, git re-proposes the already-merged commits and **every file touched by both PRs conflicts**. After a merge, always start the next change from a fresh base:
+```bash
+git fetch origin && git checkout -b fix/next-thing origin/main
+```
+To move work already committed to a merged branch: `git cherry-pick <new-commits>` onto the fresh branch.
 
 ## Critical Architecture Rules
 

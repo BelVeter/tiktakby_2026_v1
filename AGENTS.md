@@ -9,6 +9,8 @@
 - **Local environment**: Laragon on Windows, project at `d:\sites\tiktakby_2026_v1`
 - **Git**: GitHub, repo `BelVeter/tiktakby_2026_v1`
 - **Branching**: `main` = production, feature branches (e.g. `dima2`). Branch protection on `main` — merges only via PRs
+- **Merges are SQUASH merges.** The branch's commits never become ancestors of `main` — only a single squashed commit lands. Therefore a merged branch is **dead**: committing to it again and opening a second PR makes git re-apply the already-merged commits, and every file both PRs touched conflicts (hit on PR #249, 2026-07-28). Start each change from `git checkout -b <name> origin/main` after a fresh fetch; move stray commits with `git cherry-pick`.
+- **Check mergeability before handing a PR link to the owner**: `git fetch origin && git merge-tree --write-tree --messages HEAD origin/main` — exit code 0 means no conflicts. Only the owner merges.
 - **Deploy**: `Deploy.php` (triggered via URL with secret key). Does `git reset --hard origin/main`, `composer install`, `migrate`, config/route/view caching. **NOTE**: `git clean` is DISABLED to protect user-uploaded images in `/bb/`.
 
 ## Local Development
