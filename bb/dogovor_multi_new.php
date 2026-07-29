@@ -18,7 +18,8 @@ class RTF_Template_Multi {
         $this->content = file_get_contents($filename);
         if (strpos($this->content, '\ansicpg1251') === false) {
             $this->content = preg_replace('/\\\\ansicpg[0-9]+/', '', $this->content);
-            $this->content = preg_replace('/\{\\\\rtf1\\\\ansi/', '{\\\\rtf1\\\\ansi\\\\ansicpg1251', $this->content, 1);
+            // заголовок бывает и {\rtf1\ansi..., и {\rtf1\ulc1\ansi... (ONLYOFFICE) — цепляемся к \ansi, а не к началу файла
+            $this->content = preg_replace('/\\\\ansi(?![a-z])/', '\\\\ansi\\\\ansicpg1251', $this->content, 1);
         }
     }
     public function parse($block_name, $value) {
