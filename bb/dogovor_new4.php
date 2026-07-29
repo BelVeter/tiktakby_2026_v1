@@ -3896,6 +3896,14 @@ class RTF_Template
 	public function __construct($filename)
 	{
 		$this->content = file_get_contents($filename);
+
+		// Защита от "кракозябров": шаблоны nd_1/nd_2/nd_3 сохранены без объявления кодировки,
+		// а значения подставляются в windows-1251 (см. encode_for_rtf)
+		if (strpos($this->content, '\ansicpg1251') === false) {
+			$this->content = preg_replace('/\\\\ansicpg[0-9]+/', '', $this->content); // удаляем неправильную кодировку, если есть
+			// заголовок бывает и {\rtf1\ansi..., и {\rtf1\ulc1\ansi... (ONLYOFFICE) — цепляемся к \ansi, а не к началу файла
+			$this->content = preg_replace('/\\\\ansi(?![a-z])/', '\\\\ansi\\\\ansicpg1251', $this->content, 1);
+		}
 	}//construct
 	/*************************************************************************/
 	/**
