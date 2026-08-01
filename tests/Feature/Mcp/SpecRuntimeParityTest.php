@@ -95,6 +95,11 @@ class SpecRuntimeParityTest extends McpTestCase
             // Pages (SEO content)
             'pages/product'                => ['pages/product',                ['per_page' => 1],                                                             'array_row', null],
             'pages/history'                => ['pages/history',                ['per_page' => 1],                                                             'array_row', null],
+
+            // Pricing history (2026-07-31)
+            'pricing/history'              => ['pricing/history',              ['limit' => 5],                                                                'array_row', null],
+            'pricing/snapshot'             => ['pricing/snapshot',             ['as_of' => '2026-01-01'],                                                     'array_row', null],
+            'operations/deals-by-model'    => ['operations/deals-by-model',    $range + ['granularity' => 'month'],                                           'array_row', null],
         ];
     }
 

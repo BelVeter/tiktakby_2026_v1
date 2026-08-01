@@ -841,6 +841,41 @@
                     }
                 }
             },
+            "OperationsDealsByModelRow": {
+                "type": "object",
+                "properties": {
+                    "model_id": {
+                        "type": "integer"
+                    },
+                    "model_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "period": {
+                        "type": "string",
+                        "description": "Format depends on granularity, e.g. '2024-01' for month, '2024-W24' for week, '2024-Q2' for quarter, '2024' for year."
+                    },
+                    "deals_started": {
+                        "type": "integer"
+                    },
+                    "units_at_period_end": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Historical unit count at period end (active items with buy_date<=ts, plus archived items still alive at ts). Null when the requested range spans more than 60 periods — see meta.warnings."
+                    },
+                    "deals_per_unit": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "deals_started / units_at_period_end, rounded to 2 decimals. Null when units_at_period_end is null or 0."
+                    }
+                }
+            },
             "InventoryFreeTreeData": {
                 "type": "array",
                 "description": "Catalog tree: section → subsection → category → model.",
@@ -1205,6 +1240,247 @@
                             "integer",
                             "null"
                         ]
+                    }
+                }
+            },
+            "PricingHistoryRow": {
+                "type": "object",
+                "description": "One event from rent_tarif_history. Each event stores a full before/after snapshot of the tariff row, not a diff.",
+                "properties": {
+                    "event_id": {
+                        "type": "integer"
+                    },
+                    "changed_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "change_type": {
+                        "type": "string",
+                        "enum": [
+                            "baseline",
+                            "create",
+                            "update",
+                            "delete"
+                        ]
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "bb_admin",
+                            "model_archive",
+                            "migration",
+                            "legacy_import",
+                            "baseline"
+                        ],
+                        "description": "Writer of the event: an edit in the legacy admin panel, tariff removal on model archival, the one-off migration that seeded the table from the then-live rent_tarif_act (change_type=baseline), or the legacy rent_tarif_prev import (always change_type=delete)."
+                    },
+                    "model_id": {
+                        "type": "integer"
+                    },
+                    "model_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tarif_id": {
+                        "type": "integer"
+                    },
+                    "actor": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    },
+                    "before": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Tariff state before the change. Null when change_type is create or baseline.",
+                        "properties": {
+                            "step": {
+                                "type": "string",
+                                "enum": [
+                                    "day",
+                                    "week",
+                                    "month",
+                                    "year"
+                                ]
+                            },
+                            "kol_vo": {
+                                "type": "integer"
+                            },
+                            "kol_vo_min": {
+                                "type": "integer"
+                            },
+                            "rent_amount": {
+                                "type": "string",
+                                "description": "Decimal formatted to 2 places, e.g. \"200.00\"."
+                            },
+                            "rent_per_step": {
+                                "type": "string"
+                            },
+                            "price_per_day": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "description": "rent_amount / (step_days × kol_vo), 2 decimals. Null when that denominator is zero."
+                            },
+                            "start_date": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date"
+                            }
+                        }
+                    },
+                    "after": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Tariff state after the change. Null when change_type is delete.",
+                        "properties": {
+                            "step": {
+                                "type": "string",
+                                "enum": [
+                                    "day",
+                                    "week",
+                                    "month",
+                                    "year"
+                                ]
+                            },
+                            "kol_vo": {
+                                "type": "integer"
+                            },
+                            "kol_vo_min": {
+                                "type": "integer"
+                            },
+                            "rent_amount": {
+                                "type": "string",
+                                "description": "Decimal formatted to 2 places, e.g. \"200.00\"."
+                            },
+                            "rent_per_step": {
+                                "type": "string"
+                            },
+                            "price_per_day": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "description": "rent_amount / (step_days × kol_vo), 2 decimals. Null when that denominator is zero."
+                            },
+                            "start_date": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date"
+                            }
+                        }
+                    },
+                    "delta_amount_byn": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "after.rent_amount − before.rent_amount, formatted to 2 decimals. Null unless both before and after are present."
+                    },
+                    "delta_pct": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Percent change in price_per_day: (after.price_per_day − before.price_per_day) / before.price_per_day × 100, rounded to 1 decimal. Null unless both sides have a price_per_day and before.price_per_day > 0."
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "PricingSnapshotRow": {
+                "type": "object",
+                "description": "One model's price list as of `as_of`: the latest rent_tarif_history event with changed_at <= as_of, per tarif_id.",
+                "properties": {
+                    "model_id": {
+                        "type": "integer"
+                    },
+                    "model_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "min_price_per_day": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Lowest tariffs[].price_per_day for this model."
+                    },
+                    "extrapolated": {
+                        "type": "boolean",
+                        "description": "True if at least one of this model's tariff rows has no recorded change-log event before as_of, so its baseline record (state as of its own last known edit) is returned instead — see meta.warnings."
+                    },
+                    "tariffs": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tarif_id": {
+                                    "type": "integer"
+                                },
+                                "step": {
+                                    "type": "string",
+                                    "enum": [
+                                        "day",
+                                        "week",
+                                        "month",
+                                        "year"
+                                    ]
+                                },
+                                "kol_vo": {
+                                    "type": "integer"
+                                },
+                                "kol_vo_min": {
+                                    "type": "integer"
+                                },
+                                "rent_amount": {
+                                    "type": "string",
+                                    "description": "Decimal formatted to 2 places, e.g. \"200.00\"."
+                                },
+                                "rent_per_step": {
+                                    "type": "string"
+                                },
+                                "price_per_day": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "description": "rent_amount / (step_days × kol_vo), 2 decimals. Null when that denominator is zero."
+                                },
+                                "start_date": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "format": "date"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -2631,6 +2907,31 @@
                     }
                 }
             },
+            "OperationsDealsByModelEnvelope": {
+                "description": "Operations deals-by-model envelope.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Envelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/OperationsDealsByModelRow"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
             "InventoryFreeTreeEnvelope": {
                 "description": "Inventory free-tree envelope.",
                 "content": {
@@ -2769,6 +3070,56 @@
                                             "type": "array",
                                             "items": {
                                                 "$ref": "#/components/schemas/InventoryIdleRow"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "PricingHistoryEnvelope": {
+                "description": "Pricing history envelope.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Envelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PricingHistoryRow"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "PricingSnapshotEnvelope": {
+                "description": "Pricing snapshot envelope.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Envelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PricingSnapshotRow"
                                             }
                                         }
                                     }
@@ -3869,6 +4220,43 @@
                 }
             }
         },
+        "/operations/deals-by-model": {
+            "get": {
+                "operationId": "tiktak_operations_deals_by_model",
+                "summary": "New deals started per model per period, with units_at_period_end (historical inventory denominator) and deals_per_unit as a turnover proxy.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/from"
+                    },
+                    {
+                        "$ref": "#/components/parameters/to"
+                    },
+                    {
+                        "$ref": "#/components/parameters/granularity"
+                    },
+                    {
+                        "$ref": "#/components/parameters/category"
+                    },
+                    {
+                        "in": "query",
+                        "name": "model_id",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Restrict to one model."
+                    },
+                    {
+                        "$ref": "#/components/parameters/include_carnival"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/OperationsDealsByModelEnvelope"
+                    }
+                }
+            }
+        },
         "/inventory/free-tree": {
             "get": {
                 "operationId": "tiktak_inventory_free_tree",
@@ -3975,6 +4363,137 @@
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/InventoryIdleEnvelope"
+                    }
+                }
+            }
+        },
+        "/pricing/history": {
+            "get": {
+                "operationId": "tiktak_pricing_history",
+                "summary": "Change log of tariff edits from rent_tarif_history. Each event carries a full before/after snapshot of the tariff row, not a diff — reconstructing the price list on an arbitrary date means taking, per tarif_id, the latest event with changed_at <= that date (see /pricing/snapshot, which does exactly that).",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "model_id",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Restrict to one model."
+                    },
+                    {
+                        "in": "query",
+                        "name": "category",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Single category slug, or comma-separated list of slugs. Default: 'all'."
+                    },
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Inclusive lower bound on changed_at. Default: no lower bound."
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Inclusive upper bound on changed_at. Default: no upper bound."
+                    },
+                    {
+                        "in": "query",
+                        "name": "change_type",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "baseline",
+                                "create",
+                                "update",
+                                "delete"
+                            ]
+                        },
+                        "description": "Restrict to one change type. Default: all."
+                    },
+                    {
+                        "in": "query",
+                        "name": "actor_user_id",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Restrict to events written by one admin user (rent_tarif_history.actor_user_id)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer",
+                            "default": 100,
+                            "minimum": 1,
+                            "maximum": 500
+                        },
+                        "description": "Rows per page."
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PricingHistoryEnvelope"
+                    }
+                }
+            }
+        },
+        "/pricing/snapshot": {
+            "get": {
+                "operationId": "tiktak_pricing_snapshot",
+                "summary": "Price list reconstructed as of `as_of`: for each tarif_id, the latest rent_tarif_history event with changed_at <= as_of (deleted tariffs excluded). A tariff row with no recorded event before as_of, but already effective on that date (new_start_date <= as_of), is still returned — with extrapolated=true — using its baseline snapshot (the state as of its own earliest known edit, dated anywhere from 2013 to today); this share shrinks as more real events accumulate. See meta.warnings for the extrapolated-row count on a given response.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "as_of",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Reconstruct the price list as of this date (inclusive, end of day)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "model_id",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Restrict to one model."
+                    },
+                    {
+                        "in": "query",
+                        "name": "category",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Single category slug, or comma-separated list of slugs. Default: 'all'."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PricingSnapshotEnvelope"
                     }
                 }
             }
