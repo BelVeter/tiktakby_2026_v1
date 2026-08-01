@@ -233,4 +233,26 @@ class TariffHistoryTest extends TestCase
         $this->assertFalse($result, 'save() должен вернуть false для несуществующего тарифа');
         $this->assertEmpty($this->events(), 'не должно быть событий в журнале для несуществующего тарифа');
     }
+
+    public function test_model_archive_logs_tariff_deletion(): void
+    {
+        // Готовим модель-песочницу с одним тарифом.
+        $mysqli = Db::getInstance()->getConnection();
+        $mysqli->query("INSERT INTO tovar_rent (tovar_rent_id, tovar_rent_cat_id, producer, model, color)
+                        VALUES (" . self::SANDBOX_MODEL_ID . ", 0, 'TestProducer', 'TestModel', 'TestColor')");
+
+        $t = $this->makeTariff(200.00);
+        $t->save();
+
+        $result = \bb\classes\ModelArchive::archive(self::SANDBOX_MODEL_ID, 26);
+        $this->assertTrue($result === true, is_string($result) ? $result : 'архивация должна пройти');
+
+        $deletes = array_values(array_filter($this->events(), static function ($e) {
+            return $e['change_type'] === 'delete';
+        }));
+
+        $this->assertCount(1, $deletes, 'архивация модели должна залогировать удаление тарифа');
+        $this->assertSame('model_archive', $deletes[0]['source']);
+        $this->assertSame('200.00', $deletes[0]['old_rent_amount']);
+    }
 }

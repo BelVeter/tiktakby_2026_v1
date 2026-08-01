@@ -4,6 +4,11 @@ namespace bb\classes;
 
 use bb\Db;
 
+// bb/ не использует composer autoload — страницы вроде tovar_del.php подключают
+// только этот файл напрямую. Tariff и TariffHistory нужны ниже в archive(),
+// поэтому тянем их сюда же (Tariff.php сам подтягивает TariffHistory.php).
+require_once __DIR__ . '/Tariff.php';
+
 /**
  * Перенос модели товара в архив вместо удаления.
  *
@@ -106,6 +111,22 @@ class ModelArchive
 
         Db::startTransaction();
 
+        // Тарифы уезжают в arch_snapshot вместе с остальными спутниками, но
+        // журнал изменений должен видеть их исчезновение как обычное удаление —
+        // иначе прайс на дату после архивации не восстановится.
+        foreach (self::tariffIdsForModel($mysqli, $modelId) as $tarifId) {
+            $tariff = Tariff::getById($tarifId);
+            if ($tariff) {
+                TariffHistory::log(
+                    TariffHistory::TYPE_DELETE,
+                    $tariff,
+                    null,
+                    TariffHistory::SOURCE_MODEL_ARCHIVE,
+                    'Модель перенесена в архив'
+                );
+            }
+        }
+
         $insert = self::buildArchiveInsert($mysqli, $model, $userId, $snapshot);
         if (!is_string($insert)) {
             $mysqli->query('ROLLBACK');
@@ -201,5 +222,23 @@ class ModelArchive
             . "'";
 
         return 'INSERT INTO tovar_rent_arch SET ' . implode(', ', $pairs);
+    }
+
+    /**
+     * @return int[] id тарифов модели
+     */
+    private static function tariffIdsForModel($mysqli, $modelId)
+    {
+        $modelId = (int) $modelId;
+        $res = $mysqli->query("SELECT tarif_id FROM rent_tarif_act WHERE model_id='{$modelId}'");
+        if (!$res) {
+            return [];
+        }
+
+        $ids = [];
+        while ($row = $res->fetch_assoc()) {
+            $ids[] = (int) $row['tarif_id'];
+        }
+        return $ids;
     }
 }
