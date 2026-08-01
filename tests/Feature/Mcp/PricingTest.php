@@ -380,6 +380,13 @@ class PricingTest extends McpTestCase
             'new_start_date'    => $t1,
             'new_sort_num'      => 1,
         ]);
+        // new_* НЕ заполняем: настоящий писатель (bb/classes/Tariff.php:125,
+        // TariffHistory::log(TYPE_DELETE, $before, null, ...) →
+        // TariffHistory::snapshotColumns($mysqli, 'new', null)) всегда пишет
+        // на delete-событии new_* = NULL. Событие delete с непустыми new_*
+        // в этой системе возникнуть не может — тест проверяет контракт на
+        // данных той же формы, что пишет продакшн-код, а не на синтетическом
+        // входе, который в проде не встречается.
         \Illuminate\Support\Facades\DB::table('rent_tarif_history')->insert([
             'tarif_id'          => $tarifId,
             'model_id'          => $modelId,
@@ -393,21 +400,6 @@ class PricingTest extends McpTestCase
             'old_rent_per_step' => 10.00,
             'old_start_date'    => $t1,
             'old_sort_num'      => 1,
-            // new_* заполнены НАРОЧНО, хотя настоящий писатель
-            // (bb/classes/Tariff.php:125, TariffHistory::log(TYPE_DELETE, $before, null, ...))
-            // всегда оставляет их NULL. Если оставить их NULL и здесь, то
-            // downstream-проверка `formatSide()` (null new_rent_amount → строка
-            // пропускается) сама по себе прячет delete-событие из ответа, и SQL-условие
-            // `AND h.change_type <> 'delete'` становится избыточным и непроверяемым
-            // этим тестом. Заполняя new_*, мы целимся ИМЕННО в SQL-условие —
-            // это и есть цель мутационной проверки ниже.
-            'new_step'          => 'week',
-            'new_kol_vo'        => 1,
-            'new_kol_vo_min'    => 1,
-            'new_rent_amount'   => 10.00,
-            'new_rent_per_step' => 10.00,
-            'new_start_date'    => $t1,
-            'new_sort_num'      => 1,
         ]);
 
         try {
