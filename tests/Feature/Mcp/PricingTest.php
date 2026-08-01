@@ -425,4 +425,95 @@ class PricingTest extends McpTestCase
             \Illuminate\Support\Facades\DB::table('rent_tarif_history')->where('tarif_id', $tarifId)->delete();
         }
     }
+
+    // ─── /operations/deals-by-model ───────────────────────────────────────
+
+    public function test_deals_by_model_envelope_and_columns(): void
+    {
+        $r = $this->mcp('operations/deals-by-model', [
+            'from' => '2024-01-01', 'to' => '2024-12-31', 'granularity' => 'month',
+        ]);
+        $this->assertEnvelope($r);
+
+        $rows = $r->json('data');
+        $this->assertNotEmpty($rows);
+        $r->assertJsonStructure(['data' => [[
+            'model_id', 'model_name', 'period',
+            'deals_started', 'units_at_period_end', 'deals_per_unit',
+        ]]]);
+    }
+
+    public function test_deals_by_model_periods_are_inside_requested_range(): void
+    {
+        $rows = $this->mcp('operations/deals-by-model', [
+            'from' => '2024-03-01', 'to' => '2024-05-31', 'granularity' => 'month',
+        ])->json('data');
+
+        $this->assertNotEmpty($rows);
+        foreach ($rows as $row) {
+            $this->assertContains($row['period'], ['2024-03', '2024-04', '2024-05']);
+        }
+    }
+
+    public function test_deals_by_model_counts_deals_created_in_period(): void
+    {
+        $from = strtotime('2024-06-01 00:00:00');
+        $to   = strtotime('2024-06-30 23:59:59');
+
+        $rows = $this->mcp('operations/deals-by-model', [
+            'from' => '2024-06-01', 'to' => '2024-06-30', 'granularity' => 'month',
+        ])->json('data');
+
+        $apiTotal = array_sum(array_map(static fn ($r) => $r['deals_started'], $rows));
+
+        // Эталон: сделки, ЗАВЕДЁННЫЕ в периоде (cr_time), у которых юнит
+        // разрешается в модель. Это отличается от /inventory/utilization,
+        // который считает сделки, ПЕРЕСЕКАЮЩИЕ период.
+        $expected = (int) \Illuminate\Support\Facades\DB::selectOne("
+            SELECT COUNT(DISTINCT d.deal_id) AS n FROM (
+                SELECT deal_id, item_inv_n, cr_time FROM rent_deals_act
+                UNION ALL
+                SELECT deal_id, item_inv_n, cr_time FROM rent_deals_arch
+            ) d
+            JOIN (
+                SELECT item_inv_n, model_id FROM tovar_rent_items
+                UNION ALL
+                SELECT item_inv_n, model_id FROM tovar_rent_items_arch
+            ) i ON i.item_inv_n = d.item_inv_n
+            WHERE d.cr_time BETWEEN ? AND ? AND i.model_id IS NOT NULL
+        ", [$from, $to])->n;
+
+        $this->assertSame($expected, $apiTotal);
+    }
+
+    public function test_deals_by_model_filters_by_model_id(): void
+    {
+        $anyModelId = $this->mcp('operations/deals-by-model', [
+            'from' => '2024-01-01', 'to' => '2024-12-31',
+        ])->json('data.0.model_id');
+
+        $rows = $this->mcp('operations/deals-by-model', [
+            'from' => '2024-01-01', 'to' => '2024-12-31', 'model_id' => $anyModelId,
+        ])->json('data');
+
+        $this->assertNotEmpty($rows);
+        foreach ($rows as $row) {
+            $this->assertSame($anyModelId, $row['model_id']);
+        }
+    }
+
+    public function test_deals_by_model_skips_inventory_for_too_many_periods(): void
+    {
+        // day-гранулярность за год — 366 периодов, знаменатель не считается.
+        $r = $this->mcp('operations/deals-by-model', [
+            'from' => '2024-01-01', 'to' => '2024-12-31', 'granularity' => 'day',
+        ]);
+        $r->assertStatus(200);
+
+        $rows = $r->json('data');
+        $this->assertNotEmpty($rows);
+        $this->assertNull($rows[0]['units_at_period_end']);
+        $this->assertNull($rows[0]['deals_per_unit']);
+        $this->assertNotEmpty($r->json('meta.warnings'));
+    }
 }

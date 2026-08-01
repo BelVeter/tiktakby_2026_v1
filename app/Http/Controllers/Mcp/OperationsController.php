@@ -730,4 +730,162 @@ class OperationsController extends BaseController
         return (int) ($row->c ?? 0);
     }
 
+    /**
+     * Порог, после которого знаменатель (складские остатки) не считается:
+     * каждый период требует отдельного запроса к историческим остаткам.
+     */
+    private const MAX_PERIODS_WITH_INVENTORY = 60;
+
+    /**
+     * GET /operations/deals-by-model?from&to&granularity&model_id&category&include_carnival
+     *
+     * Новые сделки по модели и периоду. В отличие от /inventory/utilization,
+     * который считает сделки, ПЕРЕСЕКАЮЩИЕ период, здесь считаются сделки,
+     * ЗАВЕДЁННЫЕ в нём (`cr_time`) — то есть моменты решения клиента. Именно
+     * этот ряд сопоставляется с /pricing/history при анализе смены цены.
+     *
+     * `units_at_period_end` — исторические остатки модели на конец периода.
+     * Без этого знаменателя рост числа сделок от закупки новых юнитов
+     * неотличим от эффекта цены.
+     */
+    public function dealsByModel(RangeRequest $request): JsonResponse
+    {
+        $request->validate(['model_id' => 'nullable|integer|min:1']);
+
+        $from       = $request->fromTimestamp();
+        $to         = $request->toTimestamp();
+        $categories = $request->categories();
+        $incCarn    = $request->includeCarnival();
+        // Laravel 8 (this project) has no Request::integer() — cast manually.
+        $modelId    = $request->filled('model_id') ? (int) $request->input('model_id') : null;
+
+        $key = $this->cacheKey('operations.deals_by_model', [
+            'from'  => $from,
+            'to'    => $to,
+            'gran'  => $request->input('granularity'),
+            'cat'   => implode(',', $categories),
+            'model' => $modelId ?? 'all',
+            'inc'   => $incCarn ? 1 : 0,
+        ]);
+
+        $payload = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($request, $from, $to, $categories, $incCarn, $modelId) {
+            $razdelIds = $this->categoryToRazdelIds($categories);
+            if (!in_array('all', $categories, true) && empty($razdelIds)) {
+                return ['rows' => [], 'inventory_skipped' => false];
+            }
+
+            $daSub = $this->unifiedDealsSubquery();
+            $itSub = $this->unifiedItemsSubquery();
+
+            $periodExpr = $request->granularityFormatFor('da.cr_time');
+
+            $joins = "
+                JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
+                LEFT JOIN rent_model_web rmw ON rmw.model_id = ti.model_id AND rmw.lang = 'ru'
+            ";
+            $joinParams  = [];
+            $where       = ['da.cr_time BETWEEN ? AND ?', 'ti.model_id IS NOT NULL'];
+            $whereParams = [$from, $to];
+
+            if (!empty($razdelIds)) {
+                $joins      .= ' JOIN ' . $this->itemsInRazdelSubquery($razdelIds) . ' irz ON irz.item_inv_n = da.item_inv_n ';
+                $joinParams  = array_merge($joinParams, $razdelIds);
+            }
+            if ($modelId !== null) {
+                $where[]       = 'ti.model_id = ?';
+                $whereParams[] = $modelId;
+            }
+            if (!$incCarn) {
+                $carnIds = $this->carnivalCatIds();
+                if ($carnIds) {
+                    $carnPh        = implode(',', array_fill(0, count($carnIds), '?'));
+                    $where[]       = "(ti.cat_id IS NULL OR ti.cat_id NOT IN ({$carnPh}))";
+                    $whereParams   = array_merge($whereParams, $carnIds);
+                }
+            }
+
+            $whereSql = implode(' AND ', $where);
+
+            $sql = "
+                SELECT ti.model_id,
+                       rmw.l2_name AS model_name,
+                       {$periodExpr} AS period,
+                       COUNT(DISTINCT da.deal_id) AS deals_started
+                FROM {$daSub} da
+                {$joins}
+                WHERE {$whereSql}
+                GROUP BY ti.model_id, rmw.l2_name, period
+                ORDER BY period ASC, deals_started DESC
+            ";
+
+            $rows = DB::select($sql, array_merge($joinParams, $whereParams));
+
+            $periods = array_values(array_unique(array_map(static fn ($r) => $r->period, $rows)));
+            $withInventory = count($periods) <= self::MAX_PERIODS_WITH_INVENTORY;
+
+            $inventoryByPeriod = [];
+            if ($withInventory) {
+                foreach ($periods as $period) {
+                    $inventoryByPeriod[$period] = $this->modelInventoryAtDate(
+                        $this->periodEndTimestamp($period, $to),
+                        $razdelIds,
+                        $incCarn
+                    );
+                }
+            }
+
+            $out = [];
+            foreach ($rows as $r) {
+                $mid   = (int) $r->model_id;
+                $deals = (int) $r->deals_started;
+                $units = $withInventory ? ($inventoryByPeriod[$r->period][$mid] ?? 0) : null;
+
+                $out[] = [
+                    'model_id'            => $mid,
+                    'model_name'          => $r->model_name,
+                    'period'              => $r->period,
+                    'deals_started'       => $deals,
+                    'units_at_period_end' => $units,
+                    'deals_per_unit'      => ($units !== null && $units > 0) ? round($deals / $units, 2) : null,
+                ];
+            }
+
+            return ['rows' => $out, 'inventory_skipped' => !$withInventory];
+        });
+
+        $meta = [];
+        if ($payload['inventory_skipped']) {
+            $meta['warnings'] = [
+                'units_at_period_end and deals_per_unit were skipped: more than '
+                . self::MAX_PERIODS_WITH_INVENTORY . ' periods in range. Use a coarser granularity '
+                . 'or a shorter range to get the inventory denominator.',
+            ];
+        }
+
+        return $this->envelope($request->queryEcho() + ['model_id' => $modelId], $payload['rows'], $meta);
+    }
+
+    /**
+     * Последняя секунда периода, выданного granularityFormatFor().
+     * Формат зависит от гранулярности: '2024-06', '2024-06-15', '2024-W24',
+     * '2024-Q2', '2024'. Результат ограничивается концом запрошенного диапазона.
+     */
+    private function periodEndTimestamp(string $period, int $rangeEnd): int
+    {
+        if (preg_match('/^(\d{4})-W(\d{2})$/', $period, $m)) {
+            $ts = strtotime(sprintf('%sW%s', $m[1], $m[2]) . ' +6 days 23:59:59');
+        } elseif (preg_match('/^(\d{4})-Q(\d)$/', $period, $m)) {
+            $endMonth = (int) $m[2] * 3;
+            $ts = strtotime(sprintf('%s-%02d-01', $m[1], $endMonth) . ' last day of this month 23:59:59');
+        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $period)) {
+            $ts = strtotime($period . ' 23:59:59');
+        } elseif (preg_match('/^\d{4}-\d{2}$/', $period)) {
+            $ts = strtotime($period . '-01 last day of this month 23:59:59');
+        } else {
+            $ts = strtotime($period . '-12-31 23:59:59');
+        }
+
+        return min((int) $ts, $rangeEnd);
+    }
+
 }

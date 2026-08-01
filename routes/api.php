@@ -66,6 +66,7 @@ Route::prefix('mcp/v1')
         Route::get('operations/timeline',    [OperationsController::class, 'timeline'])->name('operations.timeline');
         Route::get('operations/by-category', [OperationsController::class, 'byCategory'])->name('operations.by-category');
         Route::get('operations/by-location', [OperationsController::class, 'byLocation'])->name('operations.by-location');
+        Route::get('operations/deals-by-model', [OperationsController::class, 'dealsByModel'])->name('operations.deals-by-model');
 
         // Inventory (A.6 + existing)
         Route::get('inventory/free-tree',      [InventoryController::class, 'freeTree'])->name('inventory.free-tree');
