@@ -338,35 +338,69 @@ function hide_t_edit (id) {
 $tarif_id=''; //для подсветки откорректированного тарифа
 $cat_def['tovar_rent_cat_id']='';//нулевое значение
 
-foreach ($_POST as $key => $value) {
-					$$key = get_post($key);
-				}
+// Раньше здесь стоял `$$key = get_post($key)` — весь $_POST разворачивался в
+// переменные скоупа без белого списка. Теперь читаем только известные поля.
+$action      = isset($_POST['action'])      ? $_POST['action']              : null;
+$model_id    = isset($_POST['model_id'])    ? (int) $_POST['model_id']      : null;
+$tarif_id_in = isset($_POST['tarif_id'])    ? (int) $_POST['tarif_id']      : 0;
+$item_id     = isset($_POST['item_id'])     ? (int) $_POST['item_id']       : null;
+$item_inv_n2 = isset($_POST['item_inv_n2']) ? (string) $_POST['item_inv_n2'] : '';
+$start_date  = isset($_POST['start_date'])  ? (string) $_POST['start_date'] : '';
+$step        = isset($_POST['step'])        ? (string) $_POST['step']       : 'week';
+$kol_vo      = isset($_POST['kol_vo'])      ? (int) $_POST['kol_vo']        : 0;
+$kol_vo_min  = isset($_POST['kol_vo_min'])  ? (int) $_POST['kol_vo_min']    : 0;
+$rent_amount   = isset($_POST['rent_amount'])   ? (float) str_replace(',', '.', $_POST['rent_amount'])   : 0;
+$rent_per_step = isset($_POST['rent_per_step']) ? (float) str_replace(',', '.', $_POST['rent_per_step']) : 0;
 
+if (!in_array($step, ['day', 'week', 'month', 'year'], true)) {
+    $step = 'week';
+}
 
 if (isset($_POST['action'])) {
-
 
 switch ($action) {
 
 	case 'внести новый тариф':
-        $mysqli = \bb\Db::getInstance()->getConnection();
-	$query_new_tarif = "INSERT INTO rent_tarif_act VALUES('', '$model_id', '".strtotime($start_date)."', '$step', '$kol_vo', '$kol_vo_min', '$rent_amount', '$rent_per_step', '".sort_num($step)."', '".time()."', '".$_SESSION['user_fio']."')";
-    if (!$mysqli->query($query_new_tarif)) {die('Сбой при доступе к базе данных: '.$query_new_tarif.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
-		$tarif_id=$mysqli->insert_id;
+        \bb\Db::startTransaction();
+            $t = new \bb\classes\Tariff();
+            $t->tarif_id      = 0;
+            $t->model_id      = $model_id;
+            $t->start_date    = (new \DateTime())->setTimestamp(strtotime($start_date));
+            $t->step          = $step;
+            $t->kol_vo        = $kol_vo;
+            $t->kol_vo_min    = $kol_vo_min;
+            $t->rent_amount   = $rent_amount;
+            $t->rent_per_step = $rent_per_step;
+            $t->sort_num      = sort_num($step);
+            $t->save();
+        \bb\Db::commitTransaction();
+
+        $tarif_id = $t->tarif_id;
 
 	break;
 
 
 	case 'сохранить тариф':
-        $mysqli = \bb\Db::getInstance()->getConnection();
+        $t = \bb\classes\Tariff::getById($tarif_id_in);
+        if ($t) {
+            \bb\Db::startTransaction();
+                $t->start_date    = (new \DateTime())->setTimestamp(strtotime($start_date));
+                $t->step          = $step;
+                $t->kol_vo        = $kol_vo;
+                $t->kol_vo_min    = $kol_vo_min;
+                $t->rent_amount   = $rent_amount;
+                $t->rent_per_step = $rent_per_step;
+                $t->sort_num      = sort_num($step);
+                $t->save();
+            \bb\Db::commitTransaction();
 
-		$query_t_upd = "UPDATE rent_tarif_act SET step='$step', kol_vo='$kol_vo', kol_vo_min='$kol_vo_min', rent_amount='$rent_amount', rent_per_step='$rent_per_step', sort_num='".sort_num($step)."', start_date='".strtotime($start_date)."' WHERE tarif_id='$tarif_id'";
-		   	if (!$mysqli->query($query_t_upd)) {die('Сбой при доступе к базе данных: '.$query_t_upd.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+            $tarif_id = $t->tarif_id;
+        }
 
 	break;
+
     case 'авто расчет':
-        //$mysqli = \bb\Db::getInstance()->getConnection();
-        $t_base = \bb\classes\Tariff::getById($tarif_id);
+        $t_base = \bb\classes\Tariff::getById($tarif_id_in);
         $t3 = clone $t_base;
         $t2 = clone $t_base;
         $t1 = clone $t_base;
@@ -394,44 +428,16 @@ switch ($action) {
             $t3->hardSave();
         \bb\Db::commitTransaction();
 
-
     break;
 
 
 	case 'удалить':
-        $mysqli = \bb\Db::getInstance()->getConnection();
-		$done="yes";
-
-		$query_tarifs = "SELECT * FROM rent_tarif_act WHERE tarif_id='$tarif_id'";
-		$result_tarifs = $mysqli->query($query_tarifs);
-		if (!$result_tarifs) {die('Сбой при доступе к базе данных: '.$query_tarifs.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
-		$trf=$result_tarifs->fetch_assoc();
-
-
-		$query_start = "START TRANSACTION";
-		$result_start = $mysqli->query($query_start);
-		if (!$result_start) {$done="no"; die('Сбой при доступе к базе данных: '.$query_start.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
-
-		$query_move = "INSERT INTO rent_tarif_prev VALUES('', '$tarif_id', '".$trf['model_id']."', '".$trf['start_date']."', '".$trf['step']."', '".$trf['kol_vo']."', '".$trf['kol_vo_min']."', '".$trf['rent_amount']."', '".$trf['rent_per_step']."', '".$trf['sort_num']."', '".time()."', '".$_SESSION['user_fio']."')";
-		$result_move = $mysqli->query($query_move);
-		if (!$result_move) {$done="no"; die('Сбой при доступе к базе данных: '.$query_move.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
-
-		$query_del = "DELETE FROM rent_tarif_act WHERE tarif_id='$tarif_id'";
-		$result_del = $mysqli->query($query_del);
-		if (!$result_del) {$done="no"; die('Сбой при доступе к базе данных: '.$query_del.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
-
-		if ($done=='yes') {
-			$query_fin = "COMMIT";
-			$result_fin = $mysqli->query($query_fin);
-			if (!$result_fin) die('Сбой при доступе к базе данных: '.$query_fin.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
-		}
-		else {
-			$query_fin = "ROLLBACK'";
-			$result_fin = $mysqli->query($query_fin);
-			if (!$result_fin) die('Сбой при доступе к базе данных: '.$query_fin.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);
-		}
-
-
+        $t = \bb\classes\Tariff::getById($tarif_id_in);
+        if ($t) {
+            \bb\Db::startTransaction();
+                $t->delete();
+            \bb\Db::commitTransaction();
+        }
 
 	break;
 
@@ -441,7 +447,7 @@ switch ($action) {
 
 
 
-if (isset($model_id) && $model_id!=0) {
+if (!empty($model_id)) {
     $mysqli = \bb\Db::getInstance()->getConnection();
 
 	$query_model_def = "SELECT * FROM tovar_rent WHERE tovar_rent_id='".$model_id."'";
@@ -487,7 +493,7 @@ echo '
 
 <div class="top_menu">
 	<a class="div_item" href="/bb/index.php">На главную</a>
-	<a class="div_item" id="new_mod_ch" href="/bb/rent_tarifs.php" '.(isset($model_id) ? '' : 'style="display:none"').'>Выбрать другую модель</a>
+	<a class="div_item" id="new_mod_ch" href="/bb/rent_tarifs.php" '.(!empty($model_id) ? '' : 'style="display:none"').'>Выбрать другую модель</a>
 	<a class="div_item" href="/bb/tovar_rent_all.php" onclick="document.getElementById(\'cat_ch_sel\').submit(); return false;">Просмотр всех товаров (этой категории)</a>
 
 <form name="cat_chose" action="'.($_SESSION['level']==3 ? 'tovar_rent_all.php' : 'kr_baza_new.php').'" method="post" id="cat_ch_sel">
@@ -499,7 +505,7 @@ echo '
 
 ';
 
-if (!isset($model_id) || $model_id=='') {
+if (empty($model_id)) {
 
 echo '
 <form name="model" action="rent_tarifs.php" method="post">
@@ -576,7 +582,7 @@ echo '
 ';
 }
 
-if (isset($model_id) && $model_id>0) {
+if (!empty($model_id) && $model_id > 0) {
 
 echo '
 	<table border="1" cellspacing="0">
@@ -706,7 +712,7 @@ echo '
 </div>
 ';
 
-if (isset($item_id)) {
+if (!empty($item_id)) {
 
 	echo '<br /><br />
 	<form method="post" id="tovar_edit" action="tovar_new.php">
@@ -733,13 +739,6 @@ if (isset($item_id)) {
 
 echo '</body></html>';
 
-
-function get_post($var)
-{
-    $mysqli = \bb\Db::getInstance()->getConnection();
-
-	return $mysqli->real_escape_string($_POST[$var]);
-}
 
 function good_print($var)
 {
