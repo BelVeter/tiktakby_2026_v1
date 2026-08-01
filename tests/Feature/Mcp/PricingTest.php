@@ -516,4 +516,275 @@ class PricingTest extends McpTestCase
         $this->assertNull($rows[0]['deals_per_unit']);
         $this->assertNotEmpty($r->json('meta.warnings'));
     }
+
+    // ─── Пробел 1: фильтр по категории (many-to-many ловушка) ─────────────
+
+    /**
+     * Ни один из старых тестов не передавал `category`, поэтому JOIN через
+     * itemsInRazdelSubquery() (BaseController) вообще не исполнялся. Это
+     * COUNT-агрегат — неверный join (например, наивный
+     * subrazdel_category × razdel_subrazdel без DISTINCT) раздувает счётчик
+     * в M×N раз, а не просто теряет строки, поэтому сверяем именно СУММУ
+     * deals_started с независимым запросом, а не "что-то вернулось".
+     *
+     * Категория подбирается динамически (перебором слагов RangeRequest::CATEGORIES
+     * с реальным razdel) на диапазоне 2024-01-01..2024-03-31: если на дампе
+     * не найдётся ни одной категории с данными, тест явно падает через
+     * markTestSkipped с указанием причины — не проходит молча на пустом ответе.
+     */
+    public function test_deals_by_model_category_filter_matches_independent_razdel_count(): void
+    {
+        $from   = '2024-01-01';
+        $to     = '2024-03-31';
+        $fromTs = strtotime($from . ' 00:00:00');
+        $toTs   = strtotime($to . ' 23:59:59');
+
+        // Соответствие API-слага (RangeRequest::CATEGORIES) и url_razdel_name —
+        // повторяет BaseController::categoryToRazdelId(), но независимо (не
+        // вызывает сам метод), чтобы бага в маппинге не остался незамеченным.
+        $slugToUrlName = [
+            'children' => 'prokat-detskih-tovarov',
+            'sports'   => 'prokat-sports',
+            'medical'  => 'medical-prokat',
+            'costumes' => 'karnavalnye-kostyumy',
+            'cleaning' => 'prokat-uborka',
+        ];
+
+        // Независимый подсчёт "сделок, заведённых в периоде, у моделей раздела X",
+        // переписанный заново (не переиспользует itemsInRazdelSubquery()/
+        // unifiedItemsSubquery()/unifiedDealsSubquery() из BaseController) —
+        // иначе баг в общем helper'е был бы невидим для теста.
+        $countForRazdel = static function (int $razdelId) use ($fromTs, $toTs): int {
+            return (int) \Illuminate\Support\Facades\DB::selectOne("
+                SELECT COUNT(DISTINCT d.deal_id) AS n
+                FROM (
+                    SELECT deal_id, item_inv_n, cr_time FROM rent_deals_act
+                    UNION ALL
+                    SELECT deal_id, item_inv_n, cr_time FROM rent_deals_arch
+                ) d
+                JOIN (
+                    SELECT item_inv_n, cat_id, model_id FROM tovar_rent_items
+                    UNION ALL
+                    SELECT item_inv_n, cat_id, model_id FROM tovar_rent_items_arch
+                ) i ON i.item_inv_n = d.item_inv_n
+                JOIN (
+                    SELECT DISTINCT i2.item_inv_n
+                    FROM (
+                        SELECT item_inv_n, cat_id FROM tovar_rent_items
+                        UNION ALL
+                        SELECT item_inv_n, cat_id FROM tovar_rent_items_arch
+                    ) i2
+                    JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = i2.cat_id
+                    JOIN razdel_subrazdel rs   ON rs.id_sub_razdel    = sc.id_sub_razdel
+                    WHERE rs.id_razdel = ?
+                ) irz ON irz.item_inv_n = d.item_inv_n
+                WHERE d.cr_time BETWEEN ? AND ? AND i.model_id IS NOT NULL
+            ", [$razdelId, $fromTs, $toTs])->n;
+        };
+
+        $chosenSlug = null;
+        $expected   = 0;
+        foreach ($slugToUrlName as $apiSlug => $urlName) {
+            $razdel = \Illuminate\Support\Facades\DB::selectOne(
+                "SELECT id_razdel FROM razdel WHERE url_razdel_name = ?",
+                [$urlName]
+            );
+            if (!$razdel) {
+                continue;
+            }
+            $n = $countForRazdel((int) $razdel->id_razdel);
+            if ($n > 0) {
+                $chosenSlug = $apiSlug;
+                $expected   = $n;
+                break;
+            }
+        }
+
+        if ($chosenSlug === null) {
+            $this->markTestSkipped(
+                "ни одна категория из RangeRequest::CATEGORIES не имеет сделок в {$from}..{$to} на этом дампе — " .
+                'подберите другой диапазон дат вручную'
+            );
+        }
+
+        $rows = $this->mcp('operations/deals-by-model', [
+            'from' => $from, 'to' => $to, 'granularity' => 'month', 'category' => $chosenSlug,
+        ])->json('data');
+
+        $apiTotal = array_sum(array_map(static fn ($r) => $r['deals_started'], $rows));
+
+        $this->assertSame(
+            $expected,
+            $apiTotal,
+            "category={$chosenSlug}: сумма deals_started по всем строкам ответа должна совпадать " .
+            'с независимым COUNT(DISTINCT deal_id) по тому же разделу — расхождение указывает на ' .
+            'many-to-many раздувание через subrazdel_category × razdel_subrazdel'
+        );
+    }
+
+    // ─── Пробел 2: include_carnival=false ──────────────────────────────────
+
+    /**
+     * Ветка исключения карнавальных товаров (`ti.cat_id NOT IN (...)`) не
+     * исполнялась ни одним старым тестом. Проверяем не просто "меньше или
+     * равно", а точное равенство разницы числу карнавальных сделок за тот же
+     * период, посчитанному независимым запросом (JOIN на tovar_rent_cat.cat_type=1,
+     * без переиспользования BaseController::carnivalCatIds()).
+     */
+    public function test_deals_by_model_include_carnival_false_excludes_exactly_carnival_deals(): void
+    {
+        $from = '2024-12-01';
+        $to   = '2024-12-31';
+
+        $withCarnival = $this->mcp('operations/deals-by-model', [
+            'from' => $from, 'to' => $to, 'granularity' => 'month', 'include_carnival' => 1,
+        ])->json('data');
+        $withoutCarnival = $this->mcp('operations/deals-by-model', [
+            'from' => $from, 'to' => $to, 'granularity' => 'month', 'include_carnival' => 0,
+        ])->json('data');
+
+        $totalWith    = array_sum(array_map(static fn ($r) => $r['deals_started'], $withCarnival));
+        $totalWithout = array_sum(array_map(static fn ($r) => $r['deals_started'], $withoutCarnival));
+
+        $this->assertLessThanOrEqual(
+            $totalWith,
+            $totalWithout,
+            'include_carnival=0 не может УВЕЛИЧИТЬ суммарное число сделок относительно include_carnival=1'
+        );
+
+        $fromTs = strtotime($from . ' 00:00:00');
+        $toTs   = strtotime($to . ' 23:59:59');
+
+        // Независимый подсчёт сделок ИМЕННО по карнавальным категориям
+        // (tovar_rent_cat.cat_type = 1), переписанный заново.
+        $carnivalDeals = (int) \Illuminate\Support\Facades\DB::selectOne("
+            SELECT COUNT(DISTINCT d.deal_id) AS n
+            FROM (
+                SELECT deal_id, item_inv_n, cr_time FROM rent_deals_act
+                UNION ALL
+                SELECT deal_id, item_inv_n, cr_time FROM rent_deals_arch
+            ) d
+            JOIN (
+                SELECT item_inv_n, cat_id, model_id FROM tovar_rent_items
+                UNION ALL
+                SELECT item_inv_n, cat_id, model_id FROM tovar_rent_items_arch
+            ) i ON i.item_inv_n = d.item_inv_n
+            JOIN tovar_rent_cat c ON c.tovar_rent_cat_id = i.cat_id
+            WHERE d.cr_time BETWEEN ? AND ? AND i.model_id IS NOT NULL AND c.cat_type = 1
+        ", [$fromTs, $toTs])->n;
+
+        $this->assertGreaterThan(
+            0,
+            $carnivalDeals,
+            "в {$from}..{$to} должны быть карнавальные сделки на этом дампе — иначе тест ничего не проверяет"
+        );
+        $this->assertSame(
+            $carnivalDeals,
+            $totalWith - $totalWithout,
+            'разница deals_started между include_carnival=1 и include_carnival=0 должна равняться ' .
+            'числу сделок именно по карнавальным категориям'
+        );
+    }
+
+    // ─── Пробел 3: units_at_period_end / deals_per_unit ────────────────────
+
+    /**
+     * До этого теста units_at_period_end и deals_per_unit проверялись только
+     * на присутствие ключей и на null в режиме превышения порога периодов —
+     * сами числа не сверялись ни с чем, хотя ради этого знаменателя эндпоинт
+     * и делался.
+     *
+     * Диапазон 2021-10 выбран НЕ произвольно: на этом дампе в нём одновременно
+     * есть модели с units_at_period_end > 0 и модели с units_at_period_end = 0
+     * (товар выбыл из инвентаря до конца периода), так что обе ветки формулы
+     * deals_per_unit проверяются на реальных данных, а не только на бумаге.
+     */
+    public function test_deals_by_model_deals_per_unit_matches_formula_and_units_match_independent_inventory_count(): void
+    {
+        $from = '2021-10-01';
+        $to   = '2021-10-31';
+
+        $rows = $this->mcp('operations/deals-by-model', [
+            'from' => $from, 'to' => $to, 'granularity' => 'month',
+        ])->json('data');
+        $this->assertNotEmpty($rows);
+
+        $checkedPositive = 0;
+        $checkedZeroOrNull = 0;
+        foreach ($rows as $row) {
+            $units = $row['units_at_period_end'];
+            $deals = $row['deals_started'];
+
+            if ($units !== null && $units > 0) {
+                $this->assertEqualsWithDelta(
+                    round($deals / $units, 2),
+                    $row['deals_per_unit'],
+                    0.001,
+                    "model_id={$row['model_id']}: deals_per_unit должен быть round(deals_started/units_at_period_end, 2)"
+                );
+                $checkedPositive++;
+            } else {
+                $this->assertNull(
+                    $row['deals_per_unit'],
+                    "model_id={$row['model_id']}: при units_at_period_end=" . var_export($units, true) .
+                    ' deals_per_unit обязан быть null'
+                );
+                $checkedZeroOrNull++;
+            }
+        }
+
+        $this->assertGreaterThan(0, $checkedPositive, 'должна быть хотя бы одна строка с units_at_period_end > 0');
+        $this->assertGreaterThan(0, $checkedZeroOrNull, 'на диапазоне 2021-10 должна быть хотя бы одна строка с units_at_period_end = 0 (иначе ветка null не проверена)');
+
+        // Независимая проверка самого знаменателя (не только формулы деления)
+        // для 1-2 моделей — не всего списка, чтобы тест не превратился в
+        // копию продакшн-запроса. Формула из CLAUDE.md / BaseController::modelInventoryAtDate():
+        // tovar_rent_items(buy_date<=X) + tovar_rent_items_arch(buy_date<=X AND arch_time>=X).
+        //
+        // Специально берём ПО ОДНОЙ модели из каждой корзины (units>0 и units=0),
+        // а не просто первые две строки: у моделей с units_at_period_end=0 остаток
+        // чаще всего менялся В ТЕЧЕНИЕ периода (товар выбыл из инвентаря до конца
+        // месяца) — только на них ловится подмена "конец периода" на "начало
+        // периода" в periodEndTimestamp(). Две "стабильные" модели без движения
+        // остатка внутри периода дали бы одинаковый результат в обеих точках
+        // отсчёта и не заметили бы такую мутацию.
+        $toTs = strtotime($to . ' 23:59:59');
+        $positiveSample = null;
+        $zeroSample     = null;
+        foreach ($rows as $r) {
+            if ($r['units_at_period_end'] === null) {
+                continue;
+            }
+            if ($r['units_at_period_end'] > 0 && $positiveSample === null) {
+                $positiveSample = $r;
+            } elseif ($r['units_at_period_end'] === 0 && $zeroSample === null) {
+                $zeroSample = $r;
+            }
+            if ($positiveSample !== null && $zeroSample !== null) {
+                break;
+            }
+        }
+        $sample = array_values(array_filter([$positiveSample, $zeroSample]));
+        $this->assertNotEmpty($sample, 'нужна хотя бы одна строка с посчитанным знаменателем для независимой сверки');
+
+        foreach ($sample as $row) {
+            $modelId = $row['model_id'];
+
+            $active = (int) \Illuminate\Support\Facades\DB::selectOne(
+                "SELECT COUNT(*) AS n FROM tovar_rent_items WHERE model_id = ? AND buy_date <= ?",
+                [$modelId, $toTs]
+            )->n;
+            $archived = (int) \Illuminate\Support\Facades\DB::selectOne(
+                "SELECT COUNT(*) AS n FROM tovar_rent_items_arch WHERE model_id = ? AND buy_date <= ? AND arch_time >= ?",
+                [$modelId, $toTs, $toTs]
+            )->n;
+
+            $this->assertSame(
+                $active + $archived,
+                $row['units_at_period_end'],
+                "model_id={$modelId}: units_at_period_end должен совпадать с независимым подсчётом остатков " .
+                'на КОНЕЦ периода (tovar_rent_items + tovar_rent_items_arch по методике CLAUDE.md)'
+            );
+        }
+    }
 }
