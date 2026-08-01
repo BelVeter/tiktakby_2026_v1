@@ -856,9 +856,12 @@ class OperationsController extends BaseController
         $meta = [];
         if ($payload['inventory_skipped']) {
             $meta['warnings'] = [
-                'units_at_period_end and deals_per_unit were skipped: more than '
-                . self::MAX_PERIODS_WITH_INVENTORY . ' periods in range. Use a coarser granularity '
-                . 'or a shorter range to get the inventory denominator.',
+                [
+                    'code'    => 'inventory_denominator_skipped',
+                    'message' => 'units_at_period_end and deals_per_unit were skipped: more than '
+                        . self::MAX_PERIODS_WITH_INVENTORY . ' periods in range. Use a coarser granularity '
+                        . 'or a shorter range to get the inventory denominator.',
+                ],
             ];
         }
 

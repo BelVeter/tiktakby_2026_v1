@@ -259,10 +259,13 @@ class PricingController extends BaseController
         if ($payload['extrapolated'] > 0) {
             $pct = $payload['total'] > 0 ? round($payload['extrapolated'] / $payload['total'] * 100, 1) : 0.0;
             $meta['warnings'] = [
-                $payload['extrapolated'] . ' of ' . $payload['total'] . ' tariff rows in this snapshot ('
-                . $pct . '%) are extrapolated: each of these tarif_id rows has no recorded change-log '
-                . 'event before ' . $validated['as_of'] . ', so its baseline record (the state as of its '
-                . 'own last known edit) is returned instead of an observed value at the requested date.',
+                [
+                    'code'    => 'tariff_rows_extrapolated',
+                    'message' => $payload['extrapolated'] . ' of ' . $payload['total'] . ' tariff rows in this snapshot ('
+                        . $pct . '%) are extrapolated: each of these tarif_id rows has no recorded change-log '
+                        . 'event before ' . $validated['as_of'] . ', so its baseline record (the state as of its '
+                        . 'own last known edit) is returned instead of an observed value at the requested date.',
+                ],
             ];
         }
 

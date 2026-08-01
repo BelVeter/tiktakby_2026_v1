@@ -315,12 +315,19 @@ class PricingTest extends McpTestCase
 
         $this->assertNotEmpty($warnings, 'наличие экстраполяции обязано попасть в meta.warnings');
 
+        // Формат предупреждений во всём API — объект {code, message} (см.
+        // /finance/pnl), а не голая строка: потребители парсят warnings[].code
+        // программно, поэтому структура и конкретный code — часть контракта.
+        $warning = collect($warnings)->firstWhere('code', 'tariff_rows_extrapolated');
+        $this->assertNotNull($warning, 'должно быть warning с кодом tariff_rows_extrapolated');
+        $this->assertArrayHasKey('message', $warning);
+
         // Находка 2: предупреждение обязано нести саму ДОЛЮ, а не только
         // абсолютное число — meta.total_rows считает модели, а не строки
         // тарифов, так что готового знаменателя нигде больше в ответе нет.
         // Проверяем, что "N of M tariff rows ... (P%)" присутствует и что
         // P арифметически совпадает с N/M.
-        $warningText = implode(' ', $warnings);
+        $warningText = $warning['message'];
         $matched = preg_match('/(\d+) of (\d+) tariff rows.*?\(([\d.]+)%\)/', $warningText, $m);
         $this->assertSame(1, $matched, "предупреждение должно содержать 'N of M tariff rows ... (P%)': {$warningText}");
 
@@ -514,7 +521,14 @@ class PricingTest extends McpTestCase
         $this->assertNotEmpty($rows);
         $this->assertNull($rows[0]['units_at_period_end']);
         $this->assertNull($rows[0]['deals_per_unit']);
-        $this->assertNotEmpty($r->json('meta.warnings'));
+
+        // Формат предупреждений во всём API — объект {code, message} (см.
+        // /finance/pnl), а не голая строка.
+        $warnings = $r->json('meta.warnings');
+        $this->assertNotEmpty($warnings);
+        $warning = collect($warnings)->firstWhere('code', 'inventory_denominator_skipped');
+        $this->assertNotNull($warning, 'должно быть warning с кодом inventory_denominator_skipped');
+        $this->assertArrayHasKey('message', $warning);
     }
 
     // ─── Пробел 1: фильтр по категории (many-to-many ловушка) ─────────────
