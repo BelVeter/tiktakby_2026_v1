@@ -168,19 +168,18 @@ class PricingController extends BaseController
             // Порядок (changed_at, id): один только MAX(id) сломался бы там, где
             // импортированное legacy-удаление получило id выше baseline-события.
             //
-            // AND h.change_type <> 'delete' ниже — НЕ несущая защита, а
-            // defense-in-depth. На реальных данных у delete-события new_*
-            // всегда NULL (TariffHistory::log(TYPE_DELETE, $before, null, ...),
-            // bb/classes/Tariff.php:125), поэтому formatSide('new') уже сам
-            // отбрасывает такую строку своей проверкой на null — до этого
-            // SQL-условия дело обычно не доходит. Мутационно проверено
-            // (tests/Feature/Mcp/PricingTest.php,
-            // test_snapshot_excludes_tariff_after_delete_but_includes_it_before):
-            // удаление этой строки не роняет ни одного теста в файле, а вот
-            // порча null-проверки в formatSide() роняет
-            // test_baseline_rows_have_no_before_side — несущая защита именно там.
-            // Условие оставлено как страховка на случай, если formatSide()
-            // или писатель когда-нибудь начнут заполнять new_* на delete.
+            // Удалённый тариф держат вне снимка ДВЕ независимые защиты, и каждой
+            // достаточно поодиночке: это `AND h.change_type <> 'delete'` ниже и
+            // проверка на null в formatSide() — на реальных данных у delete-события
+            // new_* всегда пустые (TariffHistory::log(TYPE_DELETE, $before, null, ...)
+            // из bb/classes/Tariff.php).
+            //
+            // Проверено мутационно на
+            // test_snapshot_excludes_tariff_after_delete_but_includes_it_before:
+            // убрать только это условие — тест зелёный (ловит formatSide);
+            // сломать только formatSide — тест зелёный (ловит это условие);
+            // сломать обе — тест краснеет. То есть ни одна из них не «главная»,
+            // и убирать любую из них поодиночке не стоит: тест не предупредит.
             $knownSql = "
                 SELECT h.*, rmw.l2_name AS model_name, 0 AS extrapolated
                 FROM rent_tarif_history h
