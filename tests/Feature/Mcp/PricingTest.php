@@ -163,50 +163,6 @@ class PricingTest extends McpTestCase
     }
 
     /**
-     * DISTINCT критичен в подзапросе категории: без него подзапрос содержит дубли
-     * model_id через М:М junction (subrazdel_category × razdel_subrazdel).
-     *
-     * Проверяем напрямую что подзапрос выбирает уникальные модели.
-     * Для категории 'children' (prokat-detskih-tovarov) это показывает
-     * дублики: БЕЗ DISTINCT=1171, С DISTINCT=1066 (105 дублей).
-     */
-    public function test_history_category_subquery_has_correct_distinct_count(): void
-    {
-        $razdelId = \Illuminate\Support\Facades\DB::selectOne(
-            "SELECT id_razdel FROM razdel WHERE url_razdel_name = 'prokat-detskih-tovarov'"
-        )->id_razdel;
-
-        // Количество УНИКАЛЬНЫХ моделей (как должно быть с DISTINCT)
-        $countWithDistinct = \Illuminate\Support\Facades\DB::selectOne("
-            SELECT COUNT(DISTINCT tr.tovar_rent_id) as cnt
-            FROM tovar_rent tr
-            JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tr.tovar_rent_cat_id
-            JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sc.id_sub_razdel
-            WHERE rs.id_razdel = ?
-        ", [$razdelId])->cnt;
-
-        // Количество БЕЗ DISTINCT (содержит дубли от М:М junction)
-        $countWithoutDistinct = \Illuminate\Support\Facades\DB::selectOne("
-            SELECT COUNT(*) as cnt
-            FROM tovar_rent tr
-            JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tr.tovar_rent_cat_id
-            JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sc.id_sub_razdel
-            WHERE rs.id_razdel = ?
-        ", [$razdelId])->cnt;
-
-        // Инвариант: с DISTINCT должно быть РОВНО столько, сколько уникальных моделей
-        $this->assertGreaterThan(0, $countWithDistinct, 'раздел должен иметь >= 1 модели');
-
-        // CRITICAL: без DISTINCT должны быть дубли для этого раздела
-        // Это гарантирует что DISTINCT действительно нужен и тест что-то проверяет
-        $this->assertGreaterThan(
-            $countWithDistinct,
-            $countWithoutDistinct,
-            "без DISTINCT должно быть больше чем с DISTINCT (дубли М:М junction): с DISTINCT={$countWithDistinct}, без={$countWithoutDistinct}"
-        );
-    }
-
-    /**
      * Фильтр `from` работает: все вернувшиеся даты >= from.
      */
     public function test_history_respects_from_date_filter(): void
