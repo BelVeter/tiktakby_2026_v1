@@ -65,7 +65,8 @@ class TariffHistory
     {
         $subject = $after ?: $before;
         if (!$subject) {
-            return;
+            die('TariffHistory::log() вызван без состояния тарифа: нужен хотя бы один из $before / $after. '
+                . 'Тихо пропустить запись нельзя — журнал цен восстановлению не подлежит.');
         }
 
         $mysqli = Db::getInstance()->getConnection();
