@@ -196,14 +196,15 @@ CREATE TABLE rent_tarif_history (
 
 ```json
 { "model_id": 1069, "model_name": "Коляска X", "period": "2026-07",
-  "deals_started": 14, "avg_units": 9.0, "deals_per_unit": 1.56 }
+  "deals_started": 14, "units_at_period_end": 9, "deals_per_unit": 1.56 }
 ```
 
 `deals_per_unit` включён намеренно: голое число сделок смешивает эффект цены с эффектом
-закупки новых юнитов. Знаменатель считает существующий `modelInventoryAtDate()` — сейчас
-он `private` в `InventoryController`, переносим его в `BaseController` как `protected`,
-рядом с `unifiedDealsSubquery()` / `unifiedItemsSubquery()` / `itemsInRazdelSubquery()`.
-Поведение метода не меняется, `/inventory/utilization` продолжает вызывать его как раньше.
+закупки новых юнитов. Знаменатель — остатки модели на конец периода, считает существующий
+`modelInventoryAtDate()` (переезжает из `InventoryController` в `BaseController` как
+`protected`). Каждый период требует отдельного запроса к историческим остаткам, поэтому при
+более чем 60 периодах в диапазоне знаменатель не считается: `units_at_period_end` и
+`deals_per_unit` приходят как `null`, а причина уходит в `meta.warnings`.
 
 ## Секция 5. Админка
 
