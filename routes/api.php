@@ -16,6 +16,7 @@ use App\Http\Controllers\Mcp\OperationsController;
 use App\Http\Controllers\Mcp\PagesHistoryController;
 use App\Http\Controllers\Mcp\PagesListingController;
 use App\Http\Controllers\Mcp\PagesProductController;
+use App\Http\Controllers\Mcp\PricingController;
 use App\Http\Controllers\Mcp\RedirectsController;
 use App\Http\Controllers\Mcp\SmsController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +74,9 @@ Route::prefix('mcp/v1')
         Route::get('inventory/utilization',    [InventoryController::class, 'utilization'])->name('inventory.utilization');
         Route::get('inventory/turnover',       [InventoryController::class, 'turnover'])->name('inventory.turnover');
         Route::get('inventory/idle',           [InventoryController::class, 'idle'])->name('inventory.idle');
+
+        // Pricing history (2026-07-31)
+        Route::get('pricing/history',  [PricingController::class, 'history'])->name('pricing.history');
 
         // Customers (A.7 + existing /clients/ltv)
         Route::get('customers/timeline',          [CustomersController::class, 'timeline'])->name('customers.timeline');
