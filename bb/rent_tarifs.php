@@ -712,6 +712,66 @@ echo '
 </div>
 ';
 
+$history = \bb\classes\TariffHistory::forModel($model_id, 50);
+
+echo '<br /><input type="button" value="история изменений (' . count($history) . ')"
+        onclick="var d=document.getElementById(\'tarif_history\'); d.style.display = (d.style.display==\'none\' ? \'\' : \'none\');" />';
+
+echo '<div id="tarif_history" style="display:none">';
+
+if (count($history) === 0) {
+    echo '<br /><strong>По этой модели изменений пока не зафиксировано.</strong><br />';
+} else {
+    echo '<table border="1" cellspacing="0">
+    <tr>
+        <td>когда</td>
+        <td>кто</td>
+        <td>что</td>
+        <td>id тарифа</td>
+        <td>было</td>
+        <td>стало</td>
+        <td>изменение</td>
+    </tr>';
+
+    foreach ($history as $h) {
+        $oldText = $h['old_rent_amount'] === null
+            ? '—'
+            : $h['old_kol_vo'] . ' ' . r_step($h['old_step']) . ' = ' . $h['old_rent_amount'];
+        $newText = $h['new_rent_amount'] === null
+            ? '—'
+            : $h['new_kol_vo'] . ' ' . r_step($h['new_step']) . ' = ' . $h['new_rent_amount'];
+
+        $deltaText = '—';
+        if ($h['old_rent_amount'] !== null && $h['new_rent_amount'] !== null) {
+            $oldPpd = \bb\classes\TariffHistory::pricePerDay($h['old_rent_amount'], $h['old_step'], $h['old_kol_vo']);
+            $newPpd = \bb\classes\TariffHistory::pricePerDay($h['new_rent_amount'], $h['new_step'], $h['new_kol_vo']);
+            if ($oldPpd > 0 && $newPpd !== null) {
+                $pct = round((($newPpd - $oldPpd) / $oldPpd) * 100, 1);
+                $deltaText = ($pct > 0 ? '+' : '') . $pct . '% за день';
+            }
+        }
+
+        $actor = $h['actor_name'];
+        if ($actor === null && $h['actor_user_id'] !== null) {
+            $actor = 'id ' . $h['actor_user_id'];
+        }
+
+        echo '<tr>
+            <td>' . date('d.m.Y H:i', $h['changed_at']) . '</td>
+            <td>' . htmlspecialchars((string) $actor) . '</td>
+            <td>' . htmlspecialchars($h['change_type']) . '</td>
+            <td>' . (int) $h['tarif_id'] . '</td>
+            <td>' . htmlspecialchars($oldText) . '</td>
+            <td>' . htmlspecialchars($newText) . '</td>
+            <td>' . htmlspecialchars($deltaText) . '</td>
+        </tr>';
+    }
+
+    echo '</table>';
+}
+
+echo '</div>';
+
 if (!empty($item_id)) {
 
 	echo '<br /><br />
