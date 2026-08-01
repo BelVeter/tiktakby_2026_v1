@@ -156,4 +156,68 @@ class TariffHistoryTest extends TestCase
         $this->assertNull($events[0]['actor_user_id']);
         $this->assertNull($events[0]['actor_name']);
     }
+
+    public function test_save_new_writes_create_event(): void
+    {
+        $t = $this->makeTariff(140.00);
+        $t->save();
+
+        $this->assertGreaterThan(0, $t->tarif_id, 'save() должен проставить tarif_id');
+
+        $events = $this->events();
+        $this->assertCount(1, $events);
+        $this->assertSame('create', $events[0]['change_type']);
+        $this->assertSame('140.00', $events[0]['new_rent_amount']);
+        $this->assertSame($t->tarif_id, (int) $events[0]['tarif_id']);
+    }
+
+    public function test_update_writes_before_and_after(): void
+    {
+        $t = $this->makeTariff(140.00);
+        $t->save();
+
+        $t->rent_amount   = 160.00;
+        $t->rent_per_step = 80.00;
+        $t->save();
+
+        $events = $this->events();
+        $this->assertCount(2, $events);
+        $this->assertSame('update', $events[0]['change_type']);
+        $this->assertSame('140.00', $events[0]['old_rent_amount']);
+        $this->assertSame('160.00', $events[0]['new_rent_amount']);
+    }
+
+    public function test_update_without_real_change_writes_nothing(): void
+    {
+        $t = $this->makeTariff(140.00);
+        $t->save();
+        $t->save();   // повторное сохранение без изменений
+
+        $this->assertCount(1, $this->events(), 'пустой UPDATE не должен порождать событие');
+    }
+
+    public function test_delete_writes_delete_event_and_removes_row(): void
+    {
+        $t = $this->makeTariff(140.00);
+        $t->save();
+        $tarifId = $t->tarif_id;
+
+        $t->delete();
+
+        $this->assertFalse(Tariff::getById($tarifId), 'строка должна быть удалена');
+
+        $events = $this->events();
+        $this->assertSame('delete', $events[0]['change_type']);
+        $this->assertSame('140.00', $events[0]['old_rent_amount']);
+        $this->assertNull($events[0]['new_rent_amount']);
+    }
+
+    public function test_history_source_is_carried_into_event(): void
+    {
+        $t = $this->makeTariff(140.00);
+        $t->historySource = TariffHistory::SOURCE_MODEL_ARCHIVE;
+        $t->save();
+
+        $this->assertSame('model_archive', $this->events()[0]['source']);
+    }
 }
