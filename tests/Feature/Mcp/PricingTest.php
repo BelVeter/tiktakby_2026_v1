@@ -283,8 +283,20 @@ class PricingTest extends McpTestCase
 
     public function test_snapshot_far_past_is_empty_or_extrapolated(): void
     {
-        // 2010 год — раньше первой записи в rent_tarif_act (2013).
+        // 2010 год раньше самых старых данных в rent_tarif_history: ни у одной
+        // строки нет changed_at или new_start_date <= 2010 (самые ранние —
+        // 2013-11-13), поэтому единственный корректный ответ — пустой снимок.
+        // Утверждаем это явно (а не полагаемся на пустой foreach, который
+        // раньше не делал ни одного assert и PHPUnit помечал тест как risky).
         $rows = $this->mcp('pricing/snapshot', ['as_of' => '2010-01-01'])->json('data');
+
+        if (empty($rows)) {
+            $this->assertSame([], $rows, 'до начала данных (2013-11-13) снимок обязан быть пустым');
+            return;
+        }
+
+        // Если данные когда-нибудь появятся раньше 2010 года — единственный
+        // допустимый способ попасть в снимок на эту дату — экстраполяция.
         foreach ($rows as $row) {
             $this->assertTrue($row['extrapolated'], 'до начала данных строки могут быть только экстраполированными');
         }
@@ -296,11 +308,30 @@ class PricingTest extends McpTestCase
         $warnings = $r->json('meta.warnings');
         $extrapolated = array_filter($r->json('data'), static fn ($row) => $row['extrapolated']);
 
-        if (!empty($extrapolated)) {
-            $this->assertNotEmpty($warnings, 'наличие экстраполяции обязано попасть в meta.warnings');
-        } else {
-            $this->assertTrue(true);
+        if (empty($extrapolated)) {
+            $this->assertTrue(true, 'на эту дату экстраполированных строк нет — предупреждению взяться неоткуда');
+            return;
         }
+
+        $this->assertNotEmpty($warnings, 'наличие экстраполяции обязано попасть в meta.warnings');
+
+        // Находка 2: предупреждение обязано нести саму ДОЛЮ, а не только
+        // абсолютное число — meta.total_rows считает модели, а не строки
+        // тарифов, так что готового знаменателя нигде больше в ответе нет.
+        // Проверяем, что "N of M tariff rows ... (P%)" присутствует и что
+        // P арифметически совпадает с N/M.
+        $warningText = implode(' ', $warnings);
+        $matched = preg_match('/(\d+) of (\d+) tariff rows.*?\(([\d.]+)%\)/', $warningText, $m);
+        $this->assertSame(1, $matched, "предупреждение должно содержать 'N of M tariff rows ... (P%)': {$warningText}");
+
+        [, $extrapolatedCount, $totalCount, $pct] = $m;
+        $this->assertGreaterThan(0, (int) $totalCount, 'знаменатель доли должен быть положительным');
+        $this->assertEqualsWithDelta(
+            round(((int) $extrapolatedCount / (int) $totalCount) * 100, 1),
+            (float) $pct,
+            0.05,
+            'процент в предупреждении обязан соответствовать N/M'
+        );
     }
 
     public function test_snapshot_filters_by_model_id(): void
@@ -310,5 +341,96 @@ class PricingTest extends McpTestCase
 
         $this->assertCount(1, $rows);
         $this->assertSame($anyModelId, $rows[0]['model_id']);
+    }
+
+    /**
+     * Находка 4: `delete`-события — смысловое ядро эндпоинта (удалённый тариф
+     * обязан исчезнуть из снимка после удаления, но оставаться в снимках "до"),
+     * а на живых данных это не воспроизвести: ни у одного tarif_id нет и
+     * delete-события, и ещё какого-либо другого (миграция 2026_07_31_000001
+     * заливала delete из rent_tarif_prev отдельным потоком от baseline).
+     * Заводим синтетическую пару под заведомо несуществующий tarif_id/model_id
+     * и убираем её за собой в finally — тест обязан быть идемпотентным при
+     * повторных прогонах.
+     */
+    public function test_snapshot_excludes_tariff_after_delete_but_includes_it_before(): void
+    {
+        $tarifId = 999998;
+        $modelId = 999997;
+
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('rent_tarif_history')
+            ->where('tarif_id', $tarifId)->count(), 'tarif_id 999998 не должен существовать заранее');
+
+        $t1 = strtotime('2020-06-01 12:00:00'); // create
+        $t2 = strtotime('2020-06-15 12:00:00'); // delete, t2 > t1
+
+        // Два отдельных insert() вместо одного батча: Laravel строит список колонок
+        // батч-инсёрта по ключам ПЕРВОЙ строки, а у create/delete набор колонок разный.
+        \Illuminate\Support\Facades\DB::table('rent_tarif_history')->insert([
+            'tarif_id'          => $tarifId,
+            'model_id'          => $modelId,
+            'change_type'       => 'create',
+            'changed_at'        => $t1,
+            'source'            => 'bb_admin',
+            'new_step'          => 'week',
+            'new_kol_vo'        => 1,
+            'new_kol_vo_min'    => 1,
+            'new_rent_amount'   => 10.00,
+            'new_rent_per_step' => 10.00,
+            'new_start_date'    => $t1,
+            'new_sort_num'      => 1,
+        ]);
+        \Illuminate\Support\Facades\DB::table('rent_tarif_history')->insert([
+            'tarif_id'          => $tarifId,
+            'model_id'          => $modelId,
+            'change_type'       => 'delete',
+            'changed_at'        => $t2,
+            'source'            => 'bb_admin',
+            'old_step'          => 'week',
+            'old_kol_vo'        => 1,
+            'old_kol_vo_min'    => 1,
+            'old_rent_amount'   => 10.00,
+            'old_rent_per_step' => 10.00,
+            'old_start_date'    => $t1,
+            'old_sort_num'      => 1,
+            // new_* заполнены НАРОЧНО, хотя настоящий писатель
+            // (bb/classes/Tariff.php:125, TariffHistory::log(TYPE_DELETE, $before, null, ...))
+            // всегда оставляет их NULL. Если оставить их NULL и здесь, то
+            // downstream-проверка `formatSide()` (null new_rent_amount → строка
+            // пропускается) сама по себе прячет delete-событие из ответа, и SQL-условие
+            // `AND h.change_type <> 'delete'` становится избыточным и непроверяемым
+            // этим тестом. Заполняя new_*, мы целимся ИМЕННО в SQL-условие —
+            // это и есть цель мутационной проверки ниже.
+            'new_step'          => 'week',
+            'new_kol_vo'        => 1,
+            'new_kol_vo_min'    => 1,
+            'new_rent_amount'   => 10.00,
+            'new_rent_per_step' => 10.00,
+            'new_start_date'    => $t1,
+            'new_sort_num'      => 1,
+        ]);
+
+        try {
+            // Между T1 и T2 — тариф уже создан, ещё не удалён: обязан быть в снимке.
+            $before = $this->mcp('pricing/snapshot', [
+                'as_of'    => '2020-06-10',
+                'model_id' => $modelId,
+            ])->json('data');
+            $this->assertCount(1, $before, 'до удаления модель с этим тарифом обязана быть в снимке');
+            $this->assertSame(
+                $tarifId,
+                $before[0]['tariffs'][0]['tarif_id'] ?? null,
+                'в снимке "до" ожидается именно наш синтетический tarif_id'
+            );
+
+            // После T2 — тариф удалён: обязан исчезнуть из снимка.
+            $after = $this->mcp('pricing/snapshot', [
+                'as_of'    => '2020-06-20',
+                'model_id' => $modelId,
+            ])->json('data');
+            $this->assertEmpty($after, 'после удаления модель не должна попадать в снимок');
+        } finally {
+            \Illuminate\Support\Facades\DB::table('rent_tarif_history')->where('tarif_id', $tarifId)->delete();
+        }
     }
 }

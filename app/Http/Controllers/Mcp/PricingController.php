@@ -118,9 +118,14 @@ class PricingController extends BaseController
      *
      * Строки, у которых событий до этой даты нет, но которые к ней уже
      * действовали (`new_start_date <= as_of`), попадают в ответ с
-     * `extrapolated: true`: baseline фиксирует состояние на момент внедрения
-     * журнала, а что было до последней правки — неизвестно. Доля таких строк
-     * тает по мере накопления реальных событий.
+     * `extrapolated: true`. Причина — по-тарифная, не общая: для ЭТОЙ
+     * конкретной строки тарифа в журнале нет ни одного записанного события
+     * раньше `as_of`, поэтому отдаётся её baseline-запись — снимок на момент
+     * последней известной правки именно этой строки (у каждой свой момент:
+     * миграция 2026_07_31_000001 датировала baseline `change_date` из
+     * `rent_tarif_act`, а не датой самой миграции; в базе baseline-события
+     * разбросаны с 2013 по 2026 год). Что было до этой правки — неизвестно.
+     * Доля таких строк тает по мере накопления реальных событий.
      */
     public function snapshot(Request $request): JsonResponse
     {
@@ -151,7 +156,7 @@ class PricingController extends BaseController
             if ($categories !== null) {
                 $razdelIds = $this->categoryToRazdelIds($categories);
                 if (empty($razdelIds)) {
-                    return ['rows' => [], 'extrapolated' => 0];
+                    return ['rows' => [], 'extrapolated' => 0, 'total' => 0];
                 }
                 $where[]  = 'h.model_id IN (' . $this->modelsInRazdelSubquery(count($razdelIds)) . ')';
                 $params   = array_merge($params, $razdelIds);
@@ -195,12 +200,15 @@ class PricingController extends BaseController
 
             $byModel          = [];
             $extrapolatedRows = 0;
+            $totalRows        = 0;
 
             foreach (array_merge($known, $extrapolated) as $h) {
                 $side = $this->formatSide($h, 'new');
                 if ($side === null) {
                     continue;
                 }
+
+                $totalRows++;
 
                 $modelId = (int) $h->model_id;
                 if (!isset($byModel[$modelId])) {
@@ -231,15 +239,17 @@ class PricingController extends BaseController
                 }
             }
 
-            return ['rows' => array_values($byModel), 'extrapolated' => $extrapolatedRows];
+            return ['rows' => array_values($byModel), 'extrapolated' => $extrapolatedRows, 'total' => $totalRows];
         });
 
         $meta = [];
         if ($payload['extrapolated'] > 0) {
+            $pct = $payload['total'] > 0 ? round($payload['extrapolated'] / $payload['total'] * 100, 1) : 0.0;
             $meta['warnings'] = [
-                $payload['extrapolated'] . ' tariff rows are extrapolated: the change log starts at the '
-                . 'baseline migration (2026-07-31), so values before a row\'s last recorded change are '
-                . 'the baseline snapshot, not observed history.',
+                $payload['extrapolated'] . ' of ' . $payload['total'] . ' tariff rows in this snapshot ('
+                . $pct . '%) are extrapolated: each of these tarif_id rows has no recorded change-log '
+                . 'event before ' . $validated['as_of'] . ', so its baseline record (the state as of its '
+                . 'own last known edit) is returned instead of an observed value at the requested date.',
             ];
         }
 
