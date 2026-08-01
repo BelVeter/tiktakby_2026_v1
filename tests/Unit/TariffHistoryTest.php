@@ -220,4 +220,17 @@ class TariffHistoryTest extends TestCase
 
         $this->assertSame('model_archive', $this->events()[0]['source']);
     }
+
+    public function test_update_nonexistent_tariff_returns_false_and_writes_nothing(): void
+    {
+        $t = $this->makeTariff(140.00);
+        $t->tarif_id = 999999;  // tarif_id, которого точно нет в базе
+        $t->rent_amount = 160.00;
+
+        $result = $t->save();
+
+        // save() вызывает update() для существующих tarif_id
+        $this->assertFalse($result, 'save() должен вернуть false для несуществующего тарифа');
+        $this->assertEmpty($this->events(), 'не должно быть событий в журнале для несуществующего тарифа');
+    }
 }

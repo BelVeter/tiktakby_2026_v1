@@ -54,10 +54,10 @@ class Tariff
 
     public function save(){
         if ($this->tarif_id < 1) {
-            $this->saveNew();
+            return $this->saveNew();
         }
         else {
-            $this->update();
+            return $this->update();
         }
     }
 
@@ -75,9 +75,14 @@ class Tariff
     private function update(){
         $before = self::getById($this->tarif_id);
 
+        // Тариф не существует — ничего не обновляем и не логируем.
+        if (!$before) {
+            return false;
+        }
+
         // Пустой UPDATE не должен засорять журнал: форма сохраняется и тогда,
         // когда оператор ничего не поменял.
-        if ($before && !$this->differsFrom($before)) {
+        if (!$this->differsFrom($before)) {
             return true;
         }
 
@@ -143,7 +148,6 @@ class Tariff
             || number_format((float) $this->rent_amount, 2, '.', '') !== number_format((float) $other->rent_amount, 2, '.', '')
             || number_format((float) $this->rent_per_step, 2, '.', '') !== number_format((float) $other->rent_per_step, 2, '.', '');
     }
-
 
     /**
      * @return Tariff|false|void|null
