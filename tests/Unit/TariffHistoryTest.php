@@ -19,6 +19,16 @@ class TariffHistoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Самолечение: test_model_archive_logs_tariff_deletion() вызывает
+        // ModelArchive::archive(), который открывает СВОЮ транзакцию
+        // (Db::startTransaction()). В mysqli вложенный START TRANSACTION
+        // неявно коммитит внешнюю, поэтому ROLLBACK в tearDown() уже нечего
+        // откатывать — строки песочницы остаются в базе навсегда и валят
+        // следующий прогон (Duplicate entry, чужие записи в events()).
+        // Чистим ДО открытия транзакции, чтобы прошлый прогон не мешал этому.
+        $this->purgeSandboxLeftovers();
+
         Db::getInstance()->getConnection()->query('START TRANSACTION');
 
         // Tariff::saveNew()/update() читают User::getCurrentUser()->id_user.
@@ -32,7 +42,28 @@ class TariffHistoryTest extends TestCase
     {
         Db::getInstance()->getConnection()->query('ROLLBACK');
         unset($_SESSION['user_id'], $_SESSION['user_fio']);
+
+        // На случай, если этот прогон сам коммитнул данные (см. setUp()) —
+        // убираем за собой, чтобы следующий прогон стартовал с чистого листа.
+        $this->purgeSandboxLeftovers();
+
         parent::tearDown();
+    }
+
+    /**
+     * Безусловно вычищает все следы модели-песочницы. Идемпотентна и не
+     * зависит от того, была ли открыта транзакция — работает через тот же
+     * mysqli-connection, что и весь остальной код в bb/.
+     */
+    private function purgeSandboxLeftovers(): void
+    {
+        $mysqli = Db::getInstance()->getConnection();
+        $id = self::SANDBOX_MODEL_ID;
+
+        $mysqli->query("DELETE FROM rent_tarif_history WHERE model_id = {$id}");
+        $mysqli->query("DELETE FROM rent_tarif_act WHERE model_id = {$id}");
+        $mysqli->query("DELETE FROM tovar_rent_arch WHERE tovar_rent_id = {$id}");
+        $mysqli->query("DELETE FROM tovar_rent WHERE tovar_rent_id = {$id}");
     }
 
     private function makeTariff(float $amount = 100.00, int $kolVo = 2): Tariff
