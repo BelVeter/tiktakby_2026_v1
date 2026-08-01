@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Mcp;
 
+use App\Http\Requests\Mcp\RangeRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -126,6 +127,11 @@ class PricingController extends BaseController
      * `rent_tarif_act`, а не датой самой миграции; в базе baseline-события
      * разбросаны с 2013 по 2026 год). Что было до этой правки — неизвестно.
      * Доля таких строк тает по мере накопления реальных событий.
+     *
+     * Кеш: ответ хранится `TTL_HEAVY` (1 час) — правка тарифа в bb/rent_tarifs.php
+     * кеш не инвалидирует. Для аналитики (агрегаты, тренды) это нормально, но
+     * при РУЧНОЙ проверке «я только что поменял цену, а снимок на сегодня
+     * показывает старую» это не баг: снимок может отставать от админки до часа.
      */
     public function snapshot(Request $request): JsonResponse
     {
@@ -164,6 +170,20 @@ class PricingController extends BaseController
 
             $extraWhere = $where ? ' AND ' . implode(' AND ', $where) : '';
 
+            // Ветки 1 и 2 ниже проверяют членство в снимке ПО-РАЗНОМУ, и это
+            // осознанно, а не недосмотр: не «выравнивайте» их без пересмотра
+            // этого рассуждения.
+            //   - Ветка 1 (известные) вообще не смотрит на new_start_date:
+            //     у неё есть ЗАПИСАННОЕ СОБЫТИЕ с changed_at <= as_of — это
+            //     само по себе доказательство, что строка в таком виде
+            //     существовала на дату as_of, независимо от того, что там
+            //     написано в new_start_date (который отражает design-намерение
+            //     «действует с X», а не факт наблюдения).
+            //   - Ветка 2 (экстраполированные) обязана проверять
+            //     new_start_date <= as_of, потому что для этих строк ТАКОГО
+            //     доказательства нет: ни одного события до as_of не
+            //     записано, единственный доступный признак «эта строка уже
+            //     существовала на дату» — её собственный start_date.
             // Ветка 1 — тарифы, о которых на дату уже есть событие.
             // Порядок (changed_at, id): один только MAX(id) сломался бы там, где
             // импортированное legacy-удаление получило id выше baseline-события.
@@ -277,16 +297,40 @@ class PricingController extends BaseController
     }
 
     /**
-     * `null` означает «фильтра нет»; иначе — список слагов категорий.
+     * `null` означает «фильтра нет»; иначе — список слагов категорий из
+     * белого списка `RangeRequest::CATEGORIES`.
+     *
+     * Приведено к общему контракту API (см. `RangeRequest::categories()`):
+     *  - если в списке встречается `all` — фильтра нет целиком (return null),
+     *    а не «список из ['all', 'children']», который ниже по стеку
+     *    (`categoryToRazdelIds()`) сам схлопывается в [] по своему собственному
+     *    short-circuit на 'all' и читается вызывающим кодом как «нет
+     *    совпадений» → пустой ответ. Раньше это был именно этот баг:
+     *    `category=all,children` тихо возвращал 0 строк без предупреждения;
+     *  - значения вне белого списка отбрасываются (array_intersect), но,
+     *    в отличие от `RangeRequest::categories()`, при пустом остатке метод
+     *    возвращает [] (а не null/['all']) — здесь это осознанное отличие:
+     *    у /pricing/history и /pricing/snapshot нет строгой enum-валидации
+     *    параметра `category` (это просто 'nullable|string'), поэтому опечатка
+     *    не должна молча превращаться в «фильтра нет» и отдавать весь массив
+     *    данных — она обязана вернуть пустой результат (плюс warning
+     *    unknown_category, который считает envelope() независимо по сырому
+     *    query-параметру).
      *
      * @return string[]|null
      */
     protected function parseCategories(?string $category): ?array
     {
-        if ($category === null || $category === '' || $category === 'all') {
+        if ($category === null || $category === '') {
             return null;
         }
-        return array_map('trim', explode(',', $category));
+
+        $cats = array_map('trim', explode(',', $category));
+        if (in_array('all', $cats, true)) {
+            return null;
+        }
+
+        return array_values(array_intersect($cats, RangeRequest::CATEGORIES));
     }
 
     /**
@@ -380,7 +424,14 @@ class PricingController extends BaseController
             'rent_amount'   => number_format((float) $h->$amountKey, 2, '.', ''),
             'rent_per_step' => number_format((float) $h->$perStepKey, 2, '.', ''),
             'price_per_day' => $this->pricePerDay($h->$amountKey, $h->$stepKey, (int) $h->$kolVoKey),
-            'start_date'    => $h->$startDateKey ? gmdate('Y-m-d', (int) $h->$startDateKey) : null,
+            // date(), не gmdate(): start_date записан легаси-кодом как
+            // strtotime('YYYY-MM-DD') в таймзоне приложения (config/app.php
+            // → Europe/Minsk), т.е. это полночь по Минску. gmdate() рендерит
+            // тот же момент в UTC (на 2-3 часа раньше) и переползает на
+            // предыдущие сутки. changed_at в formatEvent() ниже — другой
+            // случай: это полная ISO-8601 метка МОМЕНТА (не календарная
+            // дата), для неё gmdate()+'Z' корректны.
+            'start_date'    => $h->$startDateKey ? date('Y-m-d', (int) $h->$startDateKey) : null,
         ];
     }
 

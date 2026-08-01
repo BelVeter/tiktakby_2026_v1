@@ -1309,13 +1309,19 @@
                         "description": "Tariff state before the change. Null when change_type is create or baseline.",
                         "properties": {
                             "step": {
-                                "type": "string",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
                                 "enum": [
                                     "day",
                                     "week",
                                     "month",
-                                    "year"
-                                ]
+                                    "year",
+                                    "",
+                                    null
+                                ],
+                                "description": "Empty string / null are legacy junk, not a documented step: 3 rows in rent_tarif_prev (tarif_act_id 35, 39, 8157; model_id=0) were imported with an empty step by migration 2026_07_31_000001 (source=legacy_import). bb/classes/TariffHistory::quote() also collapses an empty string to SQL NULL, so both forms can appear."
                             },
                             "kol_vo": {
                                 "type": "integer"
@@ -1352,13 +1358,19 @@
                         "description": "Tariff state after the change. Null when change_type is delete.",
                         "properties": {
                             "step": {
-                                "type": "string",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
                                 "enum": [
                                     "day",
                                     "week",
                                     "month",
-                                    "year"
-                                ]
+                                    "year",
+                                    "",
+                                    null
+                                ],
+                                "description": "Empty string / null are legacy junk, not a documented step: 3 rows in rent_tarif_prev (tarif_act_id 35, 39, 8157; model_id=0) were imported with an empty step by migration 2026_07_31_000001 (source=legacy_import). bb/classes/TariffHistory::quote() also collapses an empty string to SQL NULL, so both forms can appear."
                             },
                             "kol_vo": {
                                 "type": "integer"
@@ -1444,13 +1456,19 @@
                                     "type": "integer"
                                 },
                                 "step": {
-                                    "type": "string",
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
                                     "enum": [
                                         "day",
                                         "week",
                                         "month",
-                                        "year"
-                                    ]
+                                        "year",
+                                        "",
+                                        null
+                                    ],
+                                    "description": "Empty string / null are legacy junk, not a documented step: 3 rows in rent_tarif_prev (tarif_act_id 35, 39, 8157; model_id=0) were imported with an empty step by migration 2026_07_31_000001 (source=legacy_import). bb/classes/TariffHistory::quote() also collapses an empty string to SQL NULL, so both forms can appear."
                                 },
                                 "kol_vo": {
                                     "type": "integer"

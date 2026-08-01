@@ -163,6 +163,41 @@ class PricingTest extends McpTestCase
     }
 
     /**
+     * Регресс: `all` в списке через запятую (`category=all,children`) обязан
+     * трактоваться как «фильтра нет», а не как реальный список категорий.
+     *
+     * До фикса parseCategories() считал «фильтра нет» только при точном
+     * равенстве строке 'all' целиком, поэтому `['all', 'children']` уходил
+     * дальше как настоящий список категорий. categoryToRazdelIds() внутри
+     * себя схлопывает такой список в [] по собственному short-circuit на
+     * 'all' (`in_array('all', $categories, true)`), и history() трактовал
+     * пустой $razdelIds как «нет совпадений» → пустой ответ БЕЗ
+     * предупреждения — воспринимается потребителем как «в этой категории
+     * цены не менялись», хотя на самом деле фильтр просто не сработал.
+     */
+    public function test_history_category_all_plus_valid_is_treated_as_no_filter(): void
+    {
+        $withAll  = $this->mcp('pricing/history', ['category' => 'all,children', 'limit' => 50]);
+        $noFilter = $this->mcp('pricing/history', ['limit' => 50]);
+
+        $withAll->assertStatus(200);
+        $this->assertEnvelope($withAll);
+
+        $rowsWithAll  = $withAll->json('data');
+        $rowsNoFilter = $noFilter->json('data');
+
+        $this->assertNotEmpty($rowsWithAll, 'category=all,children не должен давать пустой ответ');
+        $this->assertSame(
+            $rowsNoFilter,
+            $rowsWithAll,
+            'category=all,children обязан вести себя ИДЕНТИЧНО отсутствию фильтра (всё та же выборка)'
+        );
+
+        $warnings = $withAll->json('meta.warnings');
+        $this->assertEmpty($warnings, 'наличие all в списке не должно порождать unknown_category warning');
+    }
+
+    /**
      * Фильтр `from` работает: все вернувшиеся даты >= from.
      */
     public function test_history_respects_from_date_filter(): void

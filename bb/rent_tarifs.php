@@ -401,32 +401,34 @@ switch ($action) {
 
     case 'авто расчет':
         $t_base = \bb\classes\Tariff::getById($tarif_id_in);
-        $t3 = clone $t_base;
-        $t2 = clone $t_base;
-        $t1 = clone $t_base;
+        if ($t_base) {
+            $t3 = clone $t_base;
+            $t2 = clone $t_base;
+            $t1 = clone $t_base;
 
-        $t3->tarif_id=null;
-        $t3->kol_vo=3;
-        $t3->rent_amount = $t_base->rent_amount * 0.9;
+            $t3->tarif_id=null;
+            $t3->kol_vo=3;
+            $t3->rent_amount = $t_base->rent_amount * 0.9;
 
-        $t2->tarif_id=null;
-        $t2->kol_vo=2;
-        $t2->rent_amount = $t3->rent_amount * 0.85;
+            $t2->tarif_id=null;
+            $t2->kol_vo=2;
+            $t2->rent_amount = $t3->rent_amount * 0.85;
 
-        $t1->tarif_id=null;
-        $t1->kol_vo=1;
-        $t1->rent_amount = $t2->rent_amount * 0.7;
+            $t1->tarif_id=null;
+            $t1->kol_vo=1;
+            $t1->rent_amount = $t2->rent_amount * 0.7;
 
-        $t1->t4AutoCalcAndFill();
-        $t2->t4AutoCalcAndFill();
-        $t3->t4AutoCalcAndFill();
-        $t_base->t4AutoCalcAndFill();
+            $t1->t4AutoCalcAndFill();
+            $t2->t4AutoCalcAndFill();
+            $t3->t4AutoCalcAndFill();
+            $t_base->t4AutoCalcAndFill();
 
-        \bb\Db::startTransaction();
-            $t1->hardSave();
-            $t2->hardSave();
-            $t3->hardSave();
-        \bb\Db::commitTransaction();
+            \bb\Db::startTransaction();
+                $t1->hardSave();
+                $t2->hardSave();
+                $t3->hardSave();
+            \bb\Db::commitTransaction();
+        }
 
     break;
 
@@ -714,7 +716,7 @@ echo '
 
 $history = \bb\classes\TariffHistory::forModel($model_id, 50);
 
-echo '<br /><input type="button" value="история изменений (' . count($history) . ')"
+echo '<br /><input type="button" value="история изменений (последние ' . count($history) . ')"
         onclick="var d=document.getElementById(\'tarif_history\'); d.style.display = (d.style.display==\'none\' ? \'\' : \'none\');" />';
 
 echo '<div id="tarif_history" style="display:none">';
@@ -777,7 +779,7 @@ if (!empty($item_id)) {
 	echo '<br /><br />
 	<form method="post" id="tovar_edit" action="tovar_new.php">
 		<input type="hidden" name="item_id" value="'.$item_id.'">
-		<input type="submit" name="action" value="редактировать"> (товар инв.№'.$item_inv_n2.')
+		<input type="submit" name="action" value="редактировать"> (товар инв.№'.good_print($item_inv_n2).')
 	</form>';
 
 }
@@ -810,6 +812,7 @@ function r_step ($step) {
 	if ($step=='day') {return 'день';}
 	if ($step=='week') {return 'неделя';}
 	if ($step=='month') {return 'месяц';}
+	if ($step=='year') {return 'год';}
 }
 
 function sel_d($value, $pattern) {

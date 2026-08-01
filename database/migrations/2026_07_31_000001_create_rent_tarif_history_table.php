@@ -58,52 +58,61 @@ class CreateRentTarifHistoryTable extends Migration
             });
         }
 
-        // Заливка идемпотентна: пустая таблица — единственное условие.
-        if (DB::table('rent_tarif_history')->count() > 0) {
-            return;
-        }
+        // Заливка идемпотентна, но гарды на два INSERT НАМЕРЕННО раздельные
+        // и проверяются по `source`, а не общим "count() > 0" перед обоими.
+        // На проде `migrate` запускается HTTP-запросом через Deploy.php —
+        // таймаут реален. Если процесс оборвётся между первым и вторым
+        // INSERT, Laravel не отметит миграцию выполненной; при повторном
+        // запуске общий ранний return по "count() > 0" (после уже
+        // вставленного baseline) молча пропустил бы импорт rent_tarif_prev
+        // навсегда. Раздельные гарды позволяют докатить именно
+        // недостающую часть.
 
         // Baseline. change_who хранит вперемешку id ('777') и имена ('Кристина'),
         // поэтому разбираем: строка целиком из цифр → actor_user_id, иначе → actor_name.
-        DB::statement("
-            INSERT INTO rent_tarif_history (
-                tarif_id, model_id, change_type, changed_at,
-                actor_user_id, actor_name, source,
-                new_step, new_kol_vo, new_kol_vo_min,
-                new_rent_amount, new_rent_per_step, new_start_date, new_sort_num,
-                note
-            )
-            SELECT
-                a.tarif_id, a.model_id, 'baseline', a.change_date,
-                CASE WHEN a.change_who REGEXP '^[0-9]+$' THEN CAST(a.change_who AS SIGNED) END,
-                CASE WHEN a.change_who REGEXP '^[0-9]+$' THEN NULL ELSE NULLIF(a.change_who, '') END,
-                'baseline',
-                a.step, a.kol_vo, a.kol_vo_min,
-                a.rent_amount, a.rent_per_step, a.start_date, a.sort_num,
-                'Снимок состояния на момент внедрения журнала; датирован последней правкой строки'
-            FROM rent_tarif_act a
-        ");
+        if (DB::table('rent_tarif_history')->where('source', 'baseline')->count() === 0) {
+            DB::statement("
+                INSERT INTO rent_tarif_history (
+                    tarif_id, model_id, change_type, changed_at,
+                    actor_user_id, actor_name, source,
+                    new_step, new_kol_vo, new_kol_vo_min,
+                    new_rent_amount, new_rent_per_step, new_start_date, new_sort_num,
+                    note
+                )
+                SELECT
+                    a.tarif_id, a.model_id, 'baseline', a.change_date,
+                    CASE WHEN a.change_who REGEXP '^[0-9]+$' THEN CAST(a.change_who AS SIGNED) END,
+                    CASE WHEN a.change_who REGEXP '^[0-9]+$' THEN NULL ELSE NULLIF(a.change_who, '') END,
+                    'baseline',
+                    a.step, a.kol_vo, a.kol_vo_min,
+                    a.rent_amount, a.rent_per_step, a.start_date, a.sort_num,
+                    'Снимок состояния на момент внедрения журнала; датирован последней правкой строки'
+                FROM rent_tarif_act a
+            ");
+        }
 
         // Импорт старого архива удалений. rent_tarif_prev.rent_amount объявлен
         // DECIMAL(11,1) — копейки там уже округлены, восстановить их нельзя.
-        DB::statement("
-            INSERT INTO rent_tarif_history (
-                tarif_id, model_id, change_type, changed_at,
-                actor_user_id, actor_name, source,
-                old_step, old_kol_vo, old_kol_vo_min,
-                old_rent_amount, old_rent_per_step, old_start_date, old_sort_num,
-                note
-            )
-            SELECT
-                p.tarif_act_id, p.model_id, 'delete', p.change_date,
-                CASE WHEN p.change_who REGEXP '^[0-9]+$' THEN CAST(p.change_who AS SIGNED) END,
-                CASE WHEN p.change_who REGEXP '^[0-9]+$' THEN NULL ELSE NULLIF(p.change_who, '') END,
-                'legacy_import',
-                p.step, p.kol_vo, p.kol_vo_min,
-                p.rent_amount, p.rent_per_step, p.start_date, p.sort_num,
-                'Импорт rent_tarif_prev: суммы хранились с точностью до десятых, копейки утрачены'
-            FROM rent_tarif_prev p
-        ");
+        if (DB::table('rent_tarif_history')->where('source', 'legacy_import')->count() === 0) {
+            DB::statement("
+                INSERT INTO rent_tarif_history (
+                    tarif_id, model_id, change_type, changed_at,
+                    actor_user_id, actor_name, source,
+                    old_step, old_kol_vo, old_kol_vo_min,
+                    old_rent_amount, old_rent_per_step, old_start_date, old_sort_num,
+                    note
+                )
+                SELECT
+                    p.tarif_act_id, p.model_id, 'delete', p.change_date,
+                    CASE WHEN p.change_who REGEXP '^[0-9]+$' THEN CAST(p.change_who AS SIGNED) END,
+                    CASE WHEN p.change_who REGEXP '^[0-9]+$' THEN NULL ELSE NULLIF(p.change_who, '') END,
+                    'legacy_import',
+                    p.step, p.kol_vo, p.kol_vo_min,
+                    p.rent_amount, p.rent_per_step, p.start_date, p.sort_num,
+                    'Импорт rent_tarif_prev: суммы хранились с точностью до десятых, копейки утрачены'
+                FROM rent_tarif_prev p
+            ");
+        }
     }
 
     public function down(): void
