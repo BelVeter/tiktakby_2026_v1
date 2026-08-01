@@ -8,6 +8,8 @@ use bb\Base;
 use bb\Db;
 use bb\models\User;
 
+require_once __DIR__ . '/TariffHistory.php';
+
 class Tariff
 {
     public $tarif_id;
