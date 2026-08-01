@@ -238,4 +238,77 @@ class PricingTest extends McpTestCase
             );
         }
     }
+
+    // ─── /pricing/snapshot ────────────────────────────────────────────────
+
+    public function test_snapshot_requires_as_of(): void
+    {
+        $this->mcp('pricing/snapshot')->assertStatus(422);
+    }
+
+    public function test_snapshot_rejects_malformed_as_of(): void
+    {
+        $this->mcp('pricing/snapshot', ['as_of' => 'вчера'])->assertStatus(422);
+    }
+
+    public function test_snapshot_envelope_and_columns(): void
+    {
+        $r = $this->mcp('pricing/snapshot', ['as_of' => date('Y-m-d')]);
+        $this->assertEnvelope($r);
+
+        $rows = $r->json('data');
+        $this->assertNotEmpty($rows);
+        $r->assertJsonStructure(['data' => [[
+            'model_id', 'model_name', 'min_price_per_day', 'extrapolated',
+            'tariffs' => [['tarif_id', 'step', 'kol_vo', 'rent_amount', 'price_per_day']],
+        ]]]);
+    }
+
+    public function test_snapshot_today_matches_live_tariff_table(): void
+    {
+        $rows = $this->mcp('pricing/snapshot', ['as_of' => date('Y-m-d')])->json('data');
+
+        $snapshotTariffs = 0;
+        foreach ($rows as $row) {
+            $snapshotTariffs += count($row['tariffs']);
+        }
+
+        $live = (int) \Illuminate\Support\Facades\DB::selectOne(
+            'SELECT COUNT(*) AS n FROM rent_tarif_act'
+        )->n;
+
+        $this->assertSame($live, $snapshotTariffs,
+            'снимок на сегодня должен совпадать с живой таблицей тарифов');
+    }
+
+    public function test_snapshot_far_past_is_empty_or_extrapolated(): void
+    {
+        // 2010 год — раньше первой записи в rent_tarif_act (2013).
+        $rows = $this->mcp('pricing/snapshot', ['as_of' => '2010-01-01'])->json('data');
+        foreach ($rows as $row) {
+            $this->assertTrue($row['extrapolated'], 'до начала данных строки могут быть только экстраполированными');
+        }
+    }
+
+    public function test_snapshot_warns_about_extrapolated_rows(): void
+    {
+        $r = $this->mcp('pricing/snapshot', ['as_of' => '2015-01-01']);
+        $warnings = $r->json('meta.warnings');
+        $extrapolated = array_filter($r->json('data'), static fn ($row) => $row['extrapolated']);
+
+        if (!empty($extrapolated)) {
+            $this->assertNotEmpty($warnings, 'наличие экстраполяции обязано попасть в meta.warnings');
+        } else {
+            $this->assertTrue(true);
+        }
+    }
+
+    public function test_snapshot_filters_by_model_id(): void
+    {
+        $anyModelId = $this->mcp('pricing/snapshot', ['as_of' => date('Y-m-d')])->json('data.0.model_id');
+        $rows = $this->mcp('pricing/snapshot', ['as_of' => date('Y-m-d'), 'model_id' => $anyModelId])->json('data');
+
+        $this->assertCount(1, $rows);
+        $this->assertSame($anyModelId, $rows[0]['model_id']);
+    }
 }

@@ -111,6 +111,146 @@ class PricingController extends BaseController
     }
 
     /**
+     * GET /pricing/snapshot?as_of=YYYY-MM-DD&model_id&category
+     *
+     * Прайс-лист на произвольную дату. Для каждой строки тарифа берётся
+     * последнее событие с `changed_at <= as_of`.
+     *
+     * Строки, у которых событий до этой даты нет, но которые к ней уже
+     * действовали (`new_start_date <= as_of`), попадают в ответ с
+     * `extrapolated: true`: baseline фиксирует состояние на момент внедрения
+     * журнала, а что было до последней правки — неизвестно. Доля таких строк
+     * тает по мере накопления реальных событий.
+     */
+    public function snapshot(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'as_of'    => 'required|date',
+            'model_id' => 'nullable|integer|min:1',
+            'category' => 'nullable|string',
+        ]);
+
+        $asOf = strtotime($validated['as_of'] . ' 23:59:59');
+
+        $key = $this->cacheKey('pricing.snapshot', [
+            'as_of' => $asOf,
+            'model' => $validated['model_id'] ?? 'all',
+            'cat'   => $validated['category'] ?? 'all',
+        ]);
+
+        $payload = $this->cacheRemember($key, self::TTL_HEAVY, function () use ($validated, $asOf) {
+            $where  = [];
+            $params = [];
+
+            if (!empty($validated['model_id'])) {
+                $where[]  = 'h.model_id = ?';
+                $params[] = (int) $validated['model_id'];
+            }
+
+            $categories = $this->parseCategories($validated['category'] ?? null);
+            if ($categories !== null) {
+                $razdelIds = $this->categoryToRazdelIds($categories);
+                if (empty($razdelIds)) {
+                    return ['rows' => [], 'extrapolated' => 0];
+                }
+                $where[]  = 'h.model_id IN (' . $this->modelsInRazdelSubquery(count($razdelIds)) . ')';
+                $params   = array_merge($params, $razdelIds);
+            }
+
+            $extraWhere = $where ? ' AND ' . implode(' AND ', $where) : '';
+
+            // Ветка 1 — тарифы, о которых на дату уже есть событие.
+            // Порядок (changed_at, id): один только MAX(id) сломался бы там, где
+            // импортированное legacy-удаление получило id выше baseline-события.
+            $knownSql = "
+                SELECT h.*, rmw.l2_name AS model_name, 0 AS extrapolated
+                FROM rent_tarif_history h
+                LEFT JOIN rent_model_web rmw ON rmw.model_id = h.model_id AND rmw.lang = 'ru'
+                WHERE h.id = (
+                    SELECT h2.id FROM rent_tarif_history h2
+                    WHERE h2.tarif_id = h.tarif_id AND h2.changed_at <= ?
+                    ORDER BY h2.changed_at DESC, h2.id DESC
+                    LIMIT 1
+                )
+                AND h.change_type <> 'delete'
+                {$extraWhere}
+            ";
+            $known = DB::select($knownSql, array_merge([$asOf], $params));
+
+            // Ветка 2 — тариф действовал на дату, но событий до неё нет.
+            $extrapolatedSql = "
+                SELECT h.*, rmw.l2_name AS model_name, 1 AS extrapolated
+                FROM rent_tarif_history h
+                LEFT JOIN rent_model_web rmw ON rmw.model_id = h.model_id AND rmw.lang = 'ru'
+                WHERE h.change_type = 'baseline'
+                  AND h.changed_at > ?
+                  AND h.new_start_date <= ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM rent_tarif_history h3
+                      WHERE h3.tarif_id = h.tarif_id AND h3.changed_at <= ?
+                  )
+                {$extraWhere}
+            ";
+            $extrapolated = DB::select($extrapolatedSql, array_merge([$asOf, $asOf, $asOf], $params));
+
+            $byModel          = [];
+            $extrapolatedRows = 0;
+
+            foreach (array_merge($known, $extrapolated) as $h) {
+                $side = $this->formatSide($h, 'new');
+                if ($side === null) {
+                    continue;
+                }
+
+                $modelId = (int) $h->model_id;
+                if (!isset($byModel[$modelId])) {
+                    $byModel[$modelId] = [
+                        'model_id'          => $modelId,
+                        'model_name'        => $h->model_name,
+                        'min_price_per_day' => null,
+                        'extrapolated'      => false,
+                        'tariffs'           => [],
+                    ];
+                }
+
+                $byModel[$modelId]['tariffs'][] = array_merge(
+                    ['tarif_id' => (int) $h->tarif_id],
+                    $side
+                );
+
+                if ((int) $h->extrapolated === 1) {
+                    $byModel[$modelId]['extrapolated'] = true;
+                    $extrapolatedRows++;
+                }
+
+                if ($side['price_per_day'] !== null) {
+                    $current = $byModel[$modelId]['min_price_per_day'];
+                    if ($current === null || (float) $side['price_per_day'] < (float) $current) {
+                        $byModel[$modelId]['min_price_per_day'] = $side['price_per_day'];
+                    }
+                }
+            }
+
+            return ['rows' => array_values($byModel), 'extrapolated' => $extrapolatedRows];
+        });
+
+        $meta = [];
+        if ($payload['extrapolated'] > 0) {
+            $meta['warnings'] = [
+                $payload['extrapolated'] . ' tariff rows are extrapolated: the change log starts at the '
+                . 'baseline migration (2026-07-31), so values before a row\'s last recorded change are '
+                . 'the baseline snapshot, not observed history.',
+            ];
+        }
+
+        return $this->envelope([
+            'as_of'    => $validated['as_of'],
+            'model_id' => $validated['model_id'] ?? null,
+            'category' => $validated['category'] ?? 'all',
+        ], $payload['rows'], $meta);
+    }
+
+    /**
      * `null` означает «фильтра нет»; иначе — список слагов категорий.
      *
      * @return string[]|null

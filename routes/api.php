@@ -77,6 +77,7 @@ Route::prefix('mcp/v1')
 
         // Pricing history (2026-07-31)
         Route::get('pricing/history',  [PricingController::class, 'history'])->name('pricing.history');
+        Route::get('pricing/snapshot', [PricingController::class, 'snapshot'])->name('pricing.snapshot');
 
         // Customers (A.7 + existing /clients/ltv)
         Route::get('customers/timeline',          [CustomersController::class, 'timeline'])->name('customers.timeline');
