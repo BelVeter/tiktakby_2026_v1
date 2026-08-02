@@ -170,10 +170,10 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /pages/history` | Field-level change log of SEO content written through this API (`mcp_content_versions`). Filters: `page_type`, `slug`, `field`, `from`, `to` |
 | SMS    | `POST /sms/send` | Send an SMS message using RocketSMS (`phone`, `text`, optional `sender`) |
 | Redirects | `GET /redirects` | List redirects with optional filters: `is_active`, `is_regex`, `search` (LIKE on source/target); paginated (`per_page` max 500, default 100) |
-|        | `POST /redirects` | Create a single redirect (`source_url`, `target_url`, required; `status_code` 301/302, `is_active`, `is_regex`, `comment` optional). Non-regex URLs auto-prefixed with `/`. Returns 422 on duplicate `source_url`. |
-|        | `PATCH /redirects/{id}` | Partial update — only provided fields are modified. At least one field required. |
+|        | `POST /redirects` | Create a single redirect (`source_url`, `target_url`, required; `status_code` 301/302, `is_active`, `is_regex`, `comment` optional, **max 255 chars**). Non-regex URLs auto-prefixed with `/`. Returns 422 on duplicate `source_url`. |
+|        | `PATCH /redirects/{id}` | Partial update — only provided fields are modified. At least one field required. `comment` max 255 chars. |
 |        | `DELETE /redirects/{id}` | Delete redirect by id. |
-|        | `POST /redirects/bulk` | Bulk upsert up to 200 redirects. Body: `{"redirects": [...]}`. Uses `INSERT … ON DUPLICATE KEY UPDATE` on `source_url`. All writes immediately clear `redirects_exact_map` + `redirects_regex_list` cache keys used by `CheckRedirects` middleware. |
+|        | `POST /redirects/bulk` | Bulk upsert up to 200 redirects. Body: `{"redirects": [...]}`. `comment` max 255 chars. Uses `INSERT … ON DUPLICATE KEY UPDATE` on `source_url`. All writes immediately clear `redirects_exact_map` + `redirects_regex_list` cache keys used by `CheckRedirects` middleware. |
 
 ## L3 product pages — URL resolution and gotchas
 
