@@ -111,7 +111,7 @@ class RedirectsController extends BaseController
             'status_code' => 'sometimes|integer|in:301,302',
             'is_active'   => 'sometimes|boolean',
             'is_regex'    => 'sometimes|boolean',
-            'comment'     => 'sometimes|nullable|string|max:1000',
+            'comment'     => 'sometimes|nullable|string|max:255',
         ]);
 
         $sourceUrl  = $validated['source_url'];
@@ -169,7 +169,7 @@ class RedirectsController extends BaseController
             'status_code' => 'sometimes|integer|in:301,302',
             'is_active'   => 'sometimes|boolean',
             'is_regex'    => 'sometimes|boolean',
-            'comment'     => 'sometimes|nullable|string|max:1000',
+            'comment'     => 'sometimes|nullable|string|max:255',
         ]);
 
         if (empty($validated)) {
@@ -291,7 +291,7 @@ class RedirectsController extends BaseController
                 'status_code' => 'sometimes|integer|in:301,302',
                 'is_active'   => 'sometimes|boolean',
                 'is_regex'    => 'sometimes|boolean',
-                'comment'     => 'sometimes|nullable|string|max:1000',
+                'comment'     => 'sometimes|nullable|string|max:255',
             ]);
             if ($itemValidator->fails()) {
                 $errors[$i] = $itemValidator->errors()->toArray();
