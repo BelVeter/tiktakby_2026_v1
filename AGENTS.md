@@ -195,6 +195,7 @@ The project uses two distinct methods for database interaction due to its hybrid
   2. `docs/mcp_server.md` — the endpoint table description
 
 ### Project rules:
+- **Strict Project Boundaries**: "Каждый проект отвечает только за себя." (Each project is only responsible for itself). Do NOT modify files in other repositories or projects (e.g., Python scripts in `~/Documents/Calls`). Another AI agent will handle those parts.
 - **Closures in `web.php` are FORBIDDEN** — they break `route:cache` on production
 - **Do NOT use `php artisan serve`** — the site only works through Laragon's Apache at `http://localhost`
 - When changing CSS/JS — run `npm run prod` locally and commit `public/js`, `public/css`, `mix-manifest.json`
