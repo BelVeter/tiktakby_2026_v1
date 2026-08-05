@@ -9,10 +9,12 @@ class CallsTest extends McpTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         DB::table('a1_cdr')->truncate();
         DB::table('a1_call_recordings')->truncate();
         DB::table('a1_call_analysis')->truncate();
         DB::table('a1_daily_summaries')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     // ── GET /calls/cdr ────────────────────────────────────────────

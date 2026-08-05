@@ -28,6 +28,11 @@ if (!in_array($typeFilter, ['all', 'incoming', 'outgoing', 'missed'], true)) {
     $typeFilter = 'all';
 }
 
+$hideInternal = isset($_GET['hide_internal']) ? (int)$_GET['hide_internal'] : 1;
+$onlyMissed   = isset($_GET['only_missed'])   ? (int)$_GET['only_missed']   : 0;
+$aiResultFlt  = trim($_GET['ai_result'] ?? '');
+
+
 $safeDate = $mysqli->real_escape_string($date);
 
 // ─── Статистика за день ───────────────────────────────────────────────────
@@ -53,6 +58,15 @@ $summaryRow = $mysqli->query("
 
 // ─── Список звонков ───────────────────────────────────────────────────────
 $typeWhere = $typeFilter !== 'all' ? " AND cdr.call_type = '{$mysqli->real_escape_string($typeFilter)}'" : '';
+if ($hideInternal) {
+    $typeWhere .= " AND (ca.is_internal IS NULL OR ca.is_internal = 0)";
+}
+if ($onlyMissed) {
+    $typeWhere .= " AND ca.missed_reason IS NOT NULL";
+}
+if ($aiResultFlt !== '') {
+    $typeWhere .= " AND ca.ai_result = '{$mysqli->real_escape_string($aiResultFlt)}'";
+}
 
 $calls = [];
 $result = $mysqli->query("
@@ -73,6 +87,9 @@ $result = $mysqli->query("
         ca.client_sentiment,
         ca.consultant_sentiment,
         ca.ai_business_note,
+        ca.is_internal,
+        ca.missed_reason,
+        ca.missed_outcome,
         ca.recording_uuid AS analysis_recording_uuid,
         rec.uuid AS local_file_uuid
     FROM a1_cdr cdr
@@ -136,11 +153,28 @@ function aiResultBadge(?string $result, ?string $status): string {
         'complaint'  => ['Жалоба',       'danger'],
         'info'       => ['Инфо-запрос',  'info'],
         'other'      => ['Другое',       'secondary'],
+        'extension'  => ['Продление',    'primary'],
+        'service'    => ['Обслуживание', 'secondary'],
+        'missed'     => ['Упущено',      'danger'],
     ];
     $entry = $labels[$result] ?? [$result, 'secondary'];
     $label = $entry[0];
     $color = $entry[1];
     return "<span class=\"badge badge-{$color}\">{$label}</span>";
+}
+
+function missedDemandBadge(?string $reason, ?string $outcome): string {
+    if (!$reason) return '';
+    $color = ($outcome === 'hard') ? 'danger' : 'warning';
+    $label = ($reason === 'stock') ? 'Нет в наличии' : 'Нет в ассортименте';
+    return "<div class=\"mt-1\"><span class=\"badge badge-{$color}\" title=\"Отказ: {$outcome}\">{$label}</span></div>";
+}
+
+function sentimentIcon(?string $sent): string {
+    if ($sent === 'positive') return '😊';
+    if ($sent === 'neutral') return '😐';
+    if ($sent === 'negative') return '😠';
+    return '';
 }
 
 $prevDate = date('Y-m-d', strtotime($date . ' -1 day'));
@@ -276,10 +310,35 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <?php foreach (['all' => 'Все', 'incoming' => 'Входящие', 'outgoing' => 'Исходящие', 'missed' => 'Пропущенные'] as $val => $lbl): ?>
                 <li class="nav-item">
                     <a class="nav-link <?= $typeFilter === $val ? 'active' : '' ?>"
-                       href="?date=<?= $date ?>&type=<?= $val ?>"><?= $lbl ?></a>
+                       href="?date=<?= $date ?>&type=<?= $val ?>&hide_internal=<?= $hideInternal ?>&only_missed=<?= $onlyMissed ?>&ai_result=<?= urlencode($aiResultFlt) ?>"><?= $lbl ?></a>
                 </li>
                 <?php endforeach; ?>
             </ul>
+
+            <form method="GET" class="d-flex align-items-center gap-2 m-0" style="gap:10px;">
+                <input type="hidden" name="date" value="<?= $date ?>">
+                <input type="hidden" name="type" value="<?= $typeFilter ?>">
+                <select name="ai_result" class="form-control form-control-sm" style="width:150px;" onchange="this.form.submit()">
+                    <option value="">Все результаты ИИ</option>
+                    <option value="new_client" <?= $aiResultFlt === 'new_client' ? 'selected' : '' ?>>Новый клиент</option>
+                    <option value="booking" <?= $aiResultFlt === 'booking' ? 'selected' : '' ?>>Бронирование</option>
+                    <option value="complaint" <?= $aiResultFlt === 'complaint' ? 'selected' : '' ?>>Жалоба</option>
+                    <option value="info" <?= $aiResultFlt === 'info' ? 'selected' : '' ?>>Инфо-запрос</option>
+                    <option value="extension" <?= $aiResultFlt === 'extension' ? 'selected' : '' ?>>Продление</option>
+                    <option value="service" <?= $aiResultFlt === 'service' ? 'selected' : '' ?>>Обслуживание</option>
+                    <option value="missed" <?= $aiResultFlt === 'missed' ? 'selected' : '' ?>>Упущено</option>
+                    <option value="other" <?= $aiResultFlt === 'other' ? 'selected' : '' ?>>Другое</option>
+                </select>
+                <div class="custom-control custom-checkbox ml-2">
+                    <input type="checkbox" class="custom-control-input" id="only_missed" name="only_missed" value="1" <?= $onlyMissed ? 'checked' : '' ?> onchange="this.form.submit()">
+                    <label class="custom-control-label small pt-1" for="only_missed">Упущенный спрос</label>
+                </div>
+                <div class="custom-control custom-checkbox ml-2">
+                    <input type="checkbox" class="custom-control-input" id="hide_internal" name="hide_internal" value="1" <?= $hideInternal ? 'checked' : '' ?> onchange="this.form.submit()">
+                    <label class="custom-control-label small pt-1" for="hide_internal">Скрыть внутренние</label>
+                </div>
+            </form>
+            
             <a href="?date=<?= $date ?>&type=<?= $typeFilter ?>&export=csv"
                class="btn btn-sm btn-outline-secondary">↓ CSV</a>
         </div>
@@ -354,9 +413,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <td><?= date('H:i', strtotime($call['call_date'])) ?></td>
                 <td><?= callTypeIcon($call['call_type']) ?></td>
                 <td>
-                    <div class="phone-number"><?= htmlspecialchars(formatPhone($call['call_type'] !== 'outgoing' ? $call['caller_number'] : $call['callee_number'])) ?></div>
+                    <div class="phone-number">
+                        <?= htmlspecialchars(formatPhone($call['call_type'] !== 'outgoing' ? $call['caller_number'] : $call['callee_number'])) ?>
+                        <?php if ($call['is_internal']): ?>
+                        <span class="badge badge-secondary ml-1">внутренний</span>
+                        <?php endif; ?>
+                    </div>
                     <?php if ($call['client_name']): ?>
-                    <small class="text-muted"><?= htmlspecialchars($call['client_name']) ?></small>
+                    <small class="text-muted"><?= htmlspecialchars($call['client_name']) ?> <?= sentimentIcon($call['client_sentiment']) ?></small>
                     <?php endif; ?>
                 </td>
                 <td><?= formatDuration((int) $call['call_duration']) ?></td>
@@ -375,7 +439,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <span class="text-muted small">нет записи</span>
                     <?php endif; ?>
                 </td>
-                <td><?= aiResultBadge($call['ai_result'], $call['ai_status']) ?></td>
+                <td>
+                    <?= aiResultBadge($call['ai_result'], $call['ai_status']) ?>
+                    <?= missedDemandBadge($call['missed_reason'], $call['missed_outcome']) ?>
+                </td>
                 <td>
                     <?php if (!empty($call['ai_business_note'])): ?>
                         <div class="ai-business-note" onclick="this.classList.toggle('expanded')" title="Нажмите, чтобы развернуть/свернуть">

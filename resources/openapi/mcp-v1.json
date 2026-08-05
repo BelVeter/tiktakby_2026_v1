@@ -4320,6 +4320,32 @@
                     },
                     {
                         "in": "query",
+                        "name": "ai_result",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Filter by exact ai_result value."
+                    },
+                    {
+                        "in": "query",
+                        "name": "is_internal",
+                        "schema": {
+                            "type": "integer",
+                            "enum": [0, 1]
+                        },
+                        "description": "Filter by internal-call flag (both parties are company numbers)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "has_missed",
+                        "schema": {
+                            "type": "integer",
+                            "enum": [0, 1]
+                        },
+                        "description": "When 1, only rows where missed_reason IS NOT NULL."
+                    },
+                    {
+                        "in": "query",
                         "name": "page",
                         "schema": {
                             "type": "integer",
@@ -4459,6 +4485,22 @@
                                                         "type": "string",
                                                         "nullable": true,
                                                         "description": "Detailed explanation of the outcome"
+                                                    },
+                                                    "is_internal": {
+                                                        "type": "boolean",
+                                                        "description": "True when both caller and callee are company numbers (config/tiktak.php internal_phones)"
+                                                    },
+                                                    "missed_reason": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": ["stock", "assortment"],
+                                                        "description": "Set when the call's main outcome was missed demand: item out of stock (stock) vs not carried at all (assortment)"
+                                                    },
+                                                    "missed_outcome": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": ["hard", "soft"],
+                                                        "description": "hard = client refused, soft = client willing to wait/substitute"
                                                     }
                                                 }
                                             }
@@ -4651,7 +4693,7 @@
             },
             "post": {
                 "operationId": "tiktak_calls_recordings_analysis_submit",
-                "summary": "Submit AI analysis result. Body: {transcript, ai_summary, ai_result, ai_result_detail, discussed_items[], missed_item, client_sentiment, consultant_sentiment, ai_business_note} for success, or {error} for failure. Sets ai_status=done or error.",
+                "summary": "Submit AI analysis result. Body: {transcript, ai_summary, ai_result, ai_result_detail, discussed_items[], missed_item, client_sentiment, consultant_sentiment, ai_business_note, is_internal, missed_reason, missed_outcome} for success, or {error} for failure. Sets ai_status=done or error.",
                 "parameters": [
                     {
                         "in": "path",
@@ -4681,7 +4723,10 @@
                                             "booking",
                                             "complaint",
                                             "info",
-                                            "other"
+                                            "other",
+                                            "extension",
+                                            "service",
+                                            "missed"
                                         ]
                                     },
                                     "ai_result_detail": {
@@ -4714,6 +4759,22 @@
                                     },
                                     "ai_business_note": {
                                         "type": "string"
+                                    },
+                                    "is_internal": {
+                                        "type": "boolean",
+                                        "description": "True when both parties are company numbers. Excluded from calls_analyzed and demand analytics."
+                                    },
+                                    "missed_reason": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": ["stock", "assortment"],
+                                        "description": "Invalid values are silently stored as NULL."
+                                    },
+                                    "missed_outcome": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": ["hard", "soft"],
+                                        "description": "Invalid values are silently stored as NULL."
                                     },
                                     "error": {
                                         "type": "string",
@@ -4760,7 +4821,7 @@
             },
             "post": {
                 "operationId": "tiktak_calls_daily_summary_submit",
-                "summary": "Upsert AI daily summary. Body: {summary_text, key_themes[]}. Counts (total_calls, incoming_calls, outgoing_calls, missed_calls, calls_analyzed) are auto-filled from a1_cdr on the server.",
+                "summary": "Upsert AI daily summary. Body: {summary_text, key_themes[]}. Counts (total_calls, incoming_calls, outgoing_calls, missed_calls, calls_analyzed, internal_calls) are auto-filled from a1_cdr/a1_call_analysis on the server. calls_analyzed and internal_calls are mutually exclusive (is_internal=0 vs 1).",
                 "parameters": [
                     {
                         "in": "path",
@@ -4822,6 +4883,270 @@
                     },
                     "404": {
                         "description": "No analysis record found for this uuid."
+                    }
+                }
+            }
+        },
+        "/calls/recordings/{uuid}/items": {
+            "get": {
+                "operationId": "tiktak_calls_recordings_items_get",
+                "summary": "Get the per-phrase demand items (call_demand_items rows) for a recording.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "uuid",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Demand items for this recording in {query, data, meta} envelope.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "query": {
+                                            "type": "object",
+                                            "properties": {
+                                                "uuid": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "recording_uuid": {
+                                                        "type": "string"
+                                                    },
+                                                    "call_date": {
+                                                        "type": "string",
+                                                        "format": "date"
+                                                    },
+                                                    "phrase": {
+                                                        "type": "string"
+                                                    },
+                                                    "cat_id": {
+                                                        "type": "integer",
+                                                        "nullable": true
+                                                    },
+                                                    "cat_name": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "kind": {
+                                                        "type": "string",
+                                                        "enum": ["demand", "missed", "mention"]
+                                                    },
+                                                    "missed_reason": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": ["stock", "assortment"]
+                                                    },
+                                                    "missed_outcome": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": ["hard", "soft"]
+                                                    },
+                                                    "match_source": {
+                                                        "type": "string",
+                                                        "enum": ["alias", "fuzzy", "model", "manual", "unmatched"]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "tiktak_calls_recordings_items_submit",
+                "summary": "Replace the demand items for a recording. Body: JSON array of {phrase, kind, cat_id, cat_name, match_source, missed_reason, missed_outcome}. Deletes all existing non-manual rows for this uuid and inserts the given items; rows with match_source='manual' are preserved by matching phrase (their cat_id/cat_name/match_source win over the submitted values).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "uuid",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "phrase": {
+                                            "type": "string"
+                                        },
+                                        "kind": {
+                                            "type": "string",
+                                            "enum": ["demand", "missed", "mention"]
+                                        },
+                                        "cat_id": {
+                                            "type": "integer",
+                                            "nullable": true
+                                        },
+                                        "cat_name": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "match_source": {
+                                            "type": "string",
+                                            "enum": ["alias", "fuzzy", "model", "manual", "unmatched"]
+                                        },
+                                        "missed_reason": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "enum": ["stock", "assortment"]
+                                        },
+                                        "missed_outcome": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "enum": ["hard", "soft"]
+                                        }
+                                    },
+                                    "required": ["phrase", "kind", "match_source"]
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "{\"status\": \"ok\"}"
+                    }
+                }
+            }
+        },
+        "/calls/demand": {
+            "get": {
+                "operationId": "tiktak_calls_demand_aggregate",
+                "summary": "Aggregate call_demand_items by category, excluding internal calls (a1_call_analysis.is_internal=1). Used by the 'Спрос по категориям' admin report (bb/call_demand.php) to surface demand for missing/out-of-stock inventory.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filters on call_demand_items.call_date. Default: 30 days ago"
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Default: today"
+                    },
+                    {
+                        "in": "query",
+                        "name": "kind",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["demand", "missed", "mention"]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "missed_reason",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["stock", "assortment"]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "missed_outcome",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["hard", "soft"]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "razdel_id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Restricts to categories under this razdel (via tovar_rent_cat -> sub_razdel). Rows with cat_id=NULL (phrase never matched to a catalog category) are always included regardless of this filter."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Per-category demand aggregate in {query, data, meta} envelope.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "cat_id": {
+                                                        "type": "integer",
+                                                        "nullable": true
+                                                    },
+                                                    "cat_name": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "mentions": {
+                                                        "type": "integer",
+                                                        "description": "Total call_demand_items rows for this category in range"
+                                                    },
+                                                    "missed_hard": {
+                                                        "type": "integer",
+                                                        "description": "Count where kind=missed AND missed_outcome=hard"
+                                                    },
+                                                    "missed_soft": {
+                                                        "type": "integer",
+                                                        "description": "Count where kind=missed AND missed_outcome=soft"
+                                                    },
+                                                    "top_phrases": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "description": "Up to 5 unique verbatim phrases for this category"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_categories": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
