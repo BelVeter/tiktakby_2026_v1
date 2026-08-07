@@ -150,12 +150,15 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 | Legacy | `GET /orders/stats` | Original combined orders+brons+deals stats |
 |        | `GET /deals/list` | Paginated recent deals with addresses (no PII) |
 | Export | `GET /export/monthly/{topic}` | CSV stream for `operations`, `revenue`, `pnl`; `traffic` is a header-only stub (Y.Metrika lives elsewhere) |
-| Calls  | `GET /calls/recordings` | List A1 VATS recordings (uuid, dates, caller_number, caller/callee, duration, file_size, file_url, ai_status, ai_business_note, **ai_summary, client_sentiment, consultant_sentiment, ai_result, ai_result_detail**). `transcript` is excluded — only in detail endpoint. |
+| Calls  | `GET /calls/recordings` | List A1 VATS recordings. Response includes **new fields**: `is_internal` (bool), `missed_reason` (stock/assortment/price/null), `missed_outcome` (hard/soft/null). `transcript` excluded — fetch via detail endpoint. |
 |        | `GET /calls/recordings/{uuid}/file` | Stream MP3 binary (Range-aware) |
 |        | `GET /calls/cdr` | CDR list — all calls (incoming/outgoing/missed) from A1 VATS |
 |        | `GET /calls/pending-analysis` | Pending AI analysis queue; auto-marks returned records as processing |
 |        | `GET /calls/recordings/{uuid}/analysis` | Get analysis result for a recording |
-|        | `POST /calls/recordings/{uuid}/analysis` | Submit analysis (transcript, ai_summary, ai_result, discussed_items, missed_item, sentiment, ai_business_note) |
+|        | `POST /calls/recordings/{uuid}/analysis` | Submit analysis. Body: `{transcript, ai_summary, ai_result, ai_result_detail, discussed_items[], missed_item, client_sentiment, consultant_sentiment, ai_business_note, **is_internal** (bool), **missed_reason** (stock/assortment/price), **missed_outcome** (hard/soft)}`. Sets ai_status=done or error. |
+|        | `GET /calls/recordings/{uuid}/items` | Get demand items for a recording (from `call_demand_items` table) |
+|        | `POST /calls/recordings/{uuid}/items` | Submit demand items. Array of `{phrase, kind(demand/missed), cat_id, cat_name, match_source, missed_reason, missed_outcome}`. Replaces all non-manual items; preserves rows with `match_source='manual'`. |
+|        | `GET /calls/demand` | Aggregate demand by category. Params: `from`, `to`, `kind`, `missed_reason`, `missed_outcome`, `razdel_id`. Response: `{cat_id, cat_name, mentions, missed_hard, missed_soft, top_phrases[]}`. Excludes internal calls. |
 |        | `POST /calls/recordings/import-completed` | Bulk import historical records with fully completed analysis (skips pending queue) |
 |        | `GET /calls/daily-summary/{date}` | Get AI daily summary for YYYY-MM-DD |
 |        | `POST /calls/daily-summary/{date}` | Upsert daily summary; counts auto-filled from a1_cdr |
@@ -173,10 +176,10 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /pages/history` | Field-level change log of SEO content written through this API (`mcp_content_versions`). Filters: `page_type`, `slug`, `field`, `from`, `to` |
 | SMS    | `POST /sms/send` | Send an SMS message using RocketSMS (`phone`, `text`, optional `sender`) |
 | Redirects | `GET /redirects` | List redirects with optional filters: `is_active`, `is_regex`, `search` (LIKE on source/target); paginated (`per_page` max 500, default 100) |
-|        | `POST /redirects` | Create a single redirect (`source_url`, `target_url`, required; `status_code` 301/302, `is_active`, `is_regex`, `comment` optional). Non-regex URLs auto-prefixed with `/`. Returns 422 on duplicate `source_url`. |
-|        | `PATCH /redirects/{id}` | Partial update — only provided fields are modified. At least one field required. |
+|        | `POST /redirects` | Create a single redirect (`source_url`, `target_url`, required; `status_code` 301/302, `is_active`, `is_regex`, `comment` optional, **max 255 chars**). Non-regex URLs auto-prefixed with `/`. Returns 422 on duplicate `source_url`. |
+|        | `PATCH /redirects/{id}` | Partial update — only provided fields are modified. At least one field required. `comment` max 255 chars. |
 |        | `DELETE /redirects/{id}` | Delete redirect by id. |
-|        | `POST /redirects/bulk` | Bulk upsert up to 200 redirects. Body: `{"redirects": [...]}`. Uses `INSERT … ON DUPLICATE KEY UPDATE` on `source_url`. All writes immediately clear `redirects_exact_map` + `redirects_regex_list` cache keys used by `CheckRedirects` middleware. |
+|        | `POST /redirects/bulk` | Bulk upsert up to 200 redirects. Body: `{"redirects": [...]}`. `comment` max 255 chars. Uses `INSERT … ON DUPLICATE KEY UPDATE` on `source_url`. All writes immediately clear `redirects_exact_map` + `redirects_regex_list` cache keys used by `CheckRedirects` middleware. |
 
 ## L3 product pages — URL resolution and gotchas
 

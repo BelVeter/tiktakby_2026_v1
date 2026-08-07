@@ -107,6 +107,11 @@ Route::prefix('mcp/v1')
             ->where('topic', '[a-z_-]+')
             ->name('export.monthly');
 
+        // A1 Calls: demand reporting (new)
+        Route::get('calls/demand', [CallsController::class, 'getDemandAggregate'])->name('calls.demand');
+        Route::get('calls/recordings/{uuid}/items', [CallsController::class, 'getDemandItems'])->name('calls.recordings.items.get');
+        Route::post('calls/recordings/{uuid}/items', [CallsController::class, 'submitDemandItems'])->name('calls.recordings.items.post');
+
         // A1 Calls: recordings (existing)
         Route::get('calls/recordings', [CallsController::class, 'index'])->name('calls.recordings');
         Route::post('calls/recordings/import-completed', [CallsController::class, 'importCompleted'])->name('calls.recordings.import-completed');
