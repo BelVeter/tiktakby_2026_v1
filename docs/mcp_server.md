@@ -126,6 +126,7 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /operations/timeline` | Period-bucketed funnel |
 |        | `GET /operations/by-category` | Per-razdel orders + deals + revenue |
 |        | `GET /operations/by-location` | Per-office deals + clients + revenue + returns |
+|        | `GET /operations/deals-by-model` | Deals *started* per model × period (`cr_time`, not the period-intersecting count `/inventory/utilization` uses), with `units_at_period_end`/`deals_per_unit` denominator (skipped above 60 periods in range — see `inventory_denominator_skipped` warning) |
 | Inventory | `GET /inventory/free-tree` | Catalog tree with free-unit counts |
 |        | `GET /inventory/pricing` | Active catalog model pricing with calculated daily rate |
 |        | `GET /inventory/profitability` | Per-physical-item profitability |
@@ -141,6 +142,8 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /locations/lifecycle` | Full office history (open/close/total) |
 | Categories | `GET /categories/seasonality` | Month-of-year × seasonality_index |
 |        | `GET /categories/performance` | Per-category deals + revenue (legacy) |
+| Pricing | `GET /pricing/history` | Tariff change log from `rent_tarif_history` (one event = full before/after snapshot of a `rent_tarif_act` row). Filters: `model_id`, `category`, `from`, `to`, `change_type` (`baseline\|create\|update\|delete`), `actor_user_id`, `limit`/`offset`. Each row includes `delta_amount_byn`/`delta_pct`. |
+|        | `GET /pricing/snapshot?as_of=` | Reconstructed price list as of an arbitrary date: latest `rent_tarif_history` event with `changed_at <= as_of` per `tarif_id`. Rows with no event before `as_of` but that were already active (`new_start_date <= as_of`) are returned with `extrapolated: true`, plus a `tariff_rows_extrapolated` warning giving the share. Cached for `TTL_HEAVY` (1 h) — an admin price edit can take up to an hour to show up here. |
 | Carnival | `GET /carnival/funnel` | bookings → approved → issued → returned |
 |        | `GET /carnival/seasonality` | December peak verification (idx ≈ 6.7+) |
 |        | `GET /carnival/revenue` | k1/k2/terminal/bank revenue split |

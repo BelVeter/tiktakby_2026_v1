@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **CRITICAL**: Dual architecture:
 1. **Laravel app** (`app/`, `routes/`, `resources/`) - Public website
 2. **Legacy admin panel** (`bb/`) - Standalone PHP admin interface
-3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 60 endpoints (analytics, AI-agent calls, SEO content management, SMS, redirects CRUD) under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
+3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 63 endpoints (analytics, AI-agent calls, SEO content management, SMS, redirects CRUD) under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
 
 **MCP API methodology (locked 2026-05-14)** — reproduces legacy admin reports `/bb/reports.php`, `/bb/sales_breakdown.php`, `/bb/dohrash2.php`, `/bb/cat_analysis.php`:
 - Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` filtered by `acc_date` (accounting date — when payment landed). NOT by deal `cr_time`.
@@ -171,6 +171,19 @@ Check admin status in Laravel views:
 @endif
 ```
 
+### 7. Тарифы правятся только через `bb\classes\Tariff`
+
+История изменений тарифов захватывается кодом, а не триггерами БД. Сырой
+`INSERT`/`UPDATE`/`DELETE` по `rent_tarif_act` мимо класса `Tariff` не попадёт в
+`rent_tarif_history` и молча сломает `/pricing/snapshot`. Исключение — разовые миграции
+каталога в `database/migrations/`. Проверяется `tests/Feature/TariffWriteGuardTest.php`.
+
+⚠️ `bb/` не использует composer autoload — каждый файл сам объявляет свои зависимости через
+`require_once`. `Tariff.php` делает `require_once __DIR__ . '/TariffHistory.php'`, а
+`ModelArchive.php` — `require_once __DIR__ . '/Tariff.php'`. Без этой цепочки легаси-страницы,
+подключающие `Tariff.php` напрямую, падали с `Fatal error: Class 'bb\classes\TariffHistory'
+not found`.
+
 ## Project Structure
 
 ### Controllers (`app/Http/Controllers/`)
@@ -197,8 +210,9 @@ All MCP controllers extend `BaseController` (envelope/cache/data-freshness helpe
 | `HealthController` | `/health`, `/openapi.json` | 2 — liveness probe + OpenAPI 3.0 spec |
 | `MetaController` | `/meta/*` | 5 — categories, locations, expense-items, income-items, data-freshness |
 | `FinanceController` | `/finance/*` | 5 — pnl (with 2025 warning), revenue, revenue-by-category, expenses, cash-flow |
-| `OperationsController` | `/operations/*` | 4 — funnel, timeline, by-category, by-location (`/orders/stats` + `/deals/list` removed, HTTP 404) |
+| `OperationsController` | `/operations/*` | 5 — funnel, timeline, by-category, by-location, deals-by-model (`/orders/stats` + `/deals/list` removed, HTTP 404) |
 | `InventoryController` | `/inventory/*` | 6 — free-tree, pricing, profitability, utilization, turnover, idle |
+| `PricingController` | `/pricing/*` | 2 — history (лента изменений тарифов из `rent_tarif_history`), snapshot (прайс-лист на произвольную дату; строки без событий до этой даты помечаются `extrapolated`) |
 | `CustomersController` | `/customers/*`, `/clients/ltv` | 4 — timeline, cohorts, repeat-intervals + legacy LTV |
 | `GeoController` | `/geo/clients-by-city` | 1 — city-level grouping (Minsk-district resolution deferred to Stage 2) |
 | `LocationsController` | `/locations/*` | 2 — performance (per period × office), lifecycle (full history) |
@@ -255,7 +269,7 @@ Standalone PHP application (not Laravel):
 **API routes** (`routes/api.php`):
 - **MCP Analytics API** (`GET /api/mcp/v1/*`)
   - Middleware chain: `mcp.json` → `mcp.token` → `mcp.geo` → `mcp.audit` → `throttle:60,1`
-  - 58 endpoints + `/health` + `/openapi.json` — see [docs/mcp_server.md](docs/mcp_server.md) and `resources/openapi/mcp-v1.json` for the full catalog
+  - 63 endpoints + `/health` + `/openapi.json` — see [docs/mcp_server.md](docs/mcp_server.md) and `resources/openapi/mcp-v1.json` for the full catalog
   - Response envelope: `{query, data, meta:{total_rows, currency:"BYN", data_freshness, warnings}}`
   - `/finance/pnl` injects a `meta.warnings` entry referring to `D-OPEN-FY2025` whenever the requested period overlaps 2025-01 or later — DO NOT remove this without coordinating with the analytics workspace at `/home/dmitry/Documents/прокат/`
 
@@ -264,13 +278,13 @@ Standalone PHP application (not Laravel):
 | Group | Tables |
 |-------|--------|
 | **Catalog** | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_cats`, `tovar_list`, `tovar_properties` |
-| **Rental** | `rent_deals_act`, `rent_orders`, `rent_model_web`, `rent_tarif_act`, `rent_sub_deals_act`, `deals` |
+| **Rental** | `rent_deals_act`, `rent_orders`, `rent_model_web`, `rent_tarif_act`, `rent_tarif_history`, `rent_sub_deals_act`, `deals` |
 | **Orders** | `rent_orders`, `rent_orders_arch`, `karn_brons`, `karn_brons_arch` |
 | **Clients** | `clients`, `clients_arch`, `users`, `logpass` |
 | **Handbooks** | `rash_items`, `doh_items` (contain `is_active` for form filtering) |
 | **Content** | `pages`, `video_links`, `dop_photos` |
 | **Redirects** | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
-| **MCP API** | `mcp_api_log` (request audit — query params only, no bodies); `mcp_content_versions` (field-level history of SEO content written via the API, one row per changed field); `idx_mcp_*` performance indexes added in migration `2026_05_09_000001_add_mcp_analytics_indexes` |
+| **MCP API** | `mcp_api_log` (request audit — query params only, no bodies); `mcp_content_versions` (field-level history of SEO content written via the API, one row per changed field); `idx_mcp_*` performance indexes added in migration `2026_05_09_000001_add_mcp_analytics_indexes`; `rent_tarif_history` (журнал изменений тарифов: полный снимок строки до и после, `source` различает `bb_admin`/`model_archive`/`legacy_import`/`baseline`) |
 | **System** | `migrations`, `personal_access_tokens` |
 
 ### Frontend (`resources/views/`)
