@@ -514,6 +514,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 
 			perDay.value = perDayPay.toFixed(2);
 			total.value = totalPay.toFixed(2);
+			document.querySelector('#step').value = 'day'; //perDayPay всегда цена за день - step должен совпадать, иначе pay_calc() на бэкенде считает просрочку по неверной единице
 
 			//console.log(tarifs, tarifsCopy);
 		}
