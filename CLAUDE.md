@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 **TikTak.by** - Children's goods rental service (Minsk, Belarus)
@@ -16,76 +14,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. **Legacy admin panel** (`bb/`) - Standalone PHP admin interface
 3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 63 endpoints (analytics, AI-agent calls, SEO content management, SMS, redirects CRUD) under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
 
-**MCP API methodology (locked 2026-05-14)** — reproduces legacy admin reports `/bb/reports.php`, `/bb/sales_breakdown.php`, `/bb/dohrash2.php`, `/bb/cat_analysis.php`:
-- Revenue = `SUM(r_paid + delivery_paid)` over `UNION(rent_sub_deals_act, rent_sub_deals_arch)` filtered by `acc_date` (accounting date — when payment landed). NOT by deal `cr_time`.
-- Deal/return counts read `UNION(rent_deals_act, rent_deals_arch)`. `_act` holds ~430 currently-open deals; querying only `_arch` misses them.
-- Office attribution uses `sub_deal.place + delivery_yn` (per-payment), NOT `deal.first_rent_place` (per-deal). office_id=0 = synthetic "Курьер" pseudo-office.
-- Carnival items: detected via `tovar_rent_cat.cat_type=1`. Endpoints accept `include_carnival` (default true). `/finance/pnl` splits into `revenue_carnival_byn` + `revenue_non_carnival_byn`.
-- Inventory at date X: `tovar_rent_items` (buy_date ≤ X) + `tovar_rent_items_arch` (buy_date ≤ X AND arch_time ≥ X). Used by `/inventory/utilization` as historical denominator.
-- ⚠️ DO NOT sum `/finance/revenue` + `/carnival/revenue` — `/carnival/*` reads `karn_brons` (pre-booking system), `/finance/revenue` already includes carnival items as rentals. Double-count risk.
-- Many-to-many trap: never join `subrazdel_category × razdel_subrazdel` directly in a query that also `SUM`s payments — that chain inflates sums M×N. Use `BaseController::itemsInRazdelSubquery()` instead.
-- Legacy parity is enforced by `tests/Feature/Mcp/LegacyParityTest.php` — DO NOT remove or weaken those assertions without coordinating with the analytics workspace.
+**MCP API methodology (locked 2026-05-14)** — revenue/office/carnival query contracts and legacy-parity rules live in [app/Http/Controllers/Mcp/CLAUDE.md](app/Http/Controllers/Mcp/CLAUDE.md) (loads automatically when working in that directory).
+⚠️ DO NOT sum `/finance/revenue` + `/carnival/revenue` — `/finance/revenue` already includes carnival items as rentals. Double-count risk.
 
 ## Essential Commands
 
-### Local Development (Two Options)
-
-**Option 1: Docker (Recommended)**
-```bash
-docker compose up -d
-# App: http://localhost
-# PhpMyAdmin: http://localhost:8088
-# Database: localhost:33060
-
-# Run commands inside container
-docker compose exec app php artisan migrate
-docker compose exec app npm run dev
-docker compose exec app php artisan test
-
-# PHP syntax check
-docker compose exec -T app php -l path/to/file.php
-```
+### Local Development
 
 > **Note**: use `docker compose` (без дефиса, новый синтаксис). `docker-compose` недоступен на этой машине.
-
-**Option 2: Laragon (Windows)**
-```bash
-# ⚠️ CRITICAL: Must use Apache, NOT artisan serve
-# Project root must serve as document root (not /public)
-# Access: http://localhost (Apache required)
-```
-
-### Frontend Assets
-```bash
-npm run dev          # Development build
-npm run watch        # Watch mode (rebuilds on file changes)
-npm run prod         # Production build (COMMIT OUTPUT before deploying!)
-```
-
-### Database & Cache
-```bash
-php artisan migrate           # Run pending migrations
-php artisan db:seed          # Seed database
-php artisan optimize:clear   # Clear all caches (required after config/route changes)
-php artisan config:cache     # Cache config
-php artisan route:cache      # Cache routes (fails if route closures exist!)
-php artisan view:cache       # Cache views
-```
-
-### Testing
-```bash
-php artisan test                    # Run all tests
-./vendor/bin/phpunit               # Run PHPUnit directly
-./vendor/bin/phpunit tests/Unit    # Unit tests only
-./vendor/bin/phpunit tests/Feature # Feature tests only
-./vendor/bin/phpunit --filter=TestName  # Run specific test
-```
+> Laragon (Windows) requires Apache serving the project root as document root — `artisan serve` won't work (see Critical Rule 2).
 
 ### Git & Deployment
-```bash
-git checkout -b feature/my-feature  # Create feature branch
-git push -u origin feature/my-feature  # Push and create PR
 
+```bash
 # BEFORE handing over a PR link — verify it merges cleanly:
 git fetch origin && git merge-tree --write-tree --messages HEAD origin/main
 # exit code 0 = no conflicts; non-zero = fix before asking for review
@@ -186,121 +127,14 @@ not found`.
 
 ## Project Structure
 
-### Controllers (`app/Http/Controllers/`)
+Full controller/middleware/table inventory lives in `AGENTS.md` — this section covers only what isn't derivable by reading the code.
 
-| Controller | Purpose |
-|-----------|---------|
-| `MainController` | Homepage rendering |
-| `CatController` | Catalog pages (sections → subsections → categories) |
-| `L3Controller` | Individual product (model) pages with order form |
-| `CartController` | Shopping cart display, tariff retrieval, availability check, checkout |
-| `AboutController` | Static pages (about, conditions, delivery, contacts, policy, premium-start) |
-| `SearchController` | Search, filtering by manufacturer and age |
-| `FavoritesController` | Favorites functionality |
-| `ZvonokController` | Callback requests, bookings (KB), subscriptions |
-| `RedirectController` | URL redirects (created for `route:cache` compatibility) |
-| `Feed2GisController` | 2GIS YML feed — generates XML with 24 rental services and minimum weekly prices, daily cache |
-
-### MCP Analytics API Controllers (`app/Http/Controllers/Mcp/`)
-
-All MCP controllers extend `BaseController` (envelope/cache/data-freshness helpers, TTL constants). Common date-range parameters validated by `App\Http\Requests\Mcp\RangeRequest` with defaults (last 12 months, `granularity=month`, all dimensional filters = `all`).
-
-| Controller | Path prefix | Endpoints (count) |
-|-----------|-------------|-------------------|
-| `HealthController` | `/health`, `/openapi.json` | 2 — liveness probe + OpenAPI 3.0 spec |
-| `MetaController` | `/meta/*` | 5 — categories, locations, expense-items, income-items, data-freshness |
-| `FinanceController` | `/finance/*` | 5 — pnl (with 2025 warning), revenue, revenue-by-category, expenses, cash-flow |
-| `OperationsController` | `/operations/*` | 5 — funnel, timeline, by-category, by-location, deals-by-model (`/orders/stats` + `/deals/list` removed, HTTP 404) |
-| `InventoryController` | `/inventory/*` | 6 — free-tree, pricing, profitability, utilization, turnover, idle |
-| `PricingController` | `/pricing/*` | 2 — history (лента изменений тарифов из `rent_tarif_history`), snapshot (прайс-лист на произвольную дату; строки без событий до этой даты помечаются `extrapolated`) |
-| `CustomersController` | `/customers/*`, `/clients/ltv` | 4 — timeline, cohorts, repeat-intervals + legacy LTV |
-| `GeoController` | `/geo/clients-by-city` | 1 — city-level grouping (Minsk-district resolution deferred to Stage 2) |
-| `LocationsController` | `/locations/*` | 2 — performance (per period × office), lifecycle (full history) |
-| `CategoriesController` | `/categories/*` | 2 — seasonality, performance (legacy) |
-| `CarnivalController` | `/carnival/*` | 3 — funnel, seasonality, revenue (UNION of `karn_brons` + `karn_brons_arch`) |
-| `ExportController` | `/export/monthly/{topic}` | 1 — streaming CSV for `operations`, `revenue`, `pnl`, `traffic` |
-| `CallsController` | `/calls/*` | 9 — recordings list, file stream, CDR, pending-analysis queue, get/submit/reset analysis, get/submit daily summary |
-| `MarketingController` | `/marketing/conversions` | 1 — UTM-attributed conversion events with entity details |
-| `PagesListingController` | `/pages/listing`, `/pages/listing/{slug}`, `/pages/listing/{slug}/image` | 4 — GET list, GET show, PATCH upsert SEO fields for L2 categories (`pages` table; supports `faq` JSON array → FAQPage Schema.org), POST upload+resize hero image (1440×635 JPG, saves to `/public/img/topmenu/`, updates `h1_pic_url`) |
-| `PagesProductController` | `/pages/product`, `/pages/product/{slug}`, `/pages/product/bulk` | 4 — GET list (filters `razdel/subrazdel/category/search/missing/status/has_stock/indexable`, `fields=full`, `summary=1`, pagination), GET show, PATCH update, PATCH bulk (≤100 pages, per-item status). SEO fields of L3 models in `rent_model_web`, incl. `h1`/`l2_name`/`main_pic_title` and `faq` JSON array. `full_url` is the canonical URL (`cat.main_sub_razdel_id` → `sub_razdel.main_razdel_id`) — see [docs/mcp_server.md](docs/mcp_server.md) |
-| `PagesHistoryController` | `/pages/history` | 1 — GET field-level change log of SEO content written via the API (`mcp_content_versions`); covers both listing and product levels |
-| `SmsController` | `/sms/send` | 1 — POST send SMS via RocketSMS (`phone`, `text`, optional `sender`) |
-| `RedirectsController` | `/redirects`, `/redirects/{id}`, `/redirects/bulk` | 5 — GET list (filters+pagination), POST create, PATCH update, DELETE, POST bulk upsert; clears `CheckRedirects` cache on every write |
-
-### Middleware (`app/Http/Middleware/`)
-
-| Middleware | Type | Purpose |
-|-----------|------|---------|
-| `CheckRedirects` | Global | Intercepts all requests, checks `redirects` table for 301/302 redirects |
-| `McpForceJsonMiddleware` | Route (mcp.json) | Sets `Accept: application/json` so validation failures return 422 JSON instead of 302 HTML |
-| `McpTokenMiddleware` | Route (mcp.token) | Validates Bearer token from `MCP_API_TOKEN` env |
-| `McpGeoCountryMiddleware` | Route (mcp.geo) | Restricts access by country (BY+RU using GeoLite2) |
-| `McpAuditLogMiddleware` | Route (mcp.audit) | Logs each MCP API request to `mcp_api_log` table |
-
-### Business Logic (`app/MyClasses/`)
-- `MainPage` — Homepage generation
-- `CatMainPage` — Catalog page logic
-- `L3Page` — Product page display
-- `L2ModelWeb` — Product model web representation
-- `CatMenuItem`, `Header` — Navigation components
-- `KBForm`, `KBronLine` — Booking form logic
-- `Pic` — Image handling
-
-### Admin Panel (`bb/`)
-Standalone PHP application (not Laravel):
-- `bb/index.php` — Admin dashboard with links
-- `bb/Base.php` — Core functionality
-- `bb/Db.php` — MySQLi singleton wrapper
-- `bb/redirects.php`, `bb/redirects_api.php` — Redirect management
-- `bb/items_manage.php` — Expense/income category management
-- `bb/webp_converter.php` — Batch WebP conversion (GD library)
-- `bb/classes/` — Business logic (Deal, Client, Category, Order, etc.)
-- `bb/models/` — Data models (User, Office, Kassa, etc.)
-
-### Routes (`routes/web.php`, `routes/api.php`)
-
-**Web routes**:
-- Language redirects: `/en/*`, `/lt/*` → `/ru/*` (only `/ru/` active)
-- Catalog structure: `/{lang}/{razdel}/{subrazdel}/{category}/{model}`
 - ⚠️ **L3 resolves the model by `rent_model_web.page_addr` + `lang` ONLY** (`L3Controller` → `L3Page::getPageByUrlName()` → `ModelWeb::getByUrlNameLangSafe()`). The `{razdel}/{subrazdel}/{category}` segments feed only the breadcrumbs and the recommendations-slider cache key, so **any** prefix returns 200 (`/ru/chush/chush2/chush3/<real-slug>` → 200; 404 only when the model slug itself is unknown). Consequence: moving a model between categories never 404s the old URL — only `<link rel="canonical">` changes, and it is always built from the model's real category.
-- All routes use controllers (no closures!) — required for `route:cache`
-- **2GIS YML Feed** (`GET /feed/2gis`): public XML feed of 24 rental services with minimum weekly prices; daily cached at 03:00 via `feed:generate-2gis` Artisan command; `?refresh=1` forces regeneration; source: `Feed2GisController`
-
-**API routes** (`routes/api.php`):
-- **MCP Analytics API** (`GET /api/mcp/v1/*`)
-  - Middleware chain: `mcp.json` → `mcp.token` → `mcp.geo` → `mcp.audit` → `throttle:60,1`
-  - 63 endpoints + `/health` + `/openapi.json` — see [docs/mcp_server.md](docs/mcp_server.md) and `resources/openapi/mcp-v1.json` for the full catalog
-  - Response envelope: `{query, data, meta:{total_rows, currency:"BYN", data_freshness, warnings}}`
-  - `/finance/pnl` injects a `meta.warnings` entry referring to `D-OPEN-FY2025` whenever the requested period overlaps 2025-01 or later — DO NOT remove this without coordinating with the analytics workspace at `/home/dmitry/Documents/прокат/`
-
-### Database Tables (Key Groups)
-
-| Group | Tables |
-|-------|--------|
-| **Catalog** | `razdel`, `razdel_subrazdel`, `sub_razdel`, `subrazdel_category`, `tovar_cats`, `tovar_list`, `tovar_properties` |
-| **Rental** | `rent_deals_act`, `rent_orders`, `rent_model_web`, `rent_tarif_act`, `rent_tarif_history`, `rent_sub_deals_act`, `deals` |
-| **Orders** | `rent_orders`, `rent_orders_arch`, `karn_brons`, `karn_brons_arch` |
-| **Clients** | `clients`, `clients_arch`, `users`, `logpass` |
-| **Handbooks** | `rash_items`, `doh_items` (contain `is_active` for form filtering) |
-| **Content** | `pages`, `video_links`, `dop_photos` |
-| **Redirects** | `redirects` (source_url, target_url, status_code, is_active, hit_count, last_hit_at) |
-| **MCP API** | `mcp_api_log` (request audit — query params only, no bodies); `mcp_content_versions` (field-level history of SEO content written via the API, one row per changed field); `idx_mcp_*` performance indexes added in migration `2026_05_09_000001_add_mcp_analytics_indexes`; `rent_tarif_history` (журнал изменений тарифов: полный снимок строки до и после, `source` различает `bb_admin`/`model_archive`/`legacy_import`/`baseline`) |
-| **System** | `migrations`, `personal_access_tokens` |
-
-### Frontend (`resources/views/`)
-Blade templates. Main layout: `layouts/app.blade.php` (contains version number for vendor CSS/JS cache-busting via filemtime).
+- **MCP Analytics API** (`GET /api/mcp/v1/*`) — full endpoint catalog in [docs/mcp_server.md](docs/mcp_server.md) and `resources/openapi/mcp-v1.json`. `/finance/pnl` injects a `meta.warnings` entry referring to `D-OPEN-FY2025` whenever the requested period overlaps 2025-01 or later — DO NOT remove this without coordinating with the analytics workspace at `/home/dmitry/Documents/прокат/`
 
 ## Deployment Process
 
-`Deploy.php` handles production deployment (triggered via URL with secret key):
-
-1. `git fetch origin` + `git reset --hard origin/main`
-2. `composer install --no-dev --optimize-autoloader`
-3. `php artisan migrate --force`
-4. `php artisan optimize:clear`
-5. `php artisan config:cache`
-6. `php artisan route:cache` ← Requires no route closures
-7. `php artisan view:cache`
+`Deploy.php` handles production deployment (triggered via URL with secret key; steps: fetch+reset, composer install, migrate, cache rebuild — see `Deploy.php` for the exact sequence).
 
 **IMPORTANT**: 
 - `git clean` is intentionally DISABLED to preserve unversioned user-uploaded images in `/bb/`
@@ -322,19 +156,7 @@ Blade templates. Main layout: `layouts/app.blade.php` (contains version number f
 ## Configuration
 
 ### Environment Variables (`.env`)
-```
-APP_KEY=          # Laravel encryption key (generated automatically)
-DB_CONNECTION=mysql
-DB_HOST=db        # Docker: 'db'; Laragon: localhost
-DB_PORT=3306
-DB_DATABASE=tiktakby_tiktak
-DB_USERNAME=tiktakby_tiktak
-DB_PASSWORD=Vai7evahch
-
-MCP_API_TOKEN=    # Bearer token for MCP Analytics API
-MCP_GEO_ALLOWED_COUNTRIES=BY,RU  # Restrict API access by country
-MCP_CACHE_TTL=300  # Cache TTL in seconds
-```
+Real values (DB credentials, MCP token) live in `.env` (gitignored, not committed) — see `.env.example` for the full variable list and defaults. Never hardcode credentials in this file.
 
 ## Additional Documentation
 
