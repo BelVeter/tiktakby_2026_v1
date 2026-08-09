@@ -134,9 +134,11 @@ If a request body includes `channel`, `kassa`, or `cr_who_id`, they are ignored 
 SELECT dr_id FROM doh_rash
 WHERE kassa='bank' AND type1 = ? AND ABS(amount) = ?
   AND acc_date BETWEEN ? AND ?          -- ±2 days around `date`, unix timestamps
-  AND info LIKE 'BANK#<doc_n> %'
+  AND info LIKE '%BANK#<doc_n> %'
 ```
-Reused directly from the proven May-cycle logic (`insert_doh_rash_2025_2026.sql`), with `type1` added to remove any theoretical doc_n collision between a debit and credit line. Items are processed sequentially, each insert committed immediately (no batch-wide transaction) — so if two items in the same request share a dedup key, the first's insert is already visible when the second's `SELECT` runs, and the second correctly comes back `duplicate` against the first's new `dr_id`. This also means a batch can partially succeed if the request is interrupted mid-way — acceptable given every write is independently idempotent and safe to retry.
+Adapted from the May-cycle logic (`insert_doh_rash_2025_2026.sql`), with two changes: `type1` added to remove any theoretical doc_n collision between a debit and credit line, and the `LIKE` pattern gets a **leading `%`**. The May script's rows store `info` as plain `BANK#<doc_n> ...` (no prefix existed yet), so its unprefixed `LIKE 'BANK#<doc_n> %'` was correct for what it was checking against. This design adds the `[AI] ` prefix (below) — an unprefixed, start-anchored `LIKE` would then never match a row this endpoint itself just inserted, silently defeating the entire dedup mechanism on every resubmit. Confirmed this exact bug is already present in the draft `PROPOSED_insert_2026-07.sql` (checks `info LIKE 'BANK#90504 %'` while inserting `'[AI] BANK#90504 ...'` — would duplicate on rerun). The leading-`%` version matches both the old unprefixed rows and the new `[AI]`-prefixed ones, so dedup works against the full history, not just future API-authored rows.
+
+Items are processed sequentially, each insert committed immediately (no batch-wide transaction) — so if two items in the same request share a dedup key, the first's insert is already visible when the second's `SELECT` runs, and the second correctly comes back `duplicate` against the first's new `dr_id`. This also means a batch can partially succeed if the request is interrupted mid-way — acceptable given every write is independently idempotent and safe to retry.
 
 **`date` → `acc_date` conversion:** interpreted as Minsk-local (`Europe/Minsk`) midnight, matching the existing convention used throughout `bb/` and the May-cycle import SQL — not UTC midnight, which would shift the unix timestamp by 2-3 hours and could push a transaction just outside the ±2-day dedup window at month boundaries.
 
