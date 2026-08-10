@@ -122,6 +122,12 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /finance/revenue-by-category` | Period × category revenue with `avg_deal_byn`, `avg_rental_days` (full deal duration), `avg_first_rent_days` (first-issuance sub-deal duration) |
 |        | `GET /finance/expenses` | doh_rash by `type2` × channel (cash/bank/etc.) |
 |        | `GET /finance/cash-flow` | Inflow/outflow/net per till (`kassa`) |
+|        | `GET /finance/entries` | List `doh_rash` ledger rows, filtered (`from`/`to`/`type1`/`type2`/`kassa`/`channel`/`dr_name_id`/`search`) and paginated. `amount` is always a positive magnitude; direction is `type1`. Only `rash`/`doh` rows are ever returned by this API — see "Ledger entry model" below. |
+|        | `GET /finance/entries/{id}` | Read a single ledger entry by `dr_id`. |
+|        | `POST /finance/entries` | Batch-create 1-200 ledger entries. One invalid item never blocks the others — HTTP 200 with per-item `status: created\|invalid`; only whole-request shape problems (empty array, >200 items) are HTTP 422. `type1` restricted to `rash`/`doh`. |
+|        | `PATCH /finance/entries/{id}` | Partial update, validated against the merged (existing + patch) row. Refuses rows whose existing `type1` is outside `rash`/`doh`. Journalled to `doh_rash_history`. |
+|        | `DELETE /finance/entries/{id}` | **Physical delete** — the row is actually removed from `doh_rash`, no soft-delete flag. Refuses `type1` outside `rash`/`doh`. Recovery is via `GET /finance/entries/history`, journalled before the row is destroyed. |
+|        | `GET /finance/entries/history` | Change journal (`doh_rash_history`) reader — `update`/`delete` only, full before/after row snapshots. `create` is never journalled (a new row is already self-describing via its own `created_by`/`created_at`). Filters: `dr_id`, `action`, `from`, `to`. |
 | Operations | `GET /operations/funnel` | leads → deals → sub-deals → returns + CR |
 |        | `GET /operations/timeline` | Period-bucketed funnel |
 |        | `GET /operations/by-category` | Per-razdel orders + deals + revenue |
@@ -180,6 +186,89 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `PATCH /redirects/{id}` | Partial update — only provided fields are modified. At least one field required. `comment` max 255 chars. |
 |        | `DELETE /redirects/{id}` | Delete redirect by id. |
 |        | `POST /redirects/bulk` | Bulk upsert up to 200 redirects. Body: `{"redirects": [...]}`. `comment` max 255 chars. Uses `INSERT … ON DUPLICATE KEY UPDATE` on `source_url`. All writes immediately clear `redirects_exact_map` + `redirects_regex_list` cache keys used by `CheckRedirects` middleware. |
+
+## Ledger entry model (`/finance/entries*`)
+
+`doh_rash` is the income/expense ledger. Its column names don't explain
+themselves, and neither an admin seeing them for the first time nor a
+calling agent can infer them from the name alone — this section is the
+reference, not a footnote.
+
+**Every entry answers four questions:**
+
+| Question | Field | Values |
+|---|---|---|
+| Direction | `type1` | `doh` (income) \| `rash` (expense) |
+| Article | `type2` | code from `doh_items.rd_code` (income) or `rash_items.ri_code` (expense) |
+| Where it happened | `channel` | office number (string, e.g. `"2"`), `cur` (courier), or `bank` |
+| Where the money sits | `kassa` | `k1` \| `k2` (physical cash tills), `card`, `bank` |
+
+**`type1` — the hard editable boundary.** `doh_rash` also holds `shift_plus`/
+`shift_minus` rows: paired till-transfer records (linked to each other via
+`link_to`) that keep the physical till balance in sync. This API can only
+create, update or delete rows with an existing `type1` of `rash` or `doh` —
+`shift_plus`/`shift_minus` rows are excluded on **both** sides (the existing
+DB row and the incoming/target value), because a single-row write would
+desynchronize the till balance the pair exists to keep in sync. This is
+enforced and tested (`FinanceEntriesController::EDITABLE_TYPE1`), not an
+implementation detail to work around.
+
+**`type2` — write vs. read.** On write, `type2` must be an `is_active=1` code
+in the dictionary matching `type1`. On read, `type2_name` resolves the label
+even for inactive/retired codes, so a historical row referencing a since-
+deactivated article code still displays a readable name.
+
+**`channel` × `kassa` is a validated pair, not two independent fields** —
+money can't be simultaneously in the bank account and a physical till:
+
+| `kassa` | valid `channel` |
+|---|---|
+| `bank` | `bank` only |
+| `k1`, `k2`, `card` | a live office number (existence-gated, not active-status-gated — a closed-but-existing office is still valid), or `cur` |
+
+A mismatched pair (e.g. `channel=bank` + `kassa=k2`) is rejected with a 422.
+
+**`dr_name_id`** — which employee (`logpass_id`) this entry is attributed to.
+Required (and must reference an existing `logpass` row) when `type2` is
+`zpl` or `avans` (salary/advance) — omitting it there silently breaks the
+legacy per-employee salary report. Optional otherwise, defaulting to `0`
+(not attributed to an employee).
+
+**`date` is the accounting date, not the creation date.** It round-trips as
+`acc_date` — when the money moved, which is what every financial report
+(`/finance/pnl`, `/finance/revenue`, etc.) slices on — and is distinct from
+`created_at` (`cr_time`, when the record was typed into the system).
+
+**`amount` is always a positive magnitude**, in both requests and responses.
+Direction is carried entirely by `type1`. Internally `doh_rash.amount` is
+stored negative for `rash` and positive for `doh`; the API hides that
+storage detail on both write (server negates for `rash`) and read (server
+returns `abs()`).
+
+**`info`** is required and must be non-empty after trimming whitespace (max
+2000 chars) — this guards against silent `TEXT`-column truncation under this
+app's empty `sql_mode`.
+
+**`link_to`** is an optional integer (default `0`) that round-trips as
+supplied. It is *not* independently validated against real rows, and it is
+not how `shift_plus`/`shift_minus` pairing is enforced — do not assume a
+`link_to` value on a `rash`/`doh` row has been checked for referential
+integrity.
+
+**Server-set fields, never client-controlled:** `created_by`/`cr_who_id`
+(always the dedicated `api_system` logpass user — a client-supplied value is
+silently ignored, not rejected) and `created_at`/`cr_time`.
+
+**`DELETE` is physical, not soft.** The row is actually removed from
+`doh_rash`. There is no status flag to flip back — recovery is via
+`GET /finance/entries/history`, which is journalled from a snapshot taken
+**before** the row is destroyed.
+
+**The change journal (`doh_rash_history`)** records `update` and `delete`
+only, each as a full before/after row snapshot — never `create` (a newly
+created row is already self-describing via its own `created_by`/
+`created_at`). This is the only recovery path for a mistaken edit or delete
+made through this API.
 
 ## L3 product pages — URL resolution and gotchas
 
