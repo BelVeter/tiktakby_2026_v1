@@ -1047,4 +1047,257 @@ class FinanceEntriesWriteTest extends McpTestCase
         $item = $r->json('data.0');
         $this->assertSame('created', $item['status']);
     }
+
+    // ══ review hardening (post-Task-5 code review) ═══════════════════════
+    // The five tests below are not brief items; each pins a specific failure
+    // mode found in review that the 34 numbered behaviors didn't happen to
+    // cover. Named without a brief number, like the supplemental test above.
+
+    /**
+     * A non-scalar `type2`/`info` (JSON array or object — an entirely
+     * plausible shape for this API's LLM clients to emit) used to reach a
+     * `(string)` cast inside validateItem(). "Array to string conversion" is
+     * promoted to a thrown ErrorException under this app's error_reporting,
+     * which killed the whole request MID-BATCH: `doh_rash` is MyISAM with no
+     * transaction, so items already inserted before the throw stayed
+     * committed while the client got a bare 500 naming none of them — and a
+     * retry would insert them a second time.
+     *
+     * Both fields must now produce an ordinary per-item `invalid` result, with
+     * the valid items on either side of them still created.
+     */
+    public function test_non_scalar_type2_or_info_is_invalid_not_fatal_mid_batch(): void
+    {
+        // The bad-`info` item cannot carry the TESTENTRY- marker (its `info`
+        // IS the value under test), same accepted trade-off as test 19a: it
+        // asserts 'invalid', so by contract no row is ever written for it.
+        $entries = [
+            $this->rashPayload(['info' => self::MARKER . 'NONSCALAR-SIBLING-BEFORE']),
+            $this->rashPayload(['type2' => ['zpl'], 'info' => self::MARKER . 'NONSCALAR-TYPE2']),
+            $this->rashPayload(['info' => (object) []]),
+            $this->rashPayload(['type2' => (object) ['code' => 'other'], 'info' => self::MARKER . 'NONSCALAR-TYPE2-OBJ']),
+            $this->dohPayload(['info' => self::MARKER . 'NONSCALAR-SIBLING-AFTER']),
+        ];
+
+        $r = $this->postEntries($entries);
+        $r->assertStatus(200);
+
+        $data = $r->json('data');
+        $this->assertCount(5, $data);
+
+        $this->assertSame('created', $data[0]['status'], 'the valid item before the bad ones must be created');
+        $this->assertSame('invalid', $data[1]['status'], 'array type2 must be a per-item validation error, not a 500');
+        $this->assertArrayHasKey('type2', $data[1]['errors']);
+        $this->assertSame('invalid', $data[2]['status'], 'object info must be a per-item validation error, not a 500');
+        $this->assertArrayHasKey('info', $data[2]['errors']);
+        $this->assertSame('invalid', $data[3]['status']);
+        $this->assertArrayHasKey('type2', $data[3]['errors']);
+        $this->assertSame('created', $data[4]['status'], 'the valid item AFTER the bad ones must still be reached and created');
+
+        $this->assertSame(2, $r->json('meta.summary.created'));
+        $this->assertSame(3, $r->json('meta.summary.invalid'));
+
+        // Batch isolation actually held: both siblings are really in the table.
+        $this->assertDatabaseHas('doh_rash', ['dr_id' => $data[0]['dr_id']]);
+        $this->assertDatabaseHas('doh_rash', ['dr_id' => $data[4]['dr_id']]);
+
+        // ...and nothing was written for the rejected items.
+        $this->assertSame(
+            0,
+            DB::table('doh_rash')->where('info', 'LIKE', self::MARKER . 'NONSCALAR-TYPE2%')->count(),
+            'a rejected item must not leave a row behind'
+        );
+    }
+
+    /**
+     * Mutually-linked shift_plus/shift_minus fixture pair, mirroring the real
+     * data shape (each row's link_to points at its partner; amounts mirror
+     * each other). Both rows carry the standard TESTENTRY- marker in `info`,
+     * so purgeDohRash() in setUp/tearDown removes them like every other
+     * fixture row — no separate cleanup path.
+     *
+     * @return array{0:int,1:int} [plusId, minusId]
+     */
+    private function insertShiftPair(string $label): array
+    {
+        $plusId = $this->insertRow([
+            'type1'   => 'shift_plus',
+            'type2'   => 'curk1',
+            'amount'  => 126.00,
+            'channel' => $this->liveOffice,
+            'kassa'   => 'k2',
+            'info'    => self::MARKER . $label . '-PLUS',
+        ]);
+
+        $minusId = $this->insertRow([
+            'type1'   => 'shift_minus',
+            'type2'   => 'of1k2',
+            'amount'  => -126.00,
+            'channel' => 'cur',
+            'kassa'   => 'k1',
+            'link_to' => $plusId,
+            'info'    => self::MARKER . $label . '-MINUS',
+        ]);
+
+        DB::table('doh_rash')->where('dr_id', $plusId)->update(['link_to' => $minusId]);
+
+        return [$plusId, $minusId];
+    }
+
+    /**
+     * PATCHing an existing shift_plus/shift_minus row must be refused.
+     *
+     * validateItem() only ever saw the MERGED row, so a patch of
+     * {"type1":"rash","type2":"other"} validated cleanly (every other field
+     * carried over from the existing row) and rewrote a till-transfer row as
+     * an expense — flipping its amount's sign — while its link_to partner was
+     * left untouched, silently desynchronising the till balance the pair
+     * exists to keep in sync.
+     */
+    public function test_patch_on_paired_shift_row_is_rejected(): void
+    {
+        [$plusId, $minusId] = $this->insertShiftPair('PATCH-SHIFT');
+
+        foreach ([$plusId => 'shift_plus', $minusId => 'shift_minus'] as $id => $expectedType1) {
+            $before = DB::table('doh_rash')->where('dr_id', $id)->first();
+
+            $r = $this->patchMcp($id, ['type1' => 'rash', 'type2' => 'other']);
+            $r->assertStatus(422);
+
+            $after = DB::table('doh_rash')->where('dr_id', $id)->first();
+            $this->assertSame($expectedType1, $after->type1, "type1 of the $expectedType1 row must be untouched");
+            $this->assertEqualsWithDelta((float) $before->amount, (float) $after->amount, 0.001, 'amount (and its sign) must be untouched');
+            $this->assertSame((int) $before->link_to, (int) $after->link_to, 'the link to the partner row must be untouched');
+            $this->assertSame($before->type2, $after->type2);
+
+            $this->assertSame(0, DB::table('doh_rash_history')->where('dr_id', $id)->count(), 'a rejected patch must not journal anything');
+        }
+    }
+
+    /**
+     * DELETEing an existing shift_plus/shift_minus row must be refused —
+     * destroying one half of a pair leaves the other half dangling and the
+     * till balance wrong. Previously destroy() ran with no type1 check at all.
+     */
+    public function test_delete_on_paired_shift_row_is_rejected(): void
+    {
+        [$plusId, $minusId] = $this->insertShiftPair('DELETE-SHIFT');
+
+        foreach ([$plusId, $minusId] as $id) {
+            $r = $this->deleteMcp($id);
+            $r->assertStatus(422);
+
+            $this->assertDatabaseHas('doh_rash', ['dr_id' => $id]);
+            $this->assertSame(0, DB::table('doh_rash_history')->where('dr_id', $id)->count(), 'a rejected delete must not journal anything');
+        }
+
+        // The pair survived intact, both halves and both links.
+        $this->assertSame($minusId, (int) DB::table('doh_rash')->where('dr_id', $plusId)->value('link_to'));
+        $this->assertSame($plusId, (int) DB::table('doh_rash')->where('dr_id', $minusId)->value('link_to'));
+    }
+
+    /**
+     * `offices.number` is int(11), so a raw `WHERE number = '<string>'` lets
+     * MySQL coerce the operand: '2abc', ' 2 ' and '02' all compare equal to
+     * office 2 and passed validation — but toStorageRow() writes the ORIGINAL
+     * string verbatim into `channel varchar(16)`, so the value that validated
+     * was not the value that got stored, and the resulting row matched no
+     * office in any downstream report. (The pre-existing 'HZ' case passed for
+     * the wrong reason: 'HZ' coerces to 0 and there is simply no office 0.)
+     *
+     * Only a canonical integer string may match an office now.
+     *
+     * NOTE on whitespace padding (' 2 '): that variant cannot reach the
+     * controller through HTTP at all — Laravel's global TrimStrings middleware
+     * (app/Http/Kernel.php, `channel` is not in its $except list) trims it to
+     * '2' first, so it validates AND stores as '2' with no mismatch. It is
+     * covered here at the method level instead, in the companion test below,
+     * because officeExists() must still be sound for any non-HTTP caller.
+     */
+    public function test_channel_matching_office_only_via_mysql_coercion_is_invalid(): void
+    {
+        $office = $this->liveOffice;
+        $this->assertTrue(ctype_digit($office), 'fixture assumes a numeric office number');
+
+        $cases = [
+            'trailing-garbage' => $office . 'abc',
+            'leading-zero'     => '0' . $office,
+        ];
+
+        foreach ($cases as $label => $channel) {
+            // Sanity: each of these really does still match a live office row
+            // once MySQL coerces it — i.e. the test is exercising the coercion
+            // path, not a value that was never ambiguous in the first place.
+            $this->assertTrue(
+                DB::table('offices')->where('type', 'office')->where('number', $channel)->exists(),
+                "case $label: fixture depends on MySQL coercing '$channel' onto a real office row"
+            );
+
+            $r = $this->postEntries([$this->rashPayload([
+                'channel' => $channel,
+                'info'    => self::MARKER . 'CHANNEL-COERCION-' . strtoupper($label),
+            ])]);
+            $r->assertStatus(200);
+
+            $item = $r->json('data.0');
+            $this->assertSame('invalid', $item['status'], "case: $label");
+            $this->assertArrayHasKey('channel', $item['errors'], "case: $label");
+        }
+
+        $this->assertSame(
+            0,
+            DB::table('doh_rash')->where('info', 'LIKE', self::MARKER . 'CHANNEL-COERCION-%')->count(),
+            'no row may be stored with a channel that only matched an office through type coercion'
+        );
+    }
+
+    /**
+     * Companion to the test above, at the method level: officeExists() itself
+     * must reject every non-canonical form, including the whitespace-padded
+     * one that TrimStrings neutralises before it can reach the controller over
+     * HTTP. Reached by reflection because the method is private and there is
+     * no HTTP path that can deliver an untrimmed value to it.
+     *
+     * Also pins the flip side — the canonical form still matches — so the
+     * guard can't be "fixed" by simply rejecting everything.
+     */
+    public function test_office_exists_rejects_non_canonical_integer_strings(): void
+    {
+        $method = new \ReflectionMethod(
+            \App\Http\Controllers\Mcp\FinanceEntriesController::class,
+            'officeExists'
+        );
+        $method->setAccessible(true);
+        $controller = app(\App\Http\Controllers\Mcp\FinanceEntriesController::class);
+
+        $office = $this->liveOffice;
+
+        $this->assertTrue($method->invoke($controller, $office), "canonical office number '$office' must still match");
+
+        foreach ([' ' . $office . ' ', $office . 'abc', '0' . $office, '+' . $office, '-' . $office, '', 'HZ'] as $bad) {
+            $this->assertFalse(
+                $method->invoke($controller, $bad),
+                "officeExists() must not match on '" . $bad . "' (MySQL would coerce it onto a real office row)"
+            );
+        }
+    }
+
+    /**
+     * destroy() now resolves the journal actor id BEFORE the row is deleted
+     * and hands it to journal() explicitly (so a failure to resolve it aborts
+     * the delete instead of producing an unjournalled, unrecoverable one).
+     * This pins the happy path of that plumbing: the pre-resolved id is the
+     * one that actually lands in the journal row.
+     */
+    public function test_delete_journal_carries_preresolved_actor_id(): void
+    {
+        $id = $this->insertRow(['info' => self::MARKER . 'DELETE-ACTOR-PRERESOLVED']);
+
+        $this->deleteMcp($id)->assertStatus(200);
+
+        $entry = DB::table('doh_rash_history')->where('dr_id', $id)->where('action', 'delete')->first();
+        $this->assertNotNull($entry, 'a successful delete must always be journalled');
+        $this->assertSame($this->apiSystemId, (int) $entry->actor_user_id);
+        $this->assertNotNull($entry->before_json, 'the deleted row snapshot is the only surviving copy');
+    }
 }

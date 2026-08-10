@@ -40,6 +40,18 @@ use Illuminate\Support\Facades\DB;
 class FinanceEntriesController extends BaseController
 {
     /**
+     * The only type1 values this API may create, edit or delete.
+     *
+     * shift_plus/shift_minus (paired till-transfer rows, linked to each other
+     * through `link_to`) are deliberately excluded: a single-row API write
+     * would corrupt the till balance the pair exists to keep in sync. This
+     * gates both the INCOMING value (validateItem(), on create and on the
+     * merged row of a patch) and the EXISTING row (update()/destroy(), so a
+     * shift row can never be retyped into a rash/doh row or half-deleted).
+     */
+    private const EDITABLE_TYPE1 = ['rash', 'doh'];
+
+    /**
      * GET /finance/entries
      *
      * Filters: from, to (on acc_date), type1, type2, kassa, channel,
@@ -256,12 +268,21 @@ class FinanceEntriesController extends BaseController
      * this request's body can still fail validation if it no longer pairs
      * with a field that WAS patched (e.g. patching only kassa on a row whose
      * existing channel doesn't pair with the new kassa).
+     *
+     * The EXISTING row's type1 is gated too (see self::EDITABLE_TYPE1) —
+     * validating only the merged row would let a shift_plus/shift_minus row be
+     * retyped as rash/doh (sign-flipping its amount) while its `link_to`
+     * partner is left untouched, silently desynchronising the till balance.
      */
     public function update(Request $request, int $id): JsonResponse
     {
         $existing = DB::table('doh_rash')->where('dr_id', $id)->first();
         if (!$existing) {
             return response()->json(['error' => 'Finance entry not found.'], 404);
+        }
+
+        if (!in_array($existing->type1, self::EDITABLE_TYPE1, true)) {
+            return response()->json(['error' => 'This entry is not editable through this API (internal transfer type).'], 422);
         }
 
         $body = $request->all();
@@ -299,6 +320,15 @@ class FinanceEntriesController extends BaseController
 
     /**
      * DELETE /finance/entries/{id}
+     *
+     * Refuses rows whose type1 is outside self::EDITABLE_TYPE1 — deleting one
+     * half of a shift_plus/shift_minus pair would leave the other half dangling
+     * and the till balance wrong.
+     *
+     * Everything the journal needs is resolved BEFORE the row is destroyed: for
+     * a delete the journal snapshot is the only remaining copy of the row, so a
+     * failure to build it must abort the delete rather than proceed into an
+     * unrecoverable one.
      */
     public function destroy(int $id): JsonResponse
     {
@@ -307,9 +337,30 @@ class FinanceEntriesController extends BaseController
             return response()->json(['error' => 'Finance entry not found.'], 404);
         }
 
+        if (!in_array($existing->type1, self::EDITABLE_TYPE1, true)) {
+            return response()->json(['error' => 'This entry is not editable through this API (internal transfer type).'], 422);
+        }
+
+        // apiAuthorId() throws when the api_system seed row is missing. Resolved
+        // here — not lazily inside journal(), which runs after the delete — so
+        // that failure surfaces as an error response with the row still intact,
+        // instead of a successful delete whose contents were never journalled.
+        try {
+            $actorId = $this->apiAuthorId();
+        } catch (\Throwable $e) {
+            \Log::error('doh_rash delete aborted, journal actor unresolvable', [
+                'dr_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Delete aborted: this deletion could not be journalled, and an unjournalled delete is unrecoverable.',
+            ], 500);
+        }
+
         DB::table('doh_rash')->where('dr_id', $id)->delete();
 
-        $this->journal('delete', $existing, null);
+        $this->journal('delete', $existing, null, $actorId);
 
         return response()->json([
             'data' => ['deleted_id' => $id],
@@ -339,7 +390,7 @@ class FinanceEntriesController extends BaseController
         $type1 = array_key_exists('type1', $data) ? $data['type1'] : null;
         if ($type1 === null || $type1 === '') {
             $errors['type1'] = 'type1 is required.';
-        } elseif (!in_array($type1, ['rash', 'doh'], true)) {
+        } elseif (!in_array($type1, self::EDITABLE_TYPE1, true)) {
             // shift_plus/shift_minus (paired till-transfer types) are
             // deliberately excluded — a single-row API write would corrupt
             // the till balance they're meant to keep in sync.
@@ -347,12 +398,20 @@ class FinanceEntriesController extends BaseController
         }
 
         // ── type2 (dictionary depends on type1) ─────────────────────────
+        // The is_scalar() guard (same shape as kassa/channel below) must come
+        // BEFORE any (string) cast: a JSON array/object here would otherwise
+        // hit "Array to string conversion", which this app's error_reporting
+        // turns into a thrown ErrorException — fatal mid-batch, after earlier
+        // items of the same POST have already been inserted into MyISAM
+        // doh_rash with no transaction to roll them back.
         $type2Raw = array_key_exists('type2', $data) ? $data['type2'] : null;
-        $type2    = is_scalar($type2Raw) ? (string) $type2Raw : $type2Raw;
-        if ($type2 === null || $type2 === '') {
+        $type2    = is_scalar($type2Raw) ? (string) $type2Raw : null;
+        if ($type2Raw !== null && $type2 === null) {
+            $errors['type2'] = 'type2 must be a string.';
+        } elseif ($type2 === null || $type2 === '') {
             $errors['type2'] = 'type2 is required.';
         } elseif (!isset($errors['type1'])) {
-            if (!$this->type2ExistsActive($type1, (string) $type2)) {
+            if (!$this->type2ExistsActive($type1, $type2)) {
                 $errors['type2'] = 'type2 must be an active code in the dictionary matching type1.';
             }
         }
@@ -422,10 +481,15 @@ class FinanceEntriesController extends BaseController
         }
 
         // ── info (required, non-empty after trim, max 2000 chars) ───────
-        $info = array_key_exists('info', $data) ? $data['info'] : null;
-        if ($info === null || trim((string) $info) === '') {
+        // Same is_scalar() guard, same reason as type2 above — trim((string) $info)
+        // on an array/object would throw instead of reporting a per-item error.
+        $infoRaw = array_key_exists('info', $data) ? $data['info'] : null;
+        $info    = is_scalar($infoRaw) ? (string) $infoRaw : null;
+        if ($infoRaw !== null && $info === null) {
+            $errors['info'] = 'info must be a string.';
+        } elseif ($info === null || trim($info) === '') {
             $errors['info'] = 'info is required.';
-        } elseif (strlen((string) $info) > 2000) {
+        } elseif (strlen($info) > 2000) {
             $errors['info'] = 'info must not exceed 2000 characters.';
         }
 
@@ -523,9 +587,24 @@ class FinanceEntriesController extends BaseController
         return false;
     }
 
-    /** Live existence check against offices WHERE type='office' — never hardcode office numbers. Existence gates this, not `active` (a closed office is still a valid channel). */
+    /**
+     * Live existence check against offices WHERE type='office' — never hardcode
+     * office numbers. Existence gates this, not `active` (a closed office is
+     * still a valid channel).
+     *
+     * `offices.number` is int(11), so MySQL coerces the compared string to an
+     * int: '2abc', ' 2 ' and '01' would all match office 2 and pass validation,
+     * yet toStorageRow() stores the ORIGINAL string verbatim into
+     * `channel varchar(16)` — a row that then matches no office in any
+     * downstream report. Require a canonical integer string up front so the
+     * value that validates is exactly the value that gets stored.
+     */
     private function officeExists(string $number): bool
     {
+        if (!ctype_digit($number) || $number !== (string) (int) $number) {
+            return false;
+        }
+
         return DB::table('offices')->where('type', 'office')->where('number', $number)->exists();
     }
 
@@ -571,23 +650,38 @@ class FinanceEntriesController extends BaseController
      * Never throws in a way that fails an already-successful write — mirrors
      * BaseController::recordContentVersion()'s try/catch + Log::error()
      * pattern: a broken journal table must not roll back or fail a write
-     * that already landed in doh_rash.
+     * that already landed in doh_rash. Because of that, the catch block logs
+     * the FULL payload (not just the exception message): for a delete the
+     * journal row is the only copy of the vanished row, so if the insert fails
+     * the application log has to be able to stand in as the recovery trace.
+     *
+     * $actorId lets the caller resolve the actor BEFORE the write it is
+     * journalling (destroy() must — see its docblock); omitted, it is resolved
+     * lazily here.
      */
-    private function journal(string $action, object $before, ?object $after): void
+    private function journal(string $action, object $before, ?object $after, ?int $actorId = null): void
     {
+        $beforeJson = json_encode($before, JSON_UNESCAPED_UNICODE);
+        $afterJson  = $after !== null ? json_encode($after, JSON_UNESCAPED_UNICODE) : null;
+
         try {
             DB::table('doh_rash_history')->insert([
                 'dr_id'         => (int) $before->dr_id,
                 'action'        => $action,
-                'before_json'   => json_encode($before, JSON_UNESCAPED_UNICODE),
-                'after_json'    => $after !== null ? json_encode($after, JSON_UNESCAPED_UNICODE) : null,
-                'actor_user_id' => $this->apiAuthorId(),
+                'before_json'   => $beforeJson,
+                'after_json'    => $afterJson,
+                'actor_user_id' => $actorId ?? $this->apiAuthorId(),
                 'source'        => 'mcp_api',
                 'ip'            => request()->ip(),
                 'created_at'    => now(),
             ]);
         } catch (\Throwable $e) {
-            \Log::error('doh_rash_history insert failed: ' . $e->getMessage());
+            \Log::error('doh_rash_history insert failed: ' . $e->getMessage(), [
+                'dr_id'       => (int) $before->dr_id,
+                'action'      => $action,
+                'before_json' => $beforeJson,
+                'after_json'  => $afterJson,
+            ]);
         }
     }
 
