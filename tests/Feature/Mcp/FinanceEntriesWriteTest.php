@@ -527,6 +527,19 @@ class FinanceEntriesWriteTest extends McpTestCase
         $missing = $this->rashPayload();
         unset($missing['info']);
 
+        // NOTE on the cleanup marker (see class docblock / self::MARKER): the
+        // 'empty' and 'whitespace' cases below deliberately do NOT carry the
+        // TESTENTRY- prefix. Prefixing would make the string non-empty /
+        // non-whitespace-only, defeating the very condition under test. Both
+        // cases assert status === 'invalid' immediately below, i.e. by this
+        // suite's own contract no row is ever written to doh_rash for them,
+        // so purgeDohRash() has nothing to clean up. If a future validation
+        // bug ever let one through anyway, that bug would already surface as
+        // a failing assertSame('invalid', ...) here — it would not be masked,
+        // it would just (in that specific broken-implementation scenario)
+        // additionally leave an unmarked residual row, an accepted trade-off
+        // since these two values cannot carry a marker without invalidating
+        // the test itself.
         $cases = [
             'missing'    => $missing,
             'empty'      => $this->rashPayload(['info' => '']),
@@ -545,7 +558,14 @@ class FinanceEntriesWriteTest extends McpTestCase
 
     public function test_19a2_info_length_boundary_2000_ok_2001_invalid(): void
     {
-        $tooLong = str_repeat('x', 2001);
+        // Unlike the empty/whitespace cases in 19a, this fixture's content
+        // doesn't need to be pure — only its total length matters for the
+        // boundary being tested — so it carries the TESTENTRY- marker,
+        // letting purgeDohRash() find and remove it if a Task 5 validation
+        // bug ever lets a 2001-char row land in doh_rash despite being
+        // expected 'invalid'.
+        $tooLong = self::MARKER . str_repeat('x', 2001 - strlen(self::MARKER));
+        $this->assertSame(2001, strlen($tooLong), 'sanity check on the fixture string itself');
         $rInvalid = $this->postEntries([$this->rashPayload(['info' => $tooLong])]);
         $itemInvalid = $rInvalid->json('data.0');
         $this->assertSame('invalid', $itemInvalid['status']);
@@ -966,7 +986,10 @@ class FinanceEntriesWriteTest extends McpTestCase
         $before = DB::table('doh_rash_history')->count();
 
         $r = $this->postEntries([$this->rashPayload(['info' => self::MARKER . 'NO-JOURNAL-ON-CREATE'])]);
-        $id = $r->json('data.0.dr_id');
+        $r->assertStatus(200);
+        $item = $r->json('data.0');
+        $this->assertSame('created', $item['status']);
+        $id = $item['dr_id'];
 
         $this->assertSame($before, DB::table('doh_rash_history')->count(), 'POST must not write any journal row at all');
         $this->assertSame(0, DB::table('doh_rash_history')->where('dr_id', $id)->count());
