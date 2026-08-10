@@ -97,6 +97,17 @@ class FinanceEntriesReadTest extends McpTestCase
             'info'       => self::MARKER . 'CANONICAL',
         ]);
 
+        // ── date rendering: acc_date just after Minsk midnight, cr_time a different day ──
+        // acc_date = 2026-05-05 00:30:00 Europe/Minsk == 2026-05-04 21:30 UTC, so a
+        // UTC-rendering bug emits 2026-05-04 instead of 2026-05-05.
+        // cr_time is on a clearly different calendar day (2026-06-20), so a bug that
+        // reads cr_time instead of acc_date emits 2026-06-20 instead of 2026-05-05.
+        $this->ids['dateBoundary'] = $this->insertEntry([
+            'acc_date' => Carbon::parse('2026-05-05 00:30:00', 'Europe/Minsk')->timestamp,
+            'cr_time'  => Carbon::parse('2026-06-20 10:00:00', 'Europe/Minsk')->timestamp,
+            'info'     => self::MARKER . 'DATE-BOUNDARY',
+        ]);
+
         // ── from/to window ──
         $this->ids['windowIn1'] = $this->insertEntry([
             'acc_date' => Carbon::parse('2026-03-11 10:00:00', 'Europe/Minsk')->timestamp,
@@ -247,13 +258,23 @@ class FinanceEntriesReadTest extends McpTestCase
 
     // ── 4. date rendered Y-m-d from acc_date, Europe/Minsk ──────────────────
 
+    /**
+     * Uses the dedicated `dateBoundary` fixture rather than the canonical one:
+     * the canonical fixture's acc_date and cr_time are both midday on the same
+     * calendar day, so it cannot distinguish two real bugs:
+     *   1. rendering the date in UTC instead of Europe/Minsk
+     *   2. reading cr_time instead of acc_date
+     * dateBoundary's acc_date (2026-05-05 00:30 Minsk = 2026-05-04 21:30 UTC)
+     * crosses the UTC/Minsk day boundary, and its cr_time falls on an entirely
+     * different day (2026-06-20), so either bug makes this assertion fail.
+     */
     public function test_date_is_rendered_from_acc_date_in_europe_minsk(): void
     {
-        $r = $this->mcp('finance/entries', ['search' => self::MARKER . 'CANONICAL']);
+        $r = $this->mcp('finance/entries', ['search' => self::MARKER . 'DATE-BOUNDARY']);
         $row = $r->json('data.0');
 
         $expected = Carbon::createFromTimestamp(
-            DB::table('doh_rash')->where('dr_id', $this->ids['canonical'])->value('acc_date'),
+            DB::table('doh_rash')->where('dr_id', $this->ids['dateBoundary'])->value('acc_date'),
             'Europe/Minsk'
         )->toDateString();
 
@@ -470,9 +491,24 @@ class FinanceEntriesReadTest extends McpTestCase
 
     // ── 17. GET /finance/entries/{id} 404 for unknown id ────────────────
 
+    /**
+     * Contract for Task 3: GET /finance/entries/{id} for an unknown id MUST
+     * return HTTP 404 with a JSON body containing an `error` key (matching
+     * the pattern used by RedirectsController::destroy, e.g.
+     * response()->json(['error' => 'Redirect not found.'], 404)).
+     *
+     * assertStatus(404) alone is not enough here: this app has a global
+     * catch-all fallback route, so ANY unregistered path also returns 404
+     * (as plain HTML, not JSON). That would let a misregistered/typo'd route
+     * pass this test silently while every other test in the file fails
+     * loudly. Asserting the JSON `error` key rules that out.
+     */
     public function test_show_returns_404_for_unknown_id(): void
     {
-        $this->mcp('finance/entries/999999999')->assertStatus(404);
+        $r = $this->mcp('finance/entries/999999999');
+        $r->assertStatus(404);
+        $r->assertHeader('Content-Type', 'application/json');
+        $this->assertArrayHasKey('error', $r->json());
     }
 
     // ── 18. GET /finance/entries/history returns envelope + array ──────
