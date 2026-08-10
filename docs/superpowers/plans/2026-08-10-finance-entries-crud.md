@@ -19,7 +19,8 @@
 - **`type1` whitelist is `rash`|`doh` only** — never `shift_plus`/`shift_minus` (paired till transfers, would corrupt balances as single rows).
 - **`kassa` whitelist:** `k1`, `k2`, `bank`, `card` (fixed list). **`channel`:** an office number resolved live from `offices WHERE type='office'`, or `cur`, or `bank` — not a hardcoded number list. (The 4 live rows with `'HZ'` in both columns are junk and deliberately not valid input.)
 - **`channel` × `kassa` must be a valid pair:** `kassa='bank'` ⟺ `channel='bank'`; `kassa` ∈ {`k1`,`k2`,`card`} requires `channel` to be an office number or `cur`. Enforced on create and on the merged post-update row.
-- **All business fields are required on create** — `type1`, `type2`, `date`, `amount`, `kassa`, `channel`, `info` (non-empty), plus `dr_name_id` when `type2` ∈ {`zpl`,`avans`}. Stricter than the legacy admin, on purpose (see the spec's rationale).
+- **All business fields are required on create** — `type1`, `type2`, `date`, `amount`, `kassa`, `channel`, `info` (non-empty, max 2000 chars), plus `dr_name_id` when `type2` ∈ {`zpl`,`avans`}. Stricter than the legacy admin, on purpose (see the spec's rationale).
+- **`info` must have an explicit max length (2000).** `doh_rash.info` is `TEXT` and production `sql_mode` is empty, so an over-long value is silently truncated instead of rejected — a write that appears to succeed while losing data. Same guard, same reason, as `PagesProductController::MAX_TEXT_BYTES`.
 - **`cr_who_id` / `cr_time` are server-set**, never client-supplied. `cr_who_id` = the `api_system` `logpass` row, resolved by login name and cached — never a hardcoded id.
 - **Route order:** `/finance/entries/history` must be registered **before** `/finance/entries/{id}`.
 - **Testing:** use `DatabaseTransactions` (project convention for MCP feature tests). `doh_rash` is MyISAM so rollback is a no-op for it — every test that writes must clean up its own rows explicitly in `setUp()`/`tearDown()`.
@@ -271,6 +272,7 @@ Cover, each as its own method:
 
 **Create — completeness and cross-field rules**
 19a. `info` missing, empty string, or whitespace-only → invalid
+19a2. `info` of 2001 characters → invalid (guards against silent TEXT truncation); 2000 characters → created, and the stored value round-trips **untruncated** (assert the stored length is exactly 2000)
 19b. `channel='bank'` with `kassa='k2'` → invalid (contradictory pair)
 19c. `channel='1'` with `kassa='bank'` → invalid (contradictory pair)
 19d. `channel='bank'` + `kassa='bank'` → created (the valid bank pair)

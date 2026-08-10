@@ -141,11 +141,13 @@ Validation is deliberately **stricter than the legacy admin**. The admin panel i
 | `kassa` | **required**; `k1` \| `k2` \| `bank` \| `card` |
 | `channel` | **required**; an office number from `offices WHERE type='office'`, or `cur`, or `bank` — resolved live, not hardcoded, so a newly opened office works without a code change |
 | `channel` × `kassa` | **required to be a valid pair** per the table above |
-| `info` | **required, non-empty** (see below) |
+| `info` | **required, non-empty**, max 2000 chars (see below) |
 | `dr_name_id` | **required when `type2` ∈ {`zpl`, `avans`}**; otherwise optional, default `0`. When supplied it must reference an existing `logpass` row |
 | `link_to` | optional, integer, default `0` |
 
 **Why `info` is required even though legacy allows it empty.** 20% of existing expense rows (3,508) and 13% of income rows have an empty `info`. Those are human-entered rows whose context lived in someone's head. A row entered by an agent with no description is unauditable after the fact — the owner opens the kassa journal, sees "−351.90, of1_rent, API" and has no way to tell what it was. The laxity is legacy debt and is not inherited here.
+
+**Why `info` also has an upper bound.** `doh_rash.info` is `TEXT` (65,535 bytes) and production runs with an empty `sql_mode`, so an over-long value is **silently truncated** rather than rejected — the write "succeeds" and the stored description is quietly cut. `PagesProductController` guards its own TEXT columns the same way for the same reason. The 2,000-character cap is far above real usage (the longest `info` in 32,153 live rows is 410 bytes, mean 23) while keeping the value well clear of the column limit and keeping journal snapshots small.
 
 **Why `dr_name_id` is conditionally required.** For `zpl` it is filled on 5,876 of 5,912 rows (99.4%) and for `avans` on 553 of 568 (97.4%) — it is de facto mandatory in practice, and the legacy per-employee salary report (`bb/rash_analysis.php`, `bb/doh-rash.php`) silently produces an unattributed row without it. Requiring it turns a silent reporting hole into an upfront error.
 
