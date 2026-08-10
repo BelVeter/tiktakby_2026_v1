@@ -183,6 +183,415 @@ class FinanceEntriesController extends BaseController
     }
 
     // ──────────────────────────────────────────────────────────────────────
+    // WRITE (Task 5): POST /finance/entries, PATCH/DELETE /finance/entries/{id}
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * POST /finance/entries
+     *
+     * Batch create (1-200 items per request; empty or >200 is a whole-request
+     * 422). Each item is independently validated and written — one invalid
+     * item never blocks the others, so the batch response itself is always
+     * HTTP 200; per-item outcome is carried in data[].status.
+     *
+     * Inserts are NOT journalled (see journal() docblock for why).
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $request->validate([
+            'entries' => 'required|array|min:1|max:200',
+        ]);
+
+        $entries = $request->input('entries');
+        $results = [];
+        $created = 0;
+        $invalid = 0;
+
+        foreach (array_values($entries) as $index => $entry) {
+            $entry = is_array($entry) ? $entry : [];
+            $errors = $this->validateItem($entry);
+
+            if (!empty($errors)) {
+                $invalid++;
+                $results[] = [
+                    'index'  => $index,
+                    'status' => 'invalid',
+                    'dr_id'  => null,
+                    'errors' => $errors,
+                ];
+                continue;
+            }
+
+            $storageRow = $this->toStorageRow($entry);
+            // Server-set, never client-controlled — a client-supplied
+            // cr_who_id/cr_time in $entry is simply never read here.
+            $storageRow['cr_time']   = time();
+            $storageRow['cr_who_id'] = $this->apiAuthorId();
+
+            $drId = DB::table('doh_rash')->insertGetId($storageRow);
+
+            $created++;
+            $results[] = [
+                'index'  => $index,
+                'status' => 'created',
+                'dr_id'  => $drId,
+                'errors' => null,
+            ];
+        }
+
+        return $this->envelope($request->query(), $results, [
+            'total_rows' => count($entries),
+            'summary'    => [
+                'created' => $created,
+                'invalid' => $invalid,
+            ],
+        ]);
+    }
+
+    /**
+     * PATCH /finance/entries/{id}
+     *
+     * Partial update. Validation runs against the MERGED row (existing
+     * columns with the patch fields applied on top) — a field not present in
+     * this request's body can still fail validation if it no longer pairs
+     * with a field that WAS patched (e.g. patching only kassa on a row whose
+     * existing channel doesn't pair with the new kassa).
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $existing = DB::table('doh_rash')->where('dr_id', $id)->first();
+        if (!$existing) {
+            return response()->json(['error' => 'Finance entry not found.'], 404);
+        }
+
+        $body = $request->all();
+        if (empty($body)) {
+            return response()->json(['error' => 'At least one field must be provided for update.'], 422);
+        }
+
+        // Only the mutable API fields may be patched; cr_who_id/cr_time (and
+        // anything else) are silently ignored, same as on create.
+        $allowedFields = ['type1', 'type2', 'date', 'amount', 'kassa', 'channel', 'info', 'dr_name_id', 'link_to'];
+        $patch = array_intersect_key($body, array_flip($allowedFields));
+
+        $merged = array_merge($this->rowToApiShape($existing), $patch);
+
+        $errors = $this->validateItem($merged);
+        if (!empty($errors)) {
+            return response()->json(['errors' => $errors], 422);
+        }
+
+        $storageRow = $this->toStorageRow($merged);
+        DB::table('doh_rash')->where('dr_id', $id)->update($storageRow);
+
+        $updated = DB::table('doh_rash')->where('dr_id', $id)->first();
+
+        $this->journal('update', $existing, $updated);
+
+        $type2Map     = $this->type2Dictionary();
+        $createdByMap = $this->createdByDictionary();
+
+        return response()->json([
+            'data' => $this->formatRow($updated, $type2Map, $createdByMap),
+            'meta' => ['affected_rows' => 1],
+        ]);
+    }
+
+    /**
+     * DELETE /finance/entries/{id}
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $existing = DB::table('doh_rash')->where('dr_id', $id)->first();
+        if (!$existing) {
+            return response()->json(['error' => 'Finance entry not found.'], 404);
+        }
+
+        DB::table('doh_rash')->where('dr_id', $id)->delete();
+
+        $this->journal('delete', $existing, null);
+
+        return response()->json([
+            'data' => ['deleted_id' => $id],
+            'meta' => ['affected_rows' => 1],
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Write-side validation and storage-row construction
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Validates one entry (API shape: type1, type2, date, amount, kassa,
+     * channel, info, dr_name_id?, link_to?) and returns a field => message
+     * map. Empty array means valid. Never throws for bad input — that's the
+     * point, since POST must report per-item errors instead of failing the
+     * whole batch.
+     *
+     * @param  array<string,mixed> $data
+     * @return array<string,string>
+     */
+    private function validateItem(array $data): array
+    {
+        $errors = [];
+
+        // ── type1 ────────────────────────────────────────────────────────
+        $type1 = array_key_exists('type1', $data) ? $data['type1'] : null;
+        if ($type1 === null || $type1 === '') {
+            $errors['type1'] = 'type1 is required.';
+        } elseif (!in_array($type1, ['rash', 'doh'], true)) {
+            // shift_plus/shift_minus (paired till-transfer types) are
+            // deliberately excluded — a single-row API write would corrupt
+            // the till balance they're meant to keep in sync.
+            $errors['type1'] = 'type1 must be one of: rash, doh.';
+        }
+
+        // ── type2 (dictionary depends on type1) ─────────────────────────
+        $type2Raw = array_key_exists('type2', $data) ? $data['type2'] : null;
+        $type2    = is_scalar($type2Raw) ? (string) $type2Raw : $type2Raw;
+        if ($type2 === null || $type2 === '') {
+            $errors['type2'] = 'type2 is required.';
+        } elseif (!isset($errors['type1'])) {
+            if (!$this->type2ExistsActive($type1, (string) $type2)) {
+                $errors['type2'] = 'type2 must be an active code in the dictionary matching type1.';
+            }
+        }
+
+        // ── date ─────────────────────────────────────────────────────────
+        $date = array_key_exists('date', $data) ? $data['date'] : null;
+        if ($date === null || $date === '') {
+            $errors['date'] = 'date is required.';
+        } elseif (!is_string($date) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $errors['date'] = 'date must be in YYYY-MM-DD format.';
+        } else {
+            [$y, $m, $d] = array_map('intval', explode('-', $date));
+            if (!checkdate($m, $d, $y)) {
+                $errors['date'] = 'date must be a real calendar date.';
+            }
+        }
+
+        // ── amount (positive magnitude; decimal(11,2) column) ───────────
+        $amount = array_key_exists('amount', $data) ? $data['amount'] : null;
+        if ($amount === null || $amount === '') {
+            $errors['amount'] = 'amount is required.';
+        } elseif (!is_int($amount) && !is_float($amount) && !(is_string($amount) && is_numeric($amount))) {
+            $errors['amount'] = 'amount must be numeric.';
+        } else {
+            $amountStr = is_string($amount) ? $amount : (string) $amount;
+            if (stripos($amountStr, 'e') !== false) {
+                $errors['amount'] = 'amount must be a plain decimal number.';
+            } else {
+                $numeric = (float) $amountStr;
+                if ($numeric <= 0) {
+                    $errors['amount'] = 'amount must be a positive number.';
+                } else {
+                    $parts   = explode('.', $amountStr);
+                    $intPart = ltrim($parts[0], '-+');
+                    $decPart = $parts[1] ?? '';
+                    if (strlen($decPart) > 2) {
+                        $errors['amount'] = 'amount must have at most 2 decimal places.';
+                    } elseif (strlen($intPart) > 9) {
+                        // decimal(11,2): 9 integer digits + 2 decimal digits = 11.
+                        $errors['amount'] = 'amount exceeds the maximum magnitude allowed by the column (decimal(11,2)).';
+                    }
+                }
+            }
+        }
+
+        // ── kassa (fixed whitelist) ──────────────────────────────────────
+        $kassa = array_key_exists('kassa', $data) && is_scalar($data['kassa']) ? (string) $data['kassa'] : null;
+        if (!array_key_exists('kassa', $data) || $data['kassa'] === null || $data['kassa'] === '') {
+            $errors['kassa'] = 'kassa is required.';
+        } elseif (!in_array($kassa, ['k1', 'k2', 'bank', 'card'], true)) {
+            $errors['kassa'] = 'kassa must be one of: k1, k2, bank, card.';
+        }
+
+        // ── channel (office number, resolved live, OR 'cur' OR 'bank') ──
+        $channel = array_key_exists('channel', $data) && is_scalar($data['channel']) ? (string) $data['channel'] : null;
+        if (!array_key_exists('channel', $data) || $data['channel'] === null || $data['channel'] === '') {
+            $errors['channel'] = 'channel is required.';
+        } elseif (!in_array($channel, ['bank', 'cur'], true) && !$this->officeExists($channel)) {
+            $errors['channel'] = 'channel must be an existing office number, "cur", or "bank".';
+        }
+
+        // ── channel × kassa pairing (only meaningful once both are individually valid) ──
+        if (!isset($errors['kassa']) && !isset($errors['channel'])) {
+            if (!$this->channelKassaPairValid($channel, $kassa)) {
+                $errors['channel'] = 'channel and kassa are not a valid pair.';
+            }
+        }
+
+        // ── info (required, non-empty after trim, max 2000 chars) ───────
+        $info = array_key_exists('info', $data) ? $data['info'] : null;
+        if ($info === null || trim((string) $info) === '') {
+            $errors['info'] = 'info is required.';
+        } elseif (strlen((string) $info) > 2000) {
+            $errors['info'] = 'info must not exceed 2000 characters.';
+        }
+
+        // ── dr_name_id (required + must resolve for zpl/avans; optional otherwise) ──
+        $drNameIdRaw = array_key_exists('dr_name_id', $data) ? $data['dr_name_id'] : 0;
+        if ($drNameIdRaw === null || $drNameIdRaw === '') {
+            $drNameIdRaw = 0;
+        }
+        if (!is_numeric($drNameIdRaw)) {
+            $errors['dr_name_id'] = 'dr_name_id must be an integer.';
+        } else {
+            $drNameIdInt   = (int) $drNameIdRaw;
+            $isSalaryType2 = in_array($type2, ['zpl', 'avans'], true);
+
+            if ($isSalaryType2) {
+                if ($drNameIdInt <= 0 || !DB::table('logpass')->where('logpass_id', $drNameIdInt)->exists()) {
+                    $errors['dr_name_id'] = 'dr_name_id is required and must reference an existing employee when type2 is zpl or avans.';
+                }
+            } elseif ($drNameIdInt !== 0 && !DB::table('logpass')->where('logpass_id', $drNameIdInt)->exists()) {
+                $errors['dr_name_id'] = 'dr_name_id must reference an existing employee.';
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Converts a validated (no errors from validateItem()) API-shape item
+     * into the doh_rash storage-column array. This is the ONLY place that
+     * negates amount for 'rash' — callers (store()/update()) never do it
+     * themselves. Does not include cr_who_id/cr_time/dr_id: those are
+     * create-only (store()) or immutable (update()).
+     *
+     * @param  array<string,mixed> $item
+     * @return array<string,mixed>
+     */
+    private function toStorageRow(array $item): array
+    {
+        $type1     = $item['type1'];
+        $magnitude = round((float) $item['amount'], 2);
+        $stored    = $type1 === 'rash' ? -$magnitude : $magnitude;
+
+        $accDate = strtotime($item['date'] . ' 00:00:00');
+
+        $drNameIdRaw = $item['dr_name_id'] ?? 0;
+        $drNameId    = ($drNameIdRaw === null || $drNameIdRaw === '') ? 0 : (int) $drNameIdRaw;
+
+        $linkToRaw = $item['link_to'] ?? 0;
+        $linkTo    = ($linkToRaw === null || $linkToRaw === '') ? 0 : (int) $linkToRaw;
+
+        return [
+            'acc_date'   => $accDate,
+            'amount'     => $stored,
+            'type1'      => $type1,
+            'type2'      => (string) $item['type2'],
+            'channel'    => (string) $item['channel'],
+            'kassa'      => (string) $item['kassa'],
+            'link_to'    => $linkTo,
+            'info'       => (string) $item['info'],
+            'dr_name_id' => $drNameId,
+        ];
+    }
+
+    /**
+     * Converts a doh_rash DB row into the same API shape validateItem()/
+     * toStorageRow() expect, with `amount` re-expressed as the positive
+     * magnitude (mirrors formatRow(), but keyed for round-tripping through
+     * validation rather than for display). Used by update() to build the
+     * "merged row" patch fields get applied on top of.
+     */
+    private function rowToApiShape(object $row): array
+    {
+        return [
+            'type1'      => $row->type1,
+            'type2'      => $row->type2,
+            'date'       => date('Y-m-d', (int) $row->acc_date),
+            'amount'     => round(abs((float) $row->amount), 2),
+            'kassa'      => $row->kassa,
+            'channel'    => $row->channel,
+            'info'       => $row->info,
+            'dr_name_id' => (int) $row->dr_name_id,
+            'link_to'    => (int) $row->link_to,
+        ];
+    }
+
+    /** type2 exists AND is_active=1 in the dictionary matching type1. Stricter than type2Dictionary() (display), which is deliberately unfiltered by is_active. */
+    private function type2ExistsActive(string $type1, string $type2): bool
+    {
+        if ($type1 === 'rash') {
+            return DB::table('rash_items')->where('ri_code', $type2)->where('is_active', 1)->exists();
+        }
+        if ($type1 === 'doh') {
+            return DB::table('doh_items')->where('rd_code', $type2)->where('is_active', 1)->exists();
+        }
+        return false;
+    }
+
+    /** Live existence check against offices WHERE type='office' — never hardcode office numbers. Existence gates this, not `active` (a closed office is still a valid channel). */
+    private function officeExists(string $number): bool
+    {
+        return DB::table('offices')->where('type', 'office')->where('number', $number)->exists();
+    }
+
+    /**
+     * channel/kassa are a pair, not independently valid values:
+     *   - kassa='bank' <=> channel='bank' (only valid together)
+     *   - kassa in {k1,k2,card} requires channel to be an office number or 'cur'
+     */
+    private function channelKassaPairValid(?string $channel, ?string $kassa): bool
+    {
+        if ($kassa === 'bank') {
+            return $channel === 'bank';
+        }
+        if ($channel === 'bank') {
+            return false;
+        }
+        return $channel === 'cur' || $this->officeExists((string) $channel);
+    }
+
+    /**
+     * The `api_system` logpass row's id — always the actor for MCP-API
+     * writes to doh_rash (cr_who_id on create, actor_user_id in the
+     * journal). Cached under TTL_META; throws if the Task 1 seed row is
+     * somehow missing rather than silently guessing an id.
+     */
+    private function apiAuthorId(): int
+    {
+        return (int) $this->cacheRemember('mcp.finance_entries.api_system_id', self::TTL_META, function () {
+            $id = DB::table('logpass')->where('log', 'api_system')->value('logpass_id');
+            if (!$id) {
+                throw new \RuntimeException('logpass row with log=api_system not found — has the Task 1 seed migration run?');
+            }
+            return (int) $id;
+        });
+    }
+
+    /**
+     * Appends one doh_rash_history row. Only 'update' and 'delete' are ever
+     * journalled — an insert is already attributable from the doh_rash row
+     * itself (cr_who_id + cr_time), so journalling it would just duplicate
+     * data that already exists (see the migration docblock).
+     *
+     * Never throws in a way that fails an already-successful write — mirrors
+     * BaseController::recordContentVersion()'s try/catch + Log::error()
+     * pattern: a broken journal table must not roll back or fail a write
+     * that already landed in doh_rash.
+     */
+    private function journal(string $action, object $before, ?object $after): void
+    {
+        try {
+            DB::table('doh_rash_history')->insert([
+                'dr_id'         => (int) $before->dr_id,
+                'action'        => $action,
+                'before_json'   => json_encode($before, JSON_UNESCAPED_UNICODE),
+                'after_json'    => $after !== null ? json_encode($after, JSON_UNESCAPED_UNICODE) : null,
+                'actor_user_id' => $this->apiAuthorId(),
+                'source'        => 'mcp_api',
+                'ip'            => request()->ip(),
+                'created_at'    => now(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('doh_rash_history insert failed: ' . $e->getMessage());
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
     // Row formatting
     // ──────────────────────────────────────────────────────────────────────
 

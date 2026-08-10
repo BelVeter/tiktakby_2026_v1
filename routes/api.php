@@ -69,6 +69,11 @@ Route::prefix('mcp/v1')
         Route::get('finance/entries/history', [FinanceEntriesController::class, 'history'])->name('finance.entries.history');
         Route::get('finance/entries/{id}',    [FinanceEntriesController::class, 'show'])->name('finance.entries.show')->where('id', '[0-9]+');
 
+        // Finance entries — write half (Task 5): create/update/delete over doh_rash + change journal.
+        Route::post('finance/entries',          [FinanceEntriesController::class, 'store'])->name('finance.entries.store');
+        Route::patch('finance/entries/{id}',    [FinanceEntriesController::class, 'update'])->name('finance.entries.update')->where('id', '[0-9]+');
+        Route::delete('finance/entries/{id}',   [FinanceEntriesController::class, 'destroy'])->name('finance.entries.destroy')->where('id', '[0-9]+');
+
         // Operations (A.5)
         Route::get('operations/funnel',      [OperationsController::class, 'funnel'])->name('operations.funnel');
         Route::get('operations/timeline',    [OperationsController::class, 'timeline'])->name('operations.timeline');
