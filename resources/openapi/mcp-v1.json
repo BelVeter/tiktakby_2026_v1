@@ -704,7 +704,7 @@
                             "rash",
                             "doh"
                         ],
-                        "description": "Direction: rash = expense, doh = income. Rows with type1 outside this pair (shift_plus/shift_minus, paired till-transfer rows) are never returned by this API — they exist to keep the physical till balance in sync and a single-row edit would desynchronize it."
+                        "description": "Direction: rash = expense, doh = income. Rows with type1 outside this pair (shift_plus/shift_minus, paired till-transfer rows — about 39% of doh_rash) are never returned by this API: the list endpoint filters them out server-side and GET /finance/entries/{id} 404s for one. There is no parameter to include them. They exist to keep the physical till balance in sync, a single-row edit would desynchronize it, and in this API's shape they would be actively misleading — amount is always a positive magnitude, so a transfer row summed over a page would read as income, and their type2 belongs to neither dictionary so type2_name comes back null."
                     },
                     "type2": {
                         "type": "string",
@@ -742,7 +742,7 @@
                     },
                     "link_to": {
                         "type": "integer",
-                        "description": "Optional free-form link to another doh_rash row (e.g. a related shift_plus/shift_minus pair). 0 = unset. Round-trips as supplied; this API does not validate that it references a real row.",
+                        "description": "Always 0 for rows this API can return or write. A non-zero link_to arms a cascade delete in the legacy admin (bb/doh-rash.php ships every row's delete form with dr_id_link = link_to, and deletes BOTH ids when it is > 0, with no type1 check), so writes through this API reject any non-zero value — see FinanceEntryInput.link_to. A non-zero value here can only be legacy data written outside this API.",
                         "example": 0
                     },
                     "created_at": {
@@ -842,9 +842,11 @@
                     },
                     "link_to": {
                         "type": "integer",
-                        "nullable": true,
-                        "description": "Optional free-form link to another doh_rash row. Defaults to 0 (unset) and round-trips exactly as supplied — this API does not verify it references a real row. Not a substitute for the shift_plus/shift_minus pairing mechanism, which this API does not expose.",
-                        "default": 0
+                        "enum": [
+                            0
+                        ],
+                        "default": 0,
+                        "description": "MUST be 0 (the default). Any other value is rejected — do not loosen this without reading why. The legacy admin (bb/doh-rash.php) renders EVERY row's delete form with a hidden dr_id_link set to that row's link_to, and its delete handler runs DELETE FROM doh_rash WHERE dr_id IN ($dr_id, $dr_id_link) whenever that value is > 0 — with no type1 check, behind a confirm dialog that says \"эту операцию\" (singular). A rash/doh row carrying a non-zero link_to therefore silently destroys a second, unrelated row the next time a human deletes it in the admin, possibly one half of a shift_plus/shift_minus pair, corrupting a till balance. Rejecting only links that point AT a shift row would not close this: the legacy cascade deletes whatever dr_id it is handed. Linked/paired operations are out of scope for this API. Omitting the field (or sending null) is equivalent to 0."
                     }
                 }
             },
@@ -4653,7 +4655,7 @@
             "get": {
                 "operationId": "tiktak_finance_entries_list",
                 "summary": "List ledger entries (filtered, paginated).",
-                "description": "Reads the doh_rash income/expense ledger directly (not a period aggregation — see /finance/expenses and /finance/revenue for those). Ordered acc_date DESC, dr_id DESC.",
+                "description": "Reads the doh_rash income/expense ledger directly (not a period aggregation — see /finance/expenses and /finance/revenue for those). Ordered acc_date DESC, dr_id DESC. Only rash/doh rows are ever returned — shift_plus/shift_minus till-transfer rows are excluded server-side and cannot be opted back in (see FinanceEntry.type1). A reversed range (to earlier than from) is rejected with a 422 rather than returning an empty page: on a finance endpoint, \"nothing happened in this period\" and \"you swapped your dates\" must not look identical.",
                 "parameters": [
                     {
                         "in": "query",
@@ -4671,7 +4673,7 @@
                             "type": "string",
                             "format": "date"
                         },
-                        "description": "Filter acc_date <= this date (inclusive). No default — omit for no upper bound."
+                        "description": "Filter acc_date <= this date (inclusive). No default — omit for no upper bound. Must not be earlier than `from` — a reversed range is a 422, not an empty result set."
                     },
                     {
                         "in": "query",
@@ -4762,7 +4764,7 @@
             "post": {
                 "operationId": "tiktak_finance_entries_create",
                 "summary": "Batch-create ledger entries.",
-                "description": "Accepts 1-200 entries per request. Each item is validated and written independently — one invalid item never blocks the others, so the overall response is HTTP 200 with a per-item status; only whole-request shape problems (empty array, more than 200 items) are HTTP 422. Only type1 rash/doh may be created — shift_plus/shift_minus rows are out of scope. Server always sets created_by/created_at (api_system logpass user, current time); any client-supplied value for these is silently ignored. Creates are never journalled to doh_rash_history — a new row is already self-describing via its own created_by/created_at. Per-item validation enforces the channel × kassa pairing (kassa=\"bank\" only with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\") and requires dr_name_id, referencing an existing logpass row, when type2 is \"zpl\" or \"avans\".",
+                "description": "Accepts 1-200 entries per request. Each item is validated and written independently — one invalid item never blocks the others, so the overall response is HTTP 200 with a per-item status; only whole-request shape problems (empty array, more than 200 items) are HTTP 422. Only type1 rash/doh may be created — shift_plus/shift_minus rows are out of scope. Server always sets created_by/created_at (api_system logpass user, current time); any client-supplied value for these is silently ignored. Creates are never journalled to doh_rash_history — a new row is already self-describing via its own created_by/created_at. Per-item validation enforces the channel × kassa pairing (kassa=\"bank\" only with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\") and requires dr_name_id, referencing an existing logpass row, when type2 is \"zpl\" or \"avans\". link_to must be 0 on every item — see FinanceEntryInput.link_to.",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -4824,12 +4826,13 @@
                     "404": {
                         "description": "Finance entry not found."
                     }
-                }
+                },
+                "description": "A shift_plus/shift_minus id returns the same 404 as an unknown id — from this API's perspective there is no entry with that id (see FinanceEntry.type1)."
             },
             "patch": {
                 "operationId": "tiktak_finance_entries_update",
                 "summary": "Partially update a ledger entry.",
-                "description": "Validation runs against the MERGED row (existing columns with the submitted patch fields applied on top), not just the submitted body — a field you don't touch can still fail if it no longer pairs with a field you did patch (e.g. patching only kassa on a row whose existing channel doesn't pair with the new kassa). Two rules apply to that merged row specifically: channel and kassa must form a valid pair (kassa=\"bank\" only with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\"), and dr_name_id — referencing an existing logpass row — is required when type2 is \"zpl\" or \"avans\". Refuses (422) when the EXISTING row's type1 is outside {rash, doh} — a shift_plus/shift_minus row can never be retyped or edited through this API. Every successful update is journalled to doh_rash_history with a full before/after row snapshot.",
+                "description": "Validation runs against the MERGED row (existing columns with the submitted patch fields applied on top), not just the submitted body — a field you don't touch can still fail if it no longer pairs with a field you did patch (e.g. patching only kassa on a row whose existing channel doesn't pair with the new kassa), or simply because the STORED value was already invalid under this API's stricter write rules. Two rules apply to that merged row specifically: channel and kassa must form a valid pair (kassa=\"bank\" only with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\"), and dr_name_id — referencing an existing logpass row — is required when type2 is \"zpl\" or \"avans\". Two merged-row failures are commonly inherited rather than caused by the caller, and their messages say so: `info` (about 20% of existing rash/doh rows have an empty info — legacy data predating this API; supply info with your patch to fix the row) and `link_to` (a legacy row carrying a non-zero link_to cannot be patched until you send link_to: 0 — see FinanceEntryInput.link_to for why non-zero is refused at all). The patch is read from the JSON request BODY only: query-string parameters are never treated as patch fields, and a body containing no patchable field at all (empty, or only unknown keys) is a 422 rather than a no-op that rewrites the row with its own values. Refuses (422) when the EXISTING row's type1 is outside {rash, doh} — a shift_plus/shift_minus row can never be retyped or edited through this API. A successful update is journalled to doh_rash_history with a full before/after row snapshot, best-effort: a journal-write failure is logged (with the full payload) but never rolls back the doh_rash write that already succeeded, so a 200 means the ledger row changed and is not by itself a guarantee that a history row exists for it.",
                 "parameters": [
                     {
                         "name": "id",
@@ -4847,7 +4850,7 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "description": "Any subset of these fields. At least one must be supplied. Same field semantics as FinanceEntryInput; see that schema for what each field means.",
+                                "description": "Any subset of these fields, sent in the JSON request body (query-string parameters are ignored). At least one of these fields must be present — a body of only unknown keys is a 422. Same field semantics as FinanceEntryInput; see that schema for what each field means.",
                                 "properties": {
                                     "type1": {
                                         "type": "string",
@@ -4898,8 +4901,10 @@
                                     },
                                     "link_to": {
                                         "type": "integer",
-                                        "nullable": true,
-                                        "description": "See FinanceEntryInput.link_to."
+                                        "enum": [
+                                            0
+                                        ],
+                                        "description": "Must be 0. See FinanceEntryInput.link_to — and note a legacy row that already holds a non-zero link_to can only be patched by sending link_to: 0 to clear it. Omitting the field (or sending null) is equivalent to 0."
                                     }
                                 }
                             }
@@ -4939,7 +4944,7 @@
             "delete": {
                 "operationId": "tiktak_finance_entries_delete",
                 "summary": "Physically delete a ledger entry.",
-                "description": "This is a hard delete — the row is actually removed from doh_rash, there is no soft-delete flag. Recovery is via GET /finance/entries/history (the before snapshot journalled at delete time), not a status flag. Refuses (422) when the row's type1 is outside {rash, doh} — deleting one half of a shift_plus/shift_minus pair would leave the other half dangling and the till balance wrong.",
+                "description": "This is a hard delete — the row is actually removed from doh_rash, there is no soft-delete flag. Recovery is via GET /finance/entries/history (the before snapshot journalled at delete time), not a status flag. Refuses (422) when the row's type1 is outside {rash, doh} — deleting one half of a shift_plus/shift_minus pair would leave the other half dangling and the till balance wrong. The journal actor is resolved BEFORE the row is touched, so a delete that could not be journalled fails with a 500 and leaves the row intact rather than becoming unrecoverable; the journal INSERT itself is still best-effort (a failure is logged with the full row snapshot, never rolled back).",
                 "parameters": [
                     {
                         "name": "id",
@@ -4974,7 +4979,7 @@
             "get": {
                 "operationId": "tiktak_finance_entries_history",
                 "summary": "Read the change journal (doh_rash_history) — update/delete only.",
-                "description": "Records only 'update' and 'delete' actions with a full before/after row snapshot; 'create' is never journalled because a newly created row is already self-describing via its own created_by/created_at. This is the recovery mechanism for a mistaken PATCH or DELETE made through this API.",
+                "description": "Records only 'update' and 'delete' actions with a full before/after row snapshot; 'create' is never journalled because a newly created row is already self-describing via its own created_by/created_at. This is the recovery mechanism for a mistaken PATCH or DELETE made through this API. A reversed range (to earlier than from) is rejected with a 422 rather than returning an empty page.",
                 "parameters": [
                     {
                         "in": "query",
@@ -5012,7 +5017,7 @@
                             "type": "string",
                             "format": "date"
                         },
-                        "description": "Filter journal created_at <= this date."
+                        "description": "Filter journal created_at <= this date. Must not be earlier than `from` — a reversed range is a 422, not an empty result set."
                     },
                     {
                         "in": "query",

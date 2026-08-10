@@ -40,7 +40,7 @@ use Illuminate\Support\Facades\DB;
 class FinanceEntriesController extends BaseController
 {
     /**
-     * The only type1 values this API may create, edit or delete.
+     * The only type1 values this API may create, edit, delete — or return.
      *
      * shift_plus/shift_minus (paired till-transfer rows, linked to each other
      * through `link_to`) are deliberately excluded: a single-row API write
@@ -48,6 +48,14 @@ class FinanceEntriesController extends BaseController
      * gates both the INCOMING value (validateItem(), on create and on the
      * merged row of a patch) and the EXISTING row (update()/destroy(), so a
      * shift row can never be retyped into a rash/doh row or half-deleted).
+     *
+     * It gates the READ side too (index()/show()). A shift row rendered
+     * through formatRow() is actively misleading: its sign is stripped to a
+     * positive magnitude (so a client summing `amount` over a page silently
+     * double-counts a transfer as income) and its type2 belongs to neither
+     * dictionary, so type2_name comes back null. There is deliberately no
+     * parameter to opt back into them — shift rows are not reachable through
+     * this API in either direction.
      */
     private const EDITABLE_TYPE1 = ['rash', 'doh'];
 
@@ -57,12 +65,19 @@ class FinanceEntriesController extends BaseController
      * Filters: from, to (on acc_date), type1, type2, kassa, channel,
      * dr_name_id, search (LIKE on info). Pagination: per_page (default 100,
      * max 500), page. Ordered acc_date DESC, dr_id DESC.
+     *
+     * Never returns rows outside self::EDITABLE_TYPE1 — see that constant.
      */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'from'       => 'nullable|date',
-            'to'         => 'nullable|date',
+            // after_or_equal:from turns a reversed range into a 422 instead of
+            // a silently empty result set — "nothing happened in this period"
+            // and "you swapped your dates" must not look identical on a
+            // finance endpoint. (A `to` with no `from` still validates: the
+            // rule falls back to an unresolvable literal and compares true.)
+            'to'         => 'nullable|date|after_or_equal:from',
             'type1'      => 'nullable|in:doh,rash',
             'type2'      => 'nullable|string|max:64',
             'kassa'      => 'nullable|string|max:16',
@@ -76,7 +91,7 @@ class FinanceEntriesController extends BaseController
         $perPage = (int) ($validated['per_page'] ?? 100);
         $page    = (int) ($validated['page'] ?? 1);
 
-        $query = DB::table('doh_rash');
+        $query = DB::table('doh_rash')->whereIn('type1', self::EDITABLE_TYPE1);
 
         if (!empty($validated['from'])) {
             $query->where('acc_date', '>=', strtotime($validated['from'] . ' 00:00:00'));
@@ -129,10 +144,17 @@ class FinanceEntriesController extends BaseController
      * when the id is unknown (this app's global fallback 404s any
      * unregistered path as HTML, so the JSON error key is what proves this
      * route actually exists and ran).
+     *
+     * A row outside self::EDITABLE_TYPE1 gets the same 404, not a distinct
+     * error: from this API's perspective there is no entry with that id, and
+     * index() likewise never surfaces one to be looked up.
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $row = DB::table('doh_rash')->where('dr_id', $id)->first();
+        $row = DB::table('doh_rash')
+            ->where('dr_id', $id)
+            ->whereIn('type1', self::EDITABLE_TYPE1)
+            ->first();
 
         if (!$row) {
             return response()->json(['error' => 'Finance entry not found.'], 404);
@@ -156,7 +178,8 @@ class FinanceEntriesController extends BaseController
             'dr_id'    => 'nullable|integer',
             'action'   => 'nullable|in:update,delete',
             'from'     => 'nullable|date',
-            'to'       => 'nullable|date',
+            // Reversed range → 422, not an empty page. Same reason as index().
+            'to'       => 'nullable|date|after_or_equal:from',
             'page'     => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:500',
         ]);
@@ -273,6 +296,13 @@ class FinanceEntriesController extends BaseController
      * validating only the merged row would let a shift_plus/shift_minus row be
      * retyped as rash/doh (sign-flipping its amount) while its `link_to`
      * partner is left untouched, silently desynchronising the till balance.
+     *
+     * The body is read with json()->all(), NOT all(): all() merges the query
+     * string into the body, so `PATCH /finance/entries/5?kassa=bank` with an
+     * empty JSON body would have applied kassa from the URL. The "at least one
+     * field" check runs on the FIELD-FILTERED patch, not the raw body, so a
+     * body of only unknown keys ({"foo":1}) is a 422 rather than a no-op that
+     * still rewrites every column with its own value and journals it.
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -285,21 +315,24 @@ class FinanceEntriesController extends BaseController
             return response()->json(['error' => 'This entry is not editable through this API (internal transfer type).'], 422);
         }
 
-        $body = $request->all();
-        if (empty($body)) {
-            return response()->json(['error' => 'At least one field must be provided for update.'], 422);
-        }
+        // JSON body only — query-string parameters are not patch fields.
+        $body = $request->json()->all();
+        $body = is_array($body) ? $body : [];
 
         // Only the mutable API fields may be patched; cr_who_id/cr_time (and
         // anything else) are silently ignored, same as on create.
         $allowedFields = ['type1', 'type2', 'date', 'amount', 'kassa', 'channel', 'info', 'dr_name_id', 'link_to'];
         $patch = array_intersect_key($body, array_flip($allowedFields));
 
+        if (empty($patch)) {
+            return response()->json(['error' => 'At least one field must be provided for update.'], 422);
+        }
+
         $merged = array_merge($this->rowToApiShape($existing), $patch);
 
         $errors = $this->validateItem($merged);
         if (!empty($errors)) {
-            return response()->json(['errors' => $errors], 422);
+            return response()->json(['errors' => $this->explainMergedRowErrors($errors, $existing, $patch)], 422);
         }
 
         $storageRow = $this->toStorageRow($merged);
@@ -371,6 +404,43 @@ class FinanceEntriesController extends BaseController
     // ──────────────────────────────────────────────────────────────────────
     // Write-side validation and storage-row construction
     // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Rewrites merged-row validation messages that would otherwise blame the
+     * caller for a pre-existing property of the stored row.
+     *
+     * ~20% of live rash/doh rows have an empty `info` (legacy data predating
+     * this API's stricter write rules). Patching an unrelated field on one of
+     * them fails on `info` — correct (the merged row really is invalid), but
+     * "info is required." reads as "you sent a bad info" when the caller never
+     * sent one at all. Same idea for `link_to`: a legacy row carrying a
+     * non-zero link_to is a data hazard the caller inherited, not one it
+     * introduced (see validateItem()).
+     *
+     * @param  array<string,string> $errors
+     * @param  array<string,mixed>  $patch  the field-filtered patch body
+     * @return array<string,string>
+     */
+    private function explainMergedRowErrors(array $errors, object $existing, array $patch): array
+    {
+        if (isset($errors['info'])
+            && !array_key_exists('info', $patch)
+            && trim((string) $existing->info) === ''
+        ) {
+            $errors['info'] = 'info is required, and this row has no description on file '
+                . '(legacy data predating this API) — supply `info` with your patch to fix it.';
+        }
+
+        if (isset($errors['link_to'])
+            && !array_key_exists('link_to', $patch)
+            && (int) $existing->link_to !== 0
+        ) {
+            $errors['link_to'] = 'link_to must be 0, and this row already carries a non-zero link_to '
+                . '(legacy data predating this API) — supply `link_to: 0` with your patch to clear it.';
+        }
+
+        return $errors;
+    }
 
     /**
      * Validates one entry (API shape: type1, type2, date, amount, kassa,
@@ -513,6 +583,34 @@ class FinanceEntriesController extends BaseController
             }
         }
 
+        // ── link_to (must be 0 — arms a cascade delete in the legacy admin) ──
+        // bb/doh-rash.php renders EVERY row's delete form with a hidden
+        // dr_id_link = that row's link_to (line ~866), and its delete handler
+        // runs `DELETE FROM doh_rash WHERE dr_id IN ('$dr_id','$dr_id_link')`
+        // whenever dr_id_link > 0 (lines ~284-292) — with no type1 check, and
+        // behind a confirm dialog that says "эту операцию", singular. So a
+        // rash/doh row created here with a non-zero link_to is a landmine: the
+        // next human who deletes it in the admin silently destroys a second,
+        // unrelated row too — possibly one half of a shift_plus/shift_minus
+        // pair, corrupting a till balance through a different door than the one
+        // EDITABLE_TYPE1 closes.
+        //
+        // Rejecting only links that POINT AT a shift row would not be enough:
+        // the legacy cascade deletes whatever dr_id it finds, shift or not.
+        // Zero is therefore the only accepted value, and linked/paired
+        // operations stay out of scope for this API. (Verified when this rule
+        // landed: 0 of 19,606 real rash/doh rows carry a non-zero link_to, so
+        // this API was the only way the hazard could ever be introduced.)
+        $linkToRaw = array_key_exists('link_to', $data) ? $data['link_to'] : 0;
+        if ($linkToRaw === null || $linkToRaw === '') {
+            $linkToRaw = 0;
+        }
+        if (!is_numeric($linkToRaw)) {
+            $errors['link_to'] = 'link_to must be an integer.';
+        } elseif ((int) $linkToRaw !== 0) {
+            $errors['link_to'] = 'link_to must be 0 — linked/paired operations are out of scope for this API.';
+        }
+
         return $errors;
     }
 
@@ -537,6 +635,9 @@ class FinanceEntriesController extends BaseController
         $drNameIdRaw = $item['dr_name_id'] ?? 0;
         $drNameId    = ($drNameIdRaw === null || $drNameIdRaw === '') ? 0 : (int) $drNameIdRaw;
 
+        // Always 0 in practice — validateItem() rejects anything else (see the
+        // legacy cascade-delete hazard documented there). Kept as a cast rather
+        // than a hardcoded 0 so the column's value still comes from the item.
         $linkToRaw = $item['link_to'] ?? 0;
         $linkTo    = ($linkToRaw === null || $linkToRaw === '') ? 0 : (int) $linkToRaw;
 
@@ -676,7 +777,11 @@ class FinanceEntriesController extends BaseController
                 'created_at'    => now(),
             ]);
         } catch (\Throwable $e) {
-            \Log::error('doh_rash_history insert failed: ' . $e->getMessage(), [
+            // Not necessarily an INSERT failure: when the caller did not
+            // pre-resolve $actorId (update path), apiAuthorId() runs inside
+            // this try and can throw before any INSERT is attempted. Say only
+            // what is actually known — the journal write did not happen.
+            \Log::error('doh_rash_history write failed (' . $action . '): ' . $e->getMessage(), [
                 'dr_id'       => (int) $before->dr_id,
                 'action'      => $action,
                 'before_json' => $beforeJson,

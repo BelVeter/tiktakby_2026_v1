@@ -571,4 +571,131 @@ class FinanceEntriesReadTest extends McpTestCase
         $this->assertRequiresToken('finance/entries/' . $this->ids['canonical']);
         $this->assertRequiresToken('finance/entries/history');
     }
+
+    // ══ review hardening (final whole-branch review) ═════════════════════
+
+    /**
+     * Mutually-linked shift_plus/shift_minus fixture pair (mirrors
+     * FinanceEntriesWriteTest::insertShiftPair): each row's link_to points at
+     * its partner, amounts mirror each other. Both carry self::MARKER in
+     * `info`, so purgeDohRash() removes them like any other fixture row.
+     *
+     * Seeded per-test rather than in seedFixtures(), so the ~20 rows every
+     * other test in this file scopes over stay exactly as they were.
+     *
+     * @return array{0:int,1:int} [plusId, minusId]
+     */
+    private function insertShiftPair(string $label): array
+    {
+        $plusId = $this->insertEntry([
+            'type1'   => 'shift_plus',
+            'type2'   => 'curk1',
+            'amount'  => 126.00,
+            'channel' => '1',
+            'kassa'   => 'k2',
+            'info'    => self::MARKER . $label . '-PLUS',
+        ]);
+
+        $minusId = $this->insertEntry([
+            'type1'   => 'shift_minus',
+            'type2'   => 'of1k2',
+            'amount'  => -126.00,
+            'channel' => 'cur',
+            'kassa'   => 'k1',
+            'link_to' => $plusId,
+            'info'    => self::MARKER . $label . '-MINUS',
+        ]);
+
+        DB::table('doh_rash')->where('dr_id', $plusId)->update(['link_to' => $minusId]);
+
+        return [$plusId, $minusId];
+    }
+
+    /**
+     * `shift_plus`/`shift_minus` (paired till-transfer rows, ~39% of doh_rash)
+     * must never appear in a listing. index() had no type1 filter at all, so
+     * they were interleaved with rash/doh rows — each with its sign stripped to
+     * a positive magnitude by formatRow() and a null type2_name, which makes
+     * any agent summing `amount` over a page silently count a till transfer as
+     * income. `type1=doh|rash` could not be used to exclude them either: the
+     * filter only accepts the two valid values, so there was no way to say
+     * "exclude shift rows".
+     */
+    public function test_shift_rows_never_appear_in_a_listing(): void
+    {
+        [$plusId, $minusId] = $this->insertShiftPair('SHIFT-EXCLUDE');
+        $controlId = $this->insertEntry([
+            'type1' => 'rash',
+            'info'  => self::MARKER . 'SHIFT-EXCLUDE-CONTROL',
+        ]);
+
+        // Scoped listing: the control row proves the search itself matched, so
+        // the two assertNotContains below can't pass on an empty result set.
+        $scoped = $this->mcp('finance/entries', ['search' => self::MARKER . 'SHIFT-EXCLUDE']);
+        $scoped->assertStatus(200);
+
+        $ids = array_column($scoped->json('data'), 'dr_id');
+        $this->assertContains($controlId, $ids, 'the rash control row sharing the search prefix must be returned');
+        $this->assertNotContains($plusId, $ids, 'a shift_plus row must never be listed');
+        $this->assertNotContains($minusId, $ids, 'a shift_minus row must never be listed');
+
+        // ...and none leak into an unfiltered page of the real dataset either.
+        $unfiltered = $this->mcp('finance/entries', ['per_page' => 500]);
+        $unfiltered->assertStatus(200);
+
+        $rows = $unfiltered->json('data');
+        $this->assertNotEmpty($rows, 'sanity: the unfiltered listing must return rows at all');
+        foreach ($rows as $row) {
+            $this->assertContains(
+                $row['type1'],
+                ['rash', 'doh'],
+                'unfiltered listing returned a row with type1=' . $row['type1'] . ' (dr_id ' . $row['dr_id'] . ')'
+            );
+        }
+    }
+
+    /**
+     * Companion to the listing test: a shift row is not addressable by id
+     * either. It 404s with the same JSON `error` body an unknown id gets —
+     * from this API's perspective there is no entry with that id — and the row
+     * itself must still be sitting untouched in doh_rash.
+     */
+    public function test_show_returns_404_for_a_shift_row(): void
+    {
+        [$plusId, $minusId] = $this->insertShiftPair('SHIFT-SHOW');
+
+        foreach ([$plusId, $minusId] as $id) {
+            $this->assertDatabaseHas('doh_rash', ['dr_id' => $id]);
+
+            $r = $this->mcp('finance/entries/' . $id);
+            $r->assertStatus(404);
+            $r->assertHeader('Content-Type', 'application/json');
+            $this->assertArrayHasKey('error', $r->json());
+
+            $this->assertNotNull(
+                DB::table('doh_rash')->where('dr_id', $id)->first(),
+                'the shift row must still exist — it is hidden from this API, not missing from the table'
+            );
+        }
+    }
+
+    /**
+     * A reversed range (`to` < `from`) used to return an empty page. On a
+     * finance endpoint that is a dangerous failure mode: an agent reconciling
+     * a period reads "empty" as "nothing happened" rather than "you swapped
+     * your dates". It must be a 422 instead — on both range endpoints.
+     */
+    public function test_reversed_date_range_is_rejected(): void
+    {
+        $this->mcp('finance/entries', ['from' => '2026-03-15', 'to' => '2026-03-10'])->assertStatus(422);
+        $this->mcp('finance/entries/history', ['from' => '2026-03-15', 'to' => '2026-03-10'])->assertStatus(422);
+
+        // The boundary case (from == to, a single day) is still a valid range,
+        // and each bound is still usable on its own.
+        $this->mcp('finance/entries', ['from' => '2026-03-11', 'to' => '2026-03-11'])->assertStatus(200);
+        $this->mcp('finance/entries', ['to' => '2026-03-11'])->assertStatus(200);
+        $this->mcp('finance/entries', ['from' => '2026-03-11'])->assertStatus(200);
+        $this->mcp('finance/entries/history', ['from' => '2026-03-11', 'to' => '2026-03-11'])->assertStatus(200);
+        $this->mcp('finance/entries/history', ['to' => '2026-03-11'])->assertStatus(200);
+    }
 }

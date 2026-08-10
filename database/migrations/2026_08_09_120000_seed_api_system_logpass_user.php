@@ -5,8 +5,12 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Seeds a dedicated "API" logpass row used as cr_who_id for every doh_rash
- * row written by POST /finance/bank-import — so bank-imported rows are
- * attributed to a real, inert account instead of a guessed employee id.
+ * row written through the MCP ledger API (POST /finance/entries), and as
+ * actor_user_id on every doh_rash_history journal row it writes — so
+ * API-written rows are attributed to a real, inert account instead of a
+ * guessed employee id. (This row was introduced for the since-removed
+ * POST /finance/bank-import endpoint, which the general /finance/entries
+ * CRUD replaced mid-branch; the seed itself is unchanged.)
  * active=0 means it can never log in (bb/models/User's login query requires
  * active>0), so the random `pass` value has no credential to protect.
  */

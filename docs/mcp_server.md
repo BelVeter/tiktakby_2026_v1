@@ -122,12 +122,12 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `GET /finance/revenue-by-category` | Period × category revenue with `avg_deal_byn`, `avg_rental_days` (full deal duration), `avg_first_rent_days` (first-issuance sub-deal duration) |
 |        | `GET /finance/expenses` | doh_rash by `type2` × channel (cash/bank/etc.) |
 |        | `GET /finance/cash-flow` | Inflow/outflow/net per till (`kassa`) |
-|        | `GET /finance/entries` | List `doh_rash` ledger rows, filtered (`from`/`to`/`type1`/`type2`/`kassa`/`channel`/`dr_name_id`/`search`) and paginated. `amount` is always a positive magnitude; direction is `type1`. Only `rash`/`doh` rows are ever returned by this API — see "Ledger entry model" below. |
-|        | `GET /finance/entries/{id}` | Read a single ledger entry by `dr_id`. |
-|        | `POST /finance/entries` | Batch-create 1-200 ledger entries. One invalid item never blocks the others — HTTP 200 with per-item `status: created\|invalid`; only whole-request shape problems (empty array, >200 items) are HTTP 422. `type1` restricted to `rash`/`doh`. |
-|        | `PATCH /finance/entries/{id}` | Partial update, validated against the merged (existing + patch) row. Refuses rows whose existing `type1` is outside `rash`/`doh`. Journalled to `doh_rash_history`. |
+|        | `GET /finance/entries` | List `doh_rash` ledger rows, filtered (`from`/`to`/`type1`/`type2`/`kassa`/`channel`/`dr_name_id`/`search`) and paginated. `amount` is always a positive magnitude; direction is `type1`. Only `rash`/`doh` rows are ever returned — `shift_plus`/`shift_minus` till transfers (~39% of the table) are filtered out server-side and cannot be opted back in. A reversed range (`to` < `from`) is a 422, never an empty page. See "Ledger entry model" below. |
+|        | `GET /finance/entries/{id}` | Read a single ledger entry by `dr_id`. A `shift_plus`/`shift_minus` id 404s exactly like an unknown one — from this API there is no such entry. |
+|        | `POST /finance/entries` | Batch-create 1-200 ledger entries. One invalid item never blocks the others — HTTP 200 with per-item `status: created\|invalid`; only whole-request shape problems (empty array, >200 items) are HTTP 422. `type1` restricted to `rash`/`doh`; `link_to` must be `0`. |
+|        | `PATCH /finance/entries/{id}` | Partial update, validated against the merged (existing + patch) row — so it can fail on a field you never sent (see "Ledger entry model"). Body is read from the JSON body only; query-string parameters are ignored, and a body with no patchable field is a 422, not a no-op. Refuses rows whose existing `type1` is outside `rash`/`doh`. Journalled to `doh_rash_history` (best-effort — see below). |
 |        | `DELETE /finance/entries/{id}` | **Physical delete** — the row is actually removed from `doh_rash`, no soft-delete flag. Refuses `type1` outside `rash`/`doh`. Recovery is via `GET /finance/entries/history`, journalled before the row is destroyed. |
-|        | `GET /finance/entries/history` | Change journal (`doh_rash_history`) reader — `update`/`delete` only, full before/after row snapshots. `create` is never journalled (a new row is already self-describing via its own `created_by`/`created_at`). Filters: `dr_id`, `action`, `from`, `to`. |
+|        | `GET /finance/entries/history` | Change journal (`doh_rash_history`) reader — `update`/`delete` only, full before/after row snapshots. `create` is never journalled (a new row is already self-describing via its own `created_by`/`created_at`). Filters: `dr_id`, `action`, `from`, `to` (reversed range → 422). |
 | Operations | `GET /operations/funnel` | leads → deals → sub-deals → returns + CR |
 |        | `GET /operations/timeline` | Period-bucketed funnel |
 |        | `GET /operations/by-category` | Per-razdel orders + deals + revenue |
@@ -209,9 +209,18 @@ reference, not a footnote.
 create, update or delete rows with an existing `type1` of `rash` or `doh` —
 `shift_plus`/`shift_minus` rows are excluded on **both** sides (the existing
 DB row and the incoming/target value), because a single-row write would
-desynchronize the till balance the pair exists to keep in sync. This is
-enforced and tested (`FinanceEntriesController::EDITABLE_TYPE1`), not an
-implementation detail to work around.
+desynchronize the till balance the pair exists to keep in sync.
+
+**The same boundary applies to reads.** `GET /finance/entries` never lists a
+`shift_plus`/`shift_minus` row (they are ~39% of `doh_rash`), and
+`GET /finance/entries/{id}` 404s for one. There is no parameter to include
+them, and none is wanted: rendered through this API's shape a transfer row
+loses its sign (`amount` is always a positive magnitude) and resolves no
+`type2_name`, so summing `amount` over a page that contained one would count
+a till transfer as income.
+
+This is enforced and tested (`FinanceEntriesController::EDITABLE_TYPE1`), not
+an implementation detail to work around.
 
 **`type2` — write vs. read.** On write, `type2` must be an `is_active=1` code
 in the dictionary matching `type1`. On read, `type2_name` resolves the label
@@ -249,11 +258,29 @@ returns `abs()`).
 2000 chars) — this guards against silent `TEXT`-column truncation under this
 app's empty `sql_mode`.
 
-**`link_to`** is an optional integer (default `0`) that round-trips as
-supplied. It is *not* independently validated against real rows, and it is
-not how `shift_plus`/`shift_minus` pairing is enforced — do not assume a
-`link_to` value on a `rash`/`doh` row has been checked for referential
-integrity.
+**`link_to` must be `0`. Any other value is rejected (422 / per-item
+`invalid`), on create and on the merged PATCH row alike** — and this is a
+data-integrity guard, not a stylistic restriction, so do not loosen it:
+
+> The legacy admin (`bb/doh-rash.php`) renders **every** row's delete form
+> with a hidden `dr_id_link` set to that row's `link_to`, and its delete
+> handler runs `DELETE FROM doh_rash WHERE dr_id IN ('$dr_id','$dr_id_link')`
+> whenever that value is `> 0` — with no `type1` check, behind a confirm
+> dialog that says «эту операцию», singular. A `rash`/`doh` row carrying a
+> non-zero `link_to` therefore silently destroys a *second, unrelated* row the
+> next time a human deletes it in the admin — possibly one half of a
+> `shift_plus`/`shift_minus` pair, corrupting a till balance through a
+> different door than the `type1` boundary above closes.
+
+Rejecting only links that *point at* a shift row would not be enough: the
+legacy cascade deletes whatever `dr_id` it is handed. Linked/paired operations
+are out of scope for this API; `0` is the only accepted value.
+
+Because the rule is enforced against the **merged** PATCH row, a legacy row
+that already carries a non-zero `link_to` cannot be patched until the caller
+clears it — send `link_to: 0` alongside the patch and the error message says
+so. (When this rule landed, 0 of 19,606 real `rash`/`doh` rows were in that
+state; this API was the only thing that could ever have introduced one.)
 
 **Server-set fields, never client-controlled:** `created_by`/`cr_who_id`
 (always the dedicated `api_system` logpass user — a client-supplied value is
@@ -269,6 +296,26 @@ only, each as a full before/after row snapshot — never `create` (a newly
 created row is already self-describing via its own `created_by`/
 `created_at`). This is the only recovery path for a mistaken edit or delete
 made through this API.
+
+Journalling is **best-effort**: a journal-write failure is logged (with the
+full before/after payload, so the application log can stand in as the recovery
+trace) but never rolls back the `doh_rash` write that already succeeded. So a
+successful `PATCH`/`DELETE` response means the ledger row changed — it is not,
+by itself, a guarantee that a history row exists for it. The one exception is
+`DELETE`, which resolves its journal actor **before** touching the row and
+aborts with a 500 (row intact) if that fails, because an unjournalled delete
+would be unrecoverable.
+
+**Validation of a `PATCH` runs against the merged row, so it can fail on a
+field you never sent.** That is deliberate — the row as it would be *after*
+the patch must be valid — but it surprises callers when the offending value
+was already in the database. The two live cases:
+
+- **`info`** — ~20% of existing `rash`/`doh` rows have an empty `info`
+  (legacy data predating this API's stricter write rules). Patching an amount
+  on one of them fails on `info`; the error explicitly says the row has no
+  description on file and that you should supply `info` with your patch.
+- **`link_to`** — see the `link_to` rule above; supply `link_to: 0`.
 
 ## L3 product pages — URL resolution and gotchas
 

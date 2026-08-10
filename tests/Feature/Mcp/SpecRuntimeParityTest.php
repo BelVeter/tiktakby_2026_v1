@@ -55,6 +55,7 @@ class SpecRuntimeParityTest extends McpTestCase
             'finance/revenue'              => ['finance/revenue',              $range + ['granularity' => 'year'],                                            'array_row', null],
             'finance/expenses'             => ['finance/expenses',             $range + ['granularity' => 'year'],                                            'array_row', null],
             'finance/cash-flow'            => ['finance/cash-flow',            $range + ['granularity' => 'year'],                                            'array_row', null],
+            'finance/entries'              => ['finance/entries',              ['per_page' => 1],                                                             'array_row', null],
 
             // Operations
             'operations/funnel'            => ['operations/funnel',            $range,                                                                        'object',    null],

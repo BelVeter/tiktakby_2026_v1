@@ -55,10 +55,21 @@ class FinanceEntriesWriteTest extends McpTestCase
     private ?string $inactiveOffice;   // an existing-but-administratively-closed office number, e.g. '3' (nullable: environment-dependent)
     private string $nonexistentOffice; // an office number verified to have no row in `offices`
 
+    /**
+     * doh_rash ids of fixture rows whose `info` cannot carry self::MARKER
+     * (because the empty/odd `info` IS what the test exercises), so
+     * purgeDohRash()'s LIKE sweep can never find them. Deleted by id in
+     * tearDown() instead — doh_rash is MyISAM, nothing rolls back on its own.
+     *
+     * @var int[]
+     */
+    private array $unmarkedRowIds = [];
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->unmarkedRowIds = [];
         $this->purgeDohRash();
         $this->purgeInactiveDictionaryCodes();
 
@@ -74,6 +85,10 @@ class FinanceEntriesWriteTest extends McpTestCase
 
     protected function tearDown(): void
     {
+        if (!empty($this->unmarkedRowIds)) {
+            DB::table('doh_rash')->whereIn('dr_id', $this->unmarkedRowIds)->delete();
+            $this->unmarkedRowIds = [];
+        }
         $this->purgeDohRash();
         $this->purgeInactiveDictionaryCodes();
         parent::tearDown();
@@ -288,8 +303,15 @@ class FinanceEntriesWriteTest extends McpTestCase
         $this->assertGreaterThanOrEqual($before, (int) $row->cr_time, 'cr_time must be server-generated "now"');
     }
 
-    // ── 6. dr_name_id / link_to default to 0, round-trip when supplied ─────
+    // ── 6. dr_name_id defaults/round-trips; link_to may only ever be 0 ─────
 
+    /**
+     * `link_to` used to round-trip any integer the caller supplied. It must
+     * now be 0 — see test_non_zero_link_to_is_rejected() below for the legacy
+     * cascade-delete hazard that changed this behaviour. An explicit
+     * `link_to: 0` is still accepted (it is the documented default), so this
+     * test pins both halves: the default, and the explicit zero.
+     */
     public function test_06_dr_name_id_and_link_to_default_and_roundtrip(): void
     {
         $rOmitted = $this->postEntries([$this->rashPayload(['info' => self::MARKER . 'DEFAULTS-OMITTED'])]);
@@ -300,11 +322,87 @@ class FinanceEntriesWriteTest extends McpTestCase
         $rSupplied = $this->postEntries([$this->rashPayload([
             'info'       => self::MARKER . 'DEFAULTS-SUPPLIED',
             'dr_name_id' => $this->employeeId,
-            'link_to'    => 4242,
+            'link_to'    => 0,
         ])]);
-        $rowSupplied = DB::table('doh_rash')->where('dr_id', $rSupplied->json('data.0.dr_id'))->first();
+        $itemSupplied = $rSupplied->json('data.0');
+        $this->assertSame('created', $itemSupplied['status'], 'an explicit link_to of 0 must still be accepted');
+
+        $rowSupplied = DB::table('doh_rash')->where('dr_id', $itemSupplied['dr_id'])->first();
         $this->assertSame($this->employeeId, (int) $rowSupplied->dr_name_id);
-        $this->assertSame(4242, (int) $rowSupplied->link_to);
+        $this->assertSame(0, (int) $rowSupplied->link_to);
+    }
+
+    // ── 6a. non-zero link_to is rejected outright (create + patch) ─────────
+
+    /**
+     * A non-zero `link_to` on a rash/doh row arms a silent cascade delete in
+     * the live legacy admin: bb/doh-rash.php renders EVERY row's delete form
+     * with a hidden `dr_id_link` = that row's `link_to`, and its handler runs
+     * `DELETE FROM doh_rash WHERE dr_id IN ('$dr_id','$dr_id_link')` whenever
+     * that value is > 0 — no type1 check, and a confirm dialog that says "эту
+     * операцию", singular. So the next human to delete an API-created row
+     * carrying a link_to would silently destroy a second, unrelated row too,
+     * possibly one half of a shift_plus/shift_minus pair.
+     *
+     * Rejecting only links that point AT a shift row would not close this: the
+     * legacy cascade deletes whatever dr_id it is handed. 0 is the only
+     * accepted value, on create and on the merged PATCH row alike.
+     */
+    public function test_non_zero_link_to_is_rejected(): void
+    {
+        // create
+        $r = $this->postEntries([$this->rashPayload([
+            'info'    => self::MARKER . 'LINKTO-NONZERO',
+            'link_to' => 4242,
+        ])]);
+        $r->assertStatus(200);
+
+        $item = $r->json('data.0');
+        $this->assertSame('invalid', $item['status']);
+        $this->assertArrayHasKey('link_to', $item['errors']);
+        $this->assertSame(
+            0,
+            DB::table('doh_rash')->where('info', self::MARKER . 'LINKTO-NONZERO')->count(),
+            'a rejected item must not leave a row behind'
+        );
+
+        // patch
+        $id = $this->insertRow(['link_to' => 0, 'info' => self::MARKER . 'LINKTO-PATCH']);
+        $rPatch = $this->patchMcp($id, ['link_to' => 4242]);
+        $rPatch->assertStatus(422);
+        $this->assertArrayHasKey('link_to', $rPatch->json('errors'));
+
+        $row = DB::table('doh_rash')->where('dr_id', $id)->first();
+        $this->assertSame(0, (int) $row->link_to, 'rejected patch must not have been applied');
+        $this->assertSame(0, DB::table('doh_rash_history')->where('dr_id', $id)->count(), 'a rejected patch must not journal anything');
+    }
+
+    /**
+     * The merged-row rule bites legacy rows too: a pre-existing rash/doh row
+     * that already carries a non-zero link_to cannot be patched at all until
+     * the caller clears it. That is deliberate (the stored row is the hazard),
+     * but the error must SAY so rather than blaming a field the caller never
+     * sent — and `link_to: 0` in the patch must be the escape hatch.
+     *
+     * (Verified at review time: 0 of 19,606 real rash/doh rows are in this
+     * state — the fixture below constructs it on purpose.)
+     */
+    public function test_patch_of_legacy_row_with_non_zero_link_to_explains_itself(): void
+    {
+        $id = $this->insertRow(['link_to' => 777, 'info' => self::MARKER . 'LINKTO-LEGACY']);
+
+        $blocked = $this->patchMcp($id, ['kassa' => 'k2']);
+        $blocked->assertStatus(422);
+        $this->assertArrayHasKey('link_to', $blocked->json('errors'));
+        $this->assertStringContainsString('already carries a non-zero link_to', $blocked->json('errors.link_to'));
+        $this->assertSame('k1', DB::table('doh_rash')->where('dr_id', $id)->value('kassa'));
+
+        $cleared = $this->patchMcp($id, ['kassa' => 'k2', 'link_to' => 0]);
+        $cleared->assertStatus(200);
+
+        $row = DB::table('doh_rash')->where('dr_id', $id)->first();
+        $this->assertSame(0, (int) $row->link_to, 'supplying link_to: 0 must defuse the row');
+        $this->assertSame('k2', $row->kassa);
     }
 
     // ── 7. type1 outside whitelist → invalid ────────────────────────────────
@@ -812,6 +910,100 @@ class FinanceEntriesWriteTest extends McpTestCase
         $this->assertSame(0, DB::table('doh_rash_history')->where('dr_id', $id)->count(), 'a rejected patch must not journal anything');
     }
 
+    // ── 24a. PATCH whose body holds no patchable field → 422, no journal ───
+
+    /**
+     * The "at least one field" check used to run on the RAW body, so a body of
+     * only unknown keys ({"foo":1}) passed it, then filtered down to an empty
+     * patch and fell through to a full-row rewrite of every column with its
+     * own existing value — a no-op that still wrote a journal row whose
+     * `before` and `after` were identical. The check now runs on the
+     * field-filtered patch.
+     */
+    public function test_patch_with_only_unknown_keys_is_422_and_journals_nothing(): void
+    {
+        $id = $this->insertRow(['info' => self::MARKER . 'PATCH-UNKNOWN-KEYS']);
+
+        $r = $this->patchMcp($id, ['foo' => 1, 'cr_who_id' => 999999]);
+        $r->assertStatus(422);
+
+        $this->assertSame(
+            0,
+            DB::table('doh_rash_history')->where('dr_id', $id)->count(),
+            'a body with no patchable field must be rejected, not silently journalled as a no-op'
+        );
+        $this->assertSame($this->apiSystemId, (int) DB::table('doh_rash')->where('dr_id', $id)->value('cr_who_id'));
+    }
+
+    // ── 24b. query-string parameters are not patch fields ──────────────────
+
+    /**
+     * update() used to read $request->all(), which merges the query string
+     * into the body — so `PATCH /finance/entries/{id}?kassa=bank` with an
+     * empty JSON body passed the empty-body check AND applied kassa from the
+     * URL. The body is now read with json()->all().
+     */
+    public function test_patch_ignores_query_string_parameters(): void
+    {
+        $id = $this->insertRow([
+            'kassa'   => 'k1',
+            'channel' => $this->liveOffice,
+            'info'    => self::MARKER . 'PATCH-QUERYSTRING',
+        ]);
+
+        // (a) query string alone, empty body → no field supplied at all.
+        $rEmptyBody = $this->patchJson('/api/mcp/v1/finance/entries/' . $id . '?kassa=bank', [], [
+            'Authorization' => 'Bearer ' . config('mcp.api_token'),
+        ]);
+        $rEmptyBody->assertStatus(422);
+        $this->assertSame('k1', DB::table('doh_rash')->where('dr_id', $id)->value('kassa'));
+
+        // (b) query string alongside a real body → only the body is applied.
+        $rWithBody = $this->patchJson('/api/mcp/v1/finance/entries/' . $id . '?kassa=bank', [
+            'info' => self::MARKER . 'PATCH-QUERYSTRING-EDITED',
+        ], [
+            'Authorization' => 'Bearer ' . config('mcp.api_token'),
+        ]);
+        $rWithBody->assertStatus(200);
+
+        $row = DB::table('doh_rash')->where('dr_id', $id)->first();
+        $this->assertSame(self::MARKER . 'PATCH-QUERYSTRING-EDITED', $row->info, 'the body field must be applied');
+        $this->assertSame('k1', $row->kassa, 'a query-string parameter must never reach the patch');
+        $this->assertSame(1, DB::table('doh_rash_history')->where('dr_id', $id)->count(), 'only the one accepted patch is journalled');
+    }
+
+    // ── 24c. merged-row `info` failure names the row, not the caller ───────
+
+    /**
+     * ~20% of live rash/doh rows have an empty `info` (legacy data predating
+     * this API's stricter write rules). Patching an unrelated field on one of
+     * them correctly fails merged-row validation on `info` — but a bare
+     * "info is required." reads as "you sent a bad info" when the caller never
+     * sent one. The message must point at the stored row, and supplying `info`
+     * must be the documented way through.
+     */
+    public function test_patch_of_row_with_empty_info_explains_the_cause(): void
+    {
+        // `info` IS the empty value under test, so this row cannot carry the
+        // TESTENTRY- marker purgeDohRash() cleans up by — its id is registered
+        // for the explicit tearDown sweep instead.
+        $id = $this->insertRow(['info' => '']);
+        $this->unmarkedRowIds[] = $id;
+
+        $blocked = $this->patchMcp($id, ['kassa' => 'k2']);
+        $blocked->assertStatus(422);
+        $this->assertArrayHasKey('info', $blocked->json('errors'));
+        $this->assertStringContainsString('no description on file', $blocked->json('errors.info'));
+        $this->assertSame('k1', DB::table('doh_rash')->where('dr_id', $id)->value('kassa'), 'rejected patch must not have been applied');
+
+        $fixed = $this->patchMcp($id, ['kassa' => 'k2', 'info' => self::MARKER . 'PATCH-INFO-SUPPLIED']);
+        $fixed->assertStatus(200);
+
+        $row = DB::table('doh_rash')->where('dr_id', $id)->first();
+        $this->assertSame('k2', $row->kassa);
+        $this->assertSame(self::MARKER . 'PATCH-INFO-SUPPLIED', $row->info);
+    }
+
     // ── 25. PATCH on unknown id → 404 ───────────────────────────────────────
 
     public function test_25_patch_unknown_id_is_404(): void
@@ -1299,5 +1491,86 @@ class FinanceEntriesWriteTest extends McpTestCase
         $this->assertNotNull($entry, 'a successful delete must always be journalled');
         $this->assertSame($this->apiSystemId, (int) $entry->actor_user_id);
         $this->assertNotNull($entry->before_json, 'the deleted row snapshot is the only surviving copy');
+    }
+
+    /**
+     * The one thing neither suite covered: a POST-created row read back through
+     * GET /finance/entries/{id}.
+     *
+     * Every other test in this file verifies a write with a raw DB::select, and
+     * every test in FinanceEntriesReadTest seeds its fixtures with a raw
+     * DB::insert — so each suite only ever exercises ONE side of the three
+     * layers that sit between the two:
+     *
+     *   - sign normalisation: toStorageRow() negates a rash amount on the way
+     *     in, formatRow() abs()es it on the way out. A double-negation, or a
+     *     negation the read side didn't undo, is invisible to either suite alone.
+     *   - timezone: `date` is written through strtotime($date . ' 00:00:00')
+     *     and read back through date('Y-m-d', acc_date); a UTC/Minsk mismatch
+     *     between the two shifts the date by a day.
+     *   - the TTL_META-cached dictionaries: created_by resolves cr_who_id (set
+     *     by the write path) through createdByDictionary(), and type2_name
+     *     resolves the article code through type2Dictionary(). A row written
+     *     with an id or code those caches don't know reads back as null.
+     */
+    public function test_posted_entry_reads_back_through_get_by_id(): void
+    {
+        $sent = $this->rashPayload([
+            'type2'  => 'other',
+            'date'   => '2026-05-01',
+            'amount' => 123.45,
+            'info'   => self::MARKER . 'ROUNDTRIP-POST-THEN-GET',
+        ]);
+
+        $created = $this->postEntries([$sent]);
+        $created->assertStatus(200);
+        $this->assertSame('created', $created->json('data.0.status'));
+
+        $drId = $created->json('data.0.dr_id');
+        $this->assertIsInt($drId);
+
+        // Storage really does hold the negated value — so the assertion below
+        // that the API returns +123.45 is testing the read path's abs(), not a
+        // write path that never negated in the first place.
+        $this->assertEqualsWithDelta(
+            -123.45,
+            (float) DB::table('doh_rash')->where('dr_id', $drId)->value('amount'),
+            0.001,
+            'sanity: a rash row must be stored negative'
+        );
+
+        $read = $this->mcp('finance/entries/' . $drId);
+        $read->assertStatus(200);
+        $row = $read->json('data');
+
+        $this->assertSame($drId, $row['dr_id']);
+        $this->assertEqualsWithDelta(123.45, (float) $row['amount'], 0.001, 'amount must read back as the positive magnitude that was POSTed, not the negated storage value');
+        $this->assertGreaterThan(0, (float) $row['amount']);
+        $this->assertSame('rash', $row['type1']);
+        $this->assertSame($sent['date'], $row['date'], 'the accounting date must survive the strtotime/date() round trip unshifted');
+        $this->assertSame($sent['info'], $row['info']);
+        $this->assertSame($sent['kassa'], $row['kassa']);
+        $this->assertSame($sent['channel'], (string) $row['channel']);
+        $this->assertSame(0, $row['link_to']);
+
+        // type2_name comes from the cached dictionary, not from the request.
+        $expectedType2Name = (string) DB::table('rash_items')->where('ri_code', 'other')->value('ri_text');
+        $this->assertNotSame('', $expectedType2Name, 'fixture depends on rash_items.ri_code=other existing');
+        $this->assertSame($expectedType2Name, $row['type2_name'], 'type2_name must resolve through the dictionary, not come back null');
+
+        // created_by is the api_system logpass row resolved through the cached
+        // dictionary — asserted both as the literal seeded name and against the
+        // DB, so neither a renamed seed nor a broken lookup can pass silently.
+        $this->assertSame($this->apiSystemId, $row['created_by_id']);
+        $this->assertSame(
+            (string) DB::table('logpass')->where('logpass_id', $this->apiSystemId)->value('lp_fio'),
+            $row['created_by']
+        );
+        $this->assertSame('API', $row['created_by']);
+
+        // ...and the same row is reachable through the listing, identically.
+        $listed = $this->mcp('finance/entries', ['search' => self::MARKER . 'ROUNDTRIP-POST-THEN-GET']);
+        $listed->assertStatus(200);
+        $this->assertSame([$row], $listed->json('data'), 'the listing must render the row exactly as show() does');
     }
 }
