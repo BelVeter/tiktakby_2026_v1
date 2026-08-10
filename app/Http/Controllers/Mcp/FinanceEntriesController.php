@@ -75,8 +75,10 @@ class FinanceEntriesController extends BaseController
             // after_or_equal:from turns a reversed range into a 422 instead of
             // a silently empty result set — "nothing happened in this period"
             // and "you swapped your dates" must not look identical on a
-            // finance endpoint. (A `to` with no `from` still validates: the
-            // rule falls back to an unresolvable literal and compares true.)
+            // finance endpoint. (A `to` with no `from` still validates: Laravel
+            // resolves the missing `from` to null, and PHP's null-vs-timestamp
+            // comparison is true for every timestamp, so a lone `to` is never
+            // blocked by this rule.)
             'to'         => 'nullable|date|after_or_equal:from',
             'type1'      => 'nullable|in:doh,rash',
             'type2'      => 'nullable|string|max:64',
@@ -315,7 +317,19 @@ class FinanceEntriesController extends BaseController
             return response()->json(['error' => 'This entry is not editable through this API (internal transfer type).'], 422);
         }
 
-        // JSON body only — query-string parameters are not patch fields.
+        // JSON body only — query-string parameters are not patch fields. A
+        // client that explicitly declared a non-JSON Content-Type (e.g.
+        // form-encoded) gets that as its own error, not "you sent an empty
+        // patch": $request->json()->all() would decode a non-JSON body to
+        // [], indistinguishable from a genuinely empty body. Gated on the
+        // header being PRESENT (not on getContent(), which the test client —
+        // and possibly some real form-encoded PATCH requests, since PHP does
+        // not natively populate $_POST for PATCH — can leave empty even when
+        // $request->all() has data): a request with no Content-Type at all
+        // still falls through to the ordinary empty-patch check below.
+        if ($request->headers->has('Content-Type') && !$request->isJson()) {
+            return response()->json(['error' => 'Request body must be application/json.'], 422);
+        }
         $body = $request->json()->all();
         $body = is_array($body) ? $body : [];
 

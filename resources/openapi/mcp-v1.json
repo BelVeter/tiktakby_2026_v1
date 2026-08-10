@@ -842,8 +842,10 @@
                     },
                     "link_to": {
                         "type": "integer",
+                        "nullable": true,
                         "enum": [
-                            0
+                            0,
+                            null
                         ],
                         "default": 0,
                         "description": "MUST be 0 (the default). Any other value is rejected — do not loosen this without reading why. The legacy admin (bb/doh-rash.php) renders EVERY row's delete form with a hidden dr_id_link set to that row's link_to, and its delete handler runs DELETE FROM doh_rash WHERE dr_id IN ($dr_id, $dr_id_link) whenever that value is > 0 — with no type1 check, behind a confirm dialog that says \"эту операцию\" (singular). A rash/doh row carrying a non-zero link_to therefore silently destroys a second, unrelated row the next time a human deletes it in the admin, possibly one half of a shift_plus/shift_minus pair, corrupting a till balance. Rejecting only links that point AT a shift row would not close this: the legacy cascade deletes whatever dr_id it is handed. Linked/paired operations are out of scope for this API. Omitting the field (or sending null) is equivalent to 0."
@@ -4901,8 +4903,10 @@
                                     },
                                     "link_to": {
                                         "type": "integer",
+                                        "nullable": true,
                                         "enum": [
-                                            0
+                                            0,
+                                            null
                                         ],
                                         "description": "Must be 0. See FinanceEntryInput.link_to — and note a legacy row that already holds a non-zero link_to can only be patched by sending link_to: 0 to clear it. Omitting the field (or sending null) is equivalent to 0."
                                     }

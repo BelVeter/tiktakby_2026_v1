@@ -935,6 +935,32 @@ class FinanceEntriesWriteTest extends McpTestCase
         $this->assertSame($this->apiSystemId, (int) DB::table('doh_rash')->where('dr_id', $id)->value('cr_who_id'));
     }
 
+    // ── 24a2. a non-JSON body is its own error, not "empty patch" ──────────
+
+    /**
+     * A form-encoded PATCH decodes to [] under $request->json()->all(), same
+     * as a genuinely empty JSON body — so without a Content-Type check this
+     * case would 422 with "at least one field must be provided", which is
+     * misleading: the caller DID supply fields, just declared the wrong
+     * Content-Type. Laravel's test `patch()` helper doesn't set a
+     * Content-Type header on its own (verified: `Request::create()` leaves
+     * it null for array-parameter requests), so the header is set explicitly
+     * here to simulate what a real form-encoded client actually sends.
+     */
+    public function test_patch_with_non_json_content_type_names_the_real_cause(): void
+    {
+        $id = $this->insertRow(['info' => self::MARKER . 'PATCH-NON-JSON']);
+
+        $r = $this->patch('/api/mcp/v1/finance/entries/' . $id, ['kassa' => 'k2'], [
+            'Authorization' => 'Bearer ' . config('mcp.api_token'),
+            'Content-Type'  => 'application/x-www-form-urlencoded',
+        ]);
+
+        $r->assertStatus(422);
+        $this->assertStringContainsString('application/json', $r->json('error'));
+        $this->assertSame('k1', DB::table('doh_rash')->where('dr_id', $id)->value('kassa'), 'rejected patch must not have been applied');
+    }
+
     // ── 24b. query-string parameters are not patch fields ──────────────────
 
     /**
@@ -952,11 +978,25 @@ class FinanceEntriesWriteTest extends McpTestCase
         ]);
 
         // (a) query string alone, empty body → no field supplied at all.
-        $rEmptyBody = $this->patchJson('/api/mcp/v1/finance/entries/' . $id . '?kassa=bank', [], [
+        // Uses `info` (not `kassa`) deliberately: an `info` value can never
+        // fail validation on its own, so this genuinely discriminates the
+        // fix. (The original version used `?kassa=bank`, but this fixture's
+        // channel doesn't pair with kassa=bank — that combination would 422
+        // on pairing grounds regardless of whether the query string leaked
+        // into the patch or not, so it proved nothing about this bug
+        // specifically.) With the bug, this would leak through request->all()
+        // and succeed as a valid patch (200, info changed); fixed, the body
+        // is empty and it's a 422 with info untouched either way.
+        $rEmptyBody = $this->patchJson('/api/mcp/v1/finance/entries/' . $id . '?info=HACKED-VIA-QUERYSTRING', [], [
             'Authorization' => 'Bearer ' . config('mcp.api_token'),
         ]);
         $rEmptyBody->assertStatus(422);
         $this->assertSame('k1', DB::table('doh_rash')->where('dr_id', $id)->value('kassa'));
+        $this->assertSame(
+            self::MARKER . 'PATCH-QUERYSTRING',
+            DB::table('doh_rash')->where('dr_id', $id)->value('info'),
+            'a query-string info must never reach the patch'
+        );
 
         // (b) query string alongside a real body → only the body is applied.
         $rWithBody = $this->patchJson('/api/mcp/v1/finance/entries/' . $id . '?kassa=bank', [

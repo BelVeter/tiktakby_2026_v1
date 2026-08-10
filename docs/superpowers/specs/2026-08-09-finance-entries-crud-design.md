@@ -143,7 +143,7 @@ Validation is deliberately **stricter than the legacy admin**. The admin panel i
 | `channel` × `kassa` | **required to be a valid pair** per the table above |
 | `info` | **required, non-empty**, max 2000 chars (see below) |
 | `dr_name_id` | **required when `type2` ∈ {`zpl`, `avans`}**; otherwise optional, default `0`. When supplied it must reference an existing `logpass` row |
-| `link_to` | optional, integer, default `0` |
+| `link_to` | **must be `0`** (the default) — see below |
 
 **Why `info` is required even though legacy allows it empty.** 20% of existing expense rows (3,508) and 13% of income rows have an empty `info`. Those are human-entered rows whose context lived in someone's head. A row entered by an agent with no description is unauditable after the fact — the owner opens the kassa journal, sees "−351.90, of1_rent, API" and has no way to tell what it was. The laxity is legacy debt and is not inherited here.
 
@@ -156,6 +156,8 @@ Validation is deliberately **stricter than the legacy admin**. The admin panel i
 **Sign convention.** Requests always carry a positive magnitude; the server stores `-abs()` for `type1='rash'` and `+abs()` for `type1='doh'`, matching the live data. This lives in exactly one place in the code and is covered by tests. A signed-input contract was rejected: a wrong sign would silently corrupt `SUM(amount)` in `/finance/pnl`, `/finance/expenses` and the legacy `bb/reports.php` with no error anywhere.
 
 **`type1` is whitelisted, not open.** `doh_rash` also stores `shift_plus`/`shift_minus` — transfers between tills. Those are created as **linked pairs** with mutual `link_to` references, so a single-row API insert would produce a half-transfer and corrupt till balances. Out of scope by construction; a separate paired-transfer endpoint can be added later if needed.
+
+**`link_to` accepts only `0`** (added after the implementation's final whole-branch review — this constraint post-dates the rest of this document and was not part of the original design). A non-zero `link_to` on a `rash`/`doh` row is a live hazard, not just an unenforced reference: the legacy admin (`bb/doh-rash.php`) renders **every** row's delete form with a hidden `dr_id_link` set to that row's `link_to`, and its delete handler runs `DELETE FROM doh_rash WHERE dr_id IN ('$dr_id','$dr_id_link')` whenever that value is `> 0`, with no `type1` check. A row this API wrote with a non-zero `link_to` would therefore silently destroy a second, unrelated row the next time a human deleted it in the admin — possibly one half of a `shift_plus`/`shift_minus` pair. Rejecting only values that point at a shift row would not be enough, since the legacy cascade deletes whatever `dr_id` it is handed; `0` is the only accepted value, and a pre-existing legacy row already in that state must be cleared (`link_to: 0`) before it can be patched at all.
 
 **`cr_who_id` is server-set**, always the dedicated `api_system` user (see below). `cr_time` is server-set. Clients cannot supply either — the validator does not read them, so there is no override path.
 

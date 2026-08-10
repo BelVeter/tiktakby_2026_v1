@@ -253,7 +253,7 @@ Cover, each as its own method:
 3. `POST` a batch of 3 valid rows → three `created`, three distinct `dr_id`s
 4. Server-set fields: `cr_who_id` equals the `api_system` `logpass_id`, `cr_time` is non-zero
 5. Client cannot override server-set fields — send `cr_who_id`, `cr_time` in the body and assert the stored row ignores them
-6. `dr_name_id` and `link_to` default to `0` when omitted, and round-trip when supplied
+6. `dr_name_id` defaults to `0` when omitted and round-trips when supplied; `link_to` defaults to `0` when omitted, and an explicit `link_to: 0` is likewise accepted — but any *non-zero* `link_to` is rejected (added after the final whole-branch review found it arms a cascade-delete in the legacy admin's `bb/doh-rash.php`; see the design spec's `link_to` section)
 
 **Create — validation (each → per-item `invalid`, HTTP 200)**
 7. `type1` outside the whitelist (`shift_plus`) → invalid
