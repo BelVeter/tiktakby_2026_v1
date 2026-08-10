@@ -6,6 +6,7 @@ use App\Http\Controllers\Mcp\CategoriesController;
 use App\Http\Controllers\Mcp\CustomersController;
 use App\Http\Controllers\Mcp\ExportController;
 use App\Http\Controllers\Mcp\FinanceController;
+use App\Http\Controllers\Mcp\FinanceEntriesController;
 use App\Http\Controllers\Mcp\GeoController;
 use App\Http\Controllers\Mcp\HealthController;
 use App\Http\Controllers\Mcp\InventoryController;
@@ -60,6 +61,13 @@ Route::prefix('mcp/v1')
         Route::get('finance/revenue-by-category', [FinanceController::class, 'revenueByCategory'])->name('finance.revenue-by-category');
         Route::get('finance/expenses',            [FinanceController::class, 'expenses'])->name('finance.expenses');
         Route::get('finance/cash-flow', [FinanceController::class, 'cashFlow'])->name('finance.cash-flow');
+
+        // Finance entries — CRUD over the doh_rash ledger (read half, Task 3).
+        // Route order matters: /history must be registered before the /{id}
+        // wildcard, or it gets swallowed as an id.
+        Route::get('finance/entries',         [FinanceEntriesController::class, 'index'])->name('finance.entries.index');
+        Route::get('finance/entries/history', [FinanceEntriesController::class, 'history'])->name('finance.entries.history');
+        Route::get('finance/entries/{id}',    [FinanceEntriesController::class, 'show'])->name('finance.entries.show')->where('id', '[0-9]+');
 
         // Operations (A.5)
         Route::get('operations/funnel',      [OperationsController::class, 'funnel'])->name('operations.funnel');
