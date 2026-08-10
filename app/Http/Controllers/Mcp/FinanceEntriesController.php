@@ -98,7 +98,10 @@ class FinanceEntriesController extends BaseController
             ->forPage($page, $perPage)
             ->get();
 
-        $data = $rows->map(fn ($row) => $this->formatRow($row))->values()->all();
+        $type2Map     = $this->type2Dictionary();
+        $createdByMap = $this->createdByDictionary();
+
+        $data = $rows->map(fn ($row) => $this->formatRow($row, $type2Map, $createdByMap))->values()->all();
 
         return $this->envelope($request->query(), $data, [
             'total_rows' => $total,
@@ -123,10 +126,10 @@ class FinanceEntriesController extends BaseController
             return response()->json(['error' => 'Finance entry not found.'], 404);
         }
 
-        return response()->json([
-            'data' => $this->formatRow($row),
-            'meta' => ['total_rows' => 1],
-        ]);
+        $type2Map     = $this->type2Dictionary();
+        $createdByMap = $this->createdByDictionary();
+
+        return $this->envelope($request->query(), $this->formatRow($row, $type2Map, $createdByMap), ['total_rows' => 1]);
     }
 
     /**
@@ -187,11 +190,8 @@ class FinanceEntriesController extends BaseController
      * Maps a doh_rash DB row to the response shape (exact key set — see
      * class docblock for the storage quirks this accounts for).
      */
-    protected function formatRow(object $row): array
+    protected function formatRow(object $row, array $type2Map, array $createdByMap): array
     {
-        $type2Map     = $this->type2Dictionary();
-        $createdByMap = $this->createdByDictionary();
-
         return [
             'dr_id'         => (int) $row->dr_id,
             'date'          => date('Y-m-d', (int) $row->acc_date),
