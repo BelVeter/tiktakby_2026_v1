@@ -829,13 +829,23 @@ docker compose exec app php artisan test --filter=FinanceBankImportTest
 
 Expected: all 26 test methods pass (`OK (26 tests, ...)`). If `test_case17`/`test_case18` (dedup window) fail, check the `Europe/Minsk` timezone conversion in `processItem()` against the fixture's `Carbon::parse(..., 'Europe/Minsk')` — both must agree on the same day boundary. If `test_case11` fails on the overflow value, double check the regex has no typo (`\d{1,9}` not `\d{1,10}`).
 
-- [ ] **Step 5.2: Run the full MCP suite to check for regressions**
+- [ ] **Step 5.2: Run nearby MCP test classes individually to check for regressions**
+
+Known project quirk (from a prior implementation session, recorded so it isn't
+re-discovered the hard way): running many `tests/Feature/Mcp/*` classes together
+in one process trips cross-test isolation issues unrelated to any real defect —
+the same classes pass clean when run one at a time. Gate per-class, not via a
+broad `--filter=Mcp` that pulls in the whole directory:
 
 ```bash
-docker compose exec app php artisan test --testsuite=Feature --filter=Mcp
+docker compose exec app php artisan test tests/Feature/Mcp/FinanceTest.php
+docker compose exec app php artisan test tests/Feature/Mcp/RedirectsTest.php
+docker compose exec app php artisan test tests/Feature/Mcp/PagesProductTest.php
+docker compose exec app php artisan test tests/Feature/Mcp/MetaTest.php
+docker compose exec app php artisan test tests/Feature/Mcp/HealthTest.php
 ```
 
-Expected: no new failures in any other `tests/Feature/Mcp/*` file.
+Expected: each command reports its own `OK` — no failures in any of the five.
 
 - [ ] **Step 5.3: Commit any fixes made while chasing failures**
 
@@ -1135,14 +1145,24 @@ git commit -m "Bump mcp.version to 2.4.0 (fixes drift vs OpenAPI spec), document
 
 ### Task 9: Final verification
 
-- [ ] **Step 9.1: Run the entire test suite**
+- [ ] **Step 9.1: Run the full `Mcp` test directory per-class**
+
+Do **not** run `php artisan test` (whole suite) or `--filter=Mcp` (whole directory
+in one process) — both are known to fail on cross-test isolation issues in this
+project unrelated to any real defect (documented from a prior implementation
+session). Gate per-class instead:
 
 ```bash
 cd /home/dmitry/sites/tiktakby
-docker compose exec app php artisan test
+for f in tests/Feature/Mcp/*.php; do
+  echo "=== $f ===";
+  docker compose exec -T app php artisan test "$f" || echo "FAILED: $f";
+done
 ```
 
-Expected: no failures anywhere in the suite (not just the `Mcp` subset) — confirms nothing outside the MCP feature tests broke (e.g. `LegacyParityTest`, `TariffWriteGuardTest`).
+Expected: every file reports `OK`, no `FAILED:` lines. This directory includes
+`LegacyParityTest.php`, which is the relevant regression guard for this change
+(it enforces legacy-report parity for the same `doh_rash`-adjacent numbers).
 
 - [ ] **Step 9.2: PHP syntax-lint the new/changed PHP files**
 
