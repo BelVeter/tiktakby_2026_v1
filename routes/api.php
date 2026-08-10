@@ -6,7 +6,6 @@ use App\Http\Controllers\Mcp\CategoriesController;
 use App\Http\Controllers\Mcp\CustomersController;
 use App\Http\Controllers\Mcp\ExportController;
 use App\Http\Controllers\Mcp\FinanceController;
-use App\Http\Controllers\Mcp\FinanceBankImportController;
 use App\Http\Controllers\Mcp\GeoController;
 use App\Http\Controllers\Mcp\HealthController;
 use App\Http\Controllers\Mcp\InventoryController;
@@ -61,7 +60,6 @@ Route::prefix('mcp/v1')
         Route::get('finance/revenue-by-category', [FinanceController::class, 'revenueByCategory'])->name('finance.revenue-by-category');
         Route::get('finance/expenses',            [FinanceController::class, 'expenses'])->name('finance.expenses');
         Route::get('finance/cash-flow', [FinanceController::class, 'cashFlow'])->name('finance.cash-flow');
-        Route::post('finance/bank-import', [FinanceBankImportController::class, 'store'])->name('finance.bank-import');
 
         // Operations (A.5)
         Route::get('operations/funnel',      [OperationsController::class, 'funnel'])->name('operations.funnel');
