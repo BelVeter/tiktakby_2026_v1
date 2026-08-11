@@ -116,8 +116,13 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center text-muted"
                                     style="font-size: 0.9rem;">
-                                    <span>При сумме до 30 руб</span>
+                                    <span>При сумме от 15 до 30 руб</span>
                                     <strong>10 руб</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center text-muted"
+                                    style="font-size: 0.9rem;">
+                                    <span>При сумме до 15 руб</span>
+                                    <strong>15 руб</strong>
                                 </div>
                             </div>
 
