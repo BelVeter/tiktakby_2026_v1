@@ -256,6 +256,29 @@ class CartController extends Controller
         // Звонок показывается в zv_ch.php, где стили карточки не подключены — туда обычный текст
         $infoForZvonok = trim($info . ($contactChannel !== '' ? ' Связь: ' . $contactChannel . '.' : ''));
 
+        // Договор и выезды курьера заводим только для доставки: самовывоз курьера не касается.
+        // Флаг — рубильник на случай, если автоматика начнёт создавать лишнее.
+        $autoDealEnabled = $isDelivery && (bool) config('app.cart_auto_deal', true);
+        $autoDealClientId = 0;
+        $autoDealDeliveryLeft = $deliveryCost;
+        $autoDealPickupLeft = $pickupCost;
+        $courierInfo = '';
+
+        if ($autoDealEnabled) {
+            try {
+                $autoDealClientId = \bb\classes\WebOrderDeal::findOrCreateClient($fio, $phone, $address);
+                $courierInfo = \bb\classes\WebOrderDeal::courierInfo(
+                    $address,
+                    $phone,
+                    $contactChannel,
+                    $info,
+                    $wantsCourierPickup
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Клиент по заказу с сайта не заведён: ' . $e->getMessage());
+            }
+        }
+
         // Process each item
         $results = [];
         $allSuccess = true;
@@ -321,6 +344,35 @@ class CartController extends Controller
                         );
                         if ($br && $br->insert_id) {
                             \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
+                        }
+
+                        // Заказ с доставкой сразу становится договором и выездами курьера.
+                        // Стоимость доставки и возврата вешаем только на первую позицию заказа,
+                        // иначе курьер увидит её столько раз, сколько товаров в корзине.
+                        if ($isDelivery && $autoDealEnabled && $autoDealClientId > 0) {
+                            try {
+                                $dealId = \bb\classes\WebOrderDeal::createDealWithTrips(
+                                    $autoDealClientId,
+                                    [
+                                        'inv_n' => $tovar->getInvN(),
+                                        'start_ts' => $dateFromObj->getTimestamp(),
+                                        'return_ts' => $dateToObj->getTimestamp(),
+                                        'days' => $days,
+                                        'r_to_pay' => $totalAmount,
+                                        'tarif' => \bb\classes\WebOrderDeal::resolveTariff($tarifModel, $days),
+                                    ],
+                                    $autoDealDeliveryLeft,
+                                    $autoDealPickupLeft,
+                                    $courierInfo
+                                );
+                                if ($dealId > 0) {
+                                    $autoDealDeliveryLeft = 0.0;
+                                    $autoDealPickupLeft = 0.0;
+                                }
+                            } catch (\Throwable $e) {
+                                // Заказ клиента важнее автоматики: бронь уже создана, её не рушим
+                                \Illuminate\Support\Facades\Log::error('Автодоговор по заказу с сайта не создан: ' . $e->getMessage());
+                            }
                         }
 
                         $results[] = [
