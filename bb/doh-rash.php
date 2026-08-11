@@ -1083,14 +1083,6 @@ function channel_to_office_kassa($code)
 /**
  * Код канала → условие WHERE для выборки.
  *
- * Курьер отдаёт условие без кассы: до перехода курьерских касс было две, и обе
- * должны остаться видимыми под одним пунктом фильтра.
- *
- * Fail-closed: неизвестный код (в т.ч. мусор из POST, куда значения попадают
- * через foreach ($_POST as $key => $value) { $$key = get_post($key); }) не даёт
- * пустой фильтр — он трактуется как 'all' и подчиняется правам текущего
- * сотрудника, а не показывает всё без ограничений.
- *
  * @param string $code
  * @return string
  */
@@ -1098,8 +1090,12 @@ function channel_sql_filter($code)
 {
 	$all = channels_all();
 
-	// неизвестный код (в т.ч. мусор из POST) → безопасный минимум, а не «фильтра нет»
-	if ($code !== 'all' && !isset($all[$code])) $code = 'all';
+	// неизвестный код (в т.ч. мусор из POST) либо закрытый канал у сотрудника без
+	// прав → безопасный минимум, а не «покажи только его»
+	if ($code !== 'all'
+		&& (!isset($all[$code]) || ($all[$code]['restricted'] && !channels_user_can_see_all()))) {
+		$code = 'all';
+	}
 
 	if ($code === 'all') {
 		if (channels_user_can_see_all()) return '';
