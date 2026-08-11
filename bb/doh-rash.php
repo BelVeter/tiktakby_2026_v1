@@ -54,16 +54,102 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-    .hide{
-        display: none;
-    }
+	.hide { display: none; }
+
+	body.rx-body { margin:0; background:#eceff2; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:#1f2733; }
+	.rx-wrap { max-width:1440px; margin:0 auto; padding:0 18px 40px; }
+	.rx-wrap * { box-sizing:border-box; }
+
+	/* шапка */
+	.rx-head { display:flex; align-items:center; gap:14px; background:#fff; border-radius:14px; padding:18px 22px; margin:10px 0 16px; box-shadow:0 1px 3px rgba(20,35,60,.08); }
+	.rx-head h1 { margin:0; font-size:22px; font-weight:700; letter-spacing:.2px; }
+	.rx-head .rx-period { color:#8b93a7; font-size:13px; margin-left:2px; }
+	.rx-add { margin-left:auto; width:44px; height:44px; flex:0 0 auto; border:none; border-radius:50%; background:#4a7dfc; color:#fff; font-size:26px; line-height:1; cursor:pointer; box-shadow:0 4px 12px rgba(74,125,252,.35); transition:transform .12s, background .12s; }
+	.rx-add:hover { background:#3a6bea; transform:translateY(-1px); }
+
+	/* фильтры */
+	.rx-filters { background:#fff; border-radius:14px; padding:16px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,35,60,.08); }
+	.rx-frow { display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; }
+	.rx-frow + .rx-frow { margin-top:14px; padding-top:14px; border-top:1px solid #eef1f5; align-items:center; }
+	.rx-field { display:flex; flex-direction:column; gap:5px; }
+	.rx-field label { font-size:12px; font-weight:600; color:#6b7686; }
+	.rx-field input[type=date], .rx-field select { height:38px; padding:0 10px; border:1px solid #dfe4ea; border-radius:9px; background:#fff; font-size:14px; color:#1f2733; }
+	.rx-presets { display:flex; gap:0; border:1px solid #dfe4ea; border-radius:9px; overflow:hidden; }
+	.rx-presets button { border:none; background:#fff; padding:0 14px; height:38px; font-size:13px; color:#4a5567; cursor:pointer; border-right:1px solid #eef1f5; }
+	.rx-presets button:last-child { border-right:none; }
+	.rx-presets button:hover { background:#f3f6fb; }
+	.rx-presets button.active { background:#eef3ff; color:#2f57c9; font-weight:700; }
+	.rx-show { height:38px; padding:0 26px; border:none; border-radius:9px; background:#4a7dfc; color:#fff; font-size:14px; font-weight:600; cursor:pointer; margin-left:auto; }
+	.rx-show:hover { background:#3a6bea; }
+	.rx-frow--sub .rx-field label { font-size:11px; }
+	.rx-frow--sub select { height:34px; font-size:13px; }
+
+	/* плитки итогов */
+	.rx-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:16px; }
+	.rx-kpi { background:#fff; border-radius:14px; padding:20px 24px; box-shadow:0 1px 3px rgba(20,35,60,.08); }
+	.rx-kpi-lbl { font-size:12px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:#8b93a7; }
+	.rx-kpi-val { margin-top:10px; font-size:30px; font-weight:700; letter-spacing:-.5px; }
+	.rx-kpi-val small { font-size:14px; font-weight:600; margin-left:4px; color:inherit; opacity:.75; }
+	.rx-kpi-hint { margin-top:6px; font-size:12px; color:#8b93a7; }
+	.rx-kpi--rash .rx-kpi-val { color:#ef4444; }
+	.rx-kpi--doh  .rx-kpi-val { color:#22a06b; }
+	.rx-kpi--saldo .rx-kpi-val.neg { color:#ef4444; }
+	.rx-kpi--saldo .rx-kpi-val.pos { color:#22a06b; }
+
+	/* карточки */
+	.rx-cols { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:16px; align-items:start; }
+	@media (max-width:1100px) { .rx-cols { grid-template-columns:1fr; } }
+	.rx-card { background:#fff; border-radius:14px; box-shadow:0 1px 3px rgba(20,35,60,.08); overflow:hidden; }
+	.rx-card-head { display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid #eef1f5; }
+	.rx-card-head h2 { margin:0; font-size:15px; font-weight:700; }
+	.rx-badge { margin-left:auto; background:#1f2733; color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; }
+
+	/* таблица операций */
+	.rx-scroll { max-height:620px; overflow:auto; }
+	.rx-tbl { width:100%; border-collapse:collapse; font-size:13px; }
+	.rx-tbl th { position:sticky; top:0; z-index:1; background:#f7f9fc; text-align:left; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8b93a7; padding:9px 14px; border-bottom:1px solid #eef1f5; white-space:nowrap; }
+	.rx-tbl td { padding:9px 14px; border-bottom:1px solid #f2f4f8; vertical-align:top; }
+	.rx-tbl tr:hover td { background:#fafbfe; }
+	.rx-tbl .rx-num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; font-weight:600; }
+	.rx-tbl .rx-date { white-space:nowrap; color:#4a5567; }
+	.rx-chip { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700; background:#fdeaea; color:#d13b3b; }
+	.rx-chip--doh { background:#e6f6ef; color:#178a5b; }
+	.rx-chip--shift { background:#eef1f5; color:#6b7686; }
+	.rx-muted { color:#8b93a7; }
+	.rx-del { border:none; background:none; color:#c4ccd8; font-size:15px; cursor:pointer; padding:0 2px; }
+	.rx-del:hover { color:#ef4444; }
+	.rx-empty { padding:30px 20px; text-align:center; color:#8b93a7; font-size:14px; }
+	.rx-foot td { background:#f7f9fc; font-weight:700; border-top:1px solid #e6eaf0; position:sticky; bottom:0; }
+	.rx-edit { border:none; background:#f3f5f8; color:#6b7686; border-radius:6px; width:22px; height:22px; cursor:pointer; font-size:11px; }
+	.rx-edit:hover { background:#e6eaf0; }
+	.rx-editform { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+	.rx-editform select, .rx-editform textarea { border:1px solid #dfe4ea; border-radius:7px; padding:5px 8px; font-size:12px; font-family:inherit; }
+	.rx-editform button { border:none; border-radius:7px; background:#22a06b; color:#fff; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+
+	/* распределение по статьям */
+	.rx-dist-row { display:grid; grid-template-columns:minmax(0,1fr) 110px 150px; align-items:center; gap:12px; padding:11px 20px; border-bottom:1px solid #f2f4f8; font-size:13px; }
+	.rx-dist-row:last-child { border-bottom:none; }
+	.rx-dist-name { display:flex; align-items:center; gap:9px; min-width:0; }
+	.rx-dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+	.rx-dist-name span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+	.rx-dist-sum { text-align:right; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+	.rx-dist-share { display:flex; align-items:center; gap:8px; }
+	.rx-dist-share em { font-style:normal; font-size:12px; color:#8b93a7; width:42px; text-align:right; flex:0 0 auto; font-variant-numeric:tabular-nums; }
+	.rx-bar { flex:1; height:7px; border-radius:4px; background:#eef1f5; overflow:hidden; }
+	.rx-bar i { display:block; height:100%; border-radius:4px; }
+	.rx-dist-head { display:grid; grid-template-columns:minmax(0,1fr) 110px 150px; gap:12px; padding:9px 20px; background:#f7f9fc; border-bottom:1px solid #eef1f5; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8b93a7; }
+	.rx-dist-head span:nth-child(2) { text-align:right; }
+
+	/* сообщение */
+	.rx-flash { background:#e6f6ef; color:#178a5b; border-radius:10px; padding:11px 16px; margin-bottom:14px; font-size:14px; font-weight:600; }
 </style>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ' . Base::getBarCodeReaderScript() . '
 </head>
 <title>BB: Доходы-расходы.</title>
-<body>
+<body class="rx-body">
 
 <div class="user"><form name="выход" method="post" action="index.php">Вы зашли как: <strong> ' . $_SESSION['user_fio'] . '</strong> <input type="submit" name="exit" value="Выйти" /><br/>Офис: ' . $_SESSION['office'] . '</form> </div>
 <div id="zv_div"></div>
@@ -520,81 +606,6 @@ while ($lp_l = $result_lp->fetch_assoc()) {
 
 
 <?php
-echo '<form name="srch_form" method="post" id="srch_form" action="doh-rash.php">
-Период c <input type="date" name="i_from_date" id="i_from_date" value="' . $i_from_date . '" ' . $dates_readonly . ' /> по <input type="date" name="i_to_date" id="i_to_date" value="' . $i_to_date . '" ' . $dates_readonly . ' /> <input type="submit" name="action" value="показать" onclick="" /><br />
-Офис:		<select name="item_place" id="place_select" form="srch_form" style="display:inline-block; width:110px" onchange="document.getElementById(\'srch_form\').submit();">
-		  		<option value="all" ' . sel_d($item_place, 'all') . '>все</option>
-				<option value="1" ' . sel_d($item_place, '1') . '>Литературная_22</option>
-				<option value="2" ' . sel_d($item_place, '2') . '>Ложинская</option>
-				<option value="3" ' . sel_d($item_place, '3') . '>Победителей_127</option>
-				<option value="4" ' . sel_d($item_place, '4') . '>Склад</option>
-				<option value="cur" ' . sel_d($item_place, 'cur') . '>Курьер</option>
-				' . (($_SESSION['user_id'] == '2' || $_SESSION['user_id'] == '3' || $_SESSION['user_id'] == '5' || $_SESSION['user_id'] == '9') ? '<option value="bank" ' . sel_d($item_place, 'bank') . '>Банк</option>' : '') . '
-
-
-			</select>
-
-</form>
-';
-
-if ($item_place == 'all' && ($_SESSION['user_id'] == '2' || $_SESSION['user_id'] == '3' || $_SESSION['user_id'] == '5' || $_SESSION['user_id'] == '9')) {
-	$channels = '
-			<option value="of1k1" style="background-color:#b1ebb1;">Литературная_22_1</option>
-			<option value="of1k2" style="background-color:#b1ebb1;">Литературная_22_2</option>
-			<option value="of2k1" style="background-color:#ffe400;">Уручье_1</option>
-			<option value="of2k2" style="background-color:#ffe400;">Уручье_2</option>
-			<option value="of3k1" style="background-color:#b1ebb1;">Победителей_127_1</option>
-			<option value="of3k2" style="background-color:#b1ebb1;">Победителей_127_2</option>
-			<option value="of4k1" style="background-color:#b1ebb1;">Склад_1</option>
-			<option value="of4k2" style="background-color:#b1ebb1;">Склад_2</option>
-			<option value="curk1" style="background-color:#c6edf0;">Курьер_1</option>
-			<option value="curk2" style="background-color:#c6edf0;">Курьер_2</option>
-			<option value="bank">банк</option>';
-} elseif ($item_place == '1') {
-	$channels = '
-			<option value="of1k1" style="background-color:#b1ebb1;">Литературная_22_1</option>
-			<option value="of1k2" style="background-color:#b1ebb1;">Литературная_22_2</option>
-			<option value="curk1" style="background-color:#c6edf0;">Курьер_1</option>
-			<option value="curk2" style="background-color:#c6edf0;">Курьер_2</option>';
-} elseif ($item_place == '2') {
-	$channels = '
-			<option value="of2k1" style="background-color:#ffe400;">Уручье_1</option>
-			<option value="of2k2" style="background-color:#ffe400;">Уручье_2</option>
-			<option value="curk1" style="background-color:#c6edf0;">Курьер_1</option>
-			<option value="curk2" style="background-color:#c6edf0;">Курьер_2</option>';
-} elseif ($item_place == '3') {
-	$channels = '
-			<option value="of3k1" style="background-color:#ffe400;">Победителей_127_1</option>
-			<option value="of3k2" style="background-color:#ffe400;">Победителей_127_2</option>
-			<option value="curk1" style="background-color:#c6edf0;">Курьер_1</option>
-			<option value="curk2" style="background-color:#c6edf0;">Курьер_2</option>';
-} elseif ($item_place == '4') {
-	$channels = '
-			<option value="of4k1" style="background-color:#ffe400;">Склад_1</option>
-			<option value="of4k2" style="background-color:#ffe400;">Склад_2</option>
-			<option value="curk1" style="background-color:#c6edf0;">Курьер_1</option>
-			<option value="curk2" style="background-color:#c6edf0;">Курьер_2</option>';
-} elseif ($item_place == 'cur') {
-	$channels = '
-			<option value="curk1" style="background-color:#c6edf0;">Курьер_1</option>
-			<option value="curk2" style="background-color:#c6edf0;">Курьер_2</option>';
-} elseif ($item_place == 'bank') {
-	$channels = '
-			<option value="bank">банк</option>';
-} else {
-	$channels = '
-			<option value="of1k1" style="background-color:#b1ebb1;">Литературная_22_1</option>
-			<option value="of1k2" style="background-color:#b1ebb1;">Литературная_22_2</option>
-			<option value="of2k1" style="background-color:#ffe400;">Уручье_1</option>
-			<option value="of2k2" style="background-color:#ffe400;">Уручье_2</option>
-			<option value="of3k1" style="background-color:#b1ebb1;">Победителей_127_1</option>
-			<option value="of3k2" style="background-color:#b1ebb1;">Победителей_127_2</option>
-			<option value="of4k1" style="background-color:#b1ebb1;">Склад_1</option>
-			<option value="of4k2" style="background-color:#b1ebb1;">Склад_2</option>
-			<option value="curk1" style="background-color:#c6edf0;">Курьер_1</option>
-			<option value="curk2" style="background-color:#c6edf0;">Курьер_2</option>
-';
-}
 
 
 
@@ -679,165 +690,293 @@ $saldo = $totalSales - $totalRash;
 // палитра точек для статей в блоке распределения
 $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93a7',
                    '#3f4b5b', '#e46bb2', '#6c5ce7', '#12b886', '#f97316', '#0ea5e9');
+?>
+<div class="rx-wrap">
 
-/*
- * onclick="rash_show(); return false;"
- *
- * */
+	<div class="rx-head">
+		<h1>Расходы</h1>
+		<span class="rx-period"><?php echo date("d.m.Y", strtotime($i_from_date)); ?> — <?php echo date("d.m.Y", strtotime($i_to_date)); ?></span>
+		<button type="button" class="rx-add" id="rx_add_but" title="Внести операцию">+</button>
+	</div>
 
-echo '
-<table border="1" cellspacing="0">
-	<tr>
-		<th style="width:80px;">дата</th>
-		<th style="width:80px;">касса
-			<select name="kassa_s" id="kassa_s" form="srch_form" onchange="document.getElementById(\'srch_form\').submit();">
-				<option value="all" ' . sel_d($kassa_s, 'all') . '>все</option>
-				<option value="k1" ' . sel_d($kassa_s, 'k1') . '>Касса 1</option>
-				<option value="k2" ' . sel_d($kassa_s, 'k2') . '>Касса 2</option>
-			</select>
+	<?php if ($flashMessage): ?>
+		<div class="rx-flash"><?php echo htmlspecialchars($flashMessage); ?></div>
+	<?php endif; ?>
 
-								</th>
-		<th style="width:50px;">сумма</th>
-		<th style="width:150px;">тип<br />
+	<form class="rx-filters" name="srch_form" method="post" id="srch_form" action="doh-rash.php">
+		<input type="hidden" name="item_place" value="all" />
 
-			<select name="type1_s" id="type1_s" form="srch_form" style="width:50px;" onchange="type1s_show();">
-				<option value="all" ' . sel_d($type1_s, 'all') . '>все</option>
-				<option value="doh" ' . sel_d($type1_s, 'doh') . '>Доходы</option>
-				<option value="rash" ' . sel_d($type1_s, 'rash') . '>Расходы</option>
-				<option value="shift" ' . sel_d($type1_s, 'shift') . '>Переводы</option>
-			</select>
+		<div class="rx-frow">
+			<div class="rx-field">
+				<label for="i_from_date">Дата начала</label>
+				<input type="date" name="i_from_date" id="i_from_date" value="<?php echo $i_from_date; ?>" <?php echo $dates_readonly; ?> />
+			</div>
+			<div class="rx-field">
+				<label for="i_to_date">Дата окончания</label>
+				<input type="date" name="i_to_date" id="i_to_date" value="<?php echo $i_to_date; ?>" <?php echo $dates_readonly; ?> />
+			</div>
 
-			<select name="type2_s" id="type2_s" form="srch_form" onchange="zp_name_show();" style="width:80px;">
-				' . $t2_select . '
-			</select>
-			<span id="zp_sel_span" ' . (($type2_s == 'zpl' || $type2_s == 'avans') ? '' : 'style="display:none;"') . '><select form="srch_form" name="zp_sel_s" id="zp_sel_s" style="width:90px;" onchange="document.getElementById(\'srch_form\').submit();">
-				<option value="all">все сотрудники</option>
-				' . $zp_select_s . '
-			</select></span>
-						</th>
-		<th style="width:200px;">информация
-						<div id="dr_buttons" style="position:relative; display:none;">
-							<input type="hidden" form="new_rash" name="type1" id="type1" value="rash" />
-							<input type="button" style="position:absolute; top:-60px; left:-110px; height:40px; width:100px; background-color:yellow" value="расход" id="new_rash_but" onclick="rash_but(); return false;">
-							<input type="button" style="position:absolute; top:-60px; left:0px; height:40px; width:100px;" value="доход" id="new_doh_but" onclick="doh_but(); return false;">
-							<input type="button" style="position:absolute; top:-60px; left:110px; height:40px; width:100px;" value="сдача в кассу" id="new_shift_but" onclick="shift_but(); return false;">
+			<?php if (!$dates_readonly): ?>
+			<div class="rx-field">
+				<label>Быстрый выбор</label>
+				<div class="rx-presets">
+					<button type="button" onclick="rxPreset('this_month');">Этот месяц</button>
+					<button type="button" onclick="rxPreset('prev_month');">Прошлый месяц</button>
+					<button type="button" onclick="rxPreset('d30');">30 дней</button>
+					<button type="button" onclick="rxPreset('ytd');">С начала года</button>
+				</div>
+			</div>
+			<?php endif; ?>
 
-							</div>
+			<button type="submit" name="action" value="показать" class="rx-show">Показать</button>
+		</div>
 
-						</th>
-		<th style="width:100px;">ихто?</th>
-		<th>действия
-						<div style="position:relative"><input type="button" style="position:absolute; top:-70px; left:0px; height:50px; width:100px;" value="внести расход" id="new_order_but" onclick="rash_show(); return false;"></div>
-						</th>
+		<div class="rx-frow rx-frow--sub">
+			<div class="rx-field">
+				<label for="kassa_s">Канал оплаты</label>
+				<select name="kassa_s" id="kassa_s" onchange="document.getElementById('srch_form').submit();">
+					<option value="all" <?php echo sel_d($kassa_s, 'all'); ?>>все</option>
+					<?php foreach (channels_for_form('shift') as $code => $text) {
+						echo '<option value="' . htmlspecialchars($code) . '" ' . sel_d($kassa_s, $code) . '>' . htmlspecialchars($text) . '</option>';
+					} ?>
+				</select>
+			</div>
+			<div class="rx-field">
+				<label for="type1_s">Тип операции</label>
+				<select name="type1_s" id="type1_s" onchange="type1s_show();">
+					<option value="all" <?php echo sel_d($type1_s, 'all'); ?>>все</option>
+					<option value="rash" <?php echo sel_d($type1_s, 'rash'); ?>>расходы</option>
+					<option value="doh" <?php echo sel_d($type1_s, 'doh'); ?>>доходы</option>
+					<option value="shift" <?php echo sel_d($type1_s, 'shift'); ?>>переводы</option>
+				</select>
+			</div>
+			<div class="rx-field">
+				<label for="type2_s">Статья</label>
+				<select name="type2_s" id="type2_s" onchange="zp_name_show();">
+					<?php echo $t2_select; ?>
+				</select>
+			</div>
+			<div class="rx-field" id="zp_sel_span" <?php echo (($type2_s == 'zpl' || $type2_s == 'avans') ? '' : 'style="display:none;"'); ?>>
+				<label for="zp_sel_s">Сотрудник</label>
+				<select name="zp_sel_s" id="zp_sel_s" onchange="document.getElementById('srch_form').submit();">
+					<option value="all">все сотрудники</option>
+					<?php echo $zp_select_s; ?>
+				</select>
+			</div>
+		</div>
+	</form>
 
-	</tr>
-	<tbody id="new_rash_tb" style="display:none;">
-	<tr>
-		<td> <form name="new_rash" action="doh-rash.php" method="post" id="new_rash"></form>
-			<input form="new_rash" type="date" name="acc_date" id="acc_date" value="' . date("Y-m-d") . '" /></td>
-		<td>
+	<div class="rx-kpis">
+		<div class="rx-kpi rx-kpi--rash">
+			<div class="rx-kpi-lbl">Общие расходы</div>
+			<div class="rx-kpi-val"><?php echo number_format($totalRash, 2, ',', ' '); ?><small>BYN</small></div>
+			<div class="rx-kpi-hint">без переводов между каналами</div>
+		</div>
+		<div class="rx-kpi rx-kpi--doh">
+			<div class="rx-kpi-lbl">Доходы за период</div>
+			<div class="rx-kpi-val"><?php echo number_format($totalSales, 2, ',', ' '); ?><small>BYN</small></div>
+			<div class="rx-kpi-hint">оплаты по сделкам за период<?php
+				echo $totalDohDr > 0 ? ' · прочие доходы: ' . number_format($totalDohDr, 2, ',', ' ') . ' BYN' : ''; ?></div>
+		</div>
+		<div class="rx-kpi rx-kpi--saldo">
+			<div class="rx-kpi-lbl">Сальдо</div>
+			<div class="rx-kpi-val <?php echo $saldo < 0 ? 'neg' : 'pos'; ?>"><?php echo number_format($saldo, 2, ',', ' '); ?><small>BYN</small></div>
+			<div class="rx-kpi-hint">доходы минус расходы</div>
+		</div>
+	</div>
 
-			<select form="new_rash" name="channel" id="channel" onchange="dr_sel();">
-				<option value="0">не выбрано</option>
-				' . $channels . '
-			</select>
-			</td>
-		<td><input form="new_rash" type="number" step="0.01" name="amount" id="amount" value="" style="width:50px;" />т.руб.</td>
-		<td>
-			<span id="type2td"><select form="new_rash" name="type2" id="type2" onchange="zp_show();">
-				<option value="0">не выбрано</option>
-				' . $ri_t1 . '
-			</select>
-			</span>
-			<span id="zp_span" style="display:none;">кому:<select form="new_rash" name="zp_name" id="zp_name" style="width:90px;">
-				<option value="0">не выбрано</option>
-				' . $zp_select . '
-			</select></span>
+	<div class="rx-cols">
 
-			</td>
-		<td><textarea form="new_rash" cols="40" rows="3" name="info" id="info"></textarea></td>
-		<td></td>
-		<td>
-				<input form="new_rash" type="hidden" name="i_from_date" value="' . $i_from_date . '" /><input form="new_rash" type="hidden" name="i_to_date" value="' . $i_to_date . '" />
-				<input form="new_rash" type="hidden" name="item_place" value="' . $item_place . '" />
+		<section class="rx-card">
+			<div class="rx-card-head">
+				<h2>Детализация операций</h2>
+				<span class="rx-badge"><?php echo count($rows); ?> зап.</span>
+			</div>
 
-			<input form="new_rash" type="submit" name="action" value="сохранить" onclick="return new_rash_send();" /></td>
+			<?php if (count($rows) == 0): ?>
+				<div class="rx-empty">За выбранный период операций нет</div>
+			<?php else: ?>
+			<div class="rx-scroll">
+				<table class="rx-tbl">
+					<thead>
+						<tr>
+							<th>Дата</th>
+							<th>Статья</th>
+							<th>Канал оплаты</th>
+							<th>Комментарий</th>
+							<th>Кто внёс</th>
+							<th style="text-align:right">Сумма</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+					<?php
+					$total_am = 0;
+					foreach ($rows as $dr):
+						$total_am += $dr['amount'];
 
-	</tr>
-	</tbody>
-';
+						$isShift = (strpos($dr['type1'], 'shift') === 0);
+						$isDoh   = (!$isShift && $dr['amount'] >= 0);
 
-$total_am = 0;
-foreach ($rows as $dr) {
-	$total_am += $dr['amount'];
-	echo '
-	<tr>
-		<td>' . date("d.m.Y", $dr['acc_date']) . (\bb\models\User::getCurrentUser()->isDima() ? '<br><span style="font-size: 10px">[' . $dr['dr_id'] . ']</span>' : '') . '</td>
-		<td>' . of_print($dr['channel']) . kassa_print($dr['kassa']) . '</td>
-		<td style="text-align:right">' . number_format($dr['amount'], 2, ',', ' ') . '</td>
-		<td style="position: relative;" data-type2="' . $dr['type2'] . '" data-salary_user_id="' . $dr['dr_name_id'] . '">' . ($dr['amount'] < 0 ? $rash[$dr['type2']] : $doh[$dr['type2']]) . ($dr['dr_name_id'] > 0 ? '<br />' . \bb\models\User::GetUserName($dr['dr_name_id']) : '') . '
-          <input type="button" style="position: absolute; top: 0; right: 0;" class="edit-btn-show ' . ((\bb\models\User::getCurrentUser()->isOwner() && $dr['type1'] == 'rash') ? '' : 'hide') . '" value="i">
-          <form method="post" class="hide" id="update_form_' . $dr['dr_id'] . '">
-            <select name="type2" id="type2" class="type2_update">
-				        <option value="0">не выбрано</option>
-				        ' . $ri_t1 . '
-			      </select>
-			      <select name="zp_name" style="width:90px;" class="zp_name_id_update ' . ($dr['type2'] == 'zpl' ? '' : 'hide') . '">
-				        <option value="0">не выбрано</option>
-				        ' . $zp_select . '
-			      </select>
-			      <input type="hidden" name="dr_id" value="' . $dr['dr_id'] . '" />
-            <input type="hidden" name="i_from_date" value="' . $i_from_date . '" />
-            <input type="hidden" name="i_to_date" value="' . $i_to_date . '" />
-				    <input type="hidden" name="item_place" value="' . $item_place . '" />
-				    <input type="hidden" name="kassa_s" value="' . $kassa_s . '" />
-				    <input type="hidden" name="type1_s" value="' . $type1_s . '" />
-				    <input type="hidden" name="type2_s" value="' . $type2_s . '" />
-				    <input type="hidden" name="type2_s" value="' . $type2_s . '" />
-            <input type="hidden" name="action" value="update_rash">
+						if ($isShift) {
+							$itemText  = ($dr['type1'] == 'shift_minus' ? 'перевод в: ' : 'поступление из: ')
+								. (isset($rash[$dr['type2']]) ? $rash[$dr['type2']] : $dr['type2']);
+							$chipClass = 'rx-chip--shift';
+						}
+						elseif ($isDoh) {
+							$itemText  = isset($doh[$dr['type2']]) ? $doh[$dr['type2']] : $dr['type2'];
+							$chipClass = 'rx-chip--doh';
+						}
+						else {
+							$itemText  = isset($rash[$dr['type2']]) ? $rash[$dr['type2']] : $dr['type2'];
+							$chipClass = '';
+						}
 
-			      <button class="correct-btn">исправить</button>
+						$canEdit = (\bb\models\User::getCurrentUser()->isOwner() && $dr['type1'] == 'rash');
+					?>
+						<tr>
+							<td class="rx-date"><?php echo date("d.m.Y", $dr['acc_date']); ?><?php
+								echo \bb\models\User::getCurrentUser()->isDima()
+									? '<br /><span class="rx-muted" style="font-size:10px">[' . $dr['dr_id'] . ']</span>' : ''; ?></td>
 
+							<td data-type2="<?php echo htmlspecialchars($dr['type2']); ?>" data-salary_user_id="<?php echo $dr['dr_name_id']; ?>">
+								<span class="rx-chip <?php echo $chipClass; ?>"><?php echo htmlspecialchars($itemText); ?></span>
+								<?php echo $dr['dr_name_id'] > 0
+									? '<div class="rx-muted" style="font-size:11px; margin-top:3px;">' . htmlspecialchars(\bb\models\User::GetUserName($dr['dr_name_id'])) . '</div>' : ''; ?>
 
+								<input type="button" class="rx-edit edit-btn-show <?php echo $canEdit ? '' : 'hide'; ?>" value="i" title="исправить статью и комментарий">
 
-          </form>
-		    </td>
-		<td>' . $dr['info'] . '
-		    <textarea form="update_form_' . $dr['dr_id'] . '" name="info_upd" class="info_upd hide">' . $dr['info'] . '</textarea>
-		    </td>
-		<td>' . user_name($dr['cr_who_id']) . ' (' . date("H:i", $dr['cr_time']) . ')</td>
-		<td>
-			<form name="del_form_' . $dr['dr_id'] . '" method="post" id="del_form_' . $dr['dr_id'] . '" action="doh-rash.php">
-				<input type="hidden" name="dr_id" value="' . $dr['dr_id'] . '" />
-				<input type="hidden" name="dr_id_link" value="' . $dr['link_to'] . '" />
-				<input type="hidden" name="i_from_date" value="' . $i_from_date . '" /><input type="hidden" name="i_to_date" value="' . $i_to_date . '" />
-				<input type="hidden" name="item_place" value="' . $item_place . '" />
-				<input type="hidden" name="kassa_s" value="' . $kassa_s . '" />
-				<input type="hidden" name="type1_s" value="' . $type1_s . '" />
-				<input type="hidden" name="type2_s" value="' . $type2_s . '" />
-				<input type="submit" ' . ((in_array($_SESSION['user_id'], $in_del)) ? '' : 'style="display:none;"') . ' name="action" value="удалить" onclick="return confirm(\'Вы точно хотите удалить эту операцию?\');" />
-			</form>
-			</td>
+								<form method="post" class="rx-editform hide" id="update_form_<?php echo $dr['dr_id']; ?>" action="doh-rash.php">
+									<select name="type2" class="type2_update">
+										<option value="0">не выбрано</option>
+										<?php echo $ri_t1; ?>
+									</select>
+									<select name="zp_name" class="zp_name_id_update <?php echo ($dr['type2'] == 'zpl' ? '' : 'hide'); ?>">
+										<option value="0">не выбрано</option>
+										<?php echo $zp_select; ?>
+									</select>
+									<input type="hidden" name="dr_id" value="<?php echo $dr['dr_id']; ?>" />
+									<input type="hidden" name="i_from_date" value="<?php echo $i_from_date; ?>" />
+									<input type="hidden" name="i_to_date" value="<?php echo $i_to_date; ?>" />
+									<input type="hidden" name="item_place" value="all" />
+									<input type="hidden" name="kassa_s" value="<?php echo htmlspecialchars($kassa_s); ?>" />
+									<input type="hidden" name="type1_s" value="<?php echo htmlspecialchars($type1_s); ?>" />
+									<input type="hidden" name="type2_s" value="<?php echo htmlspecialchars($type2_s); ?>" />
+									<input type="hidden" name="action" value="update_rash" />
+									<button class="correct-btn">исправить</button>
+								</form>
+							</td>
 
-	</tr>
-						';
-}
+							<td class="rx-muted"><?php echo htmlspecialchars(of_print($dr['channel']) . kassa_print($dr['kassa'])); ?></td>
 
+							<td>
+								<?php echo htmlspecialchars($dr['info']); ?>
+								<textarea form="update_form_<?php echo $dr['dr_id']; ?>" name="info_upd" class="info_upd hide"><?php echo htmlspecialchars($dr['info']); ?></textarea>
+							</td>
 
-echo '
-<tr>
-		<td><strong>Итого:</strong></td>
-		<td></td>
-		<td style="text-align:right"><strong>' . number_format($total_am, 2, ',', ' ') . '</strong></td>
-		<td></td>
-		<td></td>
-		<td></td>
-		<td></td>
-	</tr>
+							<td class="rx-muted" style="font-size:11px; white-space:nowrap;">
+								<?php echo htmlspecialchars(user_name($dr['cr_who_id'])); ?><br /><?php echo date("H:i", $dr['cr_time']); ?>
+							</td>
 
-</table>
+							<td class="rx-num" style="color:<?php echo $dr['amount'] < 0 ? '#d13b3b' : '#178a5b'; ?>">
+								<?php echo number_format($dr['amount'], 2, ',', ' '); ?>
+							</td>
 
-';
+							<td>
+								<?php if (in_array($_SESSION['user_id'], $in_del)): ?>
+								<form name="del_form_<?php echo $dr['dr_id']; ?>" method="post" id="del_form_<?php echo $dr['dr_id']; ?>" action="doh-rash.php" style="margin:0">
+									<input type="hidden" name="dr_id" value="<?php echo $dr['dr_id']; ?>" />
+									<input type="hidden" name="dr_id_link" value="<?php echo $dr['link_to']; ?>" />
+									<input type="hidden" name="i_from_date" value="<?php echo $i_from_date; ?>" />
+									<input type="hidden" name="i_to_date" value="<?php echo $i_to_date; ?>" />
+									<input type="hidden" name="item_place" value="all" />
+									<input type="hidden" name="kassa_s" value="<?php echo htmlspecialchars($kassa_s); ?>" />
+									<input type="hidden" name="type1_s" value="<?php echo htmlspecialchars($type1_s); ?>" />
+									<input type="hidden" name="type2_s" value="<?php echo htmlspecialchars($type2_s); ?>" />
+									<button type="submit" name="action" value="удалить" class="rx-del" title="удалить операцию"
+											onclick="return confirm('Вы точно хотите удалить эту операцию?');">✕</button>
+								</form>
+								<?php endif; ?>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+					<tfoot>
+						<tr class="rx-foot">
+							<td colspan="5">Итого по отфильтрованным операциям</td>
+							<td class="rx-num"><?php echo number_format($total_am, 2, ',', ' '); ?></td>
+							<td></td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+			<?php endif; ?>
+		</section>
+
+		<section class="rx-card">
+			<div class="rx-card-head">
+				<h2>Распределение расходов по статьям</h2>
+			</div>
+
+			<?php if (count($byItem) == 0): ?>
+				<div class="rx-empty">Расходов за период нет</div>
+			<?php else: ?>
+				<div class="rx-dist-head">
+					<span>Статья расходов</span>
+					<span>Сумма</span>
+					<span>Доля в расходах</span>
+				</div>
+				<?php $i = 0; foreach ($byItem as $code => $sum):
+					$share = $totalRash > 0 ? ($sum / $totalRash * 100) : 0;
+					$color = $dotColors[$i % count($dotColors)];
+					$i++;
+					$name  = isset($rash[$code]) ? $rash[$code] : $code;
+				?>
+					<div class="rx-dist-row">
+						<div class="rx-dist-name">
+							<span class="rx-dot" style="background:<?php echo $color; ?>"></span>
+							<span title="<?php echo htmlspecialchars($name); ?>"><?php echo htmlspecialchars($name); ?></span>
+						</div>
+						<div class="rx-dist-sum"><?php echo number_format($sum, 2, ',', ' '); ?></div>
+						<div class="rx-dist-share">
+							<em><?php echo number_format($share, 1, ',', ' '); ?>%</em>
+							<span class="rx-bar"><i style="width:<?php echo max(1, round($share)); ?>%; background:<?php echo $color; ?>"></i></span>
+						</div>
+					</div>
+				<?php endforeach; ?>
+			<?php endif; ?>
+		</section>
+
+	</div>
+</div>
+
+<script>
+	// быстрый выбор периода: проставляем даты и отправляем форму фильтров
+	function rxPreset(kind) {
+		var now  = new Date();
+		var from = new Date();
+		var to   = new Date();
+
+		if (kind === 'this_month')      { from = new Date(now.getFullYear(), now.getMonth(), 1); }
+		else if (kind === 'prev_month') { from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+		                                  to   = new Date(now.getFullYear(), now.getMonth(), 0); }
+		else if (kind === 'd30')        { from.setDate(from.getDate() - 29); }
+		else if (kind === 'ytd')        { from = new Date(now.getFullYear(), 0, 1); }
+
+		function fmt(d) {
+			var m = String(d.getMonth() + 1).padStart(2, '0');
+			var t = String(d.getDate()).padStart(2, '0');
+			return d.getFullYear() + '-' + m + '-' + t;
+		}
+
+		document.getElementById('i_from_date').value = fmt(from);
+		document.getElementById('i_to_date').value   = fmt(to);
+		document.getElementById('srch_form').submit();
+	}
+</script>
+
+<?php
+
 ?>
 
 <script>
