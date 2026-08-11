@@ -118,13 +118,16 @@ switch ($action) {
 		// через $$key-извлечение выше, в браузере канал подменяется правкой поля.
 		$formChannels = channels_for_form($type1);
 		if (!isset($formChannels[$channel])) {
-			die('Недопустимый канал оплаты для этой операции.');
+			$flashMessage = 'Недопустимый канал оплаты для этой операции.';
+			break;
 		}
 		if ($type1 == 'shift' && !isset($formChannels[$type2])) {
-			die('Недопустимый канал-получатель.');
+			$flashMessage = 'Недопустимый канал-получатель.';
+			break;
 		}
 		if ($type1 == 'shift' && $channel == $type2) {
-			die('Канал-получатель должен отличаться от канала-источника.');
+			$flashMessage = 'Канал-получатель должен отличаться от канала-источника.';
+			break;
 		}
 
 		list($office, $kassa) = channel_to_office_kassa($channel);
@@ -147,6 +150,9 @@ switch ($action) {
 			$ins_q = "INSERT INTO doh_rash VALUES('', '$acc_date', '$amount', '$type1', '$channel', '$office', '$kassa', '$link_id1', '$info', '".time()."', '".$_SESSION['user_id']."', '$zp_name')";
 			$result_ins = $mysqli->query($ins_q);
 			if (!$result_ins) {
+				// MyISAM: транзакций нет, поэтому откатываем первую строку вручную,
+				// иначе в кассе-источнике повиснет расход без парного прихода
+				$mysqli->query("DELETE FROM doh_rash WHERE dr_id='$link_id1'");
 				die('Сбой при доступе к базе данных: '.$ins_q.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
 			}
 			$link_id2 = $mysqli->insert_id;
@@ -155,6 +161,8 @@ switch ($action) {
 			$upd_q = "UPDATE doh_rash SET link_to='$link_id2' WHERE dr_id='$link_id1'";
 			$result_upd = $mysqli->query($upd_q);
 			if (!$result_upd) {
+				// см. выше: откатываем обе строки, иначе останется пара без связи
+				$mysqli->query("DELETE FROM doh_rash WHERE dr_id IN ('$link_id1', '$link_id2')");
 				die('Сбой при доступе к базе данных: '.$upd_q.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
 			}
 		}
