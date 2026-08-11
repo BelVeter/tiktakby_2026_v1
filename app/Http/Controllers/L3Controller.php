@@ -111,13 +111,7 @@ class L3Controller extends Controller
         ],
         CartController::calcDeliveryCost($amount, false),
         0.0,
-        \bb\classes\WebOrderDeal::courierInfo(
-          (string) $req->input('address'),
-          (string) $req->input('phone'),
-          '',
-          (string) $req->input('info'),
-          false
-        )
+        \bb\classes\WebOrderDeal::courierInfo((string) $req->input('info'))
       );
     } catch (\Throwable $e) {
       \Illuminate\Support\Facades\Log::error('Автодоговор по заказу с карточки товара не создан: ' . $e->getMessage());

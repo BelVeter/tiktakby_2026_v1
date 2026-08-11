@@ -103,31 +103,31 @@ class WebOrderDealSqlTest extends TestCase
         }
     }
 
-    public function test_courier_info_carries_what_the_courier_needs(): void
+    /**
+     * Курьеру в текст идёт только то, чего нет в остальных графах его страницы:
+     * комментарий клиента. Адрес, телефон, срок и способ получения у него уже есть,
+     * а возврат курьером виден отдельным выездом.
+     */
+    public function test_courier_info_carries_only_the_client_comment(): void
     {
-        $text = WebOrderDeal::courierInfo(
-            'Минск, ул.Ауэзова, 8/3, кв.169',
-            '+375291234567',
-            'Viber',
-            'Будем с 15.00',
-            true
-        );
+        $text = WebOrderDeal::courierInfo('  Будем с 15.00  ');
 
-        $this->assertStringContainsString('Паспорт не заполнен', $text);
-        $this->assertStringContainsString('Текущий адрес доставки: Минск, ул.Ауэзова, 8/3, кв.169', $text);
-        $this->assertStringContainsString('Связь: Viber', $text);
-        $this->assertStringContainsString('возврат курьером', $text);
-        $this->assertStringContainsString('Будем с 15.00', $text);
+        $this->assertSame('Инфо от клиента: Будем с 15.00', $text);
     }
 
-    public function test_courier_info_skips_empty_parts(): void
+    public function test_courier_info_is_empty_without_a_comment(): void
     {
-        $text = WebOrderDeal::courierInfo('Минск, Немига 5', '', '', '', false);
+        $this->assertSame('', WebOrderDeal::courierInfo(''));
+        $this->assertSame('', WebOrderDeal::courierInfo('   '));
+    }
 
-        $this->assertStringNotContainsString('Связь:', $text);
-        $this->assertStringNotContainsString('Телефон:', $text);
-        $this->assertStringNotContainsString('Клиент просит:', $text);
-        $this->assertStringNotContainsString('возврат курьером', $text);
+    /**
+     * Срок проката пишем в сутках. Если брать шаг из тарифа, прокат на 14 дней
+     * по недельному тарифу показывается курьеру как «на 14 нед.».
+     */
+    public function test_tariff_step_is_always_days(): void
+    {
+        $this->assertSame('day', WebOrderDeal::resolveTariff(null, 14)['step']);
     }
 
     /**
@@ -152,7 +152,7 @@ class WebOrderDealSqlTest extends TestCase
     public function test_tariff_resolution_without_tariffs_is_safe(): void
     {
         $this->assertSame(
-            ['id' => '', 'step' => '', 'value' => '0.00'],
+            ['id' => '', 'step' => 'day', 'value' => '0.00'],
             WebOrderDeal::resolveTariff(null, 10)
         );
     }
