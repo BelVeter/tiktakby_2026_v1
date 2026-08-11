@@ -992,68 +992,145 @@ function get_post($var)
 	return $mysqli->real_escape_string($_POST[$var]);
 }
 
-function of_print($of)
+/**
+ * Справочник каналов оплаты — единственный источник правды для формы, фильтра,
+ * валидации и расшифровки истории.
+ *
+ * Ключ массива — код канала в интерфейсе. Поля:
+ *   text        — как называется в интерфейсе
+ *   channel     — что писать в doh_rash.channel
+ *   kassa       — что писать в doh_rash.kassa
+ *   shift_only  — канал доступен только на вкладке «сдача в кассу» (сейф)
+ *   restricted  — виден только сотрудникам из channels_privileged_users()
+ *
+ * Кодировка channel/kassa унаследована от версии с четырьмя офисами и намеренно
+ * не меняется: на неё опираются дневные остатки (bb/models/KassaOstatok.php) и
+ * write-API /finance/entries. Плоский список — только в интерфейсе.
+ *
+ * @return array
+ */
+function channels_all()
 {
-
-	switch ($of) {
-		case '1':
-			$output = 'Литературная_22_';
-			break;
-
-		case '2':
-			$output = 'Ложинская_5_';
-			break;
-
-		case '3':
-			$output = 'Победителей_127_';
-			break;
-
-		case '4':
-			$output = 'Склад_';
-			break;
-
-		case 'cur':
-			$output = 'Курьер_';
-			break;
-
-		case 'bank':
-			$output = 'Банк';
-			break;
-
-
-		default:
-			$output = 'Нет';
-			break;
-	}
-
-	return $output;
-
+	return array(
+		'k1'   => array('text' => 'К1',     'channel' => '1',    'kassa' => 'k1',   'shift_only' => false, 'restricted' => false),
+		'k2'   => array('text' => 'К2',     'channel' => '1',    'kassa' => 'k2',   'shift_only' => false, 'restricted' => false),
+		'bank' => array('text' => 'Банк',   'channel' => 'bank', 'kassa' => 'bank', 'shift_only' => false, 'restricted' => true),
+		'safe' => array('text' => 'Сейф',   'channel' => 'safe', 'kassa' => 'safe', 'shift_only' => true,  'restricted' => true),
+		'cur'  => array('text' => 'Курьер', 'channel' => 'cur',  'kassa' => 'k1',   'shift_only' => false, 'restricted' => false),
+	);
 }
 
+/**
+ * Кому видны Банк и Сейф. Список исторический — те же id, что были захардкожены
+ * в фильтре офиса до перехода на каналы.
+ *
+ * @return array
+ */
+function channels_privileged_users()
+{
+	return array(2, 3, 5, 9);
+}
+
+/**
+ * @return bool
+ */
+function channels_user_can_see_all()
+{
+	return in_array((int)$_SESSION['user_id'], channels_privileged_users(), true);
+}
+
+/**
+ * Каналы для выпадающего списка формы.
+ *
+ * @param string $type1 rash | doh | shift
+ * @return array код => название
+ */
+function channels_for_form($type1)
+{
+	$canSeeAll = channels_user_can_see_all();
+
+	$rez = array();
+	foreach (channels_all() as $code => $ch) {
+		if ($ch['restricted'] && !$canSeeAll) continue;
+		if ($ch['shift_only'] && $type1 !== 'shift') continue;
+
+		$rez[$code] = $ch['text'];
+	}
+	return $rez;
+}
+
+/**
+ * Код канала → [channel, kassa] для записи в doh_rash.
+ *
+ * @param string $code
+ * @return array
+ */
+function channel_to_office_kassa($code)
+{
+	$all = channels_all();
+	if (isset($all[$code])) return array($all[$code]['channel'], $all[$code]['kassa']);
+
+	return array('HZ', 'HZ');
+}
+
+/**
+ * Код канала → условие WHERE для выборки.
+ *
+ * Курьер отдаёт условие без кассы: до перехода курьерских касс было две, и обе
+ * должны остаться видимыми под одним пунктом фильтра.
+ *
+ * @param string $code
+ * @return string
+ */
+function channel_sql_filter($code)
+{
+	$all = channels_all();
+	if (!isset($all[$code])) return '';
+
+	$ch = $all[$code];
+	if ($ch['channel'] === 'cur')  return " AND `channel`='cur'";
+	if ($ch['channel'] === 'bank') return " AND `channel`='bank'";
+	if ($ch['channel'] === 'safe') return " AND `channel`='safe'";
+
+	return " AND `channel`='".$ch['channel']."' AND `kassa`='".$ch['kassa']."'";
+}
+
+/**
+ * Название офиса/канала для колонки «канал» в таблице операций.
+ *
+ * Знает и закрытые точки (Ложинская, Победителей, Склад) — они убраны из
+ * списков, но их операции остаются в истории и должны читаться.
+ *
+ * @param $of
+ * @return string
+ */
+function of_print($of)
+{
+	switch ($of) {
+		case '1':    return 'Литературная_22_';
+		case '2':    return 'Ложинская_5_';
+		case '3':    return 'Победителей_127_';
+		case '4':    return 'Склад_';
+		case 'cur':  return 'Курьер_';
+		case 'bank': return 'Банк';
+		case 'safe': return 'Сейф';
+		default:     return 'Нет';
+	}
+}
+
+/**
+ * @param $of
+ * @return string
+ */
 function kassa_print($of)
 {
-
 	switch ($of) {
-		case 'k1':
-			$output = '1';
-			break;
-
-		case 'k2':
-			$output = '2';
-			break;
-
-		case 'bank':
-			$output = '';
-			break;
-
-
-		default:
-			$output = 'Нет';
-			break;
+		case 'k1':   return '1';
+		case 'k2':   return '2';
+		case 'bank': return '';
+		case 'safe': return '';
+		default:     return 'Нет';
 	}
-
-	return $output;
-
 }
 
 function dr_print($of)
