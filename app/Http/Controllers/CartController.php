@@ -231,32 +231,18 @@ class CartController extends Controller
             }
         }
 
-        // Чипы для шапки карточки в bb/rent_orders.php. Способ получения панель ставит
-        // сама из колонок брони, отсюда идут только те услуги, о которых знает корзина.
-        $chips = '';
-        if ($wantsCourierPickup) {
-            $chips .= '<span class="bk-chip bk-chip--pay">Возврат курьером</span>';
-        }
-        if ($contactChannel !== '') {
-            $chips .= '<span class="bk-chip bk-chip--ch">' . $contactChannel . '</span>';
-        }
-        // Закрывающий маркер нужен панели: чипы вложены друг в друга, по «</span>» границу не найти
-        $chipsBlock = $chips !== ''
-            ? '<span class="bk-chips">' . $chips . '</span><!--/bk-chips-->'
+        // Канал связи — одним словом, без подписи: оператору важно только куда писать
+        $channelTag = $contactChannel !== ''
+            ? '<span class="bk-ch">' . $contactChannel . '</span>'
             : '';
 
-        // Деньги по всему заказу: крупный итог + слагаемые мелким
-        $parts = ['прокат ' . number_format($itemsTotal, 2)];
-        if ($isDelivery) {
-            $parts[] = 'доставка ' . ($deliveryCost > 0
-                ? '+' . number_format($deliveryCost, 2)
-                : '<span class="bk-free">бесплатно</span>');
-        }
-        if ($wantsCourierPickup) {
-            $parts[] = 'возврат курьером <span class="bk-pay">+' . number_format($pickupCost, 2) . '</span>';
-        }
-        $moneyBlock = '<div class="bk-money"><span class="bk-total">' . number_format($grandTotal, 2)
-            . ' BYN</span><span class="bk-parts">' . implode(' · ', $parts) . '</span></div>';
+        // Деньги одной формулой: прокат + доставка + возврат курьером = итого.
+        // Нули не прячем — позиции слагаемых постоянны, столбец читается по вертикали.
+        $money = $isDelivery
+            ? number_format($itemsTotal, 2) . ' + ' . number_format($deliveryCost, 2)
+                . ' + ' . number_format($pickupCost, 2) . ' = ' . number_format($grandTotal, 2) . ' BYN'
+            : number_format($grandTotal, 2) . ' BYN';
+        $moneyBlock = '<div class="bk-money">' . $money . '</div>';
 
         // Реплика клиента — отдельным блоком и с экранированием: в bb/ поле info выводится как HTML
         $quoteBlock = trim($info) !== ''
@@ -264,7 +250,8 @@ class CartController extends Controller
             : '';
 
         // Заявке (товар занят) расчёт не нужен — там ещё нечего оплачивать, но канал связи нужен
-        $infoForZayavka = $chipsBlock . $quoteBlock;
+        $infoForZayavka = ($channelTag !== '' ? '<div class="bk-right">' . $channelTag . '</div>' : '')
+            . $quoteBlock;
 
         // Звонок показывается в zv_ch.php, где стили карточки не подключены — туда обычный текст
         $infoForZvonok = trim($info . ($contactChannel !== '' ? ' Связь: ' . $contactChannel . '.' : ''));
@@ -312,15 +299,16 @@ class CartController extends Controller
                     if (!empty($freeItems)) {
                         $tovar = $freeItems[0];
 
+                        // Правая колонка карточки: сроки сверху, деньги под ними.
                         // Сумму позиции показываем только когда в заказе больше одного товара —
-                        // иначе она дословно повторяет «прокат» в строке денег
-                        $rentLine = '<div><span class="bk-k">Прокат</span> '
-                            . $dateFromObj->format('d.m') . ' — ' . $dateToObj->format('d.m.Y')
-                            . ' · ' . $days . ' сут.'
-                            . ($itemsCount > 1 ? ' · ' . number_format($totalAmount, 2) . ' BYN за позицию' : '')
+                        // иначе она дословно повторяет первое слагаемое формулы
+                        $datesLine = '<div class="bk-dates">' . $channelTag
+                            . $dateFromObj->format('d.m') . ' → ' . $dateToObj->format('d.m')
+                            . '<span class="bk-days">' . $days . ' дн.</span>'
+                            . ($itemsCount > 1 ? '<span class="bk-days">поз. ' . number_format($totalAmount, 2) . '</span>' : '')
                             . '</div>';
 
-                        $fullInfo = $chipsBlock . $rentLine . $moneyBlock . $quoteBlock;
+                        $fullInfo = '<div class="bk-right">' . $datesLine . $moneyBlock . '</div>' . $quoteBlock;
 
                         $br = bron::createBronStrong(
                             $tovar->getInvN(),

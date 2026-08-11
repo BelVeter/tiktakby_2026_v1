@@ -79,14 +79,21 @@
 
 
 /* ===== Карточка брони в колонке «история операций» =====
-   Шапка (ФИО + чипы) собирается в rent_orders.php из колонок брони,
-   остальное приходит готовой разметкой в поле info (заказы с сайта — CartController). */
-.bk-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 8px;
-  margin-bottom: 3px;
+   Слева — кто и куда (из колонок брони, rent_orders.php), справа — сроки и деньги
+   (приходят готовой разметкой в поле info: заказы с сайта пишет CartController).
+   Раскладку держат float'ы, поэтому обе половины могут идти из разных источников. */
+.bk-card {
+  overflow: hidden;
+}
+
+.bk-left {
+  float: left;
+  max-width: 58%;
+}
+
+.bk-right {
+  float: right;
+  text-align: right;
 }
 
 .bk-who {
@@ -94,74 +101,45 @@
   font-size: 17px;
 }
 
-.bk-chip {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 11px;
-  font-weight: bold;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  padding: 1px 7px;
-  border-radius: 3px;
-  border: 1px solid #d6dcc9;
-  background-color: #eff3e6;
-  color: #6a6a6a;
+.bk-addr img {
+  vertical-align: -3px;
+  margin-right: 4px;
+}
+
+.bk-dates {
+  font-family: Consolas, "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  color: #3a3a3a;
   white-space: nowrap;
 }
 
-/* способ получения */
-.bk-chip--way {
-  background-color: #e4eef7;
-  border-color: #bcd4e8;
-  color: #1a4f7a;
+.bk-days {
+  color: #6a6a6a;
+  margin-left: 12px;
 }
 
-/* платная услуга — с клиента нужно взять деньги */
-.bk-chip--pay {
-  background-color: #fbeedf;
-  border-color: #e8cfa8;
-  color: #97500a;
-}
-
-/* канал связи */
-.bk-chip--ch {
-  background-color: #ede9fb;
-  border-color: #cfc6ef;
+/* канал связи — одним словом, без подписи */
+.bk-ch {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
   color: #4a3a9e;
+  margin-right: 12px;
 }
 
-.bk-k {
-  color: #6a6a6a;
-}
-
+/* прокат + доставка + возврат = итого */
 .bk-money {
-  margin-top: 2px;
-}
-
-.bk-total {
   font-family: Consolas, "Courier New", monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 19px;
+  font-size: 17px;
   font-weight: bold;
-}
-
-.bk-parts {
-  font-family: Consolas, "Courier New", monospace;
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  color: #6a6a6a;
-  margin-left: 6px;
-}
-
-.bk-parts .bk-pay {
-  color: #97500a;
-}
-
-.bk-parts .bk-free {
   color: #2c6e3b;
+  white-space: nowrap;
 }
 
 /* реплика клиента — это цитата, а не поле системы */
 .bk-quote {
+  clear: both;
   border-left: 3px solid #d6dcc9;
   padding-left: 8px;
   margin-top: 3px;
