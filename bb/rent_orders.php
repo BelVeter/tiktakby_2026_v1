@@ -93,7 +93,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
-<link href="/bb/assets/css/brons.css?v=2" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/css/brons.css?v=3" rel="stylesheet" type="text/css" />
 <style>
     .tovar_page_link{
         color: black;
@@ -1230,8 +1230,28 @@ while ($ord = $result_or->fetch_assoc()) {
 		        </div>
 		        <div style="float:left; width: 700px;">';
 	if ($br_line->type2 == 'bron' || $br_line->type2 == 'deliv') {
-		echo $br_line->getFioFull() . '<br>' . $br_line->getDeliveryAddress() . '<br>
-                                ' . $br_line->info;
+		$bk_info = (string) $br_line->info;
+		$bk_chips = '';
+		// Заказы с сайта кладут свои чипы первым элементом info — поднимаем их в шапку,
+		// чтобы способ получения, платные услуги и канал связи стояли одной строкой.
+		// Границу ищем по закрывающему маркеру: чипы вложены, по «</span>» её не найти
+		if (preg_match('~^\s*<span class="bk-chips">.*?<!--/bk-chips-->~s', $bk_info, $bk_m)) {
+			$bk_chips = $bk_m[0];
+			$bk_info = substr($bk_info, strlen($bk_m[0]));
+		}
+
+		echo '<div class="bk-head">'
+			. '<span class="bk-who">' . htmlspecialchars((string) $br_line->getFioFull(), ENT_QUOTES, 'UTF-8') . '</span>'
+			. '<span class="bk-chip bk-chip--way">' . ($br_line->type2 == 'deliv' ? 'Доставка' : 'Самовывоз') . '</span>'
+			. $bk_chips
+			. '</div>';
+
+		if ($br_line->type2 == 'deliv' && trim((string) $br_line->address) !== '') {
+			echo '<div><span class="bk-k">Адрес</span> '
+				. htmlspecialchars($br_line->address, ENT_QUOTES, 'UTF-8') . '</div>';
+		}
+
+		echo $bk_info;
 	} else {
 		echo $br_line->info;
 	}

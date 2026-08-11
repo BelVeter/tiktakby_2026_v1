@@ -224,26 +224,50 @@ class CartController extends Controller
         $pickupCost = $wantsCourierPickup ? self::COURIER_PICKUP_COST : 0.0;
         $grandTotal = $itemsTotal + $deliveryCost + $pickupCost;
 
-        // Short summary appended to every booking of this order, so the operator sees
-        // the delivery terms the client agreed to in bb/.
-        $orderSummary = ' Заказ: ' . number_format($itemsTotal, 2) . ' BYN.';
-        if ($isDelivery) {
-            $orderSummary .= ' Доставка' . ($isSuburb ? ' (ближний пригород)' : ' (Минск)') . ': '
-                . ($deliveryCost > 0 ? number_format($deliveryCost, 2) . ' BYN' : 'бесплатно') . '.';
-            $orderSummary .= ' Возврат курьером: '
-                . ($wantsCourierPickup ? number_format($pickupCost, 2) . ' BYN' : 'не заказан') . '.';
-        } else {
-            $orderSummary .= ' Самовывоз (Литературная 22).';
-        }
-        $orderSummary .= ' Итого к оплате: ' . number_format($grandTotal, 2) . ' BYN.';
-        if ($contactChannel !== '') {
-            $orderSummary .= ' Подтверждение через: ' . $contactChannel . '.';
+        $itemsCount = 0;
+        foreach ($items as $item) {
+            if (intval($item['modelId'] ?? 0) > 0) {
+                $itemsCount++;
+            }
         }
 
-        // Заявке (товар занят) сводка заказа не нужна, но канал связи оператору нужен и там
-        $infoForZayavka = $contactChannel !== ''
-            ? trim($info . ' Подтверждение через: ' . $contactChannel . '.')
-            : $info;
+        // Чипы для шапки карточки в bb/rent_orders.php. Способ получения панель ставит
+        // сама из колонок брони, отсюда идут только те услуги, о которых знает корзина.
+        $chips = '';
+        if ($wantsCourierPickup) {
+            $chips .= '<span class="bk-chip bk-chip--pay">Возврат курьером</span>';
+        }
+        if ($contactChannel !== '') {
+            $chips .= '<span class="bk-chip bk-chip--ch">' . $contactChannel . '</span>';
+        }
+        // Закрывающий маркер нужен панели: чипы вложены друг в друга, по «</span>» границу не найти
+        $chipsBlock = $chips !== ''
+            ? '<span class="bk-chips">' . $chips . '</span><!--/bk-chips-->'
+            : '';
+
+        // Деньги по всему заказу: крупный итог + слагаемые мелким
+        $parts = ['прокат ' . number_format($itemsTotal, 2)];
+        if ($isDelivery) {
+            $parts[] = 'доставка ' . ($deliveryCost > 0
+                ? '+' . number_format($deliveryCost, 2)
+                : '<span class="bk-free">бесплатно</span>');
+        }
+        if ($wantsCourierPickup) {
+            $parts[] = 'возврат курьером <span class="bk-pay">+' . number_format($pickupCost, 2) . '</span>';
+        }
+        $moneyBlock = '<div class="bk-money"><span class="bk-total">' . number_format($grandTotal, 2)
+            . ' BYN</span><span class="bk-parts">' . implode(' · ', $parts) . '</span></div>';
+
+        // Реплика клиента — отдельным блоком и с экранированием: в bb/ поле info выводится как HTML
+        $quoteBlock = trim($info) !== ''
+            ? '<div class="bk-quote">' . htmlspecialchars(trim($info), ENT_QUOTES, 'UTF-8') . '</div>'
+            : '';
+
+        // Заявке (товар занят) расчёт не нужен — там ещё нечего оплачивать, но канал связи нужен
+        $infoForZayavka = $chipsBlock . $quoteBlock;
+
+        // Звонок показывается в zv_ch.php, где стили карточки не подключены — туда обычный текст
+        $infoForZvonok = trim($info . ($contactChannel !== '' ? ' Связь: ' . $contactChannel . '.' : ''));
 
         // Process each item
         $results = [];
@@ -287,12 +311,16 @@ class CartController extends Controller
 
                     if (!empty($freeItems)) {
                         $tovar = $freeItems[0];
-                        $techInfo = 'Заказ через корзину. С ' . $dateFromObj->format('d.m.Y')
-                            . ' по ' . $dateToObj->format('d.m.Y')
-                            . ' на ' . $days . ' дн. Сумма: ' . number_format($totalAmount, 2) . ' BYN.'
-                            . $orderSummary;
 
-                        $fullInfo = $techInfo . ($info ? '<br>' . $info : '');
+                        // Сумму позиции показываем только когда в заказе больше одного товара —
+                        // иначе она дословно повторяет «прокат» в строке денег
+                        $rentLine = '<div><span class="bk-k">Прокат</span> '
+                            . $dateFromObj->format('d.m') . ' — ' . $dateToObj->format('d.m.Y')
+                            . ' · ' . $days . ' сут.'
+                            . ($itemsCount > 1 ? ' · ' . number_format($totalAmount, 2) . ' BYN за позицию' : '')
+                            . '</div>';
+
+                        $fullInfo = $chipsBlock . $rentLine . $moneyBlock . $quoteBlock;
 
                         $br = bron::createBronStrong(
                             $tovar->getInvN(),
@@ -337,7 +365,7 @@ class CartController extends Controller
             } else {
                 // Item not available — create zayavka
                 $validityDays = $days;
-                $z = Zvonok::addLitZvonok($fio, $phone, $infoForZayavka, $modelId, 'zayavka', $validityDays);
+                $z = Zvonok::addLitZvonok($fio, $phone, $infoForZvonok, $modelId, 'zayavka', $validityDays);
                 if ($z && $z->id) {
                     \App\Helpers\UtmTracker::track('zvonki', $z->id);
                 }
