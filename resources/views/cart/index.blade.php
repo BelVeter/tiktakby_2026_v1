@@ -75,22 +75,6 @@
                 <h2 class="cart-checkout-form__title">Оформление заказа</h2>
 
                 <div class="cart-checkout-form__group">
-                    <div class="form-floating">
-                        <input type="text" class="form-control bg-white" id="cart-fio" placeholder="ФИО" required>
-                        <label for="cart-fio">ФИО</label>
-                        <div class="invalid-feedback">Укажите ФИО (не менее 3-х символов)</div>
-                    </div>
-                </div>
-
-                <div class="cart-checkout-form__group">
-                    <div class="form-floating">
-                        <input type="text" class="form-control bg-white" id="cart-phone" placeholder="Телефон">
-                        <label for="cart-phone">Телефон: +375 (00) 000-00-00</label>
-                        <div class="invalid-feedback">Должно быть не менее 7-ми цифр</div>
-                    </div>
-                </div>
-
-                <div class="cart-checkout-form__group">
                     <span class="cart-delivery__caption">Способ получения:</span>
                     <div class="cart-delivery__options">
                         <label class="cart-delivery-card">
@@ -149,11 +133,6 @@
                     </p>
                 </div>
 
-                <div class="cart-checkout-form__group">
-                    <label for="cart-info">Дополнительная информация:</label>
-                    <textarea class="form-control form-control-lg" id="cart-info" placeholder=""></textarea>
-                </div>
-
                 {{-- Order summary (appears once a handover method is picked) --}}
                 <div class="cart-summary" id="cart-summary" style="display: none;">
                     <div class="cart-summary__caption">Сводка заказа</div>
@@ -172,6 +151,63 @@
                     <div class="cart-summary__row">
                         <span class="cart-summary__label">Итого к оплате</span>
                         <span class="cart-summary__value cart-sum-total" id="cart-total-value">0.00 BYN</span>
+                    </div>
+                </div>
+
+                {{-- Contacts: filled in after the client has seen the total --}}
+                <div class="cart-contacts">
+                    <div class="cart-field">
+                        <label class="cart-field__label" for="cart-fio">ФИО (как в паспорте/документе)</label>
+                        <input type="text" class="cart-field__input" id="cart-fio" placeholder="напр., Иванова Анна Петровна"
+                            required>
+                        <div class="cart-field__error" id="cart-fio-error">Укажите ФИО (не менее 3-х символов)</div>
+                    </div>
+
+                    <div class="cart-field">
+                        <label class="cart-field__label" for="cart-phone">Номер телефона</label>
+                        <input type="tel" class="cart-field__input" id="cart-phone" placeholder="+375 00 000 00 00">
+                        <div class="cart-field__error" id="cart-phone-error">Должно быть не менее 7-ми цифр</div>
+                    </div>
+
+                    <div class="cart-channels">
+                        <span class="cart-channels__caption">Отправить подтверждение заказа через:</span>
+                        <div class="cart-channels__options">
+                            <label class="cart-channel">
+                                <input class="cart-channel__radio" type="radio" name="cart_channel" value="viber">
+                                <span class="cart-channel__icon" style="background: #7360F2;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path
+                                            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z">
+                                        </path>
+                                    </svg>
+                                </span>
+                                <span class="cart-channel__title">Viber</span>
+                            </label>
+                            <label class="cart-channel">
+                                <input class="cart-channel__radio" type="radio" name="cart_channel" value="telegram">
+                                <span class="cart-channel__icon" style="background: #2AABEE;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </span>
+                                <span class="cart-channel__title">Telegram</span>
+                            </label>
+                            <label class="cart-channel">
+                                <input class="cart-channel__radio" type="radio" name="cart_channel" value="sms">
+                                <span class="cart-channel__icon cart-channel__icon--text" style="background: #6B7785;">
+                                    SMS
+                                </span>
+                                <span class="cart-channel__title">SMS</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="cart-field">
+                        <span class="cart-field__caption">Дополнительная информация:</span>
+                        <textarea class="cart-field__input cart-field__input--area" id="cart-info"></textarea>
                     </div>
                 </div>
 
@@ -902,6 +938,157 @@
             margin-top: 2px;
         }
 
+        /* ===== Contacts block (labels above the inputs, as on the Polish site) ===== */
+        .cart-contacts {
+            margin-top: 20px;
+        }
+
+        .cart-field {
+            margin-bottom: 18px;
+        }
+
+        .cart-field__label,
+        .cart-field__caption {
+            display: block;
+            font-family: 'Nunito', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .cart-field__caption {
+            font-size: 13px;
+            font-weight: 700;
+            color: #8fa6bf;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .cart-field__input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #DCE8F6;
+            border-radius: 12px;
+            background: #fff;
+            font-family: 'Nunito', sans-serif;
+            font-size: 16px;
+            color: #2c3e50;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .cart-field__input::placeholder {
+            color: #b9c6d4;
+        }
+
+        .cart-field__input:focus {
+            outline: none;
+            border-color: #3180D1;
+            box-shadow: 0 0 0 3px rgba(49, 128, 209, 0.12);
+        }
+
+        .cart-field__input--area {
+            min-height: 96px;
+            resize: vertical;
+        }
+
+        .cart-field__input.is-invalid {
+            border-color: #E53935;
+        }
+
+        .cart-field__error {
+            display: none;
+            font-family: 'Nunito', sans-serif;
+            font-size: 13px;
+            color: #E53935;
+            margin-top: 6px;
+        }
+
+        .cart-field__input.is-invalid~.cart-field__error {
+            display: block;
+        }
+
+        /* ===== Confirmation channels ===== */
+        .cart-channels {
+            background: #F2F7FD;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 18px;
+        }
+
+        .cart-channels__caption {
+            display: block;
+            font-family: 'Nunito', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #8fa6bf;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 12px;
+        }
+
+        .cart-channels__options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .cart-channel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 6px;
+            border: 1px solid #DCE8F6;
+            border-radius: 12px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0;
+        }
+
+        .cart-channel:has(input:checked) {
+            border-color: #3180D1;
+            box-shadow: 0 0 0 1px #3180D1 inset;
+            background: #F7FBFF;
+        }
+
+        .cart-channel__radio {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .cart-channel__icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .cart-channel__icon--text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .cart-channel__title {
+            font-family: 'Nunito', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #55677d;
+            text-align: center;
+        }
+
+        .cart-channel:has(input:checked) .cart-channel__title {
+            color: #3180D1;
+        }
+
         .cart-checkout-form__office-note {
             font-family: 'Nunito', sans-serif;
             font-size: 14px;
@@ -914,25 +1101,26 @@
 
         .cart-checkout-form__submit-btn {
             width: 100%;
-            padding: 14px 24px;
-            background: #3180D1;
+            padding: 18px 24px;
+            background: linear-gradient(90deg, #3180D1 0%, #4FA3E3 100%);
             color: #fff;
             border: none;
-            border-radius: 10px;
+            border-radius: 14px;
             font-family: 'Nunito', sans-serif;
-            font-size: 17px;
+            font-size: 20px;
             font-weight: 700;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: filter 0.2s;
         }
 
         .cart-checkout-form__submit-btn:hover {
-            background: #2567b0;
+            filter: brightness(0.94);
         }
 
         .cart-checkout-form__submit-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
+            filter: none;
         }
 
         .cart-checkout-form__actions {
@@ -1365,6 +1553,7 @@
                 var info = document.getElementById('cart-info').value;
                 var isDelivery = deliveryRadio && deliveryRadio.value === '1';
                 var courierPickup = isDelivery && document.getElementById('cart-courier-pickup').checked;
+                var channelRadio = document.querySelector('[name="cart_channel"]:checked');
 
                 // Client-side validation
                 var valid = true;
@@ -1424,6 +1613,7 @@
                     address: address,
                     info: info,
                     courier_pickup: courierPickup ? 1 : 0,
+                    contact_channel: channelRadio ? channelRadio.value : '',
                 };
 
                 var xhr = new XMLHttpRequest();
