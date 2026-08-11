@@ -130,6 +130,25 @@ class WebOrderDealSqlTest extends TestCase
         $this->assertStringNotContainsString('возврат курьером', $text);
     }
 
+    /**
+     * Заказать с сайта можно двумя путями — через корзину и прямо с карточки товара.
+     * Если автоматику подключат только к одному, часть доставок молча не доедет
+     * до страницы курьера, и заметят это не сразу.
+     */
+    public function test_both_order_paths_create_courier_trips(): void
+    {
+        $root = dirname(__DIR__, 2);
+
+        foreach (['CartController', 'L3Controller'] as $controller) {
+            $src = file_get_contents($root . '/app/Http/Controllers/' . $controller . '.php');
+            $this->assertStringContainsString(
+                'WebOrderDeal::createDealWithTrips',
+                $src,
+                "$controller больше не создаёт выезд курьера по заказу с доставкой"
+            );
+        }
+    }
+
     public function test_tariff_resolution_without_tariffs_is_safe(): void
     {
         $this->assertSame(
