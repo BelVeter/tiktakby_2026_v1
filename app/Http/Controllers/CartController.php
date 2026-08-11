@@ -14,6 +14,13 @@ class CartController extends Controller
     /** Стоимость выезда курьера за товаром — платная всегда, независимо от суммы заказа */
     public const COURIER_PICKUP_COST = 10.0;
 
+    /** Каналы, через которые клиент просит прислать подтверждение заказа */
+    public const CONTACT_CHANNELS = [
+        'viber' => 'Viber',
+        'telegram' => 'Telegram',
+        'sms' => 'SMS',
+    ];
+
     /**
      * Стоимость доставки от суммы заказа.
      * Минск: от 30 руб — бесплатно, от 15 до 30 — 10 руб, до 15 — 15 руб.
@@ -156,6 +163,10 @@ class CartController extends Controller
         $isSuburb = false;
         $wantsCourierPickup = (bool) $request->input('courier_pickup', 0);
 
+        // Канал связи необязателен; принимаем только известные значения
+        $channelKey = (string) $request->input('contact_channel', '');
+        $contactChannel = self::CONTACT_CHANNELS[$channelKey] ?? '';
+
         // Validation
         $errors = [];
 
@@ -225,6 +236,14 @@ class CartController extends Controller
             $orderSummary .= ' Самовывоз (Литературная 22).';
         }
         $orderSummary .= ' Итого к оплате: ' . number_format($grandTotal, 2) . ' BYN.';
+        if ($contactChannel !== '') {
+            $orderSummary .= ' Подтверждение через: ' . $contactChannel . '.';
+        }
+
+        // Заявке (товар занят) сводка заказа не нужна, но канал связи оператору нужен и там
+        $infoForZayavka = $contactChannel !== ''
+            ? trim($info . ' Подтверждение через: ' . $contactChannel . '.')
+            : $info;
 
         // Process each item
         $results = [];
@@ -318,7 +337,7 @@ class CartController extends Controller
             } else {
                 // Item not available — create zayavka
                 $validityDays = $days;
-                $z = Zvonok::addLitZvonok($fio, $phone, $info, $modelId, 'zayavka', $validityDays);
+                $z = Zvonok::addLitZvonok($fio, $phone, $infoForZayavka, $modelId, 'zayavka', $validityDays);
                 if ($z && $z->id) {
                     \App\Helpers\UtmTracker::track('zvonki', $z->id);
                 }
@@ -327,7 +346,7 @@ class CartController extends Controller
                 if ($validityDays) {
                     $validityDateObj->modify('+' . intval($validityDays) . ' days');
                 }
-                $zayavka = bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $info, 1);
+                $zayavka = bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $infoForZayavka, 1);
                 if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
                     \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
                 }
