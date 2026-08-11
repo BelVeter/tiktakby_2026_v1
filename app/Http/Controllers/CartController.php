@@ -11,6 +11,29 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
+    /** Стоимость выезда курьера за товаром — платная всегда, независимо от суммы заказа */
+    public const COURIER_PICKUP_COST = 10.0;
+
+    /**
+     * Стоимость доставки от суммы заказа.
+     * Минск: от 30 руб — бесплатно, от 15 до 30 — 10 руб, до 15 — 15 руб.
+     * Ближний пригород: от 50 руб — бесплатно, иначе 10 руб.
+     * Дублируется в JS корзины (resources/views/cart/index.blade.php) — менять синхронно.
+     */
+    public static function calcDeliveryCost(float $itemsTotal, bool $isSuburb): float
+    {
+        if ($isSuburb) {
+            return $itemsTotal >= 50 ? 0.0 : 10.0;
+        }
+        if ($itemsTotal >= 30) {
+            return 0.0;
+        }
+        if ($itemsTotal >= 15) {
+            return 10.0;
+        }
+        return 15.0;
+    }
+
     /**
      * Show the cart page shell (items populated from localStorage via JS)
      */
@@ -128,8 +151,8 @@ class CartController extends Controller
         $delivery = $request->input('delivery', null);
         $address = $request->input('address', '');
         $info = $request->input('info', '');
-        $promoCode = $request->input('promo_code', '');
-        $giftCertificate = $request->input('gift_certificate', '');
+        $isSuburb = (bool) $request->input('suburb', 0);
+        $wantsCourierPickup = (bool) $request->input('courier_pickup', 0);
 
         // Validation
         $errors = [];
@@ -148,7 +171,7 @@ class CartController extends Controller
         }
 
         if ($delivery === null) {
-            $errors[] = 'Выберите способ доставки';
+            $errors[] = 'Выберите способ получения';
         }
 
         if ($delivery == '1' && mb_strlen($address) < 5) {
@@ -161,6 +184,45 @@ class CartController extends Controller
                 'errors' => $errors,
             ], 422);
         }
+
+        $isDelivery = ($delivery == '1');
+
+        // Courier pickup is a delivery-only service
+        if (!$isDelivery) {
+            $isSuburb = false;
+            $wantsCourierPickup = false;
+        }
+
+        // Delivery cost depends on the whole order sum — recalculate it server-side
+        // before creating any booking (never trust the client).
+        $itemsTotal = 0.0;
+        foreach ($items as $item) {
+            $modelId = intval($item['modelId'] ?? 0);
+            if ($modelId <= 0) {
+                continue;
+            }
+            $tm = TariffModel::getTarifModelForModelId($modelId);
+            if ($tm) {
+                $itemsTotal += (float) $tm->getAmmountForDaysPeriod(intval($item['days'] ?? 14));
+            }
+        }
+
+        $deliveryCost = $isDelivery ? self::calcDeliveryCost($itemsTotal, $isSuburb) : 0.0;
+        $pickupCost = $wantsCourierPickup ? self::COURIER_PICKUP_COST : 0.0;
+        $grandTotal = $itemsTotal + $deliveryCost + $pickupCost;
+
+        // Short summary appended to every booking of this order, so the operator sees
+        // the delivery terms the client agreed to in bb/.
+        $orderSummary = ' Заказ: ' . number_format($itemsTotal, 2) . ' BYN.';
+        if ($isDelivery) {
+            $orderSummary .= ' Доставка' . ($isSuburb ? ' (ближний пригород)' : ' (Минск)') . ': '
+                . ($deliveryCost > 0 ? number_format($deliveryCost, 2) . ' BYN' : 'бесплатно') . '.';
+            $orderSummary .= ' Возврат курьером: '
+                . ($wantsCourierPickup ? number_format($pickupCost, 2) . ' BYN' : 'не заказан') . '.';
+        } else {
+            $orderSummary .= ' Самовывоз (Литературная 22).';
+        }
+        $orderSummary .= ' Итого к оплате: ' . number_format($grandTotal, 2) . ' BYN.';
 
         // Process each item
         $results = [];
@@ -189,7 +251,7 @@ class CartController extends Controller
                     $dateToObj = new \DateTime($dateFrom);
                     $dateToObj->modify('+' . $days . ' days');
 
-                    $deliveryYN = ($delivery == '1') ? 1 : 0;
+                    $deliveryYN = $isDelivery ? 1 : 0;
 
                     if ($deliveryYN == 1) {
                         $freeItems = tovar::getFreeTovarsForModelIdAndOffice($modelId, 'all');
@@ -206,14 +268,8 @@ class CartController extends Controller
                         $tovar = $freeItems[0];
                         $techInfo = 'Заказ через корзину. С ' . $dateFromObj->format('d.m.Y')
                             . ' по ' . $dateToObj->format('d.m.Y')
-                            . ' на ' . $days . ' дн. Сумма: ' . number_format($totalAmount, 2) . ' BYN.';
-
-                        if ($promoCode) {
-                            $techInfo .= ' Промокод: ' . $promoCode . '.';
-                        }
-                        if ($giftCertificate) {
-                            $techInfo .= ' Сертификат: ' . $giftCertificate . '.';
-                        }
+                            . ' на ' . $days . ' дн. Сумма: ' . number_format($totalAmount, 2) . ' BYN.'
+                            . $orderSummary;
 
                         $fullInfo = $techInfo . ($info ? '<br>' . $info : '');
 
@@ -288,6 +344,12 @@ class CartController extends Controller
         return response()->json([
             'success' => $allSuccess,
             'results' => $results,
+            'totals' => [
+                'items' => round($itemsTotal, 2),
+                'delivery' => round($deliveryCost, 2),
+                'courier_pickup' => round($pickupCost, 2),
+                'total' => round($grandTotal, 2),
+            ],
             'message' => $allSuccess
                 ? 'Все товары успешно забронированы! Оператор свяжется с вами в ближайшее время.'
                 : 'Некоторые товары не удалось забронировать. Проверьте статус каждого товара в результатах.',

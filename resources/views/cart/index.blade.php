@@ -62,25 +62,24 @@
                 {{-- Filled by JS --}}
             </div>
 
-            {{-- Total --}}
+            {{-- Order summary --}}
             <div class="cart-total-block">
-                <div class="cart-total-block__row">
-                    <span class="cart-total-block__label">Итого к оплате:</span>
-                    <span class="cart-total-block__value" id="cart-total-value">0,00 BYN</span>
+                <div class="cart-total-block__caption">Сводка заказа</div>
+                <div class="cart-total-block__line">
+                    <span class="cart-total-block__line-label">Стоимость проката</span>
+                    <span class="cart-total-block__line-value cart-sum-items">0.00 BYN</span>
                 </div>
-            </div>
-
-            {{-- Promo / Gift Certificate --}}
-            <div class="cart-promo-block">
-                <div class="cart-promo-block__row">
-                    <div class="cart-promo-block__field">
-                        <label for="cart-promo-code">Промокод</label>
-                        <input type="text" id="cart-promo-code" placeholder="Введите промокод" class="cart-input">
-                    </div>
-                    <div class="cart-promo-block__field">
-                        <label for="cart-gift-cert">Подарочный сертификат</label>
-                        <input type="text" id="cart-gift-cert" placeholder="Номер сертификата" class="cart-input">
-                    </div>
+                <div class="cart-total-block__line">
+                    <span class="cart-total-block__line-label">Доставка</span>
+                    <span class="cart-total-block__line-value cart-sum-delivery">—</span>
+                </div>
+                <div class="cart-total-block__line">
+                    <span class="cart-total-block__line-label">Возврат курьером</span>
+                    <span class="cart-total-block__line-value cart-sum-pickup">не заказан</span>
+                </div>
+                <div class="cart-total-block__row">
+                    <span class="cart-total-block__label">Итого к оплате</span>
+                    <span class="cart-total-block__value cart-sum-total" id="cart-total-value">0.00 BYN</span>
                 </div>
             </div>
 
@@ -105,32 +104,71 @@
                 </div>
 
                 <div class="cart-checkout-form__group">
-                    <span class="cart-checkout-form__radio-label">Укажите способ доставки</span>
-                    <div class="cart-checkout-form__radio-row">
-                        <label class="cart-radio-label">
-                            <input class="form-check-input" type="radio" name="cart_delivery" value="1">
-                            <span>Доставка</span>
+                    <span class="cart-delivery__caption">Способ получения:</span>
+                    <div class="cart-delivery__options">
+                        <label class="cart-delivery-card">
+                            <input class="cart-delivery-card__radio" type="radio" name="cart_delivery" value="1">
+                            <span class="cart-delivery-card__mark"></span>
+                            <svg class="cart-delivery-card__icon" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                            <span class="cart-delivery-card__title">Доставка</span>
+                            <span class="cart-delivery-card__subtitle">По Минску или ближнему пригороду</span>
+                            <span class="cart-delivery-card__price" id="cart-delivery-price-badge">10 руб</span>
                         </label>
-                        <label class="cart-radio-label">
-                            <input class="form-check-input" type="radio" name="cart_delivery" value="0">
-                            <span>Самовывоз</span>
+                        <label class="cart-delivery-card">
+                            <input class="cart-delivery-card__radio" type="radio" name="cart_delivery" value="0">
+                            <span class="cart-delivery-card__mark"></span>
+                            <svg class="cart-delivery-card__icon" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <span class="cart-delivery-card__title">Самовывоз</span>
+                            <span class="cart-delivery-card__subtitle">Литературная 22, Минск</span>
+                            <span class="cart-delivery-card__price cart-delivery-card__price--free">Бесплатно</span>
                         </label>
                     </div>
-                    <div class="invalid-feedback" id="cart-delivery-error" style="display: none;">Выберите способ доставки
+                    <div class="invalid-feedback" id="cart-delivery-error" style="display: none;">Выберите способ получения
                     </div>
                 </div>
 
-                {{-- Delivery address (shown when delivery selected) --}}
+                {{-- Delivery details (shown when delivery selected) --}}
                 <div class="cart-checkout-form__group" id="cart-address-group" style="display: none;">
                     <label for="cart-address">Адрес доставки:</label>
                     <textarea class="form-control form-control-lg" id="cart-address"
                         placeholder="Укажите адрес доставки"></textarea>
                     <div class="invalid-feedback">Заполните адрес доставки</div>
+
+                    <label class="cart-checkbox">
+                        <input type="checkbox" id="cart-suburb">
+                        <span class="cart-checkbox__body">
+                            <span class="cart-checkbox__title">Ближний пригород</span>
+                            <span class="cart-checkbox__hint">Боровляны, Колодищи, Б. Тростенец, Гатово, Сеница,
+                                Богатырево, Ждановичи, Ратомка, Тарасово. Бесплатно от 50 руб, иначе 10 руб.</span>
+                        </span>
+                    </label>
+
+                    <label class="cart-checkbox">
+                        <input type="checkbox" id="cart-courier-pickup">
+                        <span class="cart-checkbox__body">
+                            <span class="cart-checkbox__title">Возврат курьером — 10 руб</span>
+                            <span class="cart-checkbox__hint">Услуга платная независимо от суммы заказа. Если не отметить,
+                                товар нужно вернуть в офис самостоятельно.</span>
+                        </span>
+                    </label>
                 </div>
 
-                {{-- Self-pickup office (shown when self-pickup selected) --}}
+                {{-- Self-pickup info (shown when self-pickup selected) --}}
                 <div class="cart-checkout-form__group" id="cart-office-group" style="display: none;">
-                    <p class="cart-checkout-form__office-loading">Загрузка доступных пунктов выдачи...</p>
+                    <p class="cart-checkout-form__office-note">
+                        Пункт выдачи: <strong>Минск, Литературная 22</strong>. Точное время получения оператор согласует
+                        при подтверждении заказа. Возврат товара — самостоятельно в офис.
+                    </p>
                 </div>
 
                 <div class="cart-checkout-form__group">
@@ -586,16 +624,62 @@
 
         /* ===== Total Block ===== */
         .cart-total-block {
-            background: #f8f9fa;
+            background: #F2F7FD;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 24px;
+        }
+
+        .cart-total-block__caption {
+            font-family: 'Nunito', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #8fa6bf;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 14px;
+        }
+
+        .cart-total-block__line {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            padding: 12px 0;
+            border-top: 1px solid #DCE8F6;
+            font-family: 'Nunito', sans-serif;
+            font-size: 15px;
+        }
+
+        .cart-total-block__line-label {
+            color: #55677d;
+        }
+
+        .cart-total-block__line-value {
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        /* Not-ordered / free states of a summary row */
+        .cart-total-block__line-value.is-muted {
+            font-weight: 400;
+            font-style: italic;
+            color: #9aa8b6;
+        }
+
+        .cart-total-block__line-value.is-free {
+            color: #4CAF50;
         }
 
         .cart-total-block__row {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
+            padding-top: 14px;
+            border-top: 2px solid #DCE8F6;
         }
 
         .cart-total-block__label {
@@ -610,49 +694,6 @@
             font-size: 24px;
             font-weight: 700;
             color: #3180D1;
-        }
-
-        /* ===== Promo Block ===== */
-        .cart-promo-block {
-            margin-bottom: 24px;
-        }
-
-        .cart-promo-block__row {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-
-        @media (min-width: 768px) {
-            .cart-promo-block__row {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        .cart-promo-block__field label {
-            font-family: 'Nunito', sans-serif;
-            font-size: 13px;
-            color: #999;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .cart-input {
-            font-family: 'Nunito', sans-serif;
-            font-size: 14px;
-            padding: 10px 14px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            width: 100%;
-            color: #333;
-            background: #f8f9fa;
-            transition: border-color 0.2s;
-        }
-
-        .cart-input:focus {
-            border-color: #3180D1;
-            outline: none;
-            background: #fff;
         }
 
         /* ===== Checkout Form ===== */
@@ -683,38 +724,164 @@
             display: block;
         }
 
-        .cart-checkout-form__radio-label {
+        /* ===== Delivery method cards ===== */
+        .cart-delivery__caption {
             font-family: 'Nunito', sans-serif;
-            font-size: 14px;
-            color: #666;
+            font-size: 13px;
+            font-weight: 700;
+            color: #8fa6bf;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .cart-delivery__options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .cart-delivery-card {
+            position: relative;
+            display: block;
+            padding: 16px 40px 16px 16px;
+            border: 1px solid #DCE8F6;
+            border-radius: 12px;
+            background: #fff;
+            cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+            transition: all 0.2s;
+            /* Reset the generic label styling of .cart-checkout-form__group label */
+            margin-bottom: 0;
+            color: inherit;
+            font-size: inherit;
+        }
+
+        .cart-delivery-card:has(input:checked) {
+            border-color: #3180D1;
+            background: #F2F7FD;
+            box-shadow: 0 0 0 1px #3180D1 inset;
+        }
+
+        .cart-delivery-card__radio {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .cart-delivery-card__mark {
+            position: absolute;
+            top: 16px;
+            right: 14px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #C7D7E8;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .cart-delivery-card:has(input:checked) .cart-delivery-card__mark {
+            border-color: #3180D1;
+            box-shadow: inset 0 0 0 4px #fff;
+            background: #3180D1;
+        }
+
+        .cart-delivery-card__icon {
+            color: #55677d;
             display: block;
             margin-bottom: 10px;
         }
 
-        .cart-checkout-form__radio-row {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
+        .cart-delivery-card:has(input:checked) .cart-delivery-card__icon {
+            color: #3180D1;
         }
 
-        .cart-radio-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            border: 1px solid #ddd;
+        .cart-delivery-card__title {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.25;
+        }
+
+        .cart-delivery-card__subtitle {
+            display: block;
+            font-size: 13px;
+            color: #8fa6bf;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+
+        .cart-delivery-card__price {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 10px;
             border-radius: 8px;
+            background: #EBF3FC;
+            color: #3180D1;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .cart-delivery-card__price--free {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+
+        /* ===== Checkbox rows (suburb / courier pickup) ===== */
+        .cart-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 14px;
+            margin-bottom: 0;
+            padding: 12px 14px;
+            border: 1px solid #DCE8F6;
+            border-radius: 10px;
             cursor: pointer;
-            font-family: 'Nunito', sans-serif;
-            font-size: 15px;
-            color: #333;
-            flex: 1;
             transition: all 0.2s;
         }
 
-        .cart-radio-label:has(input:checked) {
+        .cart-checkbox:has(input:checked) {
             border-color: #3180D1;
-            background: #EBF3FC;
+            background: #F2F7FD;
+        }
+
+        .cart-checkbox input {
+            width: 18px;
+            height: 18px;
+            margin: 2px 0 0;
+            accent-color: #3180D1;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .cart-checkbox__title {
+            display: block;
+            font-family: 'Nunito', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .cart-checkbox__hint {
+            display: block;
+            font-family: 'Nunito', sans-serif;
+            font-size: 12.5px;
+            color: #8fa6bf;
+            line-height: 1.35;
+            margin-top: 2px;
+        }
+
+        .cart-checkout-form__office-note {
+            font-family: 'Nunito', sans-serif;
+            font-size: 14px;
+            color: #55677d;
+            background: #F2F7FD;
+            border-radius: 10px;
+            padding: 14px;
+            margin: 0;
         }
 
         .cart-checkout-form__submit-btn {
@@ -845,6 +1012,12 @@
             color: #fff;
         }
 
+        @media (max-width: 400px) {
+            .cart-delivery__options {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (min-width: 768px) {
             .cart-page__title {
                 font-size: 28px;
@@ -901,10 +1074,20 @@
                     } else {
                         addressGroup.style.display = 'none';
                         officeGroup.style.display = 'block';
-                        // TODO: load offices via AJAX
-                        officeGroup.innerHTML = '<p style="font-family: Nunito, sans-serif; font-size: 14px; color: #666;">Адрес самовывоза уточнит оператор при подтверждении заказа.</p>';
+                        // Courier pickup is a delivery-only service — reset it on self-pickup
+                        document.getElementById('cart-courier-pickup').checked = false;
+                        document.getElementById('cart-suburb').checked = false;
                     }
+                    updateTotal(TiktakCart.getItems());
                 });
+            });
+
+            // Suburb / courier pickup toggles affect the totals
+            document.getElementById('cart-suburb').addEventListener('change', function () {
+                updateTotal(TiktakCart.getItems());
+            });
+            document.getElementById('cart-courier-pickup').addEventListener('change', function () {
+                updateTotal(TiktakCart.getItems());
             });
 
             // Checkout button
@@ -1076,12 +1259,65 @@
                 });
             }
 
+            // Delivery pricing (mirrored server-side in CartController — keep both in sync)
+            var COURIER_PICKUP_COST = 10;
+
+            function calcDeliveryCost(itemsTotal, isSuburb) {
+                if (isSuburb) {
+                    return itemsTotal >= 50 ? 0 : 10;
+                }
+                if (itemsTotal >= 30) return 0;
+                if (itemsTotal >= 15) return 10;
+                return 15;
+            }
+
+            function setSummary(selector, text, stateClass) {
+                var el = document.querySelector(selector);
+                if (!el) return;
+                el.textContent = text;
+                el.classList.remove('is-muted', 'is-free');
+                if (stateClass) el.classList.add(stateClass);
+            }
+
             function updateTotal(items) {
-                var total = 0;
+                var itemsTotal = 0;
                 items.forEach(function (item) {
-                    total += TiktakCart.calculatePrice(item.tariffs, item.days);
+                    itemsTotal += TiktakCart.calculatePrice(item.tariffs, item.days);
                 });
-                document.getElementById('cart-total-value').textContent = total.toFixed(2) + ' BYN';
+
+                var deliveryRadio = document.querySelector('[name="cart_delivery"]:checked');
+                var isDelivery = deliveryRadio && deliveryRadio.value === '1';
+                var isSuburb = document.getElementById('cart-suburb').checked;
+                var wantsPickup = isDelivery && document.getElementById('cart-courier-pickup').checked;
+
+                var deliveryCost = isDelivery ? calcDeliveryCost(itemsTotal, isSuburb) : 0;
+                var pickupCost = wantsPickup ? COURIER_PICKUP_COST : 0;
+
+                setSummary('.cart-sum-items', itemsTotal.toFixed(2) + ' BYN');
+
+                if (!deliveryRadio) {
+                    setSummary('.cart-sum-delivery', 'выберите способ получения', 'is-muted');
+                } else if (!isDelivery) {
+                    setSummary('.cart-sum-delivery', 'самовывоз — бесплатно', 'is-free');
+                } else if (deliveryCost === 0) {
+                    setSummary('.cart-sum-delivery', 'Бесплатно', 'is-free');
+                } else {
+                    setSummary('.cart-sum-delivery', deliveryCost.toFixed(2) + ' BYN');
+                }
+
+                setSummary(
+                    '.cart-sum-pickup',
+                    wantsPickup ? pickupCost.toFixed(2) + ' BYN' : 'не заказан',
+                    wantsPickup ? null : 'is-muted'
+                );
+
+                setSummary('.cart-sum-total', (itemsTotal + deliveryCost + pickupCost).toFixed(2) + ' BYN');
+
+                // Price badge on the delivery card always reflects the current cart sum
+                var badge = document.getElementById('cart-delivery-price-badge');
+                var badgeCost = calcDeliveryCost(itemsTotal, isSuburb);
+                badge.textContent = badgeCost === 0 ? 'Бесплатно' : badgeCost.toFixed(0) + ' руб';
+                badge.classList.toggle('cart-delivery-card__price--free', badgeCost === 0);
             }
 
             function calculateEndDate(dateFromStr, days) {
@@ -1104,8 +1340,9 @@
                 var deliveryRadio = document.querySelector('[name="cart_delivery"]:checked');
                 var address = document.getElementById('cart-address').value;
                 var info = document.getElementById('cart-info').value;
-                var promoCode = document.getElementById('cart-promo-code').value;
-                var giftCert = document.getElementById('cart-gift-cert').value;
+                var isDelivery = deliveryRadio && deliveryRadio.value === '1';
+                var suburb = isDelivery && document.getElementById('cart-suburb').checked;
+                var courierPickup = isDelivery && document.getElementById('cart-courier-pickup').checked;
 
                 // Client-side validation
                 var valid = true;
@@ -1164,8 +1401,8 @@
                     delivery: deliveryRadio.value,
                     address: address,
                     info: info,
-                    promo_code: promoCode,
-                    gift_certificate: giftCert,
+                    suburb: suburb ? 1 : 0,
+                    courier_pickup: courierPickup ? 1 : 0,
                 };
 
                 var xhr = new XMLHttpRequest();
@@ -1198,6 +1435,14 @@
                                         (r.status === 'waitlist' ? 'Заявка принята' : 'Ошибка');
                                     detailsHtml += '<p style="font-size: 14px; margin: 8px 0;">' + statusIcon + ' ' + r.name + ' — <strong>' + statusText + '</strong></p>';
                                 });
+                                if (data.totals) {
+                                    detailsHtml += '<p style="font-size: 14px; margin: 14px 0 0;">Доставка: ' +
+                                        (data.totals.delivery > 0 ? data.totals.delivery.toFixed(2) + ' BYN' : 'бесплатно') + '</p>';
+                                    detailsHtml += '<p style="font-size: 14px; margin: 4px 0;">Возврат курьером: ' +
+                                        (data.totals.courier_pickup > 0 ? data.totals.courier_pickup.toFixed(2) + ' BYN' : 'не заказан') + '</p>';
+                                    detailsHtml += '<p style="font-size: 16px; font-weight: 700; margin: 8px 0 0;">Итого к оплате: ' +
+                                        data.totals.total.toFixed(2) + ' BYN</p>';
+                                }
                                 detailsHtml += '</div>';
                                 document.getElementById('cart-success-details').innerHTML = detailsHtml;
                             }
