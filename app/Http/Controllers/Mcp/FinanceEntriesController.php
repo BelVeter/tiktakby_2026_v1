@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\DB;
  *   - type1   direction: 'doh' (income) | 'rash' (expense)
  *   - type2   article code; dictionary depends on type1: rash_items.ri_code
  *             (+ri_text) for expenses, doh_items.rd_code (+rd_text) for income
- *   - channel WHERE it happened: office number ('1'-'4'), 'cur' (courier), 'bank'
- *   - kassa   WHERE the money sits: 'k1'/'k2' (cash tills), 'card', 'bank'
+ *   - channel WHERE it happened: office number ('1'-'4'), 'cur' (courier), 'bank', 'safe'
+ *   - kassa   WHERE the money sits: 'k1'/'k2' (cash tills), 'card', 'bank', 'safe'
  *
  * Storage quirks handled here:
  *   - `amount` is stored NEGATIVE for rash, POSITIVE for doh. The API always
@@ -545,16 +545,16 @@ class FinanceEntriesController extends BaseController
         $kassa = array_key_exists('kassa', $data) && is_scalar($data['kassa']) ? (string) $data['kassa'] : null;
         if (!array_key_exists('kassa', $data) || $data['kassa'] === null || $data['kassa'] === '') {
             $errors['kassa'] = 'kassa is required.';
-        } elseif (!in_array($kassa, ['k1', 'k2', 'bank', 'card'], true)) {
-            $errors['kassa'] = 'kassa must be one of: k1, k2, bank, card.';
+        } elseif (!in_array($kassa, ['k1', 'k2', 'bank', 'card', 'safe'], true)) {
+            $errors['kassa'] = 'kassa must be one of: k1, k2, bank, card, safe.';
         }
 
         // ── channel (office number, resolved live, OR 'cur' OR 'bank') ──
         $channel = array_key_exists('channel', $data) && is_scalar($data['channel']) ? (string) $data['channel'] : null;
         if (!array_key_exists('channel', $data) || $data['channel'] === null || $data['channel'] === '') {
             $errors['channel'] = 'channel is required.';
-        } elseif (!in_array($channel, ['bank', 'cur'], true) && !$this->officeExists($channel)) {
-            $errors['channel'] = 'channel must be an existing office number, "cur", or "bank".';
+        } elseif (!in_array($channel, ['bank', 'cur', 'safe'], true) && !$this->officeExists($channel)) {
+            $errors['channel'] = 'channel must be an existing office number, "cur", "safe", or "bank".';
         }
 
         // ── channel × kassa pairing (only meaningful once both are individually valid) ──
@@ -730,6 +730,11 @@ class FinanceEntriesController extends BaseController
      */
     private function channelKassaPairValid(?string $channel, ?string $kassa): bool
     {
+        // The safe ("Сейф") is a channel of its own — cash that sits in the office
+        // safe rather than in a till. It only ever pairs with itself.
+        if ($kassa === 'safe' || $channel === 'safe') {
+            return $channel === 'safe' && $kassa === 'safe';
+        }
         if ($kassa === 'bank') {
             return $channel === 'bank';
         }
