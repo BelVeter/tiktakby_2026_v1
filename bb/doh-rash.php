@@ -623,7 +623,7 @@ while ($zp = $result_zp->fetch_assoc()) {
 }
 
 $from_date = strtotime($i_from_date);
-$to_date = strtotime($i_to_date);
+$to_date = strtotime($i_to_date . ' 23:59:59');
 
 //выборка информации по доходам-расходам
 $dr_q = "SELECT * FROM doh_rash WHERE (acc_date BETWEEN '" . $from_date . "' AND '" . $to_date . "')$srch ORDER BY acc_date DESC";
@@ -631,6 +631,55 @@ $result_dr = $mysqli->query($dr_q);
 if (!$result_dr) {
 	die('Сбой при доступе к базе данных: ' . $dr_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 }
+
+$rows       = array();
+$totalRash  = 0.0;   // расходы за период, положительным числом
+$totalDohDr = 0.0;   // прочие доходы из doh_rash
+$byItem     = array();
+
+while ($dr = $result_dr->fetch_assoc()) {
+	$rows[] = $dr;
+
+	// переводы между каналами — не расход, а перекладывание денег
+	if (strpos($dr['type1'], 'shift') === 0) continue;
+
+	if ($dr['type1'] == 'rash' || $dr['amount'] < 0) {
+		$amt = abs((float)$dr['amount']);
+		$totalRash += $amt;
+
+		$code = $dr['type2'];
+		if (!isset($byItem[$code])) $byItem[$code] = 0.0;
+		$byItem[$code] += $amt;
+	}
+	else {
+		$totalDohDr += (float)$dr['amount'];
+	}
+}
+
+arsort($byItem);
+
+// Выручка за период. Методика зафиксирована в app/Http/Controllers/Mcp/CLAUDE.md:
+// SUM(r_paid + delivery_paid) по UNION(rent_sub_deals_act, rent_sub_deals_arch)
+// с фильтром по acc_date — дате, когда деньги реально пришли.
+$totalSales = 0.0;
+foreach (array('rent_sub_deals_act', 'rent_sub_deals_arch') as $tbl) {
+	$q = "SELECT SUM(r_paid) AS rent, SUM(delivery_paid) AS delivery
+			FROM $tbl
+			WHERE acc_date BETWEEN '" . $from_date . "' AND '" . $to_date . "'";
+	$res = $mysqli->query($q);
+	if (!$res) {
+		die('Сбой при доступе к базе данных: ' . $q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+	}
+	$r = $res->fetch_assoc();
+	$totalSales += (float)$r['rent'] + (float)$r['delivery'];
+}
+
+$saldo = $totalSales - $totalRash;
+
+// палитра точек для статей в блоке распределения
+$dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93a7',
+                   '#3f4b5b', '#e46bb2', '#6c5ce7', '#12b886', '#f97316', '#0ea5e9');
+
 /*
  * onclick="rash_show(); return false;"
  *
@@ -719,7 +768,7 @@ echo '
 ';
 
 $total_am = 0;
-while ($dr = $result_dr->fetch_assoc()) {
+foreach ($rows as $dr) {
 	$total_am += $dr['amount'];
 	echo '
 	<tr>
