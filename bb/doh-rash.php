@@ -84,6 +84,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show.php'); // включ
 
 
 $action = '';
+$flashMessage = '';
 $i_from_date = date("Y-m-d");
 $i_to_date = date("Y-m-d");
 $item_place = $_SESSION['office'];
@@ -101,162 +102,52 @@ foreach ($_POST as $key => $value) {
 
 switch ($action) {
 
-	case 'сохранить':  //оплата
+	case 'сохранить':
 
 		$acc_date = strtotime($acc_date);
-		$of = substr($channel, 0, 3);
 
 		if ($type1 == 'rash' || $type1 == 'shift') {
 			$amount = abs($amount) * (-1);
-		} else {
+		}
+		else {
 			$amount = abs($amount);
 		}
 
-
-
-		switch ($channel) {
-			case 'of1k1':
-				$office = '1';
-				$kassa = 'k1';
-				break;
-
-			case 'of1k2':
-				$office = '1';
-				$kassa = 'k2';
-				break;
-
-			case 'of2k1':
-				$office = '2';
-				$kassa = 'k1';
-				break;
-
-			case 'of2k2':
-				$office = '2';
-				$kassa = 'k2';
-				break;
-
-			case 'of3k1':
-				$office = '3';
-				$kassa = 'k1';
-				break;
-
-			case 'of3k2':
-				$office = '3';
-				$kassa = 'k2';
-				break;
-
-			case 'of4k1':
-				$office = '4';
-				$kassa = 'k1';
-				break;
-
-			case 'of4k2':
-				$office = '4';
-				$kassa = 'k2';
-				break;
-
-			case 'curk1':
-				$office = 'cur';
-				$kassa = 'k1';
-				break;
-
-			case 'curk2':
-				$office = 'cur';
-				$kassa = 'k2';
-				break;
-
-			case 'bank':
-				$office = 'bank';
-				$kassa = 'bank';
-				break;
-
-			default:
-				$office = 'HZ';
-				$kassa = 'HZ';
-				break;
+		// Сейф пополняется и опустошается только переводом, а Банк и Сейф доступны
+		// не всем. Проверка обязана быть на сервере: параметры приезжают из POST
+		// через $$key-извлечение выше, в браузере канал подменяется правкой поля.
+		$formChannels = channels_for_form($type1);
+		if (!isset($formChannels[$channel])) {
+			die('Недопустимый канал оплаты для этой операции.');
+		}
+		if ($type1 == 'shift' && !isset($formChannels[$type2])) {
+			die('Недопустимый канал-получатель.');
+		}
+		if ($type1 == 'shift' && $channel == $type2) {
+			die('Канал-получатель должен отличаться от канала-источника.');
 		}
 
+		list($office, $kassa) = channel_to_office_kassa($channel);
 
 		if ($type1 == 'shift') {
-			//делаем расход по первой кассе
+			//делаем расход по каналу-источнику
 			$type1 = 'shift_minus';
-			$ins_q = "INSERT INTO doh_rash VALUES('', '$acc_date', '$amount', '$type1', '$type2', '$office', '$kassa', '', '$info', '" . time() . "', '" . $_SESSION['user_id'] . "', '$zp_name')";
+			$ins_q = "INSERT INTO doh_rash VALUES('', '$acc_date', '$amount', '$type1', '$type2', '$office', '$kassa', '', '$info', '".time()."', '".$_SESSION['user_id']."', '$zp_name')";
 			$result_ins = $mysqli->query($ins_q);
 			if (!$result_ins) {
-				die('Сбой при доступе к базе данных: ' . $ins_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+				die('Сбой при доступе к базе данных: '.$ins_q.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
 			}
 			$link_id1 = $mysqli->insert_id;
 
-			//делаем доход по второй кассе
-			switch ($type2) {
-				case 'of1k1':
-					$office = '1';
-					$kassa = 'k1';
-					break;
-
-				case 'of1k2':
-					$office = '1';
-					$kassa = 'k2';
-					break;
-
-				case 'of2k1':
-					$office = '2';
-					$kassa = 'k1';
-					break;
-
-				case 'of2k2':
-					$office = '2';
-					$kassa = 'k2';
-					break;
-
-				case 'of3k1':
-					$office = '3';
-					$kassa = 'k1';
-					break;
-
-				case 'of3k2':
-					$office = '3';
-					$kassa = 'k2';
-					break;
-
-				case 'of4k1':
-					$office = '4';
-					$kassa = 'k1';
-					break;
-
-				case 'of4k2':
-					$office = '4';
-					$kassa = 'k2';
-					break;
-
-				case 'curk1':
-					$office = 'cur';
-					$kassa = 'k1';
-					break;
-
-				case 'curk2':
-					$office = 'cur';
-					$kassa = 'k2';
-					break;
-
-				case 'bank':
-					$office = 'bank';
-					$kassa = 'bank';
-					break;
-
-				default:
-					$office = 'HZ';
-					$kassa = 'HZ';
-					break;
-			}
+			//делаем доход по каналу-получателю
+			list($office, $kassa) = channel_to_office_kassa($type2);
 
 			$amount = abs($amount);
-
-			$type1 = 'shift_plus';
-			$ins_q = "INSERT INTO doh_rash VALUES('', '$acc_date', '$amount', '$type1', '$channel', '$office', '$kassa', '$link_id1', '$info', '" . time() . "', '" . $_SESSION['user_id'] . "', '$zp_name')";
+			$type1  = 'shift_plus';
+			$ins_q = "INSERT INTO doh_rash VALUES('', '$acc_date', '$amount', '$type1', '$channel', '$office', '$kassa', '$link_id1', '$info', '".time()."', '".$_SESSION['user_id']."', '$zp_name')";
 			$result_ins = $mysqli->query($ins_q);
 			if (!$result_ins) {
-				die('Сбой при доступе к базе данных: ' . $ins_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+				die('Сбой при доступе к базе данных: '.$ins_q.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
 			}
 			$link_id2 = $mysqli->insert_id;
 
@@ -264,18 +155,19 @@ switch ($action) {
 			$upd_q = "UPDATE doh_rash SET link_to='$link_id2' WHERE dr_id='$link_id1'";
 			$result_upd = $mysqli->query($upd_q);
 			if (!$result_upd) {
-				die('Сбой при доступе к базе данных: ' . $upd_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+				die('Сбой при доступе к базе данных: '.$upd_q.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
 			}
-
-		} else {
-			$ins_q = "INSERT INTO doh_rash VALUES('', '$acc_date', '$amount', '$type1', '$type2', '$office', '$kassa', '', '$info', '" . time() . "', '" . $_SESSION['user_id'] . "', '$zp_name')";
+		}
+		else {
+			$ins_q = "INSERT INTO doh_rash VALUES('', '$acc_date', '$amount', '$type1', '$type2', '$office', '$kassa', '', '$info', '".time()."', '".$_SESSION['user_id']."', '$zp_name')";
 			$result_ins = $mysqli->query($ins_q);
 			if (!$result_ins) {
-				die('Сбой при доступе к базе данных: ' . $ins_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+				die('Сбой при доступе к базе данных: '.$ins_q.' ('.$mysqli->connect_errno.') '.$mysqli->connect_error);
 			}
 			$link_id1 = $mysqli->insert_id;
-
 		}
+
+		$flashMessage = 'Операция сохранена.';
 
 		break;
 
@@ -303,7 +195,7 @@ switch ($action) {
 			die('Сбой при доступе к базе данных: ' . $del_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 		}
 
-		echo '<strong>Операция(-и) успешно удалена.</strong>';
+		$flashMessage = 'Операция удалена.';
 
 		break;
 
