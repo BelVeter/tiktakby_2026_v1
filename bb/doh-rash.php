@@ -1002,21 +1002,27 @@ function get_post($var)
  *   kassa       — что писать в doh_rash.kassa
  *   shift_only  — канал доступен только на вкладке «сдача в кассу» (сейф)
  *   restricted  — виден только сотрудникам из channels_privileged_users()
+ *   sql_kassa   — фильтровать ли по кассе; у курьера false, потому что исторических
+ *                 касс было две и обе должны остаться видимы
  *
  * Кодировка channel/kassa унаследована от версии с четырьмя офисами и намеренно
  * не меняется: на неё опираются дневные остатки (bb/models/KassaOstatok.php) и
  * write-API /finance/entries. Плоский список — только в интерфейсе.
+ *
+ * bb/models/KassaChannel.php намеренно не используется: он построен на ролях,
+ * а не на списке id, не знает про safe, и его getDbChannelValue() не возвращает
+ * значения.
  *
  * @return array
  */
 function channels_all()
 {
 	return array(
-		'k1'   => array('text' => 'К1',     'channel' => '1',    'kassa' => 'k1',   'shift_only' => false, 'restricted' => false),
-		'k2'   => array('text' => 'К2',     'channel' => '1',    'kassa' => 'k2',   'shift_only' => false, 'restricted' => false),
-		'bank' => array('text' => 'Банк',   'channel' => 'bank', 'kassa' => 'bank', 'shift_only' => false, 'restricted' => true),
-		'safe' => array('text' => 'Сейф',   'channel' => 'safe', 'kassa' => 'safe', 'shift_only' => true,  'restricted' => true),
-		'cur'  => array('text' => 'Курьер', 'channel' => 'cur',  'kassa' => 'k1',   'shift_only' => false, 'restricted' => false),
+		'k1'   => array('text' => 'К1',     'channel' => '1',    'kassa' => 'k1',   'shift_only' => false, 'restricted' => false, 'sql_kassa' => true),
+		'k2'   => array('text' => 'К2',     'channel' => '1',    'kassa' => 'k2',   'shift_only' => false, 'restricted' => false, 'sql_kassa' => true),
+		'bank' => array('text' => 'Банк',   'channel' => 'bank', 'kassa' => 'bank', 'shift_only' => false, 'restricted' => true,  'sql_kassa' => false),
+		'safe' => array('text' => 'Сейф',   'channel' => 'safe', 'kassa' => 'safe', 'shift_only' => true,  'restricted' => true,  'sql_kassa' => false),
+		'cur'  => array('text' => 'Курьер', 'channel' => 'cur',  'kassa' => 'k1',   'shift_only' => false, 'restricted' => false, 'sql_kassa' => false),
 	);
 }
 
@@ -1036,7 +1042,8 @@ function channels_privileged_users()
  */
 function channels_user_can_see_all()
 {
-	return in_array((int)$_SESSION['user_id'], channels_privileged_users(), true);
+	$uid = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+	return in_array($uid, channels_privileged_users(), true);
 }
 
 /**
@@ -1079,20 +1086,36 @@ function channel_to_office_kassa($code)
  * Курьер отдаёт условие без кассы: до перехода курьерских касс было две, и обе
  * должны остаться видимыми под одним пунктом фильтра.
  *
+ * Fail-closed: неизвестный код (в т.ч. мусор из POST, куда значения попадают
+ * через foreach ($_POST as $key => $value) { $$key = get_post($key); }) не даёт
+ * пустой фильтр — он трактуется как 'all' и подчиняется правам текущего
+ * сотрудника, а не показывает всё без ограничений.
+ *
  * @param string $code
  * @return string
  */
 function channel_sql_filter($code)
 {
 	$all = channels_all();
-	if (!isset($all[$code])) return '';
+
+	// неизвестный код (в т.ч. мусор из POST) → безопасный минимум, а не «фильтра нет»
+	if ($code !== 'all' && !isset($all[$code])) $code = 'all';
+
+	if ($code === 'all') {
+		if (channels_user_can_see_all()) return '';
+
+		$hidden = array();
+		foreach ($all as $ch) {
+			if ($ch['restricted']) $hidden[] = "'".$ch['channel']."'";
+		}
+		return $hidden ? " AND `channel` NOT IN (".implode(',', $hidden).")" : '';
+	}
 
 	$ch = $all[$code];
-	if ($ch['channel'] === 'cur')  return " AND `channel`='cur'";
-	if ($ch['channel'] === 'bank') return " AND `channel`='bank'";
-	if ($ch['channel'] === 'safe') return " AND `channel`='safe'";
 
-	return " AND `channel`='".$ch['channel']."' AND `kassa`='".$ch['kassa']."'";
+	return $ch['sql_kassa']
+		? " AND `channel`='".$ch['channel']."' AND `kassa`='".$ch['kassa']."'"
+		: " AND `channel`='".$ch['channel']."'";
 }
 
 /**
