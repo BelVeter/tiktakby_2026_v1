@@ -19,7 +19,8 @@ class GenerateSitemap extends Command
 
         $urls[] = ['loc' => self::BASE_URL . '/ru', 'changefreq' => 'weekly', 'priority' => '1.0'];
 
-        $staticPages = ['about', 'conditions', 'delivery', 'payment', 'contacts', 'policy', 'premium-start'];
+        // 'premium-start' временно исключён — страница скрыта (см. AboutController::showPremiumStartPage)
+        $staticPages = ['about', 'conditions', 'delivery', 'payment', 'contacts', 'policy'];
         foreach ($staticPages as $page) {
             $urls[] = ['loc' => self::BASE_URL . '/ru/' . $page, 'changefreq' => 'monthly', 'priority' => '0.8'];
         }

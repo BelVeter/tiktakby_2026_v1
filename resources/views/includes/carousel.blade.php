@@ -1,12 +1,13 @@
 @php /** @var \App\MyClasses\MainPage $p */ @endphp
 <div class="slider-wrapper" style="position: relative;">
     <div class="img-slider">
+        {{-- Временно скрыт вместе со страницей /ru/premium-start
         <a class="slide" href="https://tiktak.by/ru/premium-start">
             <picture>
                 <source media="(max-width: 576px)" srcset="/public/slider/premium-start-mob.webp">
                 <img src="/public/slider/premium-start-desk.webp" alt="Программа Premium Start" fetchpriority="high">
             </picture>
-        </a>
+        </a> --}}
 
         {{-- <a class="slide" href="https://tiktak.by/ru/prokat-sports/winter">
             <picture>
