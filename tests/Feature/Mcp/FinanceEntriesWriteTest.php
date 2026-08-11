@@ -752,6 +752,63 @@ class FinanceEntriesWriteTest extends McpTestCase
         $this->assertSame('k2', $row->kassa);
     }
 
+    // ── 19g. channel='safe' + kassa='safe' → created (the safe pair) ──────
+
+    /**
+     * The safe ("Сейф") is a channel of its own, added when bb/doh-rash.php moved
+     * from office×till to a flat channel list. In the admin UI money only enters
+     * and leaves it through a transfer, but the ledger API stores rows for any
+     * channel — the transfer rule is the page's, not the table's.
+     */
+    public function test_19g_channel_safe_kassa_safe_is_valid(): void
+    {
+        $r = $this->postEntries([$this->rashPayload([
+            'channel' => 'safe',
+            'kassa'   => 'safe',
+            'info'    => self::MARKER . 'PAIR-SAFE-SAFE',
+        ])]);
+        $item = $r->json('data.0');
+        $this->assertSame('created', $item['status']);
+
+        $row = DB::table('doh_rash')->where('dr_id', $item['dr_id'])->first();
+        $this->assertSame('safe', $row->channel);
+        $this->assertSame('safe', $row->kassa);
+    }
+
+    // ── 19h. kassa='safe' with an office channel → invalid ────────────────
+
+    public function test_19h_kassa_safe_with_office_channel_is_invalid(): void
+    {
+        $r = $this->postEntries([$this->rashPayload([
+            'channel' => $this->liveOffice,
+            'kassa'   => 'safe',
+            'info'    => self::MARKER . 'PAIR-OFFICE-SAFE',
+        ])]);
+        $item = $r->json('data.0');
+        $this->assertSame('invalid', $item['status']);
+        $this->assertTrue(
+            array_key_exists('channel', $item['errors']) || array_key_exists('kassa', $item['errors']),
+            'expected the channel/kassa pairing violation to be reported against one of the two fields'
+        );
+    }
+
+    // ── 19i. channel='safe' with a cash kassa → invalid ───────────────────
+
+    public function test_19i_channel_safe_with_cash_kassa_is_invalid(): void
+    {
+        $r = $this->postEntries([$this->rashPayload([
+            'channel' => 'safe',
+            'kassa'   => 'k1',
+            'info'    => self::MARKER . 'PAIR-SAFE-K1',
+        ])]);
+        $item = $r->json('data.0');
+        $this->assertSame('invalid', $item['status']);
+        $this->assertTrue(
+            array_key_exists('channel', $item['errors']) || array_key_exists('kassa', $item['errors']),
+            'expected the channel/kassa pairing violation to be reported against one of the two fields'
+        );
+    }
+
     // ── 19f. type2='zpl' without dr_name_id → invalid, names dr_name_id ────
 
     public function test_19f_zpl_without_dr_name_id_is_invalid(): void
