@@ -62,24 +62,11 @@
                 {{-- Filled by JS --}}
             </div>
 
-            {{-- Order summary --}}
+            {{-- Cart subtotal --}}
             <div class="cart-total-block">
-                <div class="cart-total-block__caption">Сводка заказа</div>
-                <div class="cart-total-block__line">
-                    <span class="cart-total-block__line-label">Стоимость проката</span>
-                    <span class="cart-total-block__line-value cart-sum-items">0.00 BYN</span>
-                </div>
-                <div class="cart-total-block__line">
-                    <span class="cart-total-block__line-label">Доставка</span>
-                    <span class="cart-total-block__line-value cart-sum-delivery">—</span>
-                </div>
-                <div class="cart-total-block__line">
-                    <span class="cart-total-block__line-label">Возврат курьером</span>
-                    <span class="cart-total-block__line-value cart-sum-pickup">не заказан</span>
-                </div>
                 <div class="cart-total-block__row">
-                    <span class="cart-total-block__label">Итого к оплате</span>
-                    <span class="cart-total-block__value cart-sum-total" id="cart-total-value">0.00 BYN</span>
+                    <span class="cart-total-block__label">Стоимость проката:</span>
+                    <span class="cart-total-block__value cart-sum-items">0.00 BYN</span>
                 </div>
             </div>
 
@@ -145,15 +132,6 @@
                     <div class="invalid-feedback">Заполните адрес доставки</div>
 
                     <label class="cart-checkbox">
-                        <input type="checkbox" id="cart-suburb">
-                        <span class="cart-checkbox__body">
-                            <span class="cart-checkbox__title">Ближний пригород</span>
-                            <span class="cart-checkbox__hint">Боровляны, Колодищи, Б. Тростенец, Гатово, Сеница,
-                                Богатырево, Ждановичи, Ратомка, Тарасово. Бесплатно от 50 руб, иначе 10 руб.</span>
-                        </span>
-                    </label>
-
-                    <label class="cart-checkbox">
                         <input type="checkbox" id="cart-courier-pickup">
                         <span class="cart-checkbox__body">
                             <span class="cart-checkbox__title">Возврат курьером — 10 руб</span>
@@ -174,6 +152,27 @@
                 <div class="cart-checkout-form__group">
                     <label for="cart-info">Дополнительная информация:</label>
                     <textarea class="form-control form-control-lg" id="cart-info" placeholder=""></textarea>
+                </div>
+
+                {{-- Order summary (appears once a handover method is picked) --}}
+                <div class="cart-summary" id="cart-summary" style="display: none;">
+                    <div class="cart-summary__caption">Сводка заказа</div>
+                    <div class="cart-summary__line">
+                        <span class="cart-summary__line-label">Стоимость проката</span>
+                        <span class="cart-summary__line-value cart-sum-items">0.00 BYN</span>
+                    </div>
+                    <div class="cart-summary__line">
+                        <span class="cart-summary__line-label">Доставка</span>
+                        <span class="cart-summary__line-value cart-sum-delivery">—</span>
+                    </div>
+                    <div class="cart-summary__line" id="cart-summary-pickup-line">
+                        <span class="cart-summary__line-label">Возврат курьером</span>
+                        <span class="cart-summary__line-value cart-sum-pickup">не заказан</span>
+                    </div>
+                    <div class="cart-summary__row">
+                        <span class="cart-summary__label">Итого к оплате</span>
+                        <span class="cart-summary__value cart-sum-total" id="cart-total-value">0.00 BYN</span>
+                    </div>
                 </div>
 
                 <div class="cart-checkout-form__actions">
@@ -630,56 +629,11 @@
             margin-bottom: 24px;
         }
 
-        .cart-total-block__caption {
-            font-family: 'Nunito', sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            color: #8fa6bf;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            margin-bottom: 14px;
-        }
-
-        .cart-total-block__line {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 12px;
-            padding: 12px 0;
-            border-top: 1px solid #DCE8F6;
-            font-family: 'Nunito', sans-serif;
-            font-size: 15px;
-        }
-
-        .cart-total-block__line-label {
-            color: #55677d;
-        }
-
-        .cart-total-block__line-value {
-            font-weight: 600;
-            color: #2c3e50;
-            text-align: right;
-            white-space: nowrap;
-        }
-
-        /* Not-ordered / free states of a summary row */
-        .cart-total-block__line-value.is-muted {
-            font-weight: 400;
-            font-style: italic;
-            color: #9aa8b6;
-        }
-
-        .cart-total-block__line-value.is-free {
-            color: #4CAF50;
-        }
-
         .cart-total-block__row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 12px;
-            padding-top: 14px;
-            border-top: 2px solid #DCE8F6;
         }
 
         .cart-total-block__label {
@@ -690,6 +644,80 @@
         }
 
         .cart-total-block__value {
+            font-family: 'Nunito', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #3180D1;
+        }
+
+        /* ===== Order summary (shown after the handover method is picked) ===== */
+        .cart-summary {
+            background: #F2F7FD;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .cart-summary__caption {
+            font-family: 'Nunito', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #8fa6bf;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 14px;
+        }
+
+        .cart-summary__line {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            padding: 12px 0;
+            border-top: 1px solid #DCE8F6;
+            font-family: 'Nunito', sans-serif;
+            font-size: 15px;
+        }
+
+        .cart-summary__line-label {
+            color: #55677d;
+        }
+
+        .cart-summary__line-value {
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        /* Not-ordered / free states of a summary row */
+        .cart-summary__line-value.is-muted {
+            font-weight: 400;
+            font-style: italic;
+            color: #9aa8b6;
+        }
+
+        .cart-summary__line-value.is-free {
+            color: #4CAF50;
+        }
+
+        .cart-summary__row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding-top: 14px;
+            border-top: 2px solid #DCE8F6;
+        }
+
+        .cart-summary__label {
+            font-family: 'Nunito', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .cart-summary__value {
             font-family: 'Nunito', sans-serif;
             font-size: 24px;
             font-weight: 700;
@@ -829,7 +857,7 @@
             color: #4CAF50;
         }
 
-        /* ===== Checkbox rows (suburb / courier pickup) ===== */
+        /* ===== Checkbox row (courier pickup) ===== */
         .cart-checkbox {
             display: flex;
             align-items: flex-start;
@@ -1076,16 +1104,12 @@
                         officeGroup.style.display = 'block';
                         // Courier pickup is a delivery-only service — reset it on self-pickup
                         document.getElementById('cart-courier-pickup').checked = false;
-                        document.getElementById('cart-suburb').checked = false;
                     }
                     updateTotal(TiktakCart.getItems());
                 });
             });
 
-            // Suburb / courier pickup toggles affect the totals
-            document.getElementById('cart-suburb').addEventListener('change', function () {
-                updateTotal(TiktakCart.getItems());
-            });
+            // Courier pickup affects the totals
             document.getElementById('cart-courier-pickup').addEventListener('change', function () {
                 updateTotal(TiktakCart.getItems());
             });
@@ -1262,21 +1286,19 @@
             // Delivery pricing (mirrored server-side in CartController — keep both in sync)
             var COURIER_PICKUP_COST = 10;
 
-            function calcDeliveryCost(itemsTotal, isSuburb) {
-                if (isSuburb) {
-                    return itemsTotal >= 50 ? 0 : 10;
-                }
+            function calcDeliveryCost(itemsTotal) {
                 if (itemsTotal >= 30) return 0;
                 if (itemsTotal >= 15) return 10;
                 return 15;
             }
 
             function setSummary(selector, text, stateClass) {
-                var el = document.querySelector(selector);
-                if (!el) return;
-                el.textContent = text;
-                el.classList.remove('is-muted', 'is-free');
-                if (stateClass) el.classList.add(stateClass);
+                // The rental subtotal is rendered twice: above the form and inside the summary
+                document.querySelectorAll(selector).forEach(function (el) {
+                    el.textContent = text;
+                    el.classList.remove('is-muted', 'is-free');
+                    if (stateClass) el.classList.add(stateClass);
+                });
             }
 
             function updateTotal(items) {
@@ -1287,17 +1309,18 @@
 
                 var deliveryRadio = document.querySelector('[name="cart_delivery"]:checked');
                 var isDelivery = deliveryRadio && deliveryRadio.value === '1';
-                var isSuburb = document.getElementById('cart-suburb').checked;
                 var wantsPickup = isDelivery && document.getElementById('cart-courier-pickup').checked;
 
-                var deliveryCost = isDelivery ? calcDeliveryCost(itemsTotal, isSuburb) : 0;
+                var deliveryCost = isDelivery ? calcDeliveryCost(itemsTotal) : 0;
                 var pickupCost = wantsPickup ? COURIER_PICKUP_COST : 0;
 
                 setSummary('.cart-sum-items', itemsTotal.toFixed(2) + ' BYN');
 
-                if (!deliveryRadio) {
-                    setSummary('.cart-sum-delivery', 'выберите способ получения', 'is-muted');
-                } else if (!isDelivery) {
+                // Summary makes sense only once the handover method is picked
+                document.getElementById('cart-summary').style.display = deliveryRadio ? 'block' : 'none';
+                document.getElementById('cart-summary-pickup-line').style.display = isDelivery ? 'flex' : 'none';
+
+                if (!isDelivery) {
                     setSummary('.cart-sum-delivery', 'самовывоз — бесплатно', 'is-free');
                 } else if (deliveryCost === 0) {
                     setSummary('.cart-sum-delivery', 'Бесплатно', 'is-free');
@@ -1315,7 +1338,7 @@
 
                 // Price badge on the delivery card always reflects the current cart sum
                 var badge = document.getElementById('cart-delivery-price-badge');
-                var badgeCost = calcDeliveryCost(itemsTotal, isSuburb);
+                var badgeCost = calcDeliveryCost(itemsTotal);
                 badge.textContent = badgeCost === 0 ? 'Бесплатно' : badgeCost.toFixed(0) + ' руб';
                 badge.classList.toggle('cart-delivery-card__price--free', badgeCost === 0);
             }
@@ -1341,7 +1364,6 @@
                 var address = document.getElementById('cart-address').value;
                 var info = document.getElementById('cart-info').value;
                 var isDelivery = deliveryRadio && deliveryRadio.value === '1';
-                var suburb = isDelivery && document.getElementById('cart-suburb').checked;
                 var courierPickup = isDelivery && document.getElementById('cart-courier-pickup').checked;
 
                 // Client-side validation
@@ -1401,7 +1423,6 @@
                     delivery: deliveryRadio.value,
                     address: address,
                     info: info,
-                    suburb: suburb ? 1 : 0,
                     courier_pickup: courierPickup ? 1 : 0,
                 };
 

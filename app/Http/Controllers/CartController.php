@@ -151,7 +151,9 @@ class CartController extends Controller
         $delivery = $request->input('delivery', null);
         $address = $request->input('address', '');
         $info = $request->input('info', '');
-        $isSuburb = (bool) $request->input('suburb', 0);
+        // Выбора пригорода в корзине пока нет — считаем всегда по минским тарифам.
+        // Поле запроса намеренно не читаем, чтобы клиент не мог удешевить доставку.
+        $isSuburb = false;
         $wantsCourierPickup = (bool) $request->input('courier_pickup', 0);
 
         // Validation
