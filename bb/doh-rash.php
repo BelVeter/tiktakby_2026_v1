@@ -144,6 +144,27 @@ echo '
 
 	/* сообщение */
 	.rx-flash { background:#e6f6ef; color:#178a5b; border-radius:10px; padding:11px 16px; margin-bottom:14px; font-size:14px; font-weight:600; }
+
+	/* модалка внесения операции */
+	.rx-modal-bg { position:fixed; inset:0; background:rgba(18,28,45,.5); display:none; align-items:flex-start; justify-content:center; z-index:100; padding:40px 16px; overflow:auto; }
+	.rx-modal-bg.open { display:flex; }
+	.rx-modal { background:#fff; border-radius:16px; width:100%; max-width:560px; box-shadow:0 20px 50px rgba(15,25,45,.28); }
+	.rx-modal-head { display:flex; align-items:center; padding:18px 22px; border-bottom:1px solid #eef1f5; }
+	.rx-modal-head h2 { margin:0; font-size:17px; font-weight:700; }
+	.rx-modal-close { margin-left:auto; border:none; background:#f3f5f8; width:32px; height:32px; border-radius:9px; font-size:18px; color:#6b7686; cursor:pointer; }
+	.rx-modal-body { padding:20px 22px 22px; }
+	.rx-tabs { display:flex; gap:8px; margin-bottom:18px; }
+	.rx-tabs button { flex:1; height:38px; border:1px solid #dfe4ea; background:#fff; border-radius:9px; font-size:13px; font-weight:600; color:#4a5567; cursor:pointer; }
+	.rx-tabs button.active { background:#4a7dfc; border-color:#4a7dfc; color:#fff; }
+	.rx-mrow { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+	.rx-mrow.one { grid-template-columns:1fr; }
+	.rx-mfield { display:flex; flex-direction:column; gap:5px; }
+	.rx-mfield label { font-size:12px; font-weight:600; color:#6b7686; }
+	.rx-mfield input, .rx-mfield select, .rx-mfield textarea { border:1px solid #dfe4ea; border-radius:9px; padding:9px 11px; font-size:14px; font-family:inherit; color:#1f2733; }
+	.rx-mfield textarea { resize:vertical; min-height:70px; }
+	.rx-save { width:100%; height:44px; border:none; border-radius:10px; background:#22a06b; color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+	.rx-save:hover { background:#1c8b5c; }
+	.rx-mhint { font-size:12px; color:#8b93a7; margin-top:10px; text-align:center; }
 </style>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ' . Base::getBarCodeReaderScript() . '
@@ -351,39 +372,26 @@ $rash['curk2'] = 'Курьер_2';
 
 $doh = $rash;
 
-//формируем перечень расходов
-$ri_q = "SELECT * FROM rash_items WHERE bank_yn!=1 ORDER BY ri_order";
+// Статьи расходов. Флаг bank_yn раньше прятал часть статей до выбора «офиса»
+// Банк; при плоском списке каналов такого состояния нет, поэтому берём весь
+// список одним запросом.
+$ri_q = "SELECT * FROM rash_items ORDER BY ri_order";
 $result_ri = $mysqli->query($ri_q);
 if (!$result_ri) {
 	die('Сбой при доступе к базе данных: ' . $ri_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 }
 
-$ri_t1 = '';
-$ri_t1_s = '';
+$rashItems = array();   // активные статьи — для формы внесения
+$ri_t1     = '';        // те же статьи готовым html — для формы правки в таблице
+$ri_t1_s   = '';        // все статьи, включая выключенные — для фильтра
 while ($ri_def = $result_ri->fetch_assoc()) {
 	if (($ri_def['is_active'] ?? 1) == 1) {
+		$rashItems[$ri_def['ri_code']] = $ri_def['ri_text'];
 		$ri_t1 .= '<option value="' . $ri_def['ri_code'] . '">' . $ri_def['ri_text'] . '</option>';
 	}
 	$ri_t1_s .= '<option value="' . $ri_def['ri_code'] . '" ' . sel_d($ri_def['ri_code'], $type2_s) . '>' . $ri_def['ri_text'] . '</option>';
 	$rash[$ri_def['ri_code']] = $ri_def['ri_text'];
 }
-
-$ri_q = "SELECT * FROM rash_items WHERE bank_yn=1 ORDER BY ri_order";
-$result_ri = $mysqli->query($ri_q);
-if (!$result_ri) {
-	die('Сбой при доступе к базе данных: ' . $ri_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-}
-
-$ri_t2 = $ri_t1;
-$ri_t2_s = $ri_t1_s;
-while ($ri_def = $result_ri->fetch_assoc()) {
-	if (($ri_def['is_active'] ?? 1) == 1) {
-		$ri_t2 .= '<option value="' . $ri_def['ri_code'] . '">' . $ri_def['ri_text'] . '</option>';
-	}
-	$ri_t2_s .= '<option value="' . $ri_def['ri_code'] . '" ' . sel_d($ri_def['ri_code'], $type2_s) . '>' . $ri_def['ri_text'] . '</option>';
-	$rash[$ri_def['ri_code']] = $ri_def['ri_text'];
-}
-
 
 //формируем перечень доходов
 $rd_q = "SELECT * FROM doh_items WHERE bank_yn!=1 ORDER BY rd_order";
@@ -392,36 +400,29 @@ if (!$result_rd) {
 	die('Сбой при доступе к базе данных: ' . $rd_q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 }
 
-$rd_t1 = '';
-$rd_t1_s = '';
+$dohItems = array();
+$rd_t1_s  = '';
 while ($rd_def = $result_rd->fetch_assoc()) {
 	if (($rd_def['is_active'] ?? 1) == 1) {
-		$rd_t1 .= '<option value="' . $rd_def['rd_code'] . '">' . $rd_def['rd_text'] . '</option>';
+		$dohItems[$rd_def['rd_code']] = $rd_def['rd_text'];
 	}
 	$rd_t1_s .= '<option value="' . $rd_def['rd_code'] . '" ' . sel_d($rd_def['rd_code'], $type2_s) . '>' . $rd_def['rd_text'] . '</option>';
 	$doh[$rd_def['rd_code']] = $rd_def['rd_text'];
 }
 
 //формируем вывод для фильтра type2
-if ($type1_s == 'all') {
-	$t2_select = '<option value="all">все</option>';
-} elseif ($type1_s == 'doh') {
+if ($type1_s == 'doh') {
 	$t2_select = '<option value="all">все</option>' . $rd_t1_s;
 } elseif ($type1_s == 'rash') {
-	$t2_select = '<option value="all">все</option>' . $ri_t2_s;
+	$t2_select = '<option value="all">все</option>' . $ri_t1_s;
 } elseif ($type1_s == 'shift') {
-	$t2_select = '<option value="all">все</option>
-				<option value="of1k1" style="background-color:#b1ebb1;">Литературная_20_1</option>
-				<option value="of1k2" style="background-color:#b1ebb1;">Литературная_20_2</option>
-				<option value="of2k1" style="background-color:#ffe400;">Уручье_1</option>
-				<option value="of2k2" style="background-color:#ffe400;">Уручье_2</option>
-				<option value="of3k1" style="background-color:#b1ebb1;">Победителей_127_1</option>
-				<option value="of3k2" style="background-color:#b1ebb1;">Победителей_127_2</option>
-				<option value="of4k1" style="background-color:#b1ebb1;">Склад_1</option>
-				<option value="of4k2" style="background-color:#b1ebb1;">Склад_2</option>
-				<option value="curk1" style="background-color:#c6edf0;">Курьер_1</option>
-				<option value="curk2" style="background-color:#c6edf0;">Курьер_2</option>
-				<option value="bank">банк</option>';
+	// у переводов в type2 лежит код канала-получателя, а не статья
+	$t2_select = '<option value="all">все</option>';
+	foreach (channels_for_form('shift') as $code => $text) {
+		$t2_select .= '<option value="' . htmlspecialchars($code) . '" ' . sel_d($code, $type2_s) . '>' . htmlspecialchars($text) . '</option>';
+	}
+} else {
+	$t2_select = '<option value="all">все</option>';
 }
 
 
@@ -445,162 +446,22 @@ while ($lp_l = $result_lp->fetch_assoc()) {
 		history.go(1);
 	};
 
-	function rash_but() {
-		document.getElementById('new_rash_but').style.backgroundColor = 'yellow';
-		document.getElementById('new_doh_but').style.backgroundColor = '';
-		document.getElementById('new_shift_but').style.backgroundColor = '';
-
-		document.getElementById('type1').value = 'rash';
-		dr_sel();
-	}
-
-	function doh_but() {
-		document.getElementById('new_rash_but').style.backgroundColor = '';
-		document.getElementById('new_doh_but').style.backgroundColor = 'yellow';
-		document.getElementById('new_shift_but').style.backgroundColor = '';
-
-		document.getElementById('type1').value = 'doh';
-		dr_sel();
-	}
-
-	function shift_but() {
-		document.getElementById('new_rash_but').style.backgroundColor = '';
-		document.getElementById('new_doh_but').style.backgroundColor = '';
-		document.getElementById('new_shift_but').style.backgroundColor = 'yellow';
-
-		document.getElementById('type1').value = 'shift';
-		dr_sel();
-	}
-
-
-	function dr_sel() {
-		if (document.getElementById('type1').value == 'rash' && document.getElementById('channel').value != 'bank') {
-			document.getElementById('type2td').innerHTML = '<select form="new_rash" name="type2" id="type2" onchange="zp_show();"><option value="0">не выбрано</option><?php echo $ri_t1; ?></select>';
-			document.getElementById('zp_name').value = "0";
-			document.getElementById('zp_span').style.display = "none";
-		}
-		if (document.getElementById('type1').value == 'rash' && document.getElementById('channel').value == 'bank') {
-			document.getElementById('type2td').innerHTML = '<select form="new_rash" name="type2" id="type2" onchange="zp_show();"><option value="0">не выбрано</option><?php echo $ri_t2; ?></select>';
-			document.getElementById('zp_name').value = "0";
-			document.getElementById('zp_span').style.display = "none";
-		}
-		if (document.getElementById('type1').value == 'doh') {
-			document.getElementById('type2td').innerHTML = '<select form="new_rash" name="type2" id="type2" onchange="zp_show();"><option value="0">не выбрано</option><?php echo $rd_t1; ?></select>';
-			document.getElementById('zp_name').value = "0";
-			document.getElementById('zp_span').style.display = "none";
-		}
-		if (document.getElementById('type1').value == 'shift') {
-			document.getElementById('type2td').innerHTML = '<select form="new_rash" name="type2" id="type2" onchange="zp_show();"><option value="0">не выбрано</option>	<option value="of1k1" style="background-color:#b1ebb1;">Литературная_22_1</option>	<option value="of1k2" style="background-color:#b1ebb1;">Литературная_22_2</option>	<option value="of2k1" style="background-color:#ffe400;">Уручье_1</option>	<option value="of2k2" style="background-color:#ffe400;">Уручье_2</option> 				<option value="of3k1" style="background-color:#b1ebb1;">Победителей_127_1</option>	<option value="of3k2" style="background-color:#b1ebb1;">Победителей_127_2</option>			<option value="of4k1" style="background-color:#b1ebb1;">Склад_1</option>	<option value="of4k2" style="background-color:#b1ebb1;">Склад_2</option>        <option value="curk1" style="background-color:#c6edf0;">Курьер_1</option><option value="curk2" style="background-color:#c6edf0;">Курьер_2</option><option value="bank">банк</option></select>';
-		}
-		document.getElementById('zp_name').value = "0";
-		document.getElementById('zp_span').style.display = "none";
-	}
-
-
-	function new_rash_send() {
-
-		valid = true;
-		var output_t = '';
-
-		// проверка клиента
-		if (document.getElementById('channel').value == "0") {
-			output_t += "выберите кассу, ";
-			valid = false;
-		}
-
-		if (document.getElementById('type2').value == "0") {
-			output_t += "выберите тип операции, ";
-			valid = false;
-		}
-
-		if (document.getElementById('amount').value == "0" || document.getElementById('amount').value == "") {
-			output_t += "заполните сумму, ";
-			valid = false;
-		}
-
-		if ((document.getElementById('type2').value == "zpl" || document.getElementById('type2').value == "avans") && document.getElementById('zp_name').value == "0") {
-			output_t += "выберите сотрудника (для зарплаты или аванса), ";
-			valid = false;
-		}
-
-		if (document.getElementById('type2').value == "zpl" && document.getElementById('info').value == "") {
-			output_t += "для зарплаты обязательно указывайте комментарий, ";
-			valid = false;
-		}
-
-
-		var today_d = new Date();
-		var pl_date = new Date(document.getElementById('acc_date').value);
-		today_d.setHours(pl_date.getHours(), pl_date.getMinutes(), 0, 0);
-		pl_date.setHours(pl_date.getHours(), pl_date.getMinutes(), 0, 0);
-		console.log(today_d, pl_date);
-		if (pl_date > today_d) {
-			output_t += 'дата платежа не может быть в будущем, ';
-			valid = false;
-		}
-
-
-		if (valid == false) {
-			alert('Заполните все поля формы: ' + output_t);
-		}
-
-		return valid;
-
-
-	}
-
-
-
-	function rash_show() {
-		//alert ('ok');
-		if (document.getElementById('new_rash_tb').style.display == "none") {
-			document.getElementById('new_rash_tb').style.display = "";
-			document.getElementById('dr_buttons').style.display = "";
-			document.getElementById('new_order_but').value = "отмена";
-		}
-		else {
-			document.getElementById('new_rash_tb').style.display = "none";
-			document.getElementById('dr_buttons').style.display = "none";
-			document.getElementById('new_order_but').value = "внести расход";
-		}
-	}//end of dunction
-
-
-	function zp_show() {
-		//alert ('ok');
-		if (document.getElementById('type2').value == "zpl" || document.getElementById('type2').value == "avans") {
-			//alert ('ok1');
-			document.getElementById('zp_span').style.display = "inline";
-		}
-		else {
-			//alert ('ok2');
-			document.getElementById('zp_span').style.display = "none";
-			document.getElementById('zp_name').value = "0";
-		}
-	}//end of dunction
-
-	function zp_name_show() {
-		//alert ('ok');
-		if (document.getElementById('type2_s').value == "zpl" || document.getElementById('type2_s').value == "avans") {
-			//alert ('ok1');
-			document.getElementById('zp_sel_span').style.display = "inline";
-			document.getElementById('srch_form').submit();
-		}
-		else {
-			//alert ('ok2');
-			document.getElementById('zp_sel_span').style.display = "none";
-			document.getElementById('zp_sel_s').value = "all";
-			document.getElementById('srch_form').submit();
-		}
-	}//end of dunction
-
-
+	// смена типа операции сбрасывает зависимые фильтры: список статей у доходов,
+	// расходов и переводов разный, а выбранная статья к новому типу не подходит
 	function type1s_show() {
 		document.getElementById('zp_sel_s').value = "all";
 		document.getElementById('type2_s').value = "all";
 		document.getElementById('srch_form').submit();
+	}
 
-	}//end of dunction
+	// фильтр по сотруднику имеет смысл только для зарплаты и аванса
+	function zp_name_show() {
+		var v = document.getElementById('type2_s').value;
+		if (v !== "zpl" && v !== "avans") {
+			document.getElementById('zp_sel_s').value = "all";
+		}
+		document.getElementById('srch_form').submit();
+	}
 
 </script>
 
@@ -973,6 +834,178 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 		document.getElementById('i_to_date').value   = fmt(to);
 		document.getElementById('srch_form').submit();
 	}
+</script>
+
+<!-- ------------------------------------------------- модалка внесения операции -->
+<div class="rx-modal-bg" id="rx_modal">
+	<div class="rx-modal">
+		<div class="rx-modal-head">
+			<h2 id="rx_modal_title">Внести расход</h2>
+			<button type="button" class="rx-modal-close" id="rx_modal_close">✕</button>
+		</div>
+		<div class="rx-modal-body">
+			<form name="new_rash" method="post" action="doh-rash.php" id="new_rash" onsubmit="return rxValidate();">
+				<input type="hidden" name="type1" id="type1" value="rash" />
+				<input type="hidden" name="i_from_date" value="<?php echo $i_from_date; ?>" />
+				<input type="hidden" name="i_to_date" value="<?php echo $i_to_date; ?>" />
+				<input type="hidden" name="item_place" value="all" />
+
+				<div class="rx-tabs">
+					<button type="button" class="active" data-type1="rash"  onclick="rxSetType1('rash');">Расход</button>
+					<button type="button"                data-type1="doh"   onclick="rxSetType1('doh');">Доход</button>
+					<button type="button"                data-type1="shift" onclick="rxSetType1('shift');">Сдача в кассу</button>
+				</div>
+
+				<div class="rx-mrow">
+					<div class="rx-mfield">
+						<label for="acc_date">Дата</label>
+						<input type="date" name="acc_date" id="acc_date" value="<?php echo date("Y-m-d"); ?>" />
+					</div>
+					<div class="rx-mfield">
+						<label for="amount">Сумма, BYN</label>
+						<input type="number" step="0.01" name="amount" id="amount" value="" placeholder="0,00" />
+					</div>
+				</div>
+
+				<div class="rx-mrow">
+					<div class="rx-mfield">
+						<label for="channel" id="channel_label">Канал оплаты</label>
+						<select name="channel" id="channel">
+							<option value="0">не выбрано</option>
+						</select>
+					</div>
+					<div class="rx-mfield">
+						<label for="type2" id="type2_label">Статья расхода</label>
+						<select name="type2" id="type2">
+							<option value="0">не выбрано</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="rx-mrow one" id="rx_zp_wrap" style="display:none;">
+					<div class="rx-mfield">
+						<label for="zp_name">Кому (сотрудник)</label>
+						<select name="zp_name" id="zp_name">
+							<option value="0">не выбрано</option>
+							<?php echo $zp_select; ?>
+						</select>
+					</div>
+				</div>
+
+				<div class="rx-mrow one">
+					<div class="rx-mfield">
+						<label for="info">Комментарий</label>
+						<textarea name="info" id="info" placeholder="за что платим"></textarea>
+					</div>
+				</div>
+
+				<button type="submit" name="action" value="сохранить" class="rx-save">Сохранить</button>
+				<div class="rx-mhint">для зарплаты и аванса обязательны сотрудник и комментарий</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<script>
+	// Статьи и каналы приходят с сервера. Каналы отличаются по вкладкам: Сейф
+	// доступен только в переводах, Банк и Сейф — только сотрудникам с правами.
+	var RX_ITEMS = {
+		rash:  <?php echo json_encode($rashItems, JSON_UNESCAPED_UNICODE); ?>,
+		doh:   <?php echo json_encode($dohItems,  JSON_UNESCAPED_UNICODE); ?>,
+		shift: <?php echo json_encode(channels_for_form('shift'), JSON_UNESCAPED_UNICODE); ?>
+	};
+
+	var RX_CHANNELS = {
+		rash:  <?php echo json_encode(channels_for_form('rash'),  JSON_UNESCAPED_UNICODE); ?>,
+		doh:   <?php echo json_encode(channels_for_form('doh'),   JSON_UNESCAPED_UNICODE); ?>,
+		shift: <?php echo json_encode(channels_for_form('shift'), JSON_UNESCAPED_UNICODE); ?>
+	};
+
+	var rxModal = document.getElementById('rx_modal');
+	document.getElementById('rx_add_but').onclick     = function () { rxModal.classList.add('open'); };
+	document.getElementById('rx_modal_close').onclick = function () { rxModal.classList.remove('open'); };
+	rxModal.onclick = function (e) { if (e.target === rxModal) rxModal.classList.remove('open'); };
+
+	function rxFill(selectId, map) {
+		var sel  = document.getElementById(selectId);
+		var prev = sel.value;
+
+		sel.innerHTML = '<option value="0">не выбрано</option>';
+		for (var code in map) {
+			if (!map.hasOwnProperty(code)) continue;
+			var o = document.createElement('option');
+			o.value = code;
+			o.text  = map[code];
+			sel.appendChild(o);
+		}
+		if (map.hasOwnProperty(prev)) sel.value = prev;
+	}
+
+	function rxSetType1(t1) {
+		document.getElementById('type1').value = t1;
+
+		var tabs = document.querySelectorAll('.rx-tabs button');
+		for (var i = 0; i < tabs.length; i++) {
+			tabs[i].className = (tabs[i].getAttribute('data-type1') === t1) ? 'active' : '';
+		}
+
+		document.getElementById('rx_modal_title').innerText =
+			t1 === 'doh' ? 'Внести доход' : (t1 === 'shift' ? 'Сдача в кассу' : 'Внести расход');
+		document.getElementById('channel_label').innerText =
+			t1 === 'shift' ? 'Откуда' : 'Канал оплаты';
+		document.getElementById('type2_label').innerText =
+			t1 === 'doh' ? 'Статья дохода' : (t1 === 'shift' ? 'Куда' : 'Статья расхода');
+
+		rxFill('channel', RX_CHANNELS[t1] || RX_CHANNELS.rash);
+		rxFill('type2',   RX_ITEMS[t1]    || RX_ITEMS.rash);
+		rxZpToggle();
+	}
+
+	// «кому» показываем только для зарплаты и аванса
+	function rxZpToggle() {
+		var v    = document.getElementById('type2').value;
+		var show = (v === 'zpl' || v === 'avans');
+		document.getElementById('rx_zp_wrap').style.display = show ? '' : 'none';
+		if (!show) document.getElementById('zp_name').value = '0';
+	}
+	document.getElementById('type2').onchange = rxZpToggle;
+
+	function rxValidate() {
+		var errors  = [];
+		var t1      = document.getElementById('type1').value;
+		var channel = document.getElementById('channel').value;
+		var t2      = document.getElementById('type2').value;
+
+		if (channel === '0') errors.push(t1 === 'shift' ? 'выберите канал-источник' : 'выберите канал оплаты');
+		if (t2 === '0')      errors.push(t1 === 'shift' ? 'выберите канал-получатель' : 'выберите статью');
+
+		// перевод сам в себя денег не двигает — это всегда ошибка оператора
+		if (t1 === 'shift' && channel === t2) {
+			errors.push('канал-получатель должен отличаться от канала-источника');
+		}
+
+		var amount = document.getElementById('amount').value;
+		if (amount === '' || parseFloat(amount) === 0) errors.push('заполните сумму');
+
+		if ((t2 === 'zpl' || t2 === 'avans') && document.getElementById('zp_name').value === '0') {
+			errors.push('выберите сотрудника');
+		}
+		if (t2 === 'zpl' && document.getElementById('info').value === '') {
+			errors.push('для зарплаты обязателен комментарий');
+		}
+
+		var today = new Date(); today.setHours(23, 59, 59, 0);
+		var accDate = new Date(document.getElementById('acc_date').value);
+		if (accDate > today) errors.push('дата платежа не может быть в будущем');
+
+		if (errors.length > 0) {
+			alert('Заполните форму: ' + errors.join(', ') + '.');
+			return false;
+		}
+		return true;
+	}
+
+	rxSetType1('rash');
 </script>
 
 <?php
