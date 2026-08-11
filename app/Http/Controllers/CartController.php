@@ -267,13 +267,7 @@ class CartController extends Controller
         if ($autoDealEnabled) {
             try {
                 $autoDealClientId = \bb\classes\WebOrderDeal::findOrCreateClient($fio, $phone, $address);
-                $courierInfo = \bb\classes\WebOrderDeal::courierInfo(
-                    $address,
-                    $phone,
-                    $contactChannel,
-                    $info,
-                    $wantsCourierPickup
-                );
+                $courierInfo = \bb\classes\WebOrderDeal::courierInfo($info);
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::error('Клиент по заказу с сайта не заведён: ' . $e->getMessage());
             }

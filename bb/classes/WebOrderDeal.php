@@ -81,16 +81,20 @@ class WebOrderDeal
     }
 
     /**
-     * Тариф, по которому посчитана позиция: самый «длинный» из подходящих под срок.
-     * Повторяет правило TariffModel::getAmmountForDaysPeriod.
+     * Тариф позиции для подсделки.
+     *
+     * Срок всегда пишем в сутках, а не в шагах тарифа: сайт считает стоимость
+     * от суточной ставки (TariffModel::getDaylyTarifForDaysPeriod), и запись
+     * «14 суток по 4.14» сходится с суммой заказа. Если взять шаг из тарифа,
+     * прокат на 14 дней по недельному тарифу превращается в «14 нед.».
+     * tarif_id при этом указывает на реально применённую ступень.
      *
      * @return array{id:string, step:string, value:string}
      */
     public static function resolveTariff(?TariffModel $tarifModel, int $days): array
     {
-        $empty = ['id' => '', 'step' => '', 'value' => '0.00'];
-        if (!$tarifModel) {
-            return $empty;
+        if (!$tarifModel || $days < 1) {
+            return ['id' => '', 'step' => 'day', 'value' => '0.00'];
         }
 
         $best = null;
@@ -100,14 +104,11 @@ class WebOrderDeal
                 $best = $t;
             }
         }
-        if ($best === null) {
-            return $empty;
-        }
 
         return [
-            'id' => (string) $best->tarif_id,
-            'step' => (string) $best->step,
-            'value' => number_format((float) $best->getPerStepAmount(), 2, '.', ''),
+            'id' => $best ? (string) $best->tarif_id : '',
+            'step' => 'day',
+            'value' => number_format((float) $tarifModel->getDaylyTarifForDaysPeriod($days), 2, '.', ''),
         ];
     }
 
@@ -237,26 +238,16 @@ class WebOrderDeal
     }
 
     /**
-     * Текст, который курьер видит в своей строке. Адрес из заказа помечен как текущий:
-     * в карточке клиента может стоять другой, выверенный по прошлым прокатам.
+     * Текст, который курьер видит в своей строке.
+     *
+     * Только то, чего нет в остальных колонках: комментарий клиента. Адрес,
+     * телефон, срок и способ получения курьер и так видит в своих графах,
+     * а возврат курьером виден отдельным выездом на дату окончания проката.
      */
-    public static function courierInfo(string $address, string $phone, string $channel, string $comment, bool $wantsReturn): string
+    public static function courierInfo(string $comment): string
     {
-        $lines = ['Заказ с сайта. Паспорт не заполнен.'];
-        $lines[] = 'Текущий адрес доставки: ' . trim($address);
-        if (trim($phone) !== '') {
-            $lines[] = 'Телефон: ' . trim($phone);
-        }
-        if ($channel !== '') {
-            $lines[] = 'Связь: ' . $channel;
-        }
-        if ($wantsReturn) {
-            $lines[] = 'Клиент заказал возврат курьером.';
-        }
-        if (trim($comment) !== '') {
-            $lines[] = 'Клиент просит: ' . trim($comment);
-        }
+        $comment = trim($comment);
 
-        return implode(' ', $lines);
+        return $comment !== '' ? 'Инфо от клиента: ' . $comment : '';
     }
 }
