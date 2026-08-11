@@ -23,6 +23,10 @@ class AboutController extends Controller
 
   public function showPremiumStartPage($lang, Request $req)
   {
+    // Страница временно скрыта — отдаём 404. Чтобы вернуть, удалить abort() ниже
+    // и раскомментировать слайд в resources/views/includes/carousel.blade.php
+    abort(404);
+
     $lang = htmlspecialchars($lang);
 
     $p = MainPage::getPage($lang, 'main', 'premium-start');
