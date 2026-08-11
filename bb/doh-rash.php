@@ -87,7 +87,7 @@ $action = '';
 $flashMessage = '';
 $i_from_date = date("Y-m-d");
 $i_to_date = date("Y-m-d");
-$item_place = $_SESSION['office'];
+$item_place = 'all';   // офисного фильтра больше нет, значение осталось для совместимости форм
 $type2s = 'all';
 $type1_s = 'all';
 $type2_s = 'all';
@@ -223,14 +223,9 @@ switch ($action) {
 }//end of switch
 
 
-if ($item_place == 'all' && ($_SESSION['user_id'] == '2' || $_SESSION['user_id'] == '3' || $_SESSION['user_id'] == '5' || $_SESSION['user_id'] == '9')) {
-	$srch = '';
-} elseif ($item_place == 'all') {
-	$srch = " AND `channel`!='bank'";
-} else {
-	$srch = " AND `channel`='$item_place'";
-}
-
+// Офисного фильтра больше нет — фильтруем по каналу оплаты. Права и неизвестные
+// коды channel_sql_filter() разбирает сама, поэтому обёрток вокруг неё не нужно.
+$srch = channel_sql_filter($kassa_s);
 
 if ($type1_s == 'doh') {
 	$srch .= " AND `type1`='doh'";
@@ -238,12 +233,6 @@ if ($type1_s == 'doh') {
 	$srch .= " AND `type1`='rash'";
 } elseif ($type1_s == 'shift') {
 	$srch .= " AND `type1` LIKE 'shift%'";
-}
-
-if ($kassa_s == 'k1') {
-	$srch .= " AND `kassa`='k1'";
-} elseif ($kassa_s == 'k2') {
-	$srch .= " AND `kassa`='k2'";
 }
 
 if ($type2_s != 'all') {
@@ -254,17 +243,12 @@ if ($zp_sel_s != 'all') {
 	$srch .= " AND `dr_name_id`='$zp_sel_s'";
 }
 
-$rash["of1k1"] = "Литературная_22_1";
-$rash["of1k2"] = "Литературная_2_2";
-$rash["of2k1"] = "Ложинская_1";
-$rash["of2k2"] = "Ложинская_2";
-$rash["of3k1"] = "Победителей_127_1";
-$rash["of3k2"] = "Победителей_127_2";
-$rash["of4k1"] = "Склад_1";
-$rash["of4k2"] = "Склад_2";
-$rash["curk1"] = "Курьер_1";
-$rash["curk2"] = "Курьер_2";
-$rash["bank"] = "Банк";
+// названия каналов для колонки «статья»: в переводах type2 хранит код канала,
+// а не код статьи расхода
+$rash = array();
+foreach (channels_all() as $code => $ch) {
+	$rash[$code] = $ch['text'];
+}
 
 $doh = $rash;
 
