@@ -65,59 +65,6 @@ class L3Controller extends Controller
     return $this->showCategoryWithNotice($lang, $r1, $r2, $r3);
   }
 
-  /**
-   * Договор и выезд курьера по прямому заказу с карточки товара.
-   *
-   * Повторяет то, что делает корзина (CartController), с двумя отличиями:
-   * товар всегда один, а возврата курьером на этой форме нет — её чекбокса
-   * не существует, поэтому второй выезд не планируется.
-   *
-   * Сбой автоматики не должен рушить заказ: бронь уже создана до этого места.
-   */
-  private function createDeliveryDeal(tovar $tovar, $modelId, DateTime $dateFrom, DateTime $dateTo, Request $req): void
-  {
-    if (!config('app.cart_auto_deal', true)) {
-      return;
-    }
-
-    try {
-      $days = (int) $dateFrom->diff($dateTo)->days;
-      if ($days < 1) {
-        $days = max(1, (int) $req->input('days_num'));
-      }
-
-      $tarifModel = \bb\classes\TariffModel::getTarifModelForModelId($modelId);
-      $amount = $tarifModel ? (float) $tarifModel->getAmmountForDaysPeriod($days) : 0.0;
-
-      $clientId = \bb\classes\WebOrderDeal::findOrCreateClient(
-        (string) $req->input('fio'),
-        (string) $req->input('phone'),
-        (string) $req->input('address')
-      );
-
-      if ($clientId <= 0) {
-        return;
-      }
-
-      \bb\classes\WebOrderDeal::createDealWithTrips(
-        $clientId,
-        [
-          'inv_n' => $tovar->getInvN(),
-          'start_ts' => $dateFrom->getTimestamp(),
-          'return_ts' => $dateTo->getTimestamp(),
-          'days' => $days,
-          'r_to_pay' => $amount,
-          'tarif' => \bb\classes\WebOrderDeal::resolveTariff($tarifModel, $days),
-        ],
-        CartController::calcDeliveryCost($amount, false),
-        0.0,
-        \bb\classes\WebOrderDeal::courierInfo((string) $req->input('info'))
-      );
-    } catch (\Throwable $e) {
-      \Illuminate\Support\Facades\Log::error('Автодоговор по заказу с карточки товара не создан: ' . $e->getMessage());
-    }
-  }
-
   public function l3Order2($lang, $razdel, $subrazdel, $category, $model, Request $req)
   {
 
@@ -169,14 +116,6 @@ class L3Controller extends Controller
         if ($br) {
             \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
         }
-
-        // Заказ с доставкой сразу становится договором и выездом курьера — так же,
-        // как заказ через корзину (CartController). Иначе часть заказов с сайта
-        // попадала бы к курьеру, а часть терялась бы на этапе брони.
-        if ($deliveryYN == 1) {
-          $this->createDeliveryDeal($tovar, $model_id, $dateFrom, $dateTo, $req);
-        }
-
         $message = 'Бронь на товар принята. Оператор свяжется с Вами в ближайшее время.';
       } catch (\Exception $e) {
         $z = Zvonok::addLitZvonok($req->input('fio'), $req->input('phone'), $req->input('info') . '---' . $e->getMessage(), $req->input('model_id'));
