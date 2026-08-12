@@ -257,8 +257,8 @@ class CartController extends Controller
         $infoForZvonok = trim($info . ($contactChannel !== '' ? ' Связь: ' . $contactChannel . '.' : ''));
 
         // Договор и выезды курьера заводим только для доставки: самовывоз курьера не касается.
-        // Флаг — рубильник на случай, если автоматика начнёт создавать лишнее.
-        $autoDealEnabled = $isDelivery && (bool) config('app.cart_auto_deal', true);
+        // Запасное значение — «выключено»: пропал ключ конфига, значит договор создаёт человек.
+        $autoDealEnabled = $isDelivery && (bool) config('app.cart_auto_deal', false);
         $autoDealClientId = 0;
         $autoDealDeliveryLeft = $deliveryCost;
         $autoDealPickupLeft = $pickupCost;
