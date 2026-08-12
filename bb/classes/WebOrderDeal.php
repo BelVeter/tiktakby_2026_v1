@@ -4,6 +4,7 @@ namespace bb\classes;
 
 use bb\Db;
 
+require_once __DIR__ . '/../Db.php';
 require_once __DIR__ . '/Deal.php';
 require_once __DIR__ . '/Client.php';
 require_once __DIR__ . '/TariffModel.php';
@@ -233,6 +234,75 @@ class WebOrderDeal
             error_log('WebOrderDeal: не удалось создать выезд ' . $p['type'] . ': ' . $mysqli->error);
             return false;
         }
+
+        return true;
+    }
+
+    /**
+     * Отменяет автодоговор по товару, когда удаляют бронь с сайта.
+     *
+     * Удаляет только то, чего ещё не было: договор, созданный автоматикой, по
+     * которому не прошло ни одной оплаты и ни один выезд не состоялся. Договор
+     * оператора, начатый прокат или проведённые деньги не трогаем никогда —
+     * там за записями стоят реальные события, и удалять их нельзя.
+     *
+     * Признак автодоговора — cr_who_id и acc_person_id равны нулю: человек
+     * всегда создаёт договор из-под своей учётной записи.
+     *
+     * В архив не копируем намеренно: отменённый выезд — не состоявшийся прокат,
+     * в rent_deals_arch он исказил бы выручку и аналитику.
+     *
+     * @return bool true — договор и выезды удалены, товар можно освобождать
+     */
+    public static function cancelAutoDealForInv($invN): bool
+    {
+        $invN = (int) $invN;
+        if ($invN <= 0) {
+            return false;
+        }
+
+        $mysqli = Db::getInstance()->getConnection();
+
+        $r = $mysqli->query("SELECT active_deal_id FROM tovar_rent_items WHERE item_inv_n = $invN");
+        $dealId = $r ? (int) ($r->fetch_assoc()['active_deal_id'] ?? 0) : 0;
+        if ($dealId <= 0) {
+            return false;
+        }
+
+        $r = $mysqli->query("SELECT cr_who_id, acc_person_id, r_paid, delivery_paid, deal_status
+            FROM rent_deals_act WHERE deal_id = $dealId");
+        $deal = $r ? $r->fetch_assoc() : null;
+        if (!$deal) {
+            return false;
+        }
+
+        $untouched = (int) $deal['cr_who_id'] === 0
+            && (int) $deal['acc_person_id'] === 0
+            && (float) $deal['r_paid'] == 0.0
+            && (float) $deal['delivery_paid'] == 0.0
+            && $deal['deal_status'] === 'active';
+
+        if (!$untouched) {
+            return false;
+        }
+
+        // Любая подсделка не в состоянии «ждёт курьера» означает, что что-то уже произошло
+        $r = $mysqli->query("SELECT COUNT(*) AS n FROM rent_sub_deals_act
+            WHERE deal_id = $dealId AND `status` <> 'for_cur'");
+        if (!$r || (int) $r->fetch_assoc()['n'] > 0) {
+            return false;
+        }
+
+        if (!$mysqli->query("DELETE FROM rent_sub_deals_act WHERE deal_id = $dealId")) {
+            error_log('WebOrderDeal: не удалось удалить выезды договора ' . $dealId . ': ' . $mysqli->error);
+            return false;
+        }
+        if (!$mysqli->query("DELETE FROM rent_deals_act WHERE deal_id = $dealId")) {
+            error_log('WebOrderDeal: не удалось удалить договор ' . $dealId . ': ' . $mysqli->error);
+            return false;
+        }
+
+        $mysqli->query("UPDATE tovar_rent_items SET active_deal_id = '' WHERE item_inv_n = $invN");
 
         return true;
     }

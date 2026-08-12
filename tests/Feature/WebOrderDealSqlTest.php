@@ -149,6 +149,64 @@ class WebOrderDealSqlTest extends TestCase
         }
     }
 
+    /**
+     * bb/ не пользуется автозагрузкой composer — каждая страница подключает классы
+     * сама. Без require_once удаление брони упадёт фатальной ошибкой прямо в панели.
+     */
+    public function test_rent_orders_page_requires_the_class(): void
+    {
+        $src = file_get_contents(dirname(__DIR__, 2) . '/bb/rent_orders.php');
+
+        $this->assertStringContainsString(
+            "require_once(\$_SERVER['DOCUMENT_ROOT'] . '/bb/classes/WebOrderDeal.php')",
+            $src,
+            'bb/rent_orders.php не подключает WebOrderDeal — удаление брони упадёт'
+        );
+    }
+
+    /**
+     * Удаление брони с доставкой обязано снимать договор и выезды курьера,
+     * иначе товар навсегда останется занятым, а курьер поедет по отменённому заказу.
+     */
+    public function test_every_bron_deletion_cancels_the_auto_deal(): void
+    {
+        $src = file_get_contents(dirname(__DIR__, 2) . '/bb/rent_orders.php');
+
+        $deletions = substr_count($src, '->del_br()');
+        $cancels = substr_count($src, 'WebOrderDeal::cancelAutoDealForInv');
+
+        $this->assertGreaterThan(0, $deletions);
+        $this->assertGreaterThanOrEqual(
+            $deletions,
+            $cancels,
+            'появился путь удаления брони без отмены договора и выездов курьера'
+        );
+    }
+
+    /**
+     * Каскад обязан быть узким: договор оператора, начатый прокат и проведённые
+     * деньги удалять нельзя ни при каких условиях.
+     */
+    public function test_cancellation_is_guarded(): void
+    {
+        $src = file_get_contents(dirname(__DIR__, 2) . '/bb/classes/WebOrderDeal.php');
+        $method = substr($src, strpos($src, 'function cancelAutoDealForInv'));
+
+        foreach (['cr_who_id', 'acc_person_id', 'r_paid', 'delivery_paid', "'for_cur'"] as $guard) {
+            $this->assertStringContainsString(
+                $guard,
+                $method,
+                "из проверки перед удалением договора пропал $guard"
+            );
+        }
+
+        $this->assertStringNotContainsString(
+            'rent_deals_arch',
+            $method,
+            'отменённый выезд не должен попадать в архив: он исказит выручку'
+        );
+    }
+
     public function test_tariff_resolution_without_tariffs_is_safe(): void
     {
         $this->assertSame(

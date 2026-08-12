@@ -24,6 +24,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Picture.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Deal.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/DohRash.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/WebOrderDeal.php'); //
 
 
 set_time_limit(30);
@@ -539,6 +540,9 @@ if (isset($_POST['action'])) {
 			$br = new \bb\classes\bron();
 			$br->br_load($brId);
 
+			// Товар уходит из проката — плановый выезд курьера по нему больше не нужен
+			\bb\classes\WebOrderDeal::cancelAutoDealForInv($invN);
+
 			\bb\classes\Deal::sellTovar($today, $invN, $amount, $ofNum, $kassa, $dop_info);
 
 			$br->arch_copy();
@@ -673,13 +677,20 @@ if (isset($_POST['action'])) {
 			}
 			$br_upd->item_load();
 
-			if ($br_upd->item_status == 'bron') {
+			// Заказ с сайта сразу создаёт договор и выезды курьера, а товар уводит
+			// в to_deliver. Удаляем их вместе с бронью, иначе курьер поедет
+			// по отменённому заказу, а товар навсегда останется занятым.
+			$bk_cancelled = \bb\classes\WebOrderDeal::cancelAutoDealForInv($br_upd->inv_n);
+
+			if ($br_upd->item_status == 'bron' || ($bk_cancelled && $br_upd->item_status == \bb\classes\WebOrderDeal::ITEM_STATUS_TO_DELIVER)) {
 				//меняем статус на свободно
 				$query_upd = "UPDATE tovar_rent_items SET `status`='to_rent' WHERE item_inv_n='$br_upd->inv_n'";
 				$result_upd = $mysqli->query($query_upd);
 				if (!$result_upd) {
 					die('Сбой при доступе к базе данных: ' . $query_upd . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 				}
+			} elseif ($br_upd->item_status == \bb\classes\WebOrderDeal::ITEM_STATUS_TO_DELIVER) {
+				echo ('По товару есть договор с движением (оплата или состоявшийся выезд) — бронь удалена, договор оставлен. Закройте его вручную.');
 			} else {
 				echo ('Статус товара не равен bron!');
 			}
@@ -802,6 +813,9 @@ if (isset($_POST['action'])) {
 
 			$tov->out_status = 'bron_delete';
 
+			// Списанный товар курьер везти не должен — снимаем плановые выезды
+			\bb\classes\WebOrderDeal::cancelAutoDealForInv($del_inv_n);
+
 			$tov->del_item();
 			$br->arch_copy();
 
@@ -830,12 +844,18 @@ if (isset($_POST['action'])) {
 			if ($result_tov->num_rows !== 1) {
 				die('при проверке товара по инв. номеру: либо товар отсутствует, либо кол-во товаров больше 1');
 			} else {
-				if ($i_tov['status'] == 'bron') {//если бронь - меняем на свободно
+				// Бронь с сайта тянет за собой договор и выезды курьера — снимаем их
+				// вместе с ней, иначе товар останется занятым, а курьер поедет зря
+				$bk_cancelled = \bb\classes\WebOrderDeal::cancelAutoDealForInv($br->inv_n);
+
+				if ($i_tov['status'] == 'bron' || ($bk_cancelled && $i_tov['status'] == \bb\classes\WebOrderDeal::ITEM_STATUS_TO_DELIVER)) {//если бронь - меняем на свободно
 					$query_upd = "UPDATE tovar_rent_items SET `status`='to_rent' WHERE item_inv_n='$br->inv_n'";
 					$result_upd = $mysqli->query($query_upd);
 					if (!$result_upd) {
 						die('Сбой при доступе к базе данных: ' . $query_upd . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 					}
+				} elseif ($i_tov['status'] == \bb\classes\WebOrderDeal::ITEM_STATUS_TO_DELIVER) {
+					echo ('По товару есть договор с движением (оплата или состоявшийся выезд) — бронь удалена, договор оставлен. Закройте его вручную.');
 				}
 			}
 
