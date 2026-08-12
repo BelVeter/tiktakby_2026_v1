@@ -208,28 +208,31 @@ class CartController extends Controller
 
         // Delivery cost depends on the whole order sum — recalculate it server-side
         // before creating any booking (never trust the client).
+        //
+        // Считаем только те товары, которые действительно можно забронировать:
+        // занятый товар уйдёт в заявку, клиент его не арендует, и в сумме заказа
+        // ему не место — иначе и порог бесплатной доставки, и итог завышены.
         $itemsTotal = 0.0;
+        $itemsCount = 0;
         foreach ($items as $item) {
             $modelId = intval($item['modelId'] ?? 0);
             if ($modelId <= 0) {
                 continue;
             }
+            $freeOffices = tovar::getFreeItemsOfficeArrayForModelId($modelId);
+            if (!is_array($freeOffices) || count($freeOffices) === 0) {
+                continue;
+            }
             $tm = TariffModel::getTarifModelForModelId($modelId);
             if ($tm) {
                 $itemsTotal += (float) $tm->getAmmountForDaysPeriod(intval($item['days'] ?? 14));
+                $itemsCount++;
             }
         }
 
         $deliveryCost = $isDelivery ? self::calcDeliveryCost($itemsTotal, $isSuburb) : 0.0;
         $pickupCost = $wantsCourierPickup ? self::COURIER_PICKUP_COST : 0.0;
         $grandTotal = $itemsTotal + $deliveryCost + $pickupCost;
-
-        $itemsCount = 0;
-        foreach ($items as $item) {
-            if (intval($item['modelId'] ?? 0) > 0) {
-                $itemsCount++;
-            }
-        }
 
         // Канал связи — одним словом, без подписи: оператору важно только куда писать
         $channelTag = $contactChannel !== ''
