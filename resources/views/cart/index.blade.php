@@ -1644,10 +1644,17 @@
                                     var statusIcon = r.status === 'booked' ? '✅' : (r.status === 'waitlist' ? '⏳' : '❌');
                                     var statusText = r.status === 'booked' ? 'Забронировано' :
                                         (r.status === 'waitlist' ? 'Заявка принята' : 'Ошибка');
-                                    detailsHtml += '<p style="font-size: 14px; margin: 8px 0;">' + statusIcon + ' ' + r.name + ' — <strong>' + statusText + '</strong></p>';
+                                    // Стоимость есть только у забронированного товара: заявка ещё ничего не стоит
+                                    var amount = (r.status === 'booked' && r.amount > 0)
+                                        ? '<span style="float: right; white-space: nowrap;">' + Number(r.amount).toFixed(2) + ' BYN</span>'
+                                        : '';
+                                    detailsHtml += '<p style="font-size: 14px; margin: 8px 0; overflow: hidden;">' + amount +
+                                        statusIcon + ' ' + r.name + ' — <strong>' + statusText + '</strong></p>';
                                 });
                                 if (data.totals) {
-                                    detailsHtml += '<p style="font-size: 14px; margin: 14px 0 0;">Доставка: ' +
+                                    detailsHtml += '<p style="font-size: 14px; margin: 14px 0 0; padding-top: 10px; border-top: 1px solid #DCE8F6;">Прокат: ' +
+                                        data.totals.items.toFixed(2) + ' BYN</p>';
+                                    detailsHtml += '<p style="font-size: 14px; margin: 4px 0;">Доставка: ' +
                                         (data.totals.delivery > 0 ? data.totals.delivery.toFixed(2) + ' BYN' : 'бесплатно') + '</p>';
                                     detailsHtml += '<p style="font-size: 14px; margin: 4px 0;">Возврат курьером: ' +
                                         (data.totals.courier_pickup > 0 ? data.totals.courier_pickup.toFixed(2) + ' BYN' : 'не заказан') + '</p>';
