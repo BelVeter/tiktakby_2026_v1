@@ -131,22 +131,19 @@ class WebOrderDealSqlTest extends TestCase
     }
 
     /**
-     * Заказать с сайта можно двумя путями — через корзину и прямо с карточки товара.
-     * Если автоматику подключат только к одному, часть доставок молча не доедет
-     * до страницы курьера, и заметят это не сразу.
+     * Заказ с доставкой на сайте оформляется только через корзину: на карточке
+     * товара форма заказа открывается лишь кнопкой «Оставить заявку», а она
+     * показывается, когда товара нет в наличии, и ведёт в заявку без доставки.
      */
-    public function test_both_order_paths_create_courier_trips(): void
+    public function test_cart_is_the_only_path_that_creates_courier_trips(): void
     {
         $root = dirname(__DIR__, 2);
 
-        foreach (['CartController', 'L3Controller'] as $controller) {
-            $src = file_get_contents($root . '/app/Http/Controllers/' . $controller . '.php');
-            $this->assertStringContainsString(
-                'WebOrderDeal::createDealWithTrips',
-                $src,
-                "$controller больше не создаёт выезд курьера по заказу с доставкой"
-            );
-        }
+        $this->assertStringContainsString(
+            'WebOrderDeal::createDealWithTrips',
+            file_get_contents($root . '/app/Http/Controllers/CartController.php'),
+            'корзина больше не создаёт выезд курьера по заказу с доставкой'
+        );
     }
 
     /**
