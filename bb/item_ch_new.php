@@ -20,6 +20,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/tovar.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Deal.php'); // включаем класс
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Category.php'); // включаем класс
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/tovar.php'); // включаем класс
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/WebOrderDeal.php'); // включаем класс
 require($_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php');
 
 
@@ -334,7 +335,9 @@ if ($item_rows == 1) {
 					die('Сбой при доступе к базе данных: ' . $query_or . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 				$ord = $result_or->fetch_assoc();
 
-				$new_info = $ord['family'] . ' ' . $ord['name'] . ' ' . $ord['otch'] . ', тел.:' . phone_print($ord['phone']) . ($ord['address'] != '' ? ', адрес доставки: ' . $ord['address'] : '') . '. ' . $ord['info'];
+				// info хранит разметку карточки брони, а тут она печатается экранированной —
+				// без этого теги вылезают в текст предупреждения
+				$new_info = $ord['family'] . ' ' . $ord['name'] . ' ' . $ord['otch'] . ', тел.:' . phone_print($ord['phone']) . ($ord['address'] != '' ? ', адрес доставки: ' . $ord['address'] : '') . '. ' . \bb\classes\WebOrderDeal::infoToPlainText($ord['info']);
 
 				$new_info = str_replace("'", "", $new_info);
 				$new_info = str_replace('"', "", $new_info);

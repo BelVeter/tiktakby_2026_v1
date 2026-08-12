@@ -204,6 +204,47 @@ class WebOrderDealSqlTest extends TestCase
         );
     }
 
+    /**
+     * bb/rent_orders.php выводит info как HTML, а bb/item_ch_new.php — экранированным
+     * текстом (предупреждение «на товар оформлена бронь» в договоре). Без преобразования
+     * теги карточки вылезали прямо в текст.
+     */
+    public function test_card_markup_becomes_readable_plain_text(): void
+    {
+        $info = '<div class="bk-right"><div class="bk-dates"><span class="bk-ch">Viber</span>'
+            . '12.08 → 26.08<span class="bk-days">14 дн.</span></div>'
+            . '<div class="bk-money">81.90 + 0.00 + 10.00 = 91.90 BYN</div></div>'
+            . '<div class="bk-quote">Тестовый заказ</div>';
+
+        $this->assertSame(
+            'Viber 12.08 → 26.08 14 дн. 81.90 + 0.00 + 10.00 = 91.90 BYN Тестовый заказ',
+            WebOrderDeal::infoToPlainText($info)
+        );
+    }
+
+    public function test_plain_text_conversion_keeps_legacy_notes_intact(): void
+    {
+        $this->assertSame(
+            'В брони клиент указал: с 01.08.2026 по 10.08.2026 перезвонить после 18',
+            WebOrderDeal::infoToPlainText('В брони клиент указал: с 01.08.2026 по 10.08.2026<br />перезвонить после 18')
+        );
+        $this->assertSame('14.08 звонила', WebOrderDeal::infoToPlainText('14.08 звонила'));
+        $this->assertSame('Кофе & чай', WebOrderDeal::infoToPlainText('<div class="bk-quote">Кофе &amp; чай</div>'));
+        $this->assertSame('', WebOrderDeal::infoToPlainText(''));
+    }
+
+    /**
+     * bb/ не пользуется автозагрузкой composer: без require_once страница договора
+     * упадёт фатальной ошибкой при попытке показать бронь на товаре.
+     */
+    public function test_item_page_requires_the_class(): void
+    {
+        $this->assertStringContainsString(
+            "require_once(\$_SERVER['DOCUMENT_ROOT'] . '/bb/classes/WebOrderDeal.php')",
+            file_get_contents(dirname(__DIR__, 2) . '/bb/item_ch_new.php')
+        );
+    }
+
     public function test_tariff_resolution_without_tariffs_is_safe(): void
     {
         $this->assertSame(
