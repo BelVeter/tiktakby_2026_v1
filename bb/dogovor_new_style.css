@@ -588,3 +588,58 @@ td[style*="background-color: orange"] {
     background-color: #fde8d0 !important;
     color: #8a5a2a !important;
 }
+/* ============================================
+   Массовый расчёт продления и разноска оплаты
+   ============================================ */
+
+/* Итог «Продление» — акцент на сумме, которую называют клиенту */
+#ext_total {
+    background: var(--accent-light) !important;
+    color: #1565a0 !important;
+    font-size: 14px;
+    letter-spacing: 0.2px;
+}
+
+/* Основное действие расчёта */
+#ext_calc_button {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #fff !important;
+    font-weight: 600;
+    padding: 5px 16px !important;
+    border-radius: var(--radius-sm) !important;
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+#ext_calc_button:hover {
+    background: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+}
+
+/* Разноска оплаты — денежное действие, поэтому зелёная и заметно гаснет,
+   когда сумма не сошлась: кнопка не должна выглядеть нажимаемой вхолостую */
+#ext_pay_button {
+    background: var(--success) !important;
+    border-color: var(--success) !important;
+    color: #fff !important;
+    font-weight: 600;
+    margin-top: 6px;
+    padding: 6px 18px !important;
+    border-radius: var(--radius-sm) !important;
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+#ext_pay_button:hover:not(:disabled) {
+    background: #2d9249 !important;
+    border-color: #2d9249 !important;
+}
+
+#ext_pay_button:disabled {
+    background: var(--bg-input) !important;
+    border-color: var(--border-input) !important;
+    color: var(--text-muted) !important;
+    cursor: not-allowed;
+    box-shadow: none;
+}
