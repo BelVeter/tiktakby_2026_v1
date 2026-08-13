@@ -7,6 +7,7 @@ use App\MyClasses\L2ModelWeb;
 use bb\classes\Model;
 use bb\classes\ModelWeb;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Date;
 use PhpParser\Node\Expr\AssignOp\Mod;
 
@@ -14,6 +15,12 @@ class SearchController extends Controller
 {
     /** Кол-во карточек на страницу листинга (как в каталоге, MainPage). */
     private const LISTING_LIMIT = 24;
+
+    /** Известные краулеры не считаем "реальными" запросами — снижает шум в аналитике search_log. */
+    private const BOT_USER_AGENT_MARKERS = [
+        'googlebot', 'bingbot', 'yandex', 'ahrefsbot', 'semrushbot',
+        'mj12bot', 'dotbot', 'petalbot', 'bytespider', 'mail.ru_bot',
+    ];
 
     /**
      * Строит карточки только для одной страницы пагинации (срез по LISTING_LIMIT),
@@ -41,6 +48,8 @@ class SearchController extends Controller
         $page = max(1, (int) $req->input('page', 1));
         $total = $this->buildPageModels($p, $modelIdArray, $page);
 
+        $this->logSearchQuery($req, $text, $total);
+
         // Результаты внутреннего поиска не индексируем (служебная страница),
         // но ссылочный вес пропускаем на карточки товаров.
         return view('search', [
@@ -50,6 +59,41 @@ class SearchController extends Controller
             'totalPages' => (int) ceil($total / self::LISTING_LIMIT),
             'paginationBase' => '/ru/search?search=' . urlencode($text),
         ]);
+    }
+
+    private function logSearchQuery(Request $req, string $text, int $resultsCount): void
+    {
+        if ($text === '' || self::isBotUserAgent($req->userAgent())) {
+            return;
+        }
+
+        try {
+            DB::table('search_log')->insert([
+                'created_at'    => now(),
+                'ip'            => $req->ip(),
+                'query'         => substr($text, 0, 255),
+                'results_count' => $resultsCount,
+                'user_agent'    => substr($req->userAgent() ?? '', 0, 255),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('SearchLog failed: ' . $e->getMessage());
+        }
+    }
+
+    private static function isBotUserAgent(?string $userAgent): bool
+    {
+        if (!$userAgent) {
+            return false;
+        }
+
+        $ua = strtolower($userAgent);
+        foreach (self::BOT_USER_AGENT_MARKERS as $marker) {
+            if (str_contains($ua, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function ageFilter($lang, Request $req) {
