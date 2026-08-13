@@ -3349,9 +3349,11 @@ if ($cl_onh_num > 0) {
 	// последний справочный расчёт продления по клиенту (bb/ajax_ext_calc.php)
 	$ext_saved = array();
 	$ext_saved_meta = null;
-	$query_ext = "SELECT c.deal_id, c.ext_to, c.ext_days, c.amount, c.calc_time, l.lp_fio
+	$query_ext = "SELECT c.deal_id, c.ext_to, c.ext_days, c.amount, c.calc_time,
+						c.applied_time, l.lp_fio, la.lp_fio AS applied_fio
 					FROM rent_ext_calc c
 					LEFT JOIN logpass l ON l.logpass_id = c.user_id
+					LEFT JOIN logpass la ON la.logpass_id = c.applied_user_id
 					WHERE c.client_id='" . (int)$client_id . "'";
 	$result_ext = $mysqli->query($query_ext);
 	if ($result_ext) {
@@ -3526,7 +3528,7 @@ if ($cl_onh_num > 0) {
 
 						</table>';
 
-	ext_calc_panel($client_id, $ext_items, $ext_saved_meta);
+	ext_calc_panel($client_id, $ext_items, $ext_saved_meta, $ext_total_saved);
 
 } else {
 	echo '<strong>У клиента нет товаров на руках.</strong>';
@@ -3719,7 +3721,7 @@ echo '
  * иначе цифры разъедутся с тем, что сотрудник увидит при реальном оформлении.
  * Результат уходит на хранение в rent_ext_calc и виден любому сотруднику.
  */
-function ext_calc_panel($client_id, $ext_items, $ext_saved_meta)
+function ext_calc_panel($client_id, $ext_items, $ext_saved_meta, $ext_total_saved)
 {
 	if (!$ext_items) {
 		return;
@@ -3744,6 +3746,13 @@ function ext_calc_panel($client_id, $ext_items, $ext_saved_meta)
 			. ($ext_saved_meta['lp_fio'] != '' ? ', ' . $ext_saved_meta['lp_fio'] : '');
 	}
 
+	$applied      = $ext_saved_meta && $ext_saved_meta['applied_time'] > 0;
+	$applied_note = '';
+	if ($applied) {
+		$applied_note = 'Разнесено ' . date("d.m.Y H:i", $ext_saved_meta['applied_time'])
+			. ($ext_saved_meta['applied_fio'] != '' ? ', ' . $ext_saved_meta['applied_fio'] : '');
+	}
+
 	$json_flags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
 
 	echo '
@@ -3759,11 +3768,36 @@ function ext_calc_panel($client_id, $ext_items, $ext_saved_meta)
 		Продление каждой позиции считается с её текущей даты возврата, поэтому просроченные дни уже входят в сумму.
 		Расчёт справочный — деньги фиксируются при оформлении позиции.
 	</div>
+
+	<div id="ext_pay_block" style="margin-top:10px;padding-top:8px;border-top:1px dashed #ccc;' . ($ext_saved_meta ? '' : 'display:none;') . '">
+		<strong>Разнести оплату</strong>
+		&nbsp; сумма: <input type="number" step="0.01" min="0" id="ext_pay_amount" value="" style="width:90px;"
+			oninput="ttExtPayCheck();" onkeydown="return event.key != \'Enter\';" /> бел. руб.
+		&nbsp; <select id="ext_pay_type" onchange="ttExtPayCheck();">
+			<option value="">-- канал оплаты --</option>
+			<option value="nal_no_cheque">нал без чека</option>
+			<option value="nal_cheque">нал с чеком</option>
+			<option value="card">карточка</option>
+			<option value="bank">банк</option>
+		</select>
+		&nbsp; № документа: <input type="text" id="ext_pay_ch_num" value="" size="10" onkeydown="return event.key != \'Enter\';" />
+		&nbsp; дата оплаты: <input type="date" id="ext_pay_date" value="' . date("Y-m-d") . '" onkeydown="return event.key != \'Enter\';" />
+		<br />
+		<input type="button" id="ext_pay_button" value="Разнести оплату" onclick="ttExtApply(); return false;"
+			style="margin-top:6px;padding:5px 16px;cursor:pointer;" disabled="disabled" />
+		<span id="ext_pay_note" style="font-size:12px;margin-left:8px;">' . $applied_note . '</span>
+		<div style="color:#666;font-size:11px;margin-top:4px;">
+			Кнопка включается, только если оплата совпадает с расчётом до копейки. Иначе продление и оплату
+			вносят вручную по каждой позиции, как раньше.
+		</div>
+	</div>
 </div>
 
 <script>
 	var ttExtItems = ' . json_encode($ext_items, $json_flags) . ';
 	var ttExtClientId = ' . (int)$client_id . ';
+	var ttExtTotal = ' . ($ext_saved_meta ? round($ext_total_saved, 2) : 0) . ';
+	var ttExtApplied = ' . ($applied ? 'true' : 'false') . ';
 
 	function ttExtMoney(num) {
 		return num.toFixed(2).replace(\'.\', \',\');
@@ -3867,6 +3901,106 @@ function ext_calc_panel($client_id, $ext_items, $ext_saved_meta)
 		document.getElementById(\'ext_check_all\').checked = false;
 		document.getElementById(\'ext_total\').innerHTML = calc ? \'<strong>\' + ttExtMoney(calc.total) + \'</strong>\' : \'\';
 		ttExtRowToggle();
+
+		ttExtTotal = calc ? calc.total : 0;
+		ttExtApplied = calc ? !!calc.applied : false;
+		document.getElementById(\'ext_pay_block\').style.display = calc ? \'\' : \'none\';
+		document.getElementById(\'ext_pay_note\').innerHTML = (calc && calc.applied)
+			? \'Разнесено \' + calc.applied_time_h + (calc.applied_fio ? \', \' + calc.applied_fio : \'\')
+			: \'\';
+		ttExtPayCheck();
+	}
+
+	//кнопка разноски включается только при совпадении копейка-в-копейку
+	function ttExtPayCheck() {
+		var button = document.getElementById(\'ext_pay_button\');
+		var note = document.getElementById(\'ext_pay_note\');
+		var amountInput = document.getElementById(\'ext_pay_amount\');
+
+		if (ttExtApplied) {
+			button.disabled = true;
+			return;
+		}
+		if (!ttExtTotal) {
+			button.disabled = true;
+			note.innerHTML = \'\';
+			return;
+		}
+
+		var paidCents = Math.round((amountInput.value * 1 || 0) * 100);
+		var calcCents = Math.round(ttExtTotal * 100);
+		var channel = document.getElementById(\'ext_pay_type\').value;
+
+		if (amountInput.value === \'\') {
+			note.innerHTML = \'<span style="color:#666;">к разноске \' + ttExtMoney(ttExtTotal) + \'</span>\';
+			button.disabled = true;
+			return;
+		}
+		if (paidCents !== calcCents) {
+			note.innerHTML = \'<span style="color:#c62828;">не совпадает с расчётом \'
+				+ ttExtMoney(ttExtTotal) + \' — разнесите вручную</span>\';
+			button.disabled = true;
+			return;
+		}
+
+		note.innerHTML = \'<span style="color:#2e7d32;">сумма совпадает с расчётом\'
+			+ (channel ? \'\' : \', выберите канал оплаты\') + \'</span>\';
+		button.disabled = !channel;
+	}
+
+	function ttExtApply() {
+		if (!confirm(\'Разнести \' + ttExtMoney(ttExtTotal) + \' руб.: по каждой отмеченной позиции будет \'
+			+ \'создано продление и оплата. Продолжить?\')) {
+			return;
+		}
+
+		var button = document.getElementById(\'ext_pay_button\');
+		button.disabled = true;
+
+		fetch(\'/bb/ajax_ext_calc.php\', {
+			method: \'POST\',
+			credentials: \'same-origin\',
+			headers: { \'Content-Type\': \'application/json\' },
+			body: JSON.stringify({
+				action: \'apply\',
+				client_id: ttExtClientId,
+				amount: document.getElementById(\'ext_pay_amount\').value * 1,
+				payment_type: document.getElementById(\'ext_pay_type\').value,
+				ch_num: document.getElementById(\'ext_pay_ch_num\').value,
+				payment_date: document.getElementById(\'ext_pay_date\').value
+			})
+		})
+			.then(function (r) { return r.json(); })
+			.then(function (res) {
+				if (res.status != \'ok\') {
+					alert(\'Разноска не выполнена:\\n\\n\' + (res.msg || res.status));
+					ttExtPayCheck();
+					return;
+				}
+				alert(\'Разнесено позиций: \' + res.applied + \'. Страница будет перезагружена.\');
+				ttExtReloadClient();
+			})
+			.catch(function () {
+				alert(\'Разноска не выполнена: нет связи с сервером. Проверьте карточку клиента перед повтором.\');
+				ttExtPayCheck();
+			});
+	}
+
+	//карточка открывается POST-ом с client_id - тем же способом, что из поиска клиента.
+	//основную форму не сабмитим: у неё свои обработчики сохранения
+	function ttExtReloadClient() {
+		var form = document.createElement(\'form\');
+		form.method = \'post\';
+		form.action = \'/bb/dogovor_new.php\';
+
+		var field = document.createElement(\'input\');
+		field.type = \'hidden\';
+		field.name = \'client_id\';
+		field.value = ttExtClientId;
+
+		form.appendChild(field);
+		document.body.appendChild(form);
+		form.submit();
 	}
 
 	function ttExtSend(payload) {
@@ -3891,6 +4025,8 @@ function ext_calc_panel($client_id, $ext_items, $ext_saved_meta)
 				alert(\'Расчёт не сохранён: нет связи с сервером. Цифры на экране верные, но их не увидят другие сотрудники.\');
 			});
 	}
+
+	ttExtPayCheck();
 </script>
 ';
 }
