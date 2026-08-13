@@ -3502,7 +3502,7 @@ if ($cl_onh_num > 0) {
 		echo '>' . date("d.m.Y", $cl_onh['return_date']) . '</td>
 					<td>' . number_format($to_pay_cl, 2, ',', ' ') . '</td>
 					<td>' . number_format(($paid_cl - $to_pay_cl), 2, ',', ' ') . '</td>
-					<td>' . $past_due_2 . '</td>
+					<td style="text-align:right;white-space:nowrap;">' . past_due_print($past_due_2) . '</td>
 					<td id="ext_sum_' . $cl_onh['deal_id'] . '" style="text-align:right;white-space:nowrap;">' . $ext_cell . '</td>
 					<td>
 						<input type="button" name="noname" value="оформить" onclick="chose_item_cl(\'' . $cl_onh['item_inv_n'] . '\'); return false;" />
@@ -3521,7 +3521,7 @@ if ($cl_onh_num > 0) {
 						<td></td>
 						<td><strong>' . number_format($total_to_pay, 2, ',', ' ') . '</strong></td>
 						<td><strong>' . number_format(($total_paid - $total_to_pay), 2, ',', ' ') . '</strong></td>
-						<td><strong>' . $past_due_total . '</strong></td>
+						<td style="text-align:right;white-space:nowrap;">' . past_due_print($past_due_total) . '</td>
 						<td id="ext_total" style="text-align:right;white-space:nowrap;">' . ($ext_saved ? '<strong>' . number_format($ext_total_saved, 2, ',', ' ') . '</strong>' : '') . '</td>
 						<td><input type="submit" value="пересчитать"></td>
 					</tr>
@@ -3713,6 +3713,22 @@ echo '
 
 
 
+
+/**
+ * Просрочка в таблице «У клиента на руках».
+ *
+ * Нулей у большинства позиций больше, чем сумм, и столбец нулей глушил
+ * единственное, ради чего колонка нужна — реальный долг. Ноль показываем
+ * прочерком, долг — красным и в том же денежном формате, что соседние колонки.
+ */
+function past_due_print($amount)
+{
+	if ($amount == 0) {
+		return '<span style="color:var(--text-muted);">&mdash;</span>';
+	}
+
+	return '<strong style="color:var(--danger-soft);">' . number_format($amount, 2, ',', ' ') . '</strong>';
+}
 
 /**
  * Панель массового расчёта продления под таблицей «У клиента на руках».
