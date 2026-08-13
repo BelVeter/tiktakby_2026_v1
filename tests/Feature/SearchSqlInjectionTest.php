@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class SearchSqlInjectionTest extends TestCase
 {
+    use DatabaseTransactions;
+
     public function test_search_with_single_quote_does_not_crash(): void
     {
         $response = $this->get('/ru/search?search=' . urlencode("test' OR '1'='1"));

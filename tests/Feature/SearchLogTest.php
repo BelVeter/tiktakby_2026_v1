@@ -76,14 +76,31 @@ class SearchLogTest extends TestCase
         ]);
     }
 
-    public function test_long_query_is_truncated_and_does_not_fail(): void
+    public function test_long_cyrillic_query_under_limit_is_stored_untruncated(): void
     {
-        $query = str_repeat('a', 400);
+        // 200 символов «я» = 400 байт в UTF-8 — старый substr()-по-байтам обрезал бы
+        // это ещё внутри многобайтового символа (порог 255 байт) и ломал бы UTF-8,
+        // а строгий MariaDB-коннекшн (strict => true) молча отклонял бы INSERT.
+        // 200 символов < лимита колонки в 255 символов, поэтому усечения быть не должно вовсе.
+        $query = str_repeat('я', 200);
 
         $response = $this->get('/ru/search?search=' . urlencode($query));
 
         $response->assertStatus(200);
-        $this->assertDatabaseHas('search_log', ['query' => substr($query, 0, 255)]);
+        $this->assertSame(200, mb_strlen($query));
+        $this->assertDatabaseHas('search_log', ['query' => $query]);
+    }
+
+    public function test_long_cyrillic_query_over_limit_is_truncated_by_character(): void
+    {
+        // 300 символов «я» — намеренно превышает лимит колонки в 255 символов,
+        // чтобы усечение реально сработало и было mb-safe (по символам, не по байтам).
+        $query = str_repeat('я', 300);
+
+        $response = $this->get('/ru/search?search=' . urlencode($query));
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('search_log', ['query' => mb_substr($query, 0, 255)]);
     }
 
     public function test_producer_filter_does_not_write_to_search_log(): void

@@ -71,9 +71,9 @@ class SearchController extends Controller
             DB::table('search_log')->insert([
                 'created_at'    => now(),
                 'ip'            => $req->ip(),
-                'query'         => substr($text, 0, 255),
+                'query'         => mb_substr($text, 0, 255),
                 'results_count' => $resultsCount,
-                'user_agent'    => substr($req->userAgent() ?? '', 0, 255),
+                'user_agent'    => mb_substr($req->userAgent() ?? '', 0, 255),
             ]);
         } catch (\Exception $e) {
             \Log::error('SearchLog failed: ' . $e->getMessage());
