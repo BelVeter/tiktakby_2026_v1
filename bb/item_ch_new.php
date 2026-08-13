@@ -1054,8 +1054,8 @@ if ($item_rows == 1) {
 Стоимость аренды: <input type="text" name="r_to_pay" id="r_to_pay" size="10" value="" />,
   <select name="rent_payment_type" id="rent_payment_type" onchange="multi_ch();">
     <option value="no_payment">не оплачено</option>
-    <option value="nal_no_cheque">нал без чека</option>
-    <option value="nal_cheque">нал с чеком</option>
+    <option value="nal_no_cheque">Касса 2</option>
+    <option value="nal_cheque">Касса 1</option>
     <option value="card">карточка</option>
     <option value="bank">банк</option>
     <option value="multi">мульти-оплата</option>
@@ -1065,8 +1065,8 @@ if ($item_rows == 1) {
 </div>
 
 <div id="multi_pay" style="display:none; position:relative; left:135px;">
-  <input type="number" step="any" name="rent_p_k1" id="rent_p_k1" value="" style="width:90px;" /> касса 1 (нч), № документа: <input type="text" name="ch_num_p_k1" id="ch_num_p_k1" value="" size="10" /><br />
-  <input type="number" step="any" name="rent_p_k2" id="rent_p_k2" value="" style="width:90px;" /> касса 2 (нбч)<br />
+  <input type="number" step="any" name="rent_p_k1" id="rent_p_k1" value="" style="width:90px;" /> Касса 1, № документа: <input type="text" name="ch_num_p_k1" id="ch_num_p_k1" value="" size="10" /><br />
+  <input type="number" step="any" name="rent_p_k2" id="rent_p_k2" value="" style="width:90px;" /> Касса 2<br />
   <input type="number" step="any" name="rent_p_card" id="rent_p_card" value="" style="width:90px;" /> карточка, № документа: <input type="text" name="ch_num_p_card" id="ch_num_p_card" value="" size="10" /><br />
   <input type="number" step="any" name="rent_p_bank" id="rent_p_bank" value="" style="width:90px;" /> банк, № документа: <input type="text" name="ch_num_p_bank" id="ch_num_p_bank" value="" size="10" /><br />
 </div>
@@ -1223,8 +1223,8 @@ if ($item_rows == 1) {
 			<td><input type="number" step="0.01" name="rent_payment" id="rent_payment" value="' . (-$dl_def['r_paid'] + $dl_def['r_to_pay']) . '" size="10"/></td>
 			<td>
 				<select name="rent_payment_type" id="rent_payment_type" onchange="multi_ch();">
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
+					<option value="nal_no_cheque">Касса 2</option>
+					<option value="nal_cheque">Касса 1</option>
 					<option value="card">карточка</option>
 					<option value="bank">банк</option>
 					<option value="multi">мульти-оплата</option>
@@ -1235,8 +1235,8 @@ if ($item_rows == 1) {
 			<td size="10" style="display:none;">
 				<select name="del_payment_type" id="del_payment_type">
 					<option value="no_payment">не оплачено</option>
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
+					<option value="nal_no_cheque">Касса 2</option>
+					<option value="nal_cheque">Касса 1</option>
 					<option value="card">карточка</option>
 					<option value="bank">банк</option>
 				</select>
@@ -1245,8 +1245,8 @@ if ($item_rows == 1) {
 		</tr>
 	</table>
 	<div id="multi_pay" style="display:none; position:relative; left:165px;">
-		<input type="number" step="any" name="rent_p_k1" id="rent_p_k1" value="" style="width:90px;" />	касса 1 (нч), № документа: <input type="text" name="ch_num_p_k1" id="ch_num_p_k1" value="" size="10" /><br />
-		<input type="number" step="any" name="rent_p_k2" id="rent_p_k2" value="" style="width:90px;" />	касса 2 (нбч)<br />
+		<input type="number" step="any" name="rent_p_k1" id="rent_p_k1" value="" style="width:90px;" />	Касса 1, № документа: <input type="text" name="ch_num_p_k1" id="ch_num_p_k1" value="" size="10" /><br />
+		<input type="number" step="any" name="rent_p_k2" id="rent_p_k2" value="" style="width:90px;" />	Касса 2<br />
 		<input type="number" step="any" name="rent_p_card" id="rent_p_card" value="" style="width:90px;" />	карточка, № документа: <input type="text" name="ch_num_p_card" id="ch_num_p_card" value="" size="10" /><br />
 		<input type="number" step="any" name="rent_p_bank" id="rent_p_bank" value="" style="width:90px;" />	банк, № документа: <input type="text" name="ch_num_p_bank" id="ch_num_p_bank" value="" size="10" /><br />
 	</div>
@@ -1298,8 +1298,8 @@ if ($item_rows == 1) {
 
 			<select name="return_p_kassa" id="return_p_kassa" onchange="voz_ch();">
 				<option value="no_payment">не оплачено</option>
-				<option value="nal_no_cheque">нал без чека</option>
-				<option value="nal_cheque">нал с чеком</option>
+				<option value="nal_no_cheque">Касса 2</option>
+				<option value="nal_cheque">Касса 1</option>
 				<option value="card">карточка</option>
 				<option value="bank">банк</option>
 			</select>
@@ -1316,8 +1316,8 @@ if ($item_rows == 1) {
 				Оплачено за выезд:<input type="number" step="0.01" name="delivery_price" id="delivery_price" size="10" value="" disabled="disabled" />бел. руб.
 				<select name="return_p_kassa_deliv" id="return_p_kassa_deliv" disabled="disabled">
 					<option value="no_payment">не оплачено</option>
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
+					<option value="nal_no_cheque">Касса 2</option>
+					<option value="nal_cheque">Касса 1</option>
 					<option value="card">карточка</option>
 					<option value="bank">банк</option>
 				</select>
@@ -1481,11 +1481,11 @@ function p_type($p_type)
 {
 	switch ($p_type) {
 		case 'nal_no_cheque':
-			$output = 'нал без чека';
+			$output = 'Касса 2';
 			break;
 
 		case 'nal_cheque':
-			$output = 'нал с чеком';
+			$output = 'Касса 1';
 			break;
 
 		case 'card':

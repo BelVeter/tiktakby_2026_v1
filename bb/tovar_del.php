@@ -530,8 +530,8 @@ echo '
 Получено при выбытии: <input type="text" name="sell_amount_byr" /> тыс.бел.руб. = <input type="text" name="sell_amount_usd" /> эквивалент USD
 <select name="rent_payment_type" id="rent_payment_type">
 					<option value="no_payment">не оплачено</option>
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
+					<option value="nal_no_cheque">Касса 2</option>
+					<option value="nal_cheque">Касса 1</option>
 					<option value="card">карточка</option>
 					<option value="bank">банк</option>
 </select>

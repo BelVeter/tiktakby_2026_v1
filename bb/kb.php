@@ -1009,8 +1009,8 @@ while ($kb = $result_kb->fetch_assoc()) {
 			Дата оплаты: <input type="date" name="payment_date" id="payment_date" value="' . date("Y-m-d") . '" /><br />
 			Сумма:<input type="number" step="0.01" name="r_paid" id="r_paid" size="10" value="" />,
 			<select name="rent_payment_type" id="rent_payment_type" >
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
+					<option value="nal_no_cheque">Касса 2</option>
+					<option value="nal_cheque">Касса 1</option>
 					<option value="card">карточка</option>
 					<option value="bank">банк</option>
 			</select><br />

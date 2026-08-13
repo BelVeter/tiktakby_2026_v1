@@ -815,8 +815,8 @@ if ($tov) {
                             <input type="number" form="vozvr_form_'.$br_a->id_kb.'" class="form-control form-control-sm" style="width: 100px; display: inline-block;" step="0.01" name="r_paid" id="vozvr_r_paid" size="10" value="" /><br>
                             <select form="vozvr_form_'.$br_a->id_kb.'" name="rent_payment_type" id="vozvr_rent_payment_type" class="form-control form-control-sm" style="width: 110px; display: inline-block" onchange="date_avail(\''.$br_a->id_kb.'\')">
                                     <option value="0">касса</option>
-                                    <option value="nal_no_cheque">нал без чека</option>
-                                    <option value="nal_cheque">нал с чеком</option>
+                                    <option value="nal_no_cheque">Касса 2</option>
+                                    <option value="nal_cheque">Касса 1</option>
                                     <option value="card">карточка</option>
                                     <!--<option value="bank">банк</option>-->
                             </select>
