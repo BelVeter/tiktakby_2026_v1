@@ -266,16 +266,16 @@ switch ($action_type) {
 Оплата аренды:<input type="number" step="0.01" name="r_paid" id="r_paid_'.$sub_dl_id.'" size="10" value="'.$sub_dl_def['r_to_pay'].'" /> бел. руб.
 		<select name="rent_payment_type" id="rent_payment_type_'.$sub_dl_id.'" onclick="ch_num_ch(\\\''.$sub_dl_id.'\\\');">
 					<option value="no_payment">не оплачено</option>
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
+					<option value="nal_no_cheque">Касса 2</option>
+					<option value="nal_cheque">Касса 1</option>
 					<option value="card">карточка</option>
 					<option value="bank">банк</option>
 		</select><br />
 Оплата доставки:<input type="number" step="0.01" name="del_paid" id="del_paid_'.$sub_dl_id.'" size="10" value="'.$sub_dl_def['delivery_to_pay'].'" /> бел. руб.
 		<select name="del_payment_type" id="del_payment_type_'.$sub_dl_id.'" onclick="ch_num_ch(\\\''.$sub_dl_id.'\\\');">
 					<option value="no_payment">не оплачено</option>
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
+					<option value="nal_no_cheque">Касса 2</option>
+					<option value="nal_cheque">Касса 1</option>
 					<option value="card">карточка</option>
 					<option value="bank">банк</option>
 		</select>
@@ -391,8 +391,8 @@ if ($sub_dl_def['type']=='cur_return') {
 
 			<select name="return_p_kassa" id="return_p_kassa_'.$sub_dl_id.'" onclick="ch_num_ch_ret(\\\''.$sub_dl_id.'\\\');">
 				<option value="no_payment">не оплачено</option>
-				<option value="nal_no_cheque">нал без чека</option>
-				<option value="nal_cheque">нал с чеком</option>
+				<option value="nal_no_cheque">Касса 2</option>
+				<option value="nal_cheque">Касса 1</option>
 				<option value="card">карточка</option>
 				<option value="bank">банк</option>
 			</select> <br />
@@ -400,8 +400,8 @@ if ($sub_dl_def['type']=='cur_return') {
 				Оплачено за курьера:<input type="number" step="0.01" name="delivery_paid" id="delivery_price_'.$sub_dl_id.'" size="10" value="'.(-$total_del).'" /> бел. руб.
 				<select name="return_p_kassa_deliv" id="return_p_kassa_deliv_'.$sub_dl_id.'" onclick="ch_num_ch_ret(\\\''.$sub_dl_id.'\\\');">
 					<option value="no_payment">не оплачено</option>
-					<option value="nal_no_cheque">нал без чека</option>
-					<option value="nal_cheque">нал с чеком</option>
+					<option value="nal_no_cheque">Касса 2</option>
+					<option value="nal_cheque">Касса 1</option>
 					<option value="card">карточка</option>
 					<option value="bank">банк</option>
 				</select>

@@ -622,8 +622,8 @@ echo '
 			<th style="width:90px;">опл-о
 				<select name="payment_type" id="rent_payment_type" form="srch_form" onchange="document.getElementById(\'srch_form\').submit();" style="width:50px;">
 							<option value="all" ' . sel_d('all', $payment_type) . '>все</option>
-							<option value="nal_no_cheque" ' . sel_d('nal_no_cheque', $payment_type) . '>Касса №2</option>
-							<option value="nal_cheque" ' . sel_d('nal_cheque', $payment_type) . '>Касса №1</option>
+							<option value="nal_no_cheque" ' . sel_d('nal_no_cheque', $payment_type) . '>Касса 2</option>
+							<option value="nal_cheque" ' . sel_d('nal_cheque', $payment_type) . '>Касса 1</option>
 							<option value="card" ' . sel_d('card', $payment_type) . '>карточка</option>
 							<option value="bank" ' . sel_d('bank', $payment_type) . '>банк</option>
 					</select>

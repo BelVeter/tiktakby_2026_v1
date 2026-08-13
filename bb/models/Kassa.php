@@ -39,10 +39,10 @@ class Kassa
     public function getKassaTypeText(){
         switch ($this->kassa_type){
             case 'nal_cheque':
-                return 'Касса №1';
+                return 'Касса 1';
                 break;
-            case 'nal_cheque':
-                return 'Касса №2';
+            case 'nal_no_cheque': // был продублирован 'nal_cheque' - «Касса 2» не возвращалась никогда
+                return 'Касса 2';
                 break;
             case 'card':
                 return 'Терминал (карточка)';

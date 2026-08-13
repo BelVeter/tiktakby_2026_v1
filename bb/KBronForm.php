@@ -83,8 +83,8 @@ class KBronForm
                                 Дата оплаты: <br><input type="date" readonly class="form-control form-control-sm" style="width: 150px; display: inline-block;" name="payment_date" id="payment_date_'.$br->id_kb.'" value="'.date("Y-m-d").'" />,<br>
                                 <input type="number" class="form-control form-control-sm" style="width: 100px; display: inline-block;" step="0.01" name="r_paid" id="r_paid_'.$br->id_kb.'" size="10" value="" /> руб.,<br>
                                 <select name="rent_payment_type" id="rent_payment_type_'.$br->id_kb.'" class="form-control form-control-sm" style="width: 110px; display: inline-block" onchange="date_avail(\''.$br->id_kb.'\')">
-                                        <option value="nal_no_cheque">нал без чека</option>
-                                        <option value="nal_cheque">нал с чеком</option>
+                                        <option value="nal_no_cheque">Касса 2</option>
+                                        <option value="nal_cheque">Касса 1</option>
                                         <option value="card">карточка</option>
                                         <option value="bank">банк</option>
                                 </select><br />

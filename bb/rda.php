@@ -739,9 +739,9 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/includes/zv_show2.php');
                 <select name="payment_type" id="rent_payment_type" form="srch_form"
                     onchange="document.getElementById('srch_form').submit();">
                     <option value="all" <?= DealRow::sel_d($payment_type, 'all') ?>>все</option>
-                    <option value="nal_no_cheque" <?= DealRow::sel_d($payment_type, 'nal_no_cheque') ?>>Касса №2
+                    <option value="nal_no_cheque" <?= DealRow::sel_d($payment_type, 'nal_no_cheque') ?>>Касса 2
                     </option>
-                    <option value="nal_cheque" <?= DealRow::sel_d($payment_type, 'nal_cheque') ?>>Касса №1</option>
+                    <option value="nal_cheque" <?= DealRow::sel_d($payment_type, 'nal_cheque') ?>>Касса 1</option>
                     <option value="card" <?= DealRow::sel_d($payment_type, 'card') ?>>Карточка</option>
                     <option value="bank" <?= DealRow::sel_d($payment_type, 'bank') ?>>Банк</option>
                 </select>

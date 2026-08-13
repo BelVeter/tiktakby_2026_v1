@@ -3775,8 +3775,8 @@ function ext_calc_panel($client_id, $ext_items, $ext_saved_meta, $ext_total_save
 			oninput="ttExtPayCheck();" onkeydown="return event.key != \'Enter\';" /> бел. руб.
 		&nbsp; <select id="ext_pay_type" onchange="ttExtPayCheck();">
 			<option value="">-- канал оплаты --</option>
-			<option value="nal_no_cheque">нал без чека</option>
-			<option value="nal_cheque">нал с чеком</option>
+			<option value="nal_no_cheque">Касса 2</option>
+			<option value="nal_cheque">Касса 1</option>
 			<option value="card">карточка</option>
 			<option value="bank">банк</option>
 		</select>

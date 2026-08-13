@@ -376,8 +376,8 @@ if (isset($_GET['client_id']) && intval($_GET['client_id']) > 0) {
   <div style="margin:8px 0;">
     Тип оплаты:
     <select id="pay-type">
-      <option value="nal_cheque">Нал с чеком</option>
-      <option value="nal_no_cheque">Нал без чека</option>
+      <option value="nal_cheque">Касса 1</option>
+      <option value="nal_no_cheque">Касса 2</option>
       <option value="card">Карта</option>
       <option value="bank">Банк</option>
     </select>
