@@ -3761,7 +3761,7 @@ function ext_calc_panel($client_id, $ext_items, $ext_saved_meta, $ext_total_save
 	&nbsp; отмеченные позиции по дату:
 	<input type="date" id="ext_to_date" value="' . $default_to . '" onkeydown="return event.key != \'Enter\';" />
 	&nbsp;
-	<input type="button" value="Рассчитать продление" onclick="ttExtCalc(); return false;" style="padding:4px 14px;cursor:pointer;" />
+	<input type="button" id="ext_calc_button" value="Рассчитать продление" onclick="ttExtCalc(); return false;" />
 	<input type="button" value="Очистить" onclick="ttExtClear(); return false;" style="padding:4px 10px;cursor:pointer;" />
 	<span id="ext_calc_note" style="color:#666;font-size:12px;margin-left:8px;">' . $note . '</span>
 	<div style="color:#666;font-size:11px;margin-top:4px;">
@@ -3783,8 +3783,7 @@ function ext_calc_panel($client_id, $ext_items, $ext_saved_meta, $ext_total_save
 		&nbsp; № документа: <input type="text" id="ext_pay_ch_num" value="" size="10" onkeydown="return event.key != \'Enter\';" />
 		&nbsp; дата оплаты: <input type="date" id="ext_pay_date" value="' . date("Y-m-d") . '" onkeydown="return event.key != \'Enter\';" />
 		<br />
-		<input type="button" id="ext_pay_button" value="Разнести оплату" onclick="ttExtApply(); return false;"
-			style="margin-top:6px;padding:5px 16px;cursor:pointer;" disabled="disabled" />
+		<input type="button" id="ext_pay_button" value="Разнести оплату" onclick="ttExtApply(); return false;" disabled="disabled" />
 		<span id="ext_pay_note" style="font-size:12px;margin-left:8px;">' . $applied_note . '</span>
 		<div style="color:#666;font-size:11px;margin-top:4px;">
 			Кнопка включается, только если оплата совпадает с расчётом до копейки. Иначе продление и оплату
