@@ -495,20 +495,12 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 			let oldTarif = false;
 
 			if (oldTarifBase != undefined) {
-				oldTarif = {
-					days: oldTarifBase.dataset.days * 1,
-					perDay: (Math.round((oldTarifBase.value / oldTarifBase.dataset.days) * 100) / 100),
-					total: (Math.round((oldTarifBase.value / oldTarifBase.dataset.days) * 100) / 100) * oldTarifBase.dataset.days * 1,
-				}
+				oldTarif = makeTarif(oldTarifBase.dataset.days * 1, oldTarifBase.value * 1);
 			}
 
 			let days = getDayDiffDates();
 
-			let totalPay = getRentToPay(days);
-			if (oldTarif) {
-				oldTotal = days * oldTarif.perDay;
-				if (oldTotal < totalPay) totalPay = oldTotal;
-			}
+			let totalPay = capByOldTarif(getRentToPay(days), days, oldTarif);
 
 			let perDayPay = totalPay / days;
 
@@ -519,16 +511,23 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 			//console.log(tarifs, tarifsCopy);
 		}
 
-		function getRentToPay(days) {
-			let tarifs = [];
-			document.querySelectorAll('.tarif').forEach((el) => {
-				tarifs.push({
-					days: el.dataset.days * 1,
-					perDay: (Math.round((el.value / el.dataset.days) * 100) / 100),
-					total: (Math.round((el.value / el.dataset.days) * 100) / 100) * el.dataset.days * 1,
-				});
-			});
-			tarifs.sort((a, b) => {
+		//тариф в виде, в котором его понимает calcRentToPay(): цена за день + сумма за весь шаг
+		function makeTarif(days, amount) {
+			let perDay = Math.round((amount / days) * 100) / 100;
+			return { days: days, perDay: perDay, total: perDay * days };
+		}
+
+		//последний применённый по сделке тариф работает как потолок: дороже него продление не считаем
+		//tarif_value заполнен не во всех старых сделках, а нулевой потолок обнулил бы продление - такой тариф игнорируем
+		function capByOldTarif(amount, days, oldTarif) {
+			if (!oldTarif || !(oldTarif.perDay > 0)) return amount;
+			let oldTotal = days * oldTarif.perDay;
+			return oldTotal < amount ? oldTotal : amount;
+		}
+
+		//чистое ядро расчёта: ни DOM, ни глобальных переменных - его же зовет массовый расчёт продления
+		function calcRentToPay(days, tarifs, discount) {
+			tarifs = tarifs.slice().sort((a, b) => {
 				return a.days - b.days;
 			});
 
@@ -539,19 +538,27 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 
 			let theTarif = getTarifForDaysPeriod(days, tarifs);
 			let dayTarif = getDayTarifForDaysPeriod(days, tarifs);
+			dayTarif = Math.round(dayTarif * (1 - discount / 100) * 100) / 100;
+
+			let amount = Math.round(days * dayTarif * 100) / 100;
+			let ceilingAmount = getCeilingAmountForTarif(theTarif, tarifsCopy);
+			if (ceilingAmount && amount > ceilingAmount) amount = ceilingAmount;
+			return amount;
+		}
+
+		function getRentToPay(days) {
+			let tarifs = [];
+			document.querySelectorAll('.tarif').forEach((el) => {
+				tarifs.push(makeTarif(el.dataset.days * 1, el.value * 1));
+			});
+
 			let discountInput = document.querySelector('#discount');
-			console.log(discountInput);
 			let discount = 0;
 			if (discountInput != undefined) {
 				discount = Math.round(discountInput.value * 1);
-				dayTarif = Math.round(dayTarif * (1 - discount / 100) * 100) / 100;
 			}
-			let amount = Math.round(days * dayTarif * 100) / 100;
-			let ceilingAmount = getCeilingAmountForTarif(theTarif, tarifsCopy);
-			//console.log(amount, ceilingAmount);
-			if (ceilingAmount && amount > ceilingAmount) amount = ceilingAmount;
-			//console.log(amount, ceilingAmount);
-			return amount;
+
+			return calcRentToPay(days, tarifs, discount);
 		}
 
 		function getTarifForDaysPeriod(days, tarifs) {
@@ -3338,10 +3345,31 @@ if ($cl_onh_num > 0) {
 	$total_to_pay = 0;
 	$total_paid = 0;
 	$past_due_total = 0;
+
+	// последний справочный расчёт продления по клиенту (bb/ajax_ext_calc.php)
+	$ext_saved = array();
+	$ext_saved_meta = null;
+	$query_ext = "SELECT c.deal_id, c.ext_to, c.ext_days, c.amount, c.calc_time, l.lp_fio
+					FROM rent_ext_calc c
+					LEFT JOIN logpass l ON l.logpass_id = c.user_id
+					WHERE c.client_id='" . (int)$client_id . "'";
+	$result_ext = $mysqli->query($query_ext);
+	if ($result_ext) {
+		while ($ext_row = $result_ext->fetch_assoc()) {
+			$ext_saved[$ext_row['deal_id']] = $ext_row;
+			$ext_saved_meta = $ext_row;
+		}
+	}
+	$ext_total_saved = 0;
+
+	// исходные данные для массового расчёта: тарифы модели и последний применённый тариф сделки
+	$ext_items = array();
+
 	echo '<strong>У клиента на руках (у учетом в пути у курьера) ' . $cl_onh_num . ' товар(-ов):</strong>
 
 				<table border="1" cellspacing="0">
 				<tr>
+					<th><input type="checkbox" id="ext_check_all" onclick="ttExtToggleAll(this);" title="выделить все" /></th>
 					<th>инв.№</th>
 					<th>Товар</th>
 					<th>с</th>
@@ -3349,6 +3377,7 @@ if ($cl_onh_num > 0) {
 					<th>Сумма сделки</th>
 					<th>Долг <br />(- нам, + мы)</th>
 					<th>За просрочку</th>
+					<th>Продление</th>
 					<th>Действия</th>
 				</tr>
 
@@ -3404,9 +3433,55 @@ if ($cl_onh_num > 0) {
 			$fr_col = '';
 		}
 
+		// ---- данные для массового расчёта продления ----
+		// действующие тарифы модели: те же, что показывает форма продления
+		$ext_tarifs = array();
+		$query_ext_tarif = "SELECT kol_vo, rent_amount, sort_num FROM rent_tarif_act
+							WHERE model_id='" . (int)$item['model_id'] . "' ORDER BY sort_num, kol_vo";
+		$result_ext_tarif = $mysqli->query($query_ext_tarif);
+		if ($result_ext_tarif) {
+			while ($ext_tarif = $result_ext_tarif->fetch_assoc()) {
+				$ext_tarifs[] = array(
+					'days'  => (int)$ext_tarif['sort_num'] * (int)$ext_tarif['kol_vo'],
+					'value' => (float)$ext_tarif['rent_amount'],
+				);
+			}
+		}
+
+		// последний применённый по сделке тариф — он же потолок цены продления
+		$ext_old = null;
+		$query_ext_old = "SELECT tarif_value, tarif_step FROM rent_sub_deals_act
+							WHERE deal_id='" . (int)$cl_onh['deal_id'] . "'
+							AND type IN ('first_rent', 'extention', 'takeaway_plan')
+							ORDER BY sub_deal_id DESC LIMIT 1";
+		$result_ext_old = $mysqli->query($query_ext_old);
+		if ($result_ext_old && ($ext_old_row = $result_ext_old->fetch_assoc())) {
+			$ext_old = array(
+				'days'  => ($ext_old_row['tarif_step'] == 'month' ? 30 : ($ext_old_row['tarif_step'] == 'week' ? 7 : 1)),
+				'value' => (float)$ext_old_row['tarif_value'],
+			);
+		}
+
+		$ext_items[$cl_onh['deal_id']] = array(
+			'inv_n'  => $cl_onh['item_inv_n'],
+			'from'   => date("Y-m-d", $cl_onh['return_date']),
+			'tarifs' => $ext_tarifs,
+			'old'    => $ext_old,
+		);
+
+		$ext_cell = '&mdash;';
+		$ext_checked = '';
+		if (isset($ext_saved[$cl_onh['deal_id']])) {
+			$ext_row = $ext_saved[$cl_onh['deal_id']];
+			$ext_total_saved += $ext_row['amount'];
+			$ext_checked = ' checked="checked"';
+			$ext_cell = '<strong>' . number_format($ext_row['amount'], 2, ',', ' ') . '</strong>'
+				. '<br /><span style="color:#666;font-size:11px;">' . (int)$ext_row['ext_days'] . ' дн.</span>';
+		}
 
 		echo '
 				<tr>
+					<td><input type="checkbox" class="ext_row_cb" data-deal="' . $cl_onh['deal_id'] . '" onclick="ttExtRowToggle();"' . $ext_checked . ' /></td>
 					<td ' . $fr_col . '>' . $cl_onh['item_inv_n'] . '</td>
 					<td>' . ($model['model_addr'] != '' ? $model['model_addr'] : $cat['dog_name']) . ' ' . $model['producer'] . ', модель: ' . $model['model'] . $color . '</td>
 					<td>' . date("d.m.Y", $cl_onh['start_date']) . '</td>
@@ -3426,6 +3501,7 @@ if ($cl_onh_num > 0) {
 					<td>' . number_format($to_pay_cl, 2, ',', ' ') . '</td>
 					<td>' . number_format(($paid_cl - $to_pay_cl), 2, ',', ' ') . '</td>
 					<td>' . $past_due_2 . '</td>
+					<td id="ext_sum_' . $cl_onh['deal_id'] . '" style="text-align:right;white-space:nowrap;">' . $ext_cell . '</td>
 					<td>
 						<input type="button" name="noname" value="оформить" onclick="chose_item_cl(\'' . $cl_onh['item_inv_n'] . '\'); return false;" />
 
@@ -3437,17 +3513,20 @@ if ($cl_onh_num > 0) {
 
 	echo '		<tr>
 						<td></td>
+						<td></td>
 						<td><strong>Итого:</strong></td>
 						<td></td>
 						<td></td>
 						<td><strong>' . number_format($total_to_pay, 2, ',', ' ') . '</strong></td>
 						<td><strong>' . number_format(($total_paid - $total_to_pay), 2, ',', ' ') . '</strong></td>
 						<td><strong>' . $past_due_total . '</strong></td>
+						<td id="ext_total" style="text-align:right;white-space:nowrap;">' . ($ext_saved ? '<strong>' . number_format($ext_total_saved, 2, ',', ' ') . '</strong>' : '') . '</td>
 						<td><input type="submit" value="пересчитать"></td>
 					</tr>
 
 						</table>';
 
+	ext_calc_panel($client_id, $ext_items, $ext_saved_meta);
 
 } else {
 	echo '<strong>У клиента нет товаров на руках.</strong>';
@@ -3631,6 +3710,190 @@ echo '
 
 
 
+
+
+/**
+ * Панель массового расчёта продления под таблицей «У клиента на руках».
+ *
+ * Считает фронт — теми же calcRentToPay()/capByOldTarif(), что и форма продления,
+ * иначе цифры разъедутся с тем, что сотрудник увидит при реальном оформлении.
+ * Результат уходит на хранение в rent_ext_calc и виден любому сотруднику.
+ */
+function ext_calc_panel($client_id, $ext_items, $ext_saved_meta)
+{
+	if (!$ext_items) {
+		return;
+	}
+
+	// по умолчанию — неделя от самой поздней даты возврата
+	$default_to = 0;
+	foreach ($ext_items as $ext_item) {
+		$item_to = strtotime($ext_item['from']);
+		if ($item_to > $default_to) {
+			$default_to = $item_to;
+		}
+	}
+	$default_to = date("Y-m-d", $default_to + 7 * 24 * 60 * 60);
+	if ($ext_saved_meta) {
+		$default_to = date("Y-m-d", $ext_saved_meta['ext_to']);
+	}
+
+	$note = '';
+	if ($ext_saved_meta) {
+		$note = 'расчёт от ' . date("d.m.Y H:i", $ext_saved_meta['calc_time'])
+			. ($ext_saved_meta['lp_fio'] != '' ? ', ' . $ext_saved_meta['lp_fio'] : '');
+	}
+
+	$json_flags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
+
+	echo '
+<div id="ext_calc_panel" style="margin:8px 0 16px 0;padding:8px 12px;border:1px solid #ccc;border-radius:6px;display:inline-block;">
+	<strong>Расчёт продления</strong>
+	&nbsp; отмеченные позиции по дату:
+	<input type="date" id="ext_to_date" value="' . $default_to . '" onkeydown="return event.key != \'Enter\';" />
+	&nbsp;
+	<input type="button" value="Рассчитать продление" onclick="ttExtCalc(); return false;" style="padding:4px 14px;cursor:pointer;" />
+	<input type="button" value="Очистить" onclick="ttExtClear(); return false;" style="padding:4px 10px;cursor:pointer;" />
+	<span id="ext_calc_note" style="color:#666;font-size:12px;margin-left:8px;">' . $note . '</span>
+	<div style="color:#666;font-size:11px;margin-top:4px;">
+		Продление каждой позиции считается с её текущей даты возврата, поэтому просроченные дни уже входят в сумму.
+		Расчёт справочный — деньги фиксируются при оформлении позиции.
+	</div>
+</div>
+
+<script>
+	var ttExtItems = ' . json_encode($ext_items, $json_flags) . ';
+	var ttExtClientId = ' . (int)$client_id . ';
+
+	function ttExtMoney(num) {
+		return num.toFixed(2).replace(\'.\', \',\');
+	}
+
+	function ttExtToggleAll(cb) {
+		document.querySelectorAll(\'.ext_row_cb\').forEach(function (el) {
+			el.checked = cb.checked;
+		});
+	}
+
+	function ttExtRowToggle() {
+		var all = document.querySelectorAll(\'.ext_row_cb\').length;
+		var checked = document.querySelectorAll(\'.ext_row_cb:checked\').length;
+		document.getElementById(\'ext_check_all\').checked = (all > 0 && all == checked);
+	}
+
+	function ttExtDaysBetween(fromStr, toStr) {
+		return Math.round((new Date(toStr) - new Date(fromStr)) / (1000 * 60 * 60 * 24));
+	}
+
+	function ttExtCalc() {
+		var extTo = document.getElementById(\'ext_to_date\').value;
+		if (!extTo) {
+			alert(\'Укажите дату, по которую продлеваем.\');
+			return;
+		}
+
+		var checked = document.querySelectorAll(\'.ext_row_cb:checked\');
+		if (checked.length == 0) {
+			alert(\'Отметьте хотя бы одну позицию.\');
+			return;
+		}
+
+		//невыбранные строки не должны показывать прошлый расчёт
+		document.querySelectorAll(\'.ext_row_cb\').forEach(function (cb) {
+			if (!cb.checked) document.getElementById(\'ext_sum_\' + cb.dataset.deal).innerHTML = \'&mdash;\';
+		});
+
+		var rows = [];
+		var total = 0;
+
+		checked.forEach(function (cb) {
+			var dealId = cb.dataset.deal;
+			var item = ttExtItems[dealId];
+			var cell = document.getElementById(\'ext_sum_\' + dealId);
+
+			var days = ttExtDaysBetween(item.from, extTo);
+			if (days < 1) {
+				cell.innerHTML = \'<span style="color:#c62828;font-size:11px;">сдан позже<br />этой даты</span>\';
+				return;
+			}
+			if (!item.tarifs.length) {
+				cell.innerHTML = \'<span style="color:#c62828;font-size:11px;">нет тарифов</span>\';
+				return;
+			}
+
+			var tarifs = item.tarifs.map(function (t) { return makeTarif(t.days, t.value); });
+			var oldTarif = item.old ? makeTarif(item.old.days, item.old.value) : false;
+			var amount = capByOldTarif(calcRentToPay(days, tarifs, 0), days, oldTarif);
+
+			cell.innerHTML = \'<strong>\' + ttExtMoney(amount) + \'</strong>\'
+				+ \'<br /><span style="color:#666;font-size:11px;">\' + days + \' дн.</span>\';
+
+			total += amount;
+			rows.push({ deal_id: dealId * 1, amount: amount });
+		});
+
+		total = Math.round(total * 100) / 100;
+		document.getElementById(\'ext_total\').innerHTML = rows.length ? \'<strong>\' + ttExtMoney(total) + \'</strong>\' : \'\';
+
+		//продлевать нечего - сохранённый расчёт тоже убираем, иначе после перезагрузки всплывёт старый
+		if (!rows.length) {
+			document.getElementById(\'ext_calc_note\').innerHTML = \'нечего продлевать по эту дату\';
+			ttExtSend({ action: \'clear\', client_id: ttExtClientId });
+			return;
+		}
+
+		ttExtSend({ action: \'save\', client_id: ttExtClientId, ext_to: extTo, rows: rows });
+	}
+
+	function ttExtClear() {
+		ttExtRender(null);
+		document.getElementById(\'ext_calc_note\').innerHTML = \'\';
+		ttExtSend({ action: \'clear\', client_id: ttExtClientId });
+	}
+
+	//рисуем то, что реально сохранено на сервере: сделку могли закрыть в соседней вкладке, пока считали
+	function ttExtRender(calc) {
+		var rows = calc ? calc.rows : {};
+
+		document.querySelectorAll(\'.ext_row_cb\').forEach(function (cb) {
+			var row = rows[cb.dataset.deal];
+			cb.checked = !!row;
+			document.getElementById(\'ext_sum_\' + cb.dataset.deal).innerHTML = row
+				? \'<strong>\' + ttExtMoney(row.amount) + \'</strong>\'
+					+ \'<br /><span style="color:#666;font-size:11px;">\' + row.ext_days + \' дн.</span>\'
+				: \'&mdash;\';
+		});
+
+		document.getElementById(\'ext_check_all\').checked = false;
+		document.getElementById(\'ext_total\').innerHTML = calc ? \'<strong>\' + ttExtMoney(calc.total) + \'</strong>\' : \'\';
+		ttExtRowToggle();
+	}
+
+	function ttExtSend(payload) {
+		fetch(\'/bb/ajax_ext_calc.php\', {
+			method: \'POST\',
+			credentials: \'same-origin\',
+			headers: { \'Content-Type\': \'application/json\' },
+			body: JSON.stringify(payload)
+		})
+			.then(function (r) { return r.json(); })
+			.then(function (res) {
+				if (res.status != \'ok\') {
+					alert(\'Расчёт не сохранён: \' + (res.msg || res.status));
+					return;
+				}
+				ttExtRender(res.calc);
+				document.getElementById(\'ext_calc_note\').innerHTML = res.calc
+					? \'расчёт от \' + res.calc.calc_time_h + (res.calc.user_fio ? \', \' + res.calc.user_fio : \'\')
+					: \'\';
+			})
+			.catch(function () {
+				alert(\'Расчёт не сохранён: нет связи с сервером. Цифры на экране верные, но их не увидят другие сотрудники.\');
+			});
+	}
+</script>
+';
+}
 
 
 function get_post($var)
