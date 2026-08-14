@@ -336,6 +336,7 @@ For deeper details, see `AGENTS.md`:
 - [RocketSMS API Integration](docs/rocketsms_api.md)
 
 **Project Notes & Backlog**:
+- [docs/prod_pending.md](docs/prod_pending.md) — **что сделать на проде до заливки.** Работа идёт локально, прод не трогаем; сюда складываются прод-действия (порядок влития веток, бэкапы, сверка данных, проверки после деплоя). Читать и выдавать владельцу, когда он просит залить ветку и дать ссылку на PR.
 - [docs/db_notes.md](docs/db_notes.md) — DB gotchas + архитектура заявок/звонков. **Читать перед правками `rent_orders`/`rent_orders_arch`/`zvonki`/заявок.** Главная ловушка: позиционные `INSERT ... VALUES` ломаются при добавлении колонок — всегда проверять перед `ALTER TABLE ADD COLUMN`. Там же (п.7) — известный баг: `php artisan migrate` сломан на проде для любой новой миграции (ionCube Loader), обходной путь через прямой SQL.
 - [docs/backlog.md](docs/backlog.md) — техдолг и отложенные задачи (вкл. чистку найденного легаси).
 - [docs/geo_address_fix.md](docs/geo_address_fix.md) — методика разбора нераспознанных адресов клиентов (`clients_geo.geo_status=2`) для тепловой карты `bb/geo_heatmap.php`: словарь минских сокращений улиц, AI-нормализация + проверка через Google Geocoding API, когда включать Яндекс-фоллбек, когда эскалировать на человека.
