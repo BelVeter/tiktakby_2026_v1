@@ -339,10 +339,20 @@ class Producer
     }
 
     /**
-     * Для главной страницы: бренды с живыми товарами И логотипом. Читает
-     * пока со старого источника (GROUP BY MAX(logo) по копиям в
-     * rent_model_web) — переключение на справочник делается отдельным шагом
-     * (Task 11), после того как заливка логотипа начнёт писать в него.
+     * Для главной страницы: бренды с живыми товарами И логотипом — то же
+     * условие, что было в старом GROUP BY MAX(logo), теперь через
+     * справочник. Брендов без логотипа сознательно НЕ добавляем — это
+     * видимое изменение главной, не входящее в объём этой задачи.
+     *
+     * Подзапрос `eligible` намеренно повторяет СТАРУЮ связку «единица и
+     * логотип на ОДНОЙ и той же модели»: наивный `JOIN producers` без него
+     * добавлял на главную бренды вроде «Китай», у которых логотип лежит на
+     * одной (мёртвой, без единиц) модели, а живые единицы — на другой, без
+     * логотипа. По отдельности оба условия выполняются, а значит по старой
+     * связке бренд на главную не попадал никогда — раскрывать его видимость
+     * заодно с переносом хранилища логотипа не входит в эту задачу.
+     * Сам URL логотипа при этом берётся из справочника (канонический,
+     * не первый попавшийся дубль).
      *
      * @return Producer[]|false|void
      */
@@ -352,14 +362,17 @@ class Producer
             if (is_array(self::$_prodicers))
                 return self::$_prodicers;
 
-            $rez = [];
-
             $mysqli = Db::getInstance()->getConnection();
-            $query = "SELECT tovar_rent.producer, MAX(rent_model_web.logo) as logo FROM `tovar_rent`
-                        LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id=tovar_rent.tovar_rent_id
-                        LEFT JOIN rent_model_web ON rent_model_web.model_id =tovar_rent.tovar_rent_id
-                        WHERE tovar_rent_items.item_id > 0 AND rent_model_web.logo != ''
-                        GROUP BY tovar_rent.producer";
+            $query = "SELECT DISTINCT p.name, p.logo
+                        FROM producers p
+                        JOIN (
+                            SELECT DISTINCT tr.producer
+                              FROM tovar_rent tr
+                              JOIN tovar_rent_items i ON i.model_id = tr.tovar_rent_id
+                              JOIN rent_model_web w ON w.model_id = tr.tovar_rent_id
+                             WHERE i.item_id > 0 AND w.logo <> ''
+                        ) eligible ON eligible.producer = p.name
+                       WHERE p.logo <> ''";
             $result = $mysqli->query($query);
             if (!$result) {
                 die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -368,9 +381,10 @@ class Producer
             if ($result->num_rows < 1)
                 return false;
 
+            $rez = [];
             while ($row = $result->fetch_assoc()) {
                 $p = new self();
-                $p->name = $row['producer'];
+                $p->name = $row['name'];
                 $p->logo = $row['logo'];
                 $rez[] = $p;
             }
