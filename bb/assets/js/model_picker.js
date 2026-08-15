@@ -113,8 +113,21 @@
 		};
 	}
 
-	function showHint(html) {
-		els.hint.innerHTML = html;
+	function showHintText(text) {
+		els.hint.textContent = '';
+		els.hint.appendChild(document.createTextNode(text));
+		els.hint.className = 'catp__warn catp__warn--hint';
+		els.hint.style.display = 'block';
+	}
+
+	function showExistsHint(colorsText) {
+		els.hint.textContent = '';
+		els.hint.appendChild(document.createTextNode('Такая модель уже есть (цвета: ' + colorsText + ') — '));
+		var link = document.createElement('a');
+		link.href = '#';
+		link.id = 'model_edit_link';
+		link.textContent = 'редактировать';
+		els.hint.appendChild(link);
 		els.hint.className = 'catp__warn catp__warn--hint';
 		els.hint.style.display = 'block';
 	}
@@ -132,7 +145,7 @@
 		var verdict = resolveHint(state);
 
 		if (verdict === 'empty') {
-			showHint('Начните вводить название модели или сначала выберите категорию/фирму');
+			showHintText('Начните вводить название модели или сначала выберите категорию/фирму');
 			return;
 		}
 
@@ -142,8 +155,7 @@
 				return window.LivePicker.normalize(g.name) === needle;
 			})[0];
 			pendingEditGroup = match;
-			showHint('Такая модель уже есть (цвета: ' + match.colors.join(', ') + ') — '
-				+ '<a href="#" id="model_edit_link">редактировать</a>');
+			showExistsHint(match.colors.join(', '));
 			return;
 		}
 
@@ -178,7 +190,9 @@
 		});
 	}
 
-	function setMode(newMode) {
+	function setMode(newMode, options) {
+		var shouldReset = !options || options.reset !== false;
+
 		mode = newMode;
 		pendingEditGroup = null;
 		hideHint();
@@ -197,7 +211,10 @@
 		if (els.submitBtn) {
 			els.submitBtn.value = mode === CHECK.NEW ? 'сохранить' : 'обновить';
 		}
-		if (picker) {
+		if (mode === CHECK.NEW && els.modelId) {
+			els.modelId.value = '';
+		}
+		if (picker && shouldReset) {
 			picker.reset();
 		}
 	}
@@ -234,6 +251,8 @@
 			url:       '/bb/ajax_model_suggest.php',
 			valueKey:  'name',
 			minQuery:  0,
+			emptyValue: '',
+			freeText:  true,
 			extraParams: function () {
 				var params = {};
 				if (els.cat && Number(els.cat.value) > 0) {
@@ -282,7 +301,7 @@
 			els.tabEdit.addEventListener('click', function () { setMode(CHECK.EDIT); });
 		}
 
-		setMode(window.TOVAR_MOD_INITIAL_TAB === 'edit' ? CHECK.EDIT : CHECK.NEW);
+		setMode(window.TOVAR_MOD_INITIAL_TAB === 'edit' ? CHECK.EDIT : CHECK.NEW, { reset: false });
 	}
 
 	window.__modelPickerTestHooks = { groupByName: groupByName, resolveHint: resolveHint };

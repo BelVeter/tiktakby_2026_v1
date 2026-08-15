@@ -37,7 +37,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
-<link href="/bb/assets/styles/category_picker.css?v=2" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=3" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>
@@ -104,14 +104,14 @@ if (isset($_POST['action'])) {
 			// приходит уже готовое имя (не '0'/пусто — форма это не пускает
 			// дальше на клиенте, но подстрахуемся и на сервере).
 			$producer_name = trim($producer_select_new);
-			if ($producer_name === '') {
+			if ($producer_name === '' || $producer_name === '0') {
 				die('Производитель не выбран. Найдите его в поле «Фирма» '
 					. 'или создайте кнопкой «+ создать производителя».');
 			}
 
 			//определяем наименование модели — приходит из живого поиска (bb/assets/js/model_picker.js)
 			$model_name = trim($model_new);
-			if ($model_name === '') {
+			if ($model_name === '' || $model_name === '0') {
 				die('Модель не указана. Введите название в поле «Модель».');
 			}
 
@@ -215,12 +215,12 @@ if (isset($_POST['action'])) {
 
 			//далее, апдейтим модель
 			$producer_name = trim($producer_select_new);
-			if ($producer_name === '') {
+			if ($producer_name === '' || $producer_name === '0') {
 				die('Производитель не выбран. Найдите его в поле «Фирма» '
 					. 'или создайте кнопкой «+ создать производителя».');
 			}
 			$model_name = trim($model_new);
-			if ($model_name === '') {
+			if ($model_name === '' || $model_name === '0') {
 				die('Модель не указана. Введите название в поле «Модель».');
 			}
 
@@ -351,6 +351,11 @@ if (isset($_POST['action'])) {
 
 		if (document.getElementById('model_new').value.trim() == "") {
 			model_chcc = "Модель, ";
+			valid = false;
+		}
+
+		if (document.getElementById('submit_btn').value == "обновить" && (document.getElementById('model_id').value * 1) <= 0) {
+			model_chcc = "Модель для редактирования (выберите из подсказки), ";
 			valid = false;
 		}
 

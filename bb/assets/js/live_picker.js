@@ -24,6 +24,10 @@
  *   minQuery   — с какой длины запроса искать (по умолчанию 1)
  *   onItems    — функция(items, query) -> items, вызывается после получения
  *                результатов до отрисовки; можно перегруппировать или отфильтровать
+ *   emptyValue — что писать в hidden при reset() (по умолчанию '0' — id-подобное
+ *                «ничего не выбрано»; для полей со строковым значением — '')
+ *   freeText   — true разрешает вписанный текст как самостоятельное значение:
+ *                зеркалится в hidden при каждом вводе, а на blur не откатывается
  *
  * minQuery: 0 превращает виджет в «редактируемый комбобокс»: по клику в поле
  * показывается ВЕСЬ список (ведёт себя как выпадашка), а при вводе — фильтрует.
@@ -46,10 +50,13 @@
 		this.chosen = config.chosenId ? document.getElementById(config.chosenId) : null;
 		this.valueKey = config.valueKey || 'id';
 		this.minQuery = config.minQuery === undefined ? 1 : config.minQuery;
+		this.emptyValue = config.emptyValue === undefined ? '0' : config.emptyValue;
+		this.freeText = !!config.freeText;
 
 		this.items = [];
 		this.active = -1;
 		this.timer = null;
+		this.requestSeq = 0;
 
 		if (!this.input || !this.hidden || !this.results) {
 			return;
@@ -57,7 +64,12 @@
 
 		this.lastValue = this.input.value || '';
 
-		this.input.addEventListener('input', function () { self.search(); });
+		this.input.addEventListener('input', function () {
+			if (self.freeText) {
+				self.hidden.value = self.input.value;
+			}
+			self.search();
+		});
 		this.input.addEventListener('focus', function () { self.search(); });
 		this.input.addEventListener('keydown', function (event) { self.onKeydown(event); });
 		this.input.addEventListener('blur', function () {
@@ -122,6 +134,7 @@
 		}
 
 		this.timer = setTimeout(function () {
+			var seq = ++self.requestSeq;
 			var url = self.config.url + (self.config.url.indexOf('?') === -1 ? '?' : '&')
 				+ 'q=' + encodeURIComponent(query);
 
@@ -135,6 +148,9 @@
 			}
 
 			LivePicker.request(url, null, function (data) {
+				if (seq !== self.requestSeq) {
+					return;
+				}
 				var items = data.items || [];
 				if (self.config.onItems) {
 					items = self.config.onItems(items, query) || items;
@@ -267,7 +283,7 @@
 
 	/** Сбрасывает выбор — например, когда сменилась категория выше по каскаду. */
 	LivePicker.prototype.reset = function () {
-		this.hidden.value = '0';
+		this.hidden.value = this.emptyValue;
 		this.input.value = '';
 		this.lastValue = '';
 		this.items = [];
@@ -293,6 +309,11 @@
 		}
 		if (action === 'clear') {
 			this.reset();
+			return;
+		}
+		if (this.freeText) {
+			this.lastValue = this.input.value.trim();
+			this.hidden.value = this.lastValue;
 			return;
 		}
 		this.input.value = this.lastValue;
