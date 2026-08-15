@@ -49,6 +49,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=2" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>
@@ -81,11 +82,11 @@ $tovar = NULL;
 $action = '';
 $model_id = '';
 $cat_id = '';
-$producers_list = '';
 $model_options = '';
 $color_option = '';
 
 $model_def['set'] = '';
+$model_def['producer'] = '';
 $model_def['agr_price'] = '';
 $model_def['agr_price_cur'] = '';
 $model_def['lom_srok'] = '';
@@ -270,18 +271,6 @@ if (isset($_POST['action'])) {
 			}
 			$cat_def = $result_cat->fetch_assoc();
 			$cat_id = $cat_def['tovar_rent_cat_id'];
-
-			//chose tovar producers
-			$query_prod = "SELECT DISTINCT producer FROM tovar_rent ORDER BY producer";
-			$result_prod = $mysqli->query($query_prod);
-			if (!$result_prod) {
-				die('Сбой при доступе к базе данных: ' . $query_prod . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-			}
-			while ($prod_names = $result_prod->fetch_assoc()) {
-				$producers_list .= '
-					<option value="' . good_print($prod_names['producer']) . '" ' . sel_d($model_def['producer'], $prod_names['producer']) . '>' . good_print($prod_names['producer']) . '</option>
-					';
-			}
 
 			//chose model list
 			$query_model = "SELECT DISTINCT model FROM tovar_rent ORDER BY model";
@@ -743,10 +732,13 @@ echo '
 	<tr>
 		<td>Фирма:</td>
 		<td>
-			<select name="producer_select_old" id="producer_select_old" onchange="prod_ch();">
-    			<option value="0">----------</option>
-				' . $producers_list . '
-    		</select>
+			<div class="catp">
+				<input type="text" id="prod_old_search" class="catp__input" autocomplete="off"
+					placeholder="сначала выберите категорию"
+					value="' . good_print($model_def['producer']) . '" />
+				<div id="prod_old_results" class="catp__results"></div>
+			</div>
+			<input type="hidden" name="producer_select_old" id="producer_select_old" value="' . good_print($model_def['producer']) . '" />
 
 	  		<textarea id="produceer_sel_temp" readonly="readonly" style="display:none"></textarea> <!--- это чтобы кавычки двойные правильно сравнивались -->
 		</td>
@@ -1041,4 +1033,44 @@ function sel_d($value, $pattern)
 		}
 	}
 
+</script>
+
+<script src="/bb/assets/js/live_picker.js?v=2"></script>
+<script>
+(function () {
+	if (!window.LivePicker) {
+		return;
+	}
+
+	var producerPicker = new window.LivePicker({
+		inputId:   'prod_old_search',
+		hiddenId:  'producer_select_old',
+		resultsId: 'prod_old_results',
+		url:       '/bb/ajax_producer_by_category.php',
+		valueKey:  'name',
+		minQuery:  0,
+		extraParams: function () {
+			var cat = document.getElementById('cat_select_old');
+			return { cat_id: cat ? cat.value : 0 };
+		},
+		onChoose: function () {
+			// Сохраняет каскад: prod_ch() читает producer_select_old.value —
+			// LivePicker.choose() уже проставил его ДО этого колбэка.
+			prod_ch();
+		}
+	});
+
+	// cat_ch() (см. выше) сам НЕ трогается — этот обработчик довешивается
+	// рядом и сбрасывает бренд/модель при смене категории, как раньше делал
+	// select-каскад (cat_ch() пытается очистить producer_select_old через
+	// innerHTML, но у input это не имеет эффекта — сброс значения нужен
+	// явно здесь).
+	var catSelect = document.getElementById('cat_select_old');
+	if (catSelect) {
+		catSelect.addEventListener('change', function () {
+			producerPicker.reset();
+			document.getElementById('model_select_old').innerHTML = '<option value="0">----------</option>';
+		});
+	}
+})();
 </script>
