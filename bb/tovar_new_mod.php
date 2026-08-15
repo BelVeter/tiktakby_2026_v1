@@ -203,6 +203,10 @@ if (isset($_POST['action'])) {
 		case 'обновить':
 			$model_start_id = $model_id;
 
+			if ((int) $model_id < 1) {
+				die('Модель для редактирования не выбрана. Найдите её в поле «Модель».');
+			}
+
 			// Как и в «сохранить»: id приходит из живого поиска либо из модалки.
 			// Переименование категории отсюда убрано — оно правило только название
 			// и `dog_name`, оставляя `cat_url_key` от старого имени. Полное
@@ -730,7 +734,7 @@ echo '
 	</div>
 </div>
 
-<script src="/bb/assets/js/live_picker.js?v=3"></script>
+<script src="/bb/assets/js/live_picker.js?v=4"></script>
 <script>
 // Подразделы отдаём прямо в страницу: их 30, отдельный запрос не нужен.
 window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
@@ -742,8 +746,8 @@ window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
 window.TOVAR_MOD_INITIAL_TAB = ' . json_encode($action === 'редактировать' ? 'edit' : 'new') . ';
 </script>
 <script src="/bb/assets/js/category_picker.js?v=3"></script>
-<script src="/bb/assets/js/producer_picker.js?v=2"></script>
-<script src="/bb/assets/js/model_picker.js?v=1"></script>
+<script src="/bb/assets/js/producer_picker.js?v=3"></script>
+<script src="/bb/assets/js/model_picker.js?v=2"></script>
 ';
 
 echo '</body>';
