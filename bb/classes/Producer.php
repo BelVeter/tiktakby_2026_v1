@@ -263,7 +263,15 @@ class Producer
             $this->producer_id = $mysqli->insert_id;
         }
 
-        \Illuminate\Support\Facades\Cache::forget('all_producers_tov_exists');
+        // save() вызывается и из bb/ajax_producer_*.php — эти страницы
+        // отдаёт Apache напрямую, минуя Laravel (.htaccess: `RewriteRule
+        // ^bb(/|$) - [L]`), composer autoload там не подключен вообще.
+        // class_exists() с автозагрузкой в такой среде просто вернёт false,
+        // не бросая исключение. Кэш тогда доживёт до истечения TTL (1440 c,
+        // см. docs/prod_pending.md) — не тратим на это отдельный костыль.
+        if (class_exists('Illuminate\Support\Facades\Cache')) {
+            \Illuminate\Support\Facades\Cache::forget('all_producers_tov_exists');
+        }
 
         return true;
     }
