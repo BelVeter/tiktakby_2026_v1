@@ -46,7 +46,6 @@
 		this.chosen = config.chosenId ? document.getElementById(config.chosenId) : null;
 		this.valueKey = config.valueKey || 'id';
 		this.minQuery = config.minQuery === undefined ? 1 : config.minQuery;
-		this.lastValue = this.input.value || '';
 
 		this.items = [];
 		this.active = -1;
@@ -55,6 +54,8 @@
 		if (!this.input || !this.hidden || !this.results) {
 			return;
 		}
+
+		this.lastValue = this.input.value || '';
 
 		this.input.addEventListener('input', function () { self.search(); });
 		this.input.addEventListener('focus', function () { self.search(); });
