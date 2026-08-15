@@ -50,6 +50,8 @@
 			}
 		});
 
+		window.producerPicker = picker;
+
 		if (els.createBtn) {
 			els.createBtn.addEventListener('click', openCreateModal);
 		}

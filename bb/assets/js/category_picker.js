@@ -55,6 +55,8 @@
 			}
 		});
 
+		window.categoryPicker = picker;
+
 		if (els.openBtn) {
 			els.openBtn.addEventListener('click', openModal);
 		}
