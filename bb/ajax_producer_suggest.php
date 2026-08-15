@@ -43,7 +43,9 @@ $active = \bb\classes\Producer::getAllActive();
 
 $response = ['items' => []];
 
-if ($query !== '') {
+if ($query === '') {
+    $items = $active;
+} else {
     $needle = \bb\classes\Similarity::normalize($query);
 
     $items = [];
@@ -63,23 +65,25 @@ if ($query !== '') {
     if ($exactAny && !$exactAny->isActive() && !$alreadyThere) {
         $items[] = $exactAny;
     }
-
-    if ($catId > 0) {
-        usort($items, function ($a, $b) use ($usedInCat) {
-            $au = isset($usedInCat[$a->getName()]) ? 0 : 1;
-            $bu = isset($usedInCat[$b->getName()]) ? 0 : 1;
-            return $au <=> $bu ?: strcmp($a->getName(), $b->getName());
-        });
-    }
-
-    $response['items'] = array_slice(array_map(function ($p) {
-        return [
-            'id'     => $p->getName(),
-            'name'   => $p->getName(),
-            'hidden' => !$p->isActive(),
-        ];
-    }, $items), 0, 15);
 }
+
+if ($catId > 0) {
+    usort($items, function ($a, $b) use ($usedInCat) {
+        $au = isset($usedInCat[$a->getName()]) ? 0 : 1;
+        $bu = isset($usedInCat[$b->getName()]) ? 0 : 1;
+        return $au <=> $bu ?: strcmp($a->getName(), $b->getName());
+    });
+}
+
+$mapped = array_map(function ($p) {
+    return [
+        'id'     => $p->getName(),
+        'name'   => $p->getName(),
+        'hidden' => !$p->isActive(),
+    ];
+}, $items);
+
+$response['items'] = $query === '' ? $mapped : array_slice($mapped, 0, 15);
 
 if ($check && $query !== '') {
     $dup = \bb\classes\Producer::findDuplicates($query);

@@ -37,6 +37,7 @@
 			chosenId:  'prod_chosen',
 			url:       '/bb/ajax_producer_suggest.php',
 			valueKey:  'name',
+			minQuery:  0,
 			extraParams: function () {
 				var catField = $('cat_select_new');
 				return catField && catField.value ? { cat_id: catField.value } : {};
