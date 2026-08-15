@@ -66,6 +66,29 @@ class Similarity
     }
 
     /**
+     * @param  string[]  $a  символы первой строки (уже разбита preg_split('//u'))
+     * @param  string[]  $b  символы второй строки
+     * @return int
+     */
+    private static function levenshteinChars(array $a, array $b)
+    {
+        $la = count($a);
+        $lb = count($b);
+
+        $prev = range(0, $lb);
+        for ($i = 1; $i <= $la; $i++) {
+            $cur = [$i];
+            for ($j = 1; $j <= $lb; $j++) {
+                $cost = $a[$i - 1] === $b[$j - 1] ? 0 : 1;
+                $cur[$j] = min($prev[$j] + 1, $cur[$j - 1] + 1, $prev[$j - 1] + $cost);
+            }
+            $prev = $cur;
+        }
+
+        return $prev[$lb];
+    }
+
+    /**
      * Похожесть двух названий: 0.0 (ничего общего) .. 1.0 (совпадают после нормализации).
      *
      * @return float
@@ -140,5 +163,76 @@ class Similarity
         }
 
         return false;
+    }
+
+    /**
+     * Похожесть через расстояние Левенштейна на нормализованных строках.
+     *
+     * Ловит одиночные опечатки в КОРОТКИХ словах, которые триграммный
+     * Jaccard пропускает: у пятибуквенного слова всего ~5 триграмм, и одна
+     * изменённая буква убивает три из них разом. Используется отдельно от
+     * score() — не подменяет его, а дополняет через combinedScore().
+     *
+     * @return float 0.0..1.0
+     */
+    public static function editSimilarity($a, $b)
+    {
+        $na = self::normalize($a);
+        $nb = self::normalize($b);
+
+        if ($na === '' || $nb === '') {
+            return 0.0;
+        }
+        if ($na === $nb) {
+            return 1.0;
+        }
+
+        $ca = preg_split('//u', $na, -1, PREG_SPLIT_NO_EMPTY);
+        $cb = preg_split('//u', $nb, -1, PREG_SPLIT_NO_EMPTY);
+        $maxLen = max(count($ca), count($cb));
+
+        return 1 - self::levenshteinChars($ca, $cb) / $maxLen;
+    }
+
+    /**
+     * Максимум из триграммного Jaccard и расстояния Левенштейна. Каждая
+     * метрика ловит свой тип опечатки — сильные стороны одной перекрывают
+     * слабости другой (см. докблок editSimilarity()).
+     *
+     * @return float 0.0..1.0
+     */
+    public static function combinedScore($a, $b)
+    {
+        return max(self::score($a, $b), self::editSimilarity($a, $b));
+    }
+
+    /**
+     * Как findSimilar(), но по combinedScore() вместо чистого Jaccard.
+     * Отдельный метод (а не флаг в findSimilar()), чтобы не менять поведение
+     * уже отревьюженного и используемого категориями findSimilar().
+     *
+     * @param  string                      $needle
+     * @param  array<int|string, string>   $haystack
+     * @param  float                       $min
+     * @param  int                         $limit
+     * @return array<int, array{key: int|string, label: string, score: float}>
+     */
+    public static function findSimilarByEdit($needle, array $haystack, $min = self::DEFAULT_THRESHOLD, $limit = 5)
+    {
+        $out = [];
+
+        foreach ($haystack as $key => $label) {
+            $s = self::combinedScore($needle, (string) $label);
+
+            if ($s >= $min && $s < 1.0) {
+                $out[] = ['key' => $key, 'label' => (string) $label, 'score' => round($s, 3)];
+            }
+        }
+
+        usort($out, function ($x, $y) {
+            return $y['score'] < $x['score'] ? -1 : ($y['score'] > $x['score'] ? 1 : 0);
+        });
+
+        return array_slice($out, 0, $limit);
     }
 }
