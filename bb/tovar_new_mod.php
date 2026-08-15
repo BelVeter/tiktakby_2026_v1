@@ -99,11 +99,14 @@ if (isset($_POST['action'])) {
 					. 'или создайте кнопкой «+ создать категорию».');
 			}
 
-			//определяем наименование производителя
-			if ($producer_select_new != '0') {
-				$producer_name = $producer_select_new;
-			} else {
-				$producer_name = $producer_input_new;
+			// Производитель выбирается живым поиском по справочнику; новый
+			// заводится в модалке через bb/ajax_producer_create.php — сюда
+			// приходит уже готовое имя (не '0'/пусто — форма это не пускает
+			// дальше на клиенте, но подстрахуемся и на сервере).
+			$producer_name = trim($producer_select_new);
+			if ($producer_name === '') {
+				die('Производитель не выбран. Найдите его в поле «Фирма» '
+					. 'или создайте кнопкой «+ создать производителя».');
 			}
 
 			//определяем наименование модели
@@ -212,7 +215,11 @@ if (isset($_POST['action'])) {
 			}
 
 			//далее, апдейтим модель
-			$producer_select_new == '0' ? $producer_name = $producer_input_new : $producer_name = $producer_select_new;
+			$producer_name = trim($producer_select_new);
+			if ($producer_name === '') {
+				die('Производитель не выбран. Найдите его в поле «Фирма» '
+					. 'или создайте кнопкой «+ создать производителя».');
+			}
 			$model_select_new == '0' ? $model_name = $model_input_new : $model_name = $model_select_new;
 
 
@@ -345,7 +352,8 @@ if (isset($_POST['action'])) {
 			valid = false;
 		}
 
-		if (document.getElementById('producer_select_new').value == "0" && document.getElementById('producer_input_new').value == "") {
+		// Производитель теперь всегда приходит готовым именем из живого поиска или модалки.
+		if (document.getElementById('producer_select_new').value == "") {
 			prod_chcc = "фирма, ";
 			valid = false;
 		}
@@ -436,14 +444,6 @@ usort($sub_razdels_all, function ($a, $b) {
 	return strcmp($a->getNameSubRazdelText(), $b->getNameSubRazdelText());
 });
 
-//chose tovar producers
-$query_prod = "SELECT DISTINCT producer FROM tovar_rent ORDER BY producer";
-$result_prod = $mysqli->query($query_prod);
-if (!$result_prod) {
-	die('Сбой при доступе к базе данных: ' . $query_prod . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-}
-
-
 //chose model list
 $query_model = "SELECT DISTINCT model FROM tovar_rent ORDER BY model";
 $result_model = $mysqli->query($query_model);
@@ -487,15 +487,17 @@ echo '
 	<tr>
 		<td>Фирма:</td>
 		<td>
-			<select name="producer_select_new" id="producer_select_new" onchange="select_ch2(\'producer_select_new\', \'producer_input_new\');" style="width:220px;" >
-			    	<option value="0">ввести нового производителя</option>';
-while ($prod_names = $result_prod->fetch_assoc()) {
-	echo '
-					<option value="' . good_print($prod_names['producer']) . '" ' . sel_d($model_def['producer'], $prod_names['producer']) . '>' . good_print($prod_names['producer']) . '</option>
-					';
-}
-echo '</select>
-			<input type="text" name="producer_input_new" size="30" id="producer_input_new" ' . ($action == 'редактировать' ? 'disabled="disabled"' : '') . ' />
+			<div class="catp">
+				<input type="text" id="prod_search" class="catp__input" autocomplete="off"
+					placeholder="начните вводить название производителя"
+					value="' . good_print($model_def['producer']) . '" />
+				<div id="prod_results" class="catp__results"></div>
+				<div id="prod_chosen" class="catp__chosen"' . ($model_def['producer'] !== '' ? ' style="display:block;"' : '') . '>'
+					. ($model_def['producer'] !== '' ? 'Выбрано: ' . good_print($model_def['producer']) : '') . '</div>
+			</div>
+			<input type="hidden" name="producer_select_new" id="producer_select_new" value="' . good_print($model_def['producer']) . '" />
+			<input type="button" id="prod_create_open" value="+ создать производителя" />
+			<input type="button" id="prod_edit_open" value="редактировать" style="display:none;" />
 		</td>
 	</tr>
 
@@ -693,6 +695,49 @@ echo '
 	</div>
 </div>
 
+<div id="prod_create_modal" class="catp-modal">
+	<div class="catp-modal__box">
+		<h3>Новый производитель</h3>
+		<div id="newprod_warning" class="catp__warn"></div>
+		<div class="catp-modal__row">
+			<label>Название</label>
+			<input type="text" id="newprod_name" />
+		</div>
+		<div class="catp-modal__row">
+			<label>Комментарий (необязательно)</label>
+			<input type="text" id="newprod_comment" />
+		</div>
+		<div class="catp-modal__actions">
+			<input type="button" id="newprod_cancel" value="отмена" />
+			<input type="button" id="newprod_save" value="создать производителя" />
+		</div>
+	</div>
+</div>
+
+<div id="prod_edit_modal" class="catp-modal">
+	<div class="catp-modal__box">
+		<h3>Редактировать производителя</h3>
+		<div id="editprod_warning" class="catp__warn"></div>
+		<div class="catp-modal__row">
+			<label>Название</label>
+			<input type="text" id="editprod_name" />
+		</div>
+		<div class="catp-modal__row">
+			<label>Комментарий</label>
+			<input type="text" id="editprod_comment" />
+		</div>
+		<div class="catp-modal__row catp-modal__row--checkbox">
+			<input type="checkbox" id="editprod_active" />
+			<label for="editprod_active">Показывать в подсказках</label>
+		</div>
+		<div id="editprod_preview" class="catp__preview"></div>
+		<div class="catp-modal__actions">
+			<input type="button" id="editprod_cancel" value="отмена" />
+			<input type="button" id="editprod_save" value="сохранить" />
+		</div>
+	</div>
+</div>
+
 <script src="/bb/assets/js/live_picker.js?v=2"></script>
 <script>
 // Подразделы отдаём прямо в страницу: их 30, отдельный запрос не нужен.
@@ -704,6 +749,7 @@ window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
 }, $sub_razdels_all), JSON_UNESCAPED_UNICODE) . ';
 </script>
 <script src="/bb/assets/js/category_picker.js?v=2"></script>
+<script src="/bb/assets/js/producer_picker.js?v=1"></script>
 ';
 
 echo '</body>';
