@@ -230,3 +230,26 @@
     color: #555;
     margin: 4px 0 8px;
 }
+
+/* ------------------------------------------------------------ вкладки модели */
+
+.catp-tabs {
+    margin-bottom: 12px;
+}
+
+.catp-tab {
+    display: inline-block;
+    padding: 7px 14px;
+    margin-right: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    background: #eef1f5;
+    border: 1px solid #b5b5b5;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+}
+
+.catp-tab--active {
+    background: #fff;
+    font-weight: bold;
+}

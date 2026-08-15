@@ -109,11 +109,10 @@ if (isset($_POST['action'])) {
 					. 'или создайте кнопкой «+ создать производителя».');
 			}
 
-			//определяем наименование модели
-			if ($model_select_new != '0') {
-				$model_name = $model_select_new;
-			} else {
-				$model_name = $model_input_new;
+			//определяем наименование модели — приходит из живого поиска (bb/assets/js/model_picker.js)
+			$model_name = trim($model_new);
+			if ($model_name === '') {
+				die('Модель не указана. Введите название в поле «Модель».');
 			}
 
 
@@ -220,7 +219,10 @@ if (isset($_POST['action'])) {
 				die('Производитель не выбран. Найдите его в поле «Фирма» '
 					. 'или создайте кнопкой «+ создать производителя».');
 			}
-			$model_select_new == '0' ? $model_name = $model_input_new : $model_name = $model_select_new;
+			$model_name = trim($model_new);
+			if ($model_name === '') {
+				die('Модель не указана. Введите название в поле «Модель».');
+			}
 
 
 			// проверяем наличие аналогичной модели, если имеется таковая, то просто используем ее id, иначе - создаем новую модель
@@ -310,17 +312,6 @@ if (isset($_POST['action'])) {
 	// Переименование категории живёт в /bb/category_management.php.
 
 
-	function select_ch2(sel, new_f) {
-
-		if (document.getElementById(sel).value == 0) {
-			document.getElementById(new_f).disabled = false;
-		}
-		else {
-			document.getElementById(new_f).disabled = true;
-			document.getElementById(new_f).value = '';
-		}
-
-	}
 
 
 
@@ -358,7 +349,7 @@ if (isset($_POST['action'])) {
 			valid = false;
 		}
 
-		if (document.getElementById('model_select_new').value == "0" && document.getElementById('model_input_new').value == "") {
+		if (document.getElementById('model_new').value.trim() == "") {
 			model_chcc = "Модель, ";
 			valid = false;
 		}
@@ -444,18 +435,16 @@ usort($sub_razdels_all, function ($a, $b) {
 	return strcmp($a->getNameSubRazdelText(), $b->getNameSubRazdelText());
 });
 
-//chose model list
-$query_model = "SELECT DISTINCT model FROM tovar_rent ORDER BY model";
-$result_model = $mysqli->query($query_model);
-if (!$result_model) {
-	die('Сбой при доступе к базе данных: ' . $query_model . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-}
-
-
 echo '
 <form name="tovar" action="tovar_new_mod.php" method="post">
 <div id="new_model_div" class="new_div_r">
 <strong>ID модели: ' . $model_id . '<br /></strong>
+
+<div class="catp-tabs">
+	<button type="button" id="tab_new" class="catp-tab">Новая модель</button>
+	<button type="button" id="tab_edit" class="catp-tab">Редактировать действующую</button>
+</div>
+
 <table border="1" cellspacing="0">
 	<tr>
 		<td>Категория товара:</td>
@@ -474,7 +463,7 @@ echo '
 			<br />и для договора (ед.ч.):
 			<input type="text" name="cat_input_dog_new" size="30" id="cat_input_dog_new" readonly="readonly" value="' . good_print($cat_def['dog_name']) . '"/>
 			<span class="catp-modal__hint">подставляется из категории; изменить — в <a href="/bb/category_management.php">справочнике категорий</a></span>
-			<input type="hidden" name="model_id" value="' . $model_id . '" />
+			<input type="hidden" name="model_id" id="model_id" value="' . $model_id . '" />
 
 		</td>
 	</tr>
@@ -504,16 +493,14 @@ echo '
 	<tr>
 		<td>Модель:</td>
 		<td>
-			<select name="model_select_new" id="model_select_new" onchange="select_ch2(\'model_select_new\', \'model_input_new\');" style="width:220px;" >
-	    		<option value="0">ввести новую модель</option>';
-
-while ($model_list = $result_model->fetch_assoc()) {
-	echo '<option value="' . good_print($model_list['model']) . '" ' . sel_d($model_def['model'], $model_list['model']) . '>' . good_print($model_list['model']) . '</option>';
-}
-
-echo '
-	    	</select>
-	    	<input type="text" name="model_input_new" size="30" id="model_input_new" ' . ($action == 'редактировать' ? 'disabled="disabled"' : '') . ' />
+			<div class="catp">
+				<input type="text" id="model_search" class="catp__input" autocomplete="off"
+					placeholder="начните вводить название модели"
+					value="' . good_print($model_def['model']) . '" />
+				<div id="model_results" class="catp__results"></div>
+				<div id="model_hint" class="catp__warn"></div>
+			</div>
+			<input type="hidden" name="model_new" id="model_new" value="' . good_print($model_def['model']) . '" />
 		</td>
 	</tr>
 
@@ -588,34 +575,34 @@ echo '
 	<tr>
 	<td>Для карнавала:</td>
 		<td>
-			Залог: <input type="number" step="any" min="0" name="collateral" style="width:70px;"  value="' . $model_def['collateral'] . '" /> руб.;
+			Залог: <input type="number" step="any" min="0" name="collateral" id="collateral_new" style="width:70px;"  value="' . $model_def['collateral'] . '" /> руб.;
 			Новый год:
-			<select name="ny" style="width:50px;" >
+			<select name="ny" id="ny_new" style="width:50px;" >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['ny'], '1') . '>да</option>
 			</select>;
 
 			Зверь:
-			<select name="zv" style="width:50px;" >
+			<select name="zv" id="zv_new" style="width:50px;" >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['zv'], '1') . '>да</option>
 			</select>;
 
 			Сказка:
-			<select name="tale" style="width:50px;" >
+			<select name="tale" id="tale_new" style="width:50px;" >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['tale'], '1') . '>да</option>
 			</select>;
 
 		<span style="display:none;">
 			Резерв1:
-			<select name="rez1" style="width:50px;" >
+			<select name="rez1" id="rez1_new" style="width:50px;" >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['rez1'], '1') . '>да</option>
 			</select>;
 
 			Резерв2:
-			<select name="rez2" style="width:50px;" >
+			<select name="rez2" id="rez2_new" style="width:50px;" >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['rez2'], '1') . '>да</option>
 			</select>;
@@ -631,7 +618,7 @@ echo '
 </div>
 
 <br /><br />
-' . ($action == 'редактировать' ? '<input type="submit" name="action" value="обновить" onclick="return send_form_ch();"/>' : '<input type="submit" name="action" value="сохранить" onclick="return send_form_ch();"/>') . '
+' . ($action == 'редактировать' ? '<input type="submit" name="action" id="submit_btn" value="обновить" onclick="return send_form_ch();"/>' : '<input type="submit" name="action" id="submit_btn" value="сохранить" onclick="return send_form_ch();"/>') . '
 
 </form>
 
@@ -738,7 +725,7 @@ echo '
 	</div>
 </div>
 
-<script src="/bb/assets/js/live_picker.js?v=2"></script>
+<script src="/bb/assets/js/live_picker.js?v=3"></script>
 <script>
 // Подразделы отдаём прямо в страницу: их 30, отдельный запрос не нужен.
 window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
@@ -747,9 +734,11 @@ window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
 		'name' => $sr->getNameSubRazdelText(),
 	);
 }, $sub_razdels_all), JSON_UNESCAPED_UNICODE) . ';
+window.TOVAR_MOD_INITIAL_TAB = ' . json_encode($action === 'редактировать' ? 'edit' : 'new') . ';
 </script>
-<script src="/bb/assets/js/category_picker.js?v=2"></script>
-<script src="/bb/assets/js/producer_picker.js?v=1"></script>
+<script src="/bb/assets/js/category_picker.js?v=3"></script>
+<script src="/bb/assets/js/producer_picker.js?v=2"></script>
+<script src="/bb/assets/js/model_picker.js?v=1"></script>
 ';
 
 echo '</body>';
