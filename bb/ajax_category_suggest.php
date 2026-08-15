@@ -70,7 +70,9 @@ while ($row = $result->fetch_assoc()) {
 
 $response = ['items' => []];
 
-if ($query !== '') {
+if ($query === '') {
+    $response['items'] = $all;
+} elseif ($query !== '') {
     $needle = \bb\classes\Similarity::normalize($query);
 
     // 1. Подстрока по нормализованному названию — то, что человек печатает.

@@ -43,6 +43,7 @@
 			resultsId: 'cat_results',
 			chosenId:  'cat_chosen',
 			url:       '/bb/ajax_category_suggest.php',
+			minQuery:  0,
 			renderMeta: function (item) {
 				return (item.tree_path ? item.tree_path : 'вне дерева каталога')
 					+ ' · моделей: ' + item.models;
