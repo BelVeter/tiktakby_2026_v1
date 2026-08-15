@@ -22,6 +22,8 @@
  *   renderMeta — функция(item) -> строка второй строки в подсказке
  *   onChoose   — функция(item) после выбора
  *   minQuery   — с какой длины запроса искать (по умолчанию 1)
+ *   onItems    — функция(items, query) -> items, вызывается после получения
+ *                результатов до отрисовки; можно перегруппировать или отфильтровать
  *
  * minQuery: 0 превращает виджет в «редактируемый комбобокс»: по клику в поле
  * показывается ВЕСЬ список (ведёт себя как выпадашка), а при вводе — фильтрует.
@@ -32,6 +34,7 @@
 	'use strict';
 
 	var SEARCH_DELAY = 200;
+	var BLUR_DELAY = 150;
 
 	function LivePicker(config) {
 		var self = this;
@@ -43,6 +46,7 @@
 		this.chosen = config.chosenId ? document.getElementById(config.chosenId) : null;
 		this.valueKey = config.valueKey || 'id';
 		this.minQuery = config.minQuery === undefined ? 1 : config.minQuery;
+		this.lastValue = this.input.value || '';
 
 		this.items = [];
 		this.active = -1;
@@ -55,6 +59,9 @@
 		this.input.addEventListener('input', function () { self.search(); });
 		this.input.addEventListener('focus', function () { self.search(); });
 		this.input.addEventListener('keydown', function (event) { self.onKeydown(event); });
+		this.input.addEventListener('blur', function () {
+			setTimeout(function () { self.syncOnBlur(); }, BLUR_DELAY);
+		});
 
 		document.addEventListener('click', function (event) {
 			if (!self.results.contains(event.target) && event.target !== self.input) {
@@ -66,6 +73,23 @@
 	/** Нормализация для локального поиска: регистр, пробелы, дефисы, кавычки. */
 	LivePicker.normalize = function (value) {
 		return String(value).toLowerCase().replace(/[\s\-_«»"'`.,()]+/g, '');
+	};
+
+	/**
+	 * Что делать с текстом поля на потере фокуса, если он не был подтверждён
+	 * выбором варианта. Чистая функция — без DOM, чтобы её можно было
+	 * протестировать без браузера (см. live_picker.test.js).
+	 */
+	LivePicker.resolveBlurAction = function (currentText, lastValue) {
+		var trimmed = String(currentText).trim();
+
+		if (trimmed === lastValue) {
+			return 'keep';
+		}
+		if (trimmed === '') {
+			return 'clear';
+		}
+		return 'revert';
 	};
 
 	LivePicker.prototype.search = function () {
@@ -82,11 +106,15 @@
 		// Локальный режим: список уже в странице, запрос не нужен.
 		if (this.config.items) {
 			var needle = LivePicker.normalize(query);
-			this.items = needle === ''
+			var localItems = needle === ''
 				? this.config.items.slice(0)
 				: this.config.items.filter(function (item) {
 					return LivePicker.normalize(item.name).indexOf(needle) !== -1;
 				});
+			if (self.config.onItems) {
+				localItems = self.config.onItems(localItems, query) || localItems;
+			}
+			this.items = localItems;
 			this.active = -1;
 			this.render(this.items);
 			return;
@@ -106,7 +134,11 @@
 			}
 
 			LivePicker.request(url, null, function (data) {
-				self.items = data.items || [];
+				var items = data.items || [];
+				if (self.config.onItems) {
+					items = self.config.onItems(items, query) || items;
+				}
+				self.items = items;
 				self.active = -1;
 				self.render(self.items);
 			});
@@ -214,6 +246,7 @@
 	LivePicker.prototype.choose = function (item) {
 		this.hidden.value = item[this.valueKey];
 		this.input.value = item.name;
+		this.lastValue = item.name;
 
 		if (this.chosen) {
 			this.chosen.innerHTML = '';
@@ -235,6 +268,7 @@
 	LivePicker.prototype.reset = function () {
 		this.hidden.value = '0';
 		this.input.value = '';
+		this.lastValue = '';
 		this.items = [];
 		this.render([]);
 
@@ -242,6 +276,26 @@
 			this.chosen.style.display = 'none';
 			this.chosen.innerHTML = '';
 		}
+	};
+
+	/**
+	 * Синхронизирует текст поля со скрытым значением, если пользователь начал
+	 * печатать поверх уже выбранного варианта и передумал, не выбрав новый.
+	 * Без этого скрытое поле держит старое значение, а видимый текст — то,
+	 * что не удалось допечатать до конца.
+	 */
+	LivePicker.prototype.syncOnBlur = function () {
+		var action = LivePicker.resolveBlurAction(this.input.value, this.lastValue);
+
+		if (action === 'keep') {
+			return;
+		}
+		if (action === 'clear') {
+			this.reset();
+			return;
+		}
+		this.input.value = this.lastValue;
+		this.render([]);
 	};
 
 	LivePicker.badge = function (text, extraClass) {
