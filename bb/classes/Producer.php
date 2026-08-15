@@ -269,6 +269,68 @@ class Producer
     }
 
     /**
+     * Масштаб переименования — для предпросмотра перед подтверждением
+     * (спека: «затронет 11 моделей, 15 единиц, 4 архивных записи»).
+     *
+     * @return array{models: int, items: int, items_arch: int}
+     */
+    public function impactOfRename()
+    {
+        $mysqli = Db::getInstance()->getConnection();
+        $name = addslashes($this->name);
+
+        $count = function ($table, $column = 'producer') use ($mysqli, $name) {
+            $result = $mysqli->query("SELECT COUNT(*) n FROM $table WHERE $column='$name'");
+            return (int) $result->fetch_assoc()['n'];
+        };
+
+        return [
+            'models'      => $count('tovar_rent'),
+            'items'       => $count('tovar_rent_items'),
+            'items_arch'  => $count('tovar_rent_items_arch'),
+        ];
+    }
+
+    /**
+     * Переименовывает бренд везде: справочник + три таблицы каталога —
+     * одной транзакцией, либо всё, либо ничего. Не проверяет, что $newName
+     * уже не занят другим брендом — это ответственность вызывающего кода
+     * (ajax_producer_update.php), как Category::save() не проверяет
+     * уникальность cat_url_key сама.
+     *
+     * @return bool
+     */
+    public function rename($newName, $userId)
+    {
+        $mysqli = Db::getInstance()->getConnection();
+        $oldName = addslashes($this->name);
+        $newNameEsc = addslashes($newName);
+
+        Db::startTransaction();
+
+        $ok = $mysqli->query("UPDATE tovar_rent SET producer='$newNameEsc' WHERE producer='$oldName'")
+            && $mysqli->query("UPDATE tovar_rent_items SET producer='$newNameEsc' WHERE producer='$oldName'")
+            && $mysqli->query("UPDATE tovar_rent_items_arch SET producer='$newNameEsc' WHERE producer='$oldName'");
+
+        if (!$ok) {
+            Db::rollBackTransaction();
+            return false;
+        }
+
+        $this->name = $newName;
+        $this->ch_user_id = $userId;
+
+        if (!$this->save()) {
+            Db::rollBackTransaction();
+            return false;
+        }
+
+        Db::commitTransaction();
+
+        return true;
+    }
+
+    /**
      * Для главной страницы: бренды с живыми товарами И логотипом. Читает
      * пока со старого источника (GROUP BY MAX(logo) по копиям в
      * rent_model_web) — переключение на справочник делается отдельным шагом
