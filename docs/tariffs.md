@@ -15,7 +15,21 @@
 
 Конвертация периода в дни фиксированная: `day=1`, `week=7`, `month=30`, `year=365`. Длина периода в днях = `kol_vo * stepInDays`.
 
-Активные тарифы хранятся в таблице `rent_tarif_act`, при удалении/изменении переносятся в архив `rent_tarif_prev`.
+Активные тарифы хранятся в таблице `rent_tarif_act`. Каждое создание, изменение и удаление
+пишется в журнал `rent_tarif_history` — одно событие хранит полный снимок строки до и после,
+поэтому прайс на произвольную дату восстанавливается запросом «последнее событие
+с `changed_at ≤ D`».
+
+⚠️ **Правки `rent_tarif_act` идут только через `bb\classes\Tariff`.** Захват истории сделан на
+уровне кода, а не триггеров БД: сырой `INSERT`/`UPDATE`/`DELETE` мимо класса пройдёт мимо
+журнала. Это проверяет `tests/Feature/TariffWriteGuardTest.php`. Отдельная ловушка: `bb/` не
+использует composer autoload, поэтому `Tariff.php` сам подключает `TariffHistory.php` через
+`require_once __DIR__`, а `ModelArchive.php` — `Tariff.php`; без этой цепочки легаси-страницы
+падали с `Fatal error: Class 'bb\classes\TariffHistory' not found`.
+
+Старая таблица `rent_tarif_prev` заполнялась только при удалении и содержит суммы с точностью
+до десятых (`DECIMAL(11,1)` — копейки утрачены). Её данные импортированы в журнал как события
+`delete` с `source='legacy_import'`; новые записи туда не пишутся.
 
 ## Расчёт стоимости аренды на N дней
 
@@ -67,3 +81,5 @@
 | [app/MyClasses/L3Page.php:244-273](../app/MyClasses/L3Page.php#L244-L273) | Вывод тарифов на странице товара |
 | [app/Http/Controllers/CartController.php:26](../app/Http/Controllers/CartController.php#L26) | AJAX `getTariffs()` для корзины |
 | [app/Http/Controllers/CartController.php:178-180](../app/Http/Controllers/CartController.php#L178-L180) | Серверный пересчёт цены при оформлении заказа |
+| [bb/classes/TariffHistory.php](../bb/classes/TariffHistory.php) | Журнал изменений: запись событий, чтение для админки, `pricePerDay()` |
+| [app/Http/Controllers/Mcp/PricingController.php](../app/Http/Controllers/Mcp/PricingController.php) | `/pricing/history`, `/pricing/snapshot` |

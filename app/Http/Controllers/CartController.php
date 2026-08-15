@@ -11,6 +11,36 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
+    /** Стоимость выезда курьера за товаром — платная всегда, независимо от суммы заказа */
+    public const COURIER_PICKUP_COST = 10.0;
+
+    /** Каналы, через которые клиент просит прислать подтверждение заказа */
+    public const CONTACT_CHANNELS = [
+        'viber' => 'Viber',
+        'telegram' => 'Telegram',
+        'sms' => 'SMS',
+    ];
+
+    /**
+     * Стоимость доставки от суммы заказа.
+     * Минск: от 30 руб — бесплатно, от 15 до 30 — 10 руб, до 15 — 15 руб.
+     * Ближний пригород: от 50 руб — бесплатно, иначе 10 руб.
+     * Дублируется в JS корзины (resources/views/cart/index.blade.php) — менять синхронно.
+     */
+    public static function calcDeliveryCost(float $itemsTotal, bool $isSuburb): float
+    {
+        if ($isSuburb) {
+            return $itemsTotal >= 50 ? 0.0 : 10.0;
+        }
+        if ($itemsTotal >= 30) {
+            return 0.0;
+        }
+        if ($itemsTotal >= 15) {
+            return 10.0;
+        }
+        return 15.0;
+    }
+
     /**
      * Show the cart page shell (items populated from localStorage via JS)
      */
@@ -128,8 +158,14 @@ class CartController extends Controller
         $delivery = $request->input('delivery', null);
         $address = $request->input('address', '');
         $info = $request->input('info', '');
-        $promoCode = $request->input('promo_code', '');
-        $giftCertificate = $request->input('gift_certificate', '');
+        // Выбора пригорода в корзине пока нет — считаем всегда по минским тарифам.
+        // Поле запроса намеренно не читаем, чтобы клиент не мог удешевить доставку.
+        $isSuburb = false;
+        $wantsCourierPickup = (bool) $request->input('courier_pickup', 0);
+
+        // Канал связи необязателен; принимаем только известные значения
+        $channelKey = (string) $request->input('contact_channel', '');
+        $contactChannel = self::CONTACT_CHANNELS[$channelKey] ?? '';
 
         // Validation
         $errors = [];
@@ -148,7 +184,7 @@ class CartController extends Controller
         }
 
         if ($delivery === null) {
-            $errors[] = 'Выберите способ доставки';
+            $errors[] = 'Выберите способ получения';
         }
 
         if ($delivery == '1' && mb_strlen($address) < 5) {
@@ -160,6 +196,84 @@ class CartController extends Controller
                 'success' => false,
                 'errors' => $errors,
             ], 422);
+        }
+
+        $isDelivery = ($delivery == '1');
+
+        // Courier pickup is a delivery-only service
+        if (!$isDelivery) {
+            $isSuburb = false;
+            $wantsCourierPickup = false;
+        }
+
+        // Delivery cost depends on the whole order sum — recalculate it server-side
+        // before creating any booking (never trust the client).
+        //
+        // Считаем только те товары, которые действительно можно забронировать:
+        // занятый товар уйдёт в заявку, клиент его не арендует, и в сумме заказа
+        // ему не место — иначе и порог бесплатной доставки, и итог завышены.
+        $itemsTotal = 0.0;
+        $itemsCount = 0;
+        foreach ($items as $item) {
+            $modelId = intval($item['modelId'] ?? 0);
+            if ($modelId <= 0) {
+                continue;
+            }
+            $freeOffices = tovar::getFreeItemsOfficeArrayForModelId($modelId);
+            if (!is_array($freeOffices) || count($freeOffices) === 0) {
+                continue;
+            }
+            $tm = TariffModel::getTarifModelForModelId($modelId);
+            if ($tm) {
+                $itemsTotal += (float) $tm->getAmmountForDaysPeriod(intval($item['days'] ?? 14));
+                $itemsCount++;
+            }
+        }
+
+        $deliveryCost = $isDelivery ? self::calcDeliveryCost($itemsTotal, $isSuburb) : 0.0;
+        $pickupCost = $wantsCourierPickup ? self::COURIER_PICKUP_COST : 0.0;
+        $grandTotal = $itemsTotal + $deliveryCost + $pickupCost;
+
+        // Канал связи — одним словом, без подписи: оператору важно только куда писать
+        $channelTag = $contactChannel !== ''
+            ? '<span class="bk-ch">' . $contactChannel . '</span>'
+            : '';
+
+        // Деньги одной формулой: прокат + доставка + возврат курьером = итого.
+        // Нули не прячем — позиции слагаемых постоянны, столбец читается по вертикали.
+        $money = $isDelivery
+            ? number_format($itemsTotal, 2) . ' + ' . number_format($deliveryCost, 2)
+                . ' + ' . number_format($pickupCost, 2) . ' = ' . number_format($grandTotal, 2) . ' BYN'
+            : number_format($grandTotal, 2) . ' BYN';
+        $moneyBlock = '<div class="bk-money">' . $money . '</div>';
+
+        // Реплика клиента — отдельным блоком и с экранированием: в bb/ поле info выводится как HTML
+        $quoteBlock = trim($info) !== ''
+            ? '<div class="bk-quote">' . htmlspecialchars(trim($info), ENT_QUOTES, 'UTF-8') . '</div>'
+            : '';
+
+        // Заявке (товар занят) расчёт не нужен — там ещё нечего оплачивать, но канал связи нужен
+        $infoForZayavka = ($channelTag !== '' ? '<div class="bk-right">' . $channelTag . '</div>' : '')
+            . $quoteBlock;
+
+        // Звонок показывается в zv_ch.php, где стили карточки не подключены — туда обычный текст
+        $infoForZvonok = trim($info . ($contactChannel !== '' ? ' Связь: ' . $contactChannel . '.' : ''));
+
+        // Договор и выезды курьера заводим только для доставки: самовывоз курьера не касается.
+        // Запасное значение — «выключено»: пропал ключ конфига, значит договор создаёт человек.
+        $autoDealEnabled = $isDelivery && (bool) config('app.cart_auto_deal', false);
+        $autoDealClientId = 0;
+        $autoDealDeliveryLeft = $deliveryCost;
+        $autoDealPickupLeft = $pickupCost;
+        $courierInfo = '';
+
+        if ($autoDealEnabled) {
+            try {
+                $autoDealClientId = \bb\classes\WebOrderDeal::findOrCreateClient($fio, $phone, $address);
+                $courierInfo = \bb\classes\WebOrderDeal::courierInfo($info);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Клиент по заказу с сайта не заведён: ' . $e->getMessage());
+            }
         }
 
         // Process each item
@@ -189,7 +303,7 @@ class CartController extends Controller
                     $dateToObj = new \DateTime($dateFrom);
                     $dateToObj->modify('+' . $days . ' days');
 
-                    $deliveryYN = ($delivery == '1') ? 1 : 0;
+                    $deliveryYN = $isDelivery ? 1 : 0;
 
                     if ($deliveryYN == 1) {
                         $freeItems = tovar::getFreeTovarsForModelIdAndOffice($modelId, 'all');
@@ -204,18 +318,17 @@ class CartController extends Controller
 
                     if (!empty($freeItems)) {
                         $tovar = $freeItems[0];
-                        $techInfo = 'Заказ через корзину. С ' . $dateFromObj->format('d.m.Y')
-                            . ' по ' . $dateToObj->format('d.m.Y')
-                            . ' на ' . $days . ' дн. Сумма: ' . number_format($totalAmount, 2) . ' BYN.';
 
-                        if ($promoCode) {
-                            $techInfo .= ' Промокод: ' . $promoCode . '.';
-                        }
-                        if ($giftCertificate) {
-                            $techInfo .= ' Сертификат: ' . $giftCertificate . '.';
-                        }
+                        // Правая колонка карточки: сроки сверху, деньги под ними.
+                        // Сумму позиции показываем только когда в заказе больше одного товара —
+                        // иначе она дословно повторяет первое слагаемое формулы
+                        $datesLine = '<div class="bk-dates">' . $channelTag
+                            . $dateFromObj->format('d.m') . ' → ' . $dateToObj->format('d.m')
+                            . '<span class="bk-days">' . $days . ' дн.</span>'
+                            . ($itemsCount > 1 ? '<span class="bk-days">поз. ' . number_format($totalAmount, 2) . '</span>' : '')
+                            . '</div>';
 
-                        $fullInfo = $techInfo . ($info ? '<br>' . $info : '');
+                        $fullInfo = '<div class="bk-right">' . $datesLine . $moneyBlock . '</div>' . $quoteBlock;
 
                         $br = bron::createBronStrong(
                             $tovar->getInvN(),
@@ -228,6 +341,35 @@ class CartController extends Controller
                         );
                         if ($br && $br->insert_id) {
                             \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
+                        }
+
+                        // Заказ с доставкой сразу становится договором и выездами курьера.
+                        // Стоимость доставки и возврата вешаем только на первую позицию заказа,
+                        // иначе курьер увидит её столько раз, сколько товаров в корзине.
+                        if ($isDelivery && $autoDealEnabled && $autoDealClientId > 0) {
+                            try {
+                                $dealId = \bb\classes\WebOrderDeal::createDealWithTrips(
+                                    $autoDealClientId,
+                                    [
+                                        'inv_n' => $tovar->getInvN(),
+                                        'start_ts' => $dateFromObj->getTimestamp(),
+                                        'return_ts' => $dateToObj->getTimestamp(),
+                                        'days' => $days,
+                                        'r_to_pay' => $totalAmount,
+                                        'tarif' => \bb\classes\WebOrderDeal::resolveTariff($tarifModel, $days),
+                                    ],
+                                    $autoDealDeliveryLeft,
+                                    $autoDealPickupLeft,
+                                    $courierInfo
+                                );
+                                if ($dealId > 0) {
+                                    $autoDealDeliveryLeft = 0.0;
+                                    $autoDealPickupLeft = 0.0;
+                                }
+                            } catch (\Throwable $e) {
+                                // Заказ клиента важнее автоматики: бронь уже создана, её не рушим
+                                \Illuminate\Support\Facades\Log::error('Автодоговор по заказу с сайта не создан: ' . $e->getMessage());
+                            }
                         }
 
                         $results[] = [
@@ -260,7 +402,7 @@ class CartController extends Controller
             } else {
                 // Item not available — create zayavka
                 $validityDays = $days;
-                $z = Zvonok::addLitZvonok($fio, $phone, $info, $modelId, 'zayavka', $validityDays);
+                $z = Zvonok::addLitZvonok($fio, $phone, $infoForZvonok, $modelId, 'zayavka', $validityDays);
                 if ($z && $z->id) {
                     \App\Helpers\UtmTracker::track('zvonki', $z->id);
                 }
@@ -269,7 +411,7 @@ class CartController extends Controller
                 if ($validityDays) {
                     $validityDateObj->modify('+' . intval($validityDays) . ' days');
                 }
-                $zayavka = bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $info, 1);
+                $zayavka = bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $infoForZayavka, 1);
                 if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
                     \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
                 }
@@ -288,6 +430,12 @@ class CartController extends Controller
         return response()->json([
             'success' => $allSuccess,
             'results' => $results,
+            'totals' => [
+                'items' => round($itemsTotal, 2),
+                'delivery' => round($deliveryCost, 2),
+                'courier_pickup' => round($pickupCost, 2),
+                'total' => round($grandTotal, 2),
+            ],
             'message' => $allSuccess
                 ? 'Все товары успешно забронированы! Оператор свяжется с вами в ближайшее время.'
                 : 'Некоторые товары не удалось забронировать. Проверьте статус каждого товара в результатах.',

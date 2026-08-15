@@ -609,11 +609,11 @@ echo '</table>';
 function p_type ($p_type) {
 	switch ($p_type) {
 		case 'nal_no_cheque':
-			$output='нал без чека';
+			$output='Касса 2';
 			break;
 
 		case 'nal_cheque':
-			$output='нал с чеком';
+			$output='Касса 1';
 			break;
 
 		case 'card':

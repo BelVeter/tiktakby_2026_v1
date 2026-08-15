@@ -18,7 +18,8 @@ class RTF_Template_Multi {
         $this->content = file_get_contents($filename);
         if (strpos($this->content, '\ansicpg1251') === false) {
             $this->content = preg_replace('/\\\\ansicpg[0-9]+/', '', $this->content);
-            $this->content = preg_replace('/\{\\\\rtf1\\\\ansi/', '{\\\\rtf1\\\\ansi\\\\ansicpg1251', $this->content, 1);
+            // заголовок бывает и {\rtf1\ansi..., и {\rtf1\ulc1\ansi... (ONLYOFFICE) — цепляемся к \ansi, а не к началу файла
+            $this->content = preg_replace('/\\\\ansi(?![a-z])/', '\\\\ansi\\\\ansicpg1251', $this->content, 1);
         }
     }
     public function parse($block_name, $value) {
@@ -375,8 +376,8 @@ if (isset($_GET['client_id']) && intval($_GET['client_id']) > 0) {
   <div style="margin:8px 0;">
     Тип оплаты:
     <select id="pay-type">
-      <option value="nal_cheque">Нал с чеком</option>
-      <option value="nal_no_cheque">Нал без чека</option>
+      <option value="nal_cheque">Касса 1</option>
+      <option value="nal_no_cheque">Касса 2</option>
       <option value="card">Карта</option>
       <option value="bank">Банк</option>
     </select>

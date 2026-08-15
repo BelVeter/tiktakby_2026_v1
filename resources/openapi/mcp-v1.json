@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "TikTak.by MCP Analytics API",
-        "version": "2.3.0",
+        "version": "2.4.0",
         "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
     },
     "servers": [
@@ -678,6 +678,268 @@
                     }
                 }
             },
+            "FinanceEntry": {
+                "type": "object",
+                "description": "One row of the doh_rash income/expense ledger, in API shape (amount always a positive magnitude; direction carried by type1).",
+                "properties": {
+                    "dr_id": {
+                        "type": "integer",
+                        "description": "Primary key (doh_rash.dr_id).",
+                        "example": 15321
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Accounting date (doh_rash.acc_date) — when the money moved, not when the record was created. This is the date all financial reports slice on.",
+                        "example": "2026-08-01"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "description": "Positive magnitude in BYN. Direction (income vs. expense) is carried entirely by type1 — the API never returns a negative amount, even though doh_rash stores expenses as a negative number internally.",
+                        "example": 150.0
+                    },
+                    "type1": {
+                        "type": "string",
+                        "enum": [
+                            "rash",
+                            "doh"
+                        ],
+                        "description": "Direction: rash = expense, doh = income. Rows with type1 outside this pair (shift_plus/shift_minus, paired till-transfer rows — about 39% of doh_rash) are never returned by this API: the list endpoint filters them out server-side and GET /finance/entries/{id} 404s for one. There is no parameter to include them. They exist to keep the physical till balance in sync, a single-row edit would desynchronize it, and in this API's shape they would be actively misleading — amount is always a positive magnitude, so a transfer row summed over a page would read as income, and their type2 belongs to neither dictionary so type2_name comes back null."
+                    },
+                    "type2": {
+                        "type": "string",
+                        "description": "Article code. Dictionary depends on type1: rash_items.ri_code for expenses, doh_items.rd_code for income.",
+                        "example": "zpl"
+                    },
+                    "type2_name": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Human-readable label for type2, resolved from the matching dictionary. Resolves even for inactive/retired codes, so historical rows keep a readable label; null only if the code was removed from the dictionary entirely."
+                    },
+                    "kassa": {
+                        "type": "string",
+                        "enum": [
+                            "k1",
+                            "k2",
+                            "bank",
+                            "card"
+                        ],
+                        "description": "WHERE the money sits: k1/k2 = physical cash tills, card = card terminal, bank = bank account. Paired with channel — see the channel × kassa rule in FinanceEntryInput."
+                    },
+                    "channel": {
+                        "type": "string",
+                        "description": "WHERE the transaction happened: an office number (as a string, e.g. \"2\"), \"cur\" (courier), or \"bank\". Must pair validly with kassa (see FinanceEntryInput.channel description).",
+                        "example": "2"
+                    },
+                    "info": {
+                        "type": "string",
+                        "description": "Free-text description of the transaction. Always non-empty."
+                    },
+                    "dr_name_id": {
+                        "type": "integer",
+                        "description": "Which employee this entry is attributed to (logpass.logpass_id). 0 = not attributed to any employee. Required (non-zero) on write when type2 is zpl or avans (salary/advance) — that's what drives the legacy per-employee salary report.",
+                        "example": 0
+                    },
+                    "link_to": {
+                        "type": "integer",
+                        "description": "Always 0 for rows this API can return or write. A non-zero link_to arms a cascade delete in the legacy admin (bb/doh-rash.php ships every row's delete form with dr_id_link = link_to, and deletes BOTH ids when it is > 0, with no type1 check), so writes through this API reject any non-zero value — see FinanceEntryInput.link_to. A non-zero value here can only be legacy data written outside this API.",
+                        "example": 0
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Record creation time (doh_rash.cr_time), distinct from date/acc_date. Never used for report period filtering."
+                    },
+                    "created_by_id": {
+                        "type": "integer",
+                        "description": "logpass_id of the row's creator (doh_rash.cr_who_id). For rows written through this API this is always the dedicated api_system logpass user — a client-supplied creator is never honored."
+                    },
+                    "created_by": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Display name (logpass.lp_fio) resolved from created_by_id."
+                    }
+                },
+                "required": [
+                    "dr_id",
+                    "date",
+                    "amount",
+                    "type1",
+                    "type2",
+                    "kassa",
+                    "channel",
+                    "info",
+                    "dr_name_id",
+                    "link_to",
+                    "created_at",
+                    "created_by_id"
+                ]
+            },
+            "FinanceEntryInput": {
+                "type": "object",
+                "description": "Write body for creating or patching a ledger entry. Every entry answers four questions: type1 (direction), type2 (article), channel (where it happened) and kassa (where the money sits). Only rows with type1 rash/doh can be written through this API — shift_plus/shift_minus (paired till-transfer rows) are out of scope by design, because a single-row write would desynchronize the physical till balance those pairs exist to keep in sync.",
+                "required": [
+                    "type1",
+                    "type2",
+                    "date",
+                    "amount",
+                    "kassa",
+                    "channel",
+                    "info"
+                ],
+                "properties": {
+                    "type1": {
+                        "type": "string",
+                        "enum": [
+                            "rash",
+                            "doh"
+                        ],
+                        "description": "Direction: \"rash\" = expense, \"doh\" = income. This is the only whitelist this write API accepts — shift_plus/shift_minus rows cannot be created, and an existing row whose type1 is outside {rash, doh} cannot be updated or deleted through this API at all."
+                    },
+                    "type2": {
+                        "type": "string",
+                        "maxLength": 64,
+                        "description": "Article code, whose dictionary depends on type1. On write it must be an is_active=1 code: rash_items.ri_code when type1=rash, doh_items.rd_code when type1=doh. (On read, type2_name resolves the label even for inactive/retired codes, so old rows stay readable — but you cannot write a new row against a retired code.)",
+                        "example": "zpl"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "YYYY-MM-DD. Becomes the stored acc_date — the ACCOUNTING date (when the money moved), which is what every financial report slices on. This is distinct from created_at (record creation time), which the server sets and which you cannot supply.",
+                        "example": "2026-08-01"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "description": "Positive magnitude in BYN, at most 2 decimal places (decimal(11,2) column). Always positive in both requests and responses — direction is carried by type1, not by the sign of amount. The server negates the value internally for storage when type1=rash; that sign-flip is an internal storage detail this API contract hides from callers.",
+                        "example": 150.0
+                    },
+                    "kassa": {
+                        "type": "string",
+                        "enum": [
+                            "k1",
+                            "k2",
+                            "bank",
+                            "card"
+                        ],
+                        "description": "WHERE the money sits after this transaction. Fixed whitelist: k1/k2 (physical cash tills), card (card terminal), bank (bank account). Must form a valid pair with channel: kassa=\"bank\" is only valid together with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\" (courier). A mismatched pair (e.g. channel=\"bank\" with kassa=\"k2\") is rejected — money cannot be simultaneously in the bank account and a physical till."
+                    },
+                    "channel": {
+                        "type": "string",
+                        "description": "WHERE the transaction happened: an office number as a string (existence-gated against the offices table — a closed-but-existing office is still a valid channel, it need not be currently active), \"cur\" (courier), or \"bank\". See kassa's description for the channel × kassa pairing rule this must satisfy.",
+                        "example": "2"
+                    },
+                    "info": {
+                        "type": "string",
+                        "maxLength": 2000,
+                        "description": "Free-text description. Required and must be non-empty after trimming whitespace — this guards against silent TEXT-column truncation under this app's empty sql_mode. Max 2000 characters."
+                    },
+                    "dr_name_id": {
+                        "type": "integer",
+                        "nullable": true,
+                        "description": "Which employee this entry is attributed to (logpass.logpass_id). REQUIRED (and must reference an existing logpass row) when type2 is \"zpl\" or \"avans\" (salary/advance) — omitting it there silently breaks the legacy per-employee salary report. Optional otherwise, defaulting to 0 (not attributed to an employee); if supplied and non-zero it must still reference an existing logpass row.",
+                        "default": 0
+                    },
+                    "link_to": {
+                        "type": "integer",
+                        "nullable": true,
+                        "enum": [
+                            0,
+                            null
+                        ],
+                        "default": 0,
+                        "description": "MUST be 0 (the default). Any other value is rejected — do not loosen this without reading why. The legacy admin (bb/doh-rash.php) renders EVERY row's delete form with a hidden dr_id_link set to that row's link_to, and its delete handler runs DELETE FROM doh_rash WHERE dr_id IN ($dr_id, $dr_id_link) whenever that value is > 0 — with no type1 check, behind a confirm dialog that says \"эту операцию\" (singular). A rash/doh row carrying a non-zero link_to therefore silently destroys a second, unrelated row the next time a human deletes it in the admin, possibly one half of a shift_plus/shift_minus pair, corrupting a till balance. Rejecting only links that point AT a shift row would not close this: the legacy cascade deletes whatever dr_id it is handed. Linked/paired operations are out of scope for this API. Omitting the field (or sending null) is equivalent to 0."
+                    }
+                }
+            },
+            "FinanceEntryHistoryRow": {
+                "type": "object",
+                "description": "One doh_rash_history journal row. Only 'update' and 'delete' actions are ever journalled — a newly created row is already self-describing via its own created_by/created_at, so inserts are not journalled.",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "Journal row primary key."
+                    },
+                    "dr_id": {
+                        "type": "integer",
+                        "description": "The doh_rash row this journal entry is about. For a delete, this id no longer exists in doh_rash — the journal is the only remaining record of it."
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": [
+                            "update",
+                            "delete"
+                        ],
+                        "description": "What happened. create is never journalled (see schema description)."
+                    },
+                    "before": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Full snapshot of the doh_rash row's raw storage columns before the change (whole-row, not a diff). This is the recovery mechanism for a mistaken edit or delete — reconstruct the row from here."
+                    },
+                    "after": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Full snapshot of the row's raw storage columns after the change. Null for a delete action (there is no \"after\" row)."
+                    },
+                    "actor_user_id": {
+                        "type": "integer",
+                        "nullable": true,
+                        "description": "logpass_id of who made the change. For changes made through this API, always the api_system logpass user."
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "Where the change came from, e.g. \"mcp_api\"."
+                    },
+                    "ip": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Request IP that made the change."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When the journal row was written (not the accounting date of the underlying entry)."
+                    }
+                },
+                "required": [
+                    "id",
+                    "dr_id",
+                    "action",
+                    "before",
+                    "after",
+                    "source",
+                    "created_at"
+                ]
+            },
+            "FinanceEntryBatchResultRow": {
+                "type": "object",
+                "description": "Per-item outcome of a POST /finance/entries batch.",
+                "properties": {
+                    "index": {
+                        "type": "integer",
+                        "description": "Position of this item in the submitted entries array."
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "created",
+                            "invalid"
+                        ],
+                        "description": "Whether this specific item was written. One invalid item never blocks the others in the same batch."
+                    },
+                    "dr_id": {
+                        "type": "integer",
+                        "nullable": true,
+                        "description": "New row's primary key when status=created; null when status=invalid."
+                    },
+                    "errors": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "field => message map when status=invalid; null when status=created."
+                    }
+                }
+            },
             "OperationsFunnelData": {
                 "type": "object",
                 "description": "May be `[]` (empty array) when category resolves to no razdel.",
@@ -838,6 +1100,41 @@
                     },
                     "revenue_byn": {
                         "$ref": "#/components/schemas/AmountBYN"
+                    }
+                }
+            },
+            "OperationsDealsByModelRow": {
+                "type": "object",
+                "properties": {
+                    "model_id": {
+                        "type": "integer"
+                    },
+                    "model_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "period": {
+                        "type": "string",
+                        "description": "Format depends on granularity, e.g. '2024-01' for month, '2024-W24' for week, '2024-Q2' for quarter, '2024' for year."
+                    },
+                    "deals_started": {
+                        "type": "integer"
+                    },
+                    "units_at_period_end": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Historical unit count at period end (active items with buy_date<=ts, plus archived items still alive at ts). Null when the requested range spans more than 60 periods — see meta.warnings."
+                    },
+                    "deals_per_unit": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "deals_started / units_at_period_end, rounded to 2 decimals. Null when units_at_period_end is null or 0."
                     }
                 }
             },
@@ -1205,6 +1502,265 @@
                             "integer",
                             "null"
                         ]
+                    }
+                }
+            },
+            "PricingHistoryRow": {
+                "type": "object",
+                "description": "One event from rent_tarif_history. Each event stores a full before/after snapshot of the tariff row, not a diff.",
+                "properties": {
+                    "event_id": {
+                        "type": "integer"
+                    },
+                    "changed_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "change_type": {
+                        "type": "string",
+                        "enum": [
+                            "baseline",
+                            "create",
+                            "update",
+                            "delete"
+                        ]
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "bb_admin",
+                            "model_archive",
+                            "migration",
+                            "legacy_import",
+                            "baseline"
+                        ],
+                        "description": "Writer of the event: an edit in the legacy admin panel, tariff removal on model archival, the one-off migration that seeded the table from the then-live rent_tarif_act (change_type=baseline), or the legacy rent_tarif_prev import (always change_type=delete)."
+                    },
+                    "model_id": {
+                        "type": "integer"
+                    },
+                    "model_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tarif_id": {
+                        "type": "integer"
+                    },
+                    "actor": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    },
+                    "before": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Tariff state before the change. Null when change_type is create or baseline.",
+                        "properties": {
+                            "step": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "day",
+                                    "week",
+                                    "month",
+                                    "year",
+                                    "",
+                                    null
+                                ],
+                                "description": "Empty string / null are legacy junk, not a documented step: 3 rows in rent_tarif_prev (tarif_act_id 35, 39, 8157; model_id=0) were imported with an empty step by migration 2026_07_31_000001 (source=legacy_import). bb/classes/TariffHistory::quote() also collapses an empty string to SQL NULL, so both forms can appear."
+                            },
+                            "kol_vo": {
+                                "type": "integer"
+                            },
+                            "kol_vo_min": {
+                                "type": "integer"
+                            },
+                            "rent_amount": {
+                                "type": "string",
+                                "description": "Decimal formatted to 2 places, e.g. \"200.00\"."
+                            },
+                            "rent_per_step": {
+                                "type": "string"
+                            },
+                            "price_per_day": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "description": "rent_amount / (step_days × kol_vo), 2 decimals. Null when that denominator is zero."
+                            },
+                            "start_date": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date"
+                            }
+                        }
+                    },
+                    "after": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Tariff state after the change. Null when change_type is delete.",
+                        "properties": {
+                            "step": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "day",
+                                    "week",
+                                    "month",
+                                    "year",
+                                    "",
+                                    null
+                                ],
+                                "description": "Empty string / null are legacy junk, not a documented step: 3 rows in rent_tarif_prev (tarif_act_id 35, 39, 8157; model_id=0) were imported with an empty step by migration 2026_07_31_000001 (source=legacy_import). bb/classes/TariffHistory::quote() also collapses an empty string to SQL NULL, so both forms can appear."
+                            },
+                            "kol_vo": {
+                                "type": "integer"
+                            },
+                            "kol_vo_min": {
+                                "type": "integer"
+                            },
+                            "rent_amount": {
+                                "type": "string",
+                                "description": "Decimal formatted to 2 places, e.g. \"200.00\"."
+                            },
+                            "rent_per_step": {
+                                "type": "string"
+                            },
+                            "price_per_day": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "description": "rent_amount / (step_days × kol_vo), 2 decimals. Null when that denominator is zero."
+                            },
+                            "start_date": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date"
+                            }
+                        }
+                    },
+                    "delta_amount_byn": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "after.rent_amount − before.rent_amount, formatted to 2 decimals. Null unless both before and after are present."
+                    },
+                    "delta_pct": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Percent change in price_per_day: (after.price_per_day − before.price_per_day) / before.price_per_day × 100, rounded to 1 decimal. Null unless both sides have a price_per_day and before.price_per_day > 0."
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "PricingSnapshotRow": {
+                "type": "object",
+                "description": "One model's price list as of `as_of`: the latest rent_tarif_history event with changed_at <= as_of, per tarif_id.",
+                "properties": {
+                    "model_id": {
+                        "type": "integer"
+                    },
+                    "model_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "min_price_per_day": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Lowest tariffs[].price_per_day for this model."
+                    },
+                    "extrapolated": {
+                        "type": "boolean",
+                        "description": "True if at least one of this model's tariff rows has no recorded change-log event before as_of, so its baseline record (state as of its own last known edit) is returned instead — see meta.warnings."
+                    },
+                    "tariffs": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tarif_id": {
+                                    "type": "integer"
+                                },
+                                "step": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "enum": [
+                                        "day",
+                                        "week",
+                                        "month",
+                                        "year",
+                                        "",
+                                        null
+                                    ],
+                                    "description": "Empty string / null are legacy junk, not a documented step: 3 rows in rent_tarif_prev (tarif_act_id 35, 39, 8157; model_id=0) were imported with an empty step by migration 2026_07_31_000001 (source=legacy_import). bb/classes/TariffHistory::quote() also collapses an empty string to SQL NULL, so both forms can appear."
+                                },
+                                "kol_vo": {
+                                    "type": "integer"
+                                },
+                                "kol_vo_min": {
+                                    "type": "integer"
+                                },
+                                "rent_amount": {
+                                    "type": "string",
+                                    "description": "Decimal formatted to 2 places, e.g. \"200.00\"."
+                                },
+                                "rent_per_step": {
+                                    "type": "string"
+                                },
+                                "price_per_day": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "description": "rent_amount / (step_days × kol_vo), 2 decimals. Null when that denominator is zero."
+                                },
+                                "start_date": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "format": "date"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1894,7 +2450,7 @@
                     "comment": {
                         "type": "string",
                         "nullable": true,
-                        "maxLength": 1000
+                        "maxLength": 255
                     }
                 }
             },
@@ -2534,6 +3090,262 @@
                     }
                 }
             },
+            "FinanceEntryListEnvelope": {
+                "description": "Paginated list of ledger entries.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "object"
+                                },
+                                "data": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/FinanceEntry"
+                                    }
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_rows": {
+                                            "type": "integer"
+                                        },
+                                        "currency": {
+                                            "type": "string"
+                                        },
+                                        "data_freshness": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warning"
+                                            }
+                                        },
+                                        "page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "FinanceEntrySingleEnvelope": {
+                "description": "A single ledger entry.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "object"
+                                },
+                                "data": {
+                                    "$ref": "#/components/schemas/FinanceEntry"
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_rows": {
+                                            "type": "integer"
+                                        },
+                                        "currency": {
+                                            "type": "string"
+                                        },
+                                        "data_freshness": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warning"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "FinanceEntryWriteResponse": {
+                "description": "A single ledger entry (create/update result).",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "$ref": "#/components/schemas/FinanceEntry"
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "affected_rows": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "FinanceEntryDeleteResponse": {
+                "description": "Confirmation of physical deletion. Recovery is via GET /finance/entries/history, not a status flag — the row is actually removed from doh_rash.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "object",
+                                    "properties": {
+                                        "deleted_id": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "affected_rows": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "FinanceEntryBatchEnvelope": {
+                "description": "Per-item outcome of a batch create. HTTP 200 even when some items are invalid — only whole-request shape problems (empty array, >200 items) are HTTP 422.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "object"
+                                },
+                                "data": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/FinanceEntryBatchResultRow"
+                                    }
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_rows": {
+                                            "type": "integer"
+                                        },
+                                        "currency": {
+                                            "type": "string"
+                                        },
+                                        "data_freshness": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warning"
+                                            }
+                                        },
+                                        "summary": {
+                                            "type": "object",
+                                            "properties": {
+                                                "created": {
+                                                    "type": "integer"
+                                                },
+                                                "invalid": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "FinanceEntryHistoryEnvelope": {
+                "description": "Paginated change journal (update/delete only) for the ledger.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "object"
+                                },
+                                "data": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/FinanceEntryHistoryRow"
+                                    }
+                                },
+                                "meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_rows": {
+                                            "type": "integer"
+                                        },
+                                        "currency": {
+                                            "type": "string"
+                                        },
+                                        "data_freshness": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Warning"
+                                            }
+                                        },
+                                        "page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "FinanceEntryNotEditable": {
+                "description": "This entry's type1 is outside {rash, doh} (a shift_plus/shift_minus till-transfer row) and cannot be written through this API.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "OperationsFunnelEnvelope": {
                 "description": "Operations funnel envelope.",
                 "content": {
@@ -2622,6 +3434,31 @@
                                             "type": "array",
                                             "items": {
                                                 "$ref": "#/components/schemas/OperationsByLocationRow"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "OperationsDealsByModelEnvelope": {
+                "description": "Operations deals-by-model envelope.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Envelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/OperationsDealsByModelRow"
                                             }
                                         }
                                     }
@@ -2769,6 +3606,56 @@
                                             "type": "array",
                                             "items": {
                                                 "$ref": "#/components/schemas/InventoryIdleRow"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "PricingHistoryEnvelope": {
+                "description": "Pricing history envelope.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Envelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PricingHistoryRow"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "PricingSnapshotEnvelope": {
+                "description": "Pricing snapshot envelope.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Envelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PricingSnapshotRow"
                                             }
                                         }
                                     }
@@ -3766,6 +4653,407 @@
                 }
             }
         },
+        "/finance/entries": {
+            "get": {
+                "operationId": "tiktak_finance_entries_list",
+                "summary": "List ledger entries (filtered, paginated).",
+                "description": "Reads the doh_rash income/expense ledger directly (not a period aggregation — see /finance/expenses and /finance/revenue for those). Ordered acc_date DESC, dr_id DESC. Only rash/doh rows are ever returned — shift_plus/shift_minus till-transfer rows are excluded server-side and cannot be opted back in (see FinanceEntry.type1). A reversed range (to earlier than from) is rejected with a 422 rather than returning an empty page: on a finance endpoint, \"nothing happened in this period\" and \"you swapped your dates\" must not look identical.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter acc_date >= this date (inclusive). No default — omit for no lower bound."
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter acc_date <= this date (inclusive). No default — omit for no upper bound. Must not be earlier than `from` — a reversed range is a 422, not an empty result set."
+                    },
+                    {
+                        "in": "query",
+                        "name": "type1",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "doh",
+                                "rash"
+                            ]
+                        },
+                        "description": "Filter by direction."
+                    },
+                    {
+                        "in": "query",
+                        "name": "type2",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        },
+                        "description": "Filter by exact article code."
+                    },
+                    {
+                        "in": "query",
+                        "name": "kassa",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 16
+                        },
+                        "description": "Filter by exact kassa value."
+                    },
+                    {
+                        "in": "query",
+                        "name": "channel",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 16
+                        },
+                        "description": "Filter by exact channel value."
+                    },
+                    {
+                        "in": "query",
+                        "name": "dr_name_id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Filter by attributed employee (logpass_id)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "search",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 500
+                        },
+                        "description": "LIKE match on info."
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        },
+                        "description": "Page number."
+                    },
+                    {
+                        "in": "query",
+                        "name": "per_page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 100,
+                            "maximum": 500
+                        },
+                        "description": "Items per page."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/FinanceEntryListEnvelope"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "tiktak_finance_entries_create",
+                "summary": "Batch-create ledger entries.",
+                "description": "Accepts 1-200 entries per request. Each item is validated and written independently — one invalid item never blocks the others, so the overall response is HTTP 200 with a per-item status; only whole-request shape problems (empty array, more than 200 items) are HTTP 422. Only type1 rash/doh may be created — shift_plus/shift_minus rows are out of scope. Server always sets created_by/created_at (api_system logpass user, current time); any client-supplied value for these is silently ignored. Creates are never journalled to doh_rash_history — a new row is already self-describing via its own created_by/created_at. Per-item validation enforces the channel × kassa pairing (kassa=\"bank\" only with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\") and requires dr_name_id, referencing an existing logpass row, when type2 is \"zpl\" or \"avans\". link_to must be 0 on every item — see FinanceEntryInput.link_to.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "entries"
+                                ],
+                                "properties": {
+                                    "entries": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "maxItems": 200,
+                                        "items": {
+                                            "$ref": "#/components/schemas/FinanceEntryInput"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/FinanceEntryBatchEnvelope"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                }
+            }
+        },
+        "/finance/entries/{id}": {
+            "get": {
+                "operationId": "tiktak_finance_entries_show",
+                "summary": "Read a single ledger entry.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "doh_rash.dr_id."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/FinanceEntrySingleEnvelope"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "description": "Finance entry not found."
+                    }
+                },
+                "description": "A shift_plus/shift_minus id returns the same 404 as an unknown id — from this API's perspective there is no entry with that id (see FinanceEntry.type1)."
+            },
+            "patch": {
+                "operationId": "tiktak_finance_entries_update",
+                "summary": "Partially update a ledger entry.",
+                "description": "Validation runs against the MERGED row (existing columns with the submitted patch fields applied on top), not just the submitted body — a field you don't touch can still fail if it no longer pairs with a field you did patch (e.g. patching only kassa on a row whose existing channel doesn't pair with the new kassa), or simply because the STORED value was already invalid under this API's stricter write rules. Two rules apply to that merged row specifically: channel and kassa must form a valid pair (kassa=\"bank\" only with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\"), and dr_name_id — referencing an existing logpass row — is required when type2 is \"zpl\" or \"avans\". Two merged-row failures are commonly inherited rather than caused by the caller, and their messages say so: `info` (about 20% of existing rash/doh rows have an empty info — legacy data predating this API; supply info with your patch to fix the row) and `link_to` (a legacy row carrying a non-zero link_to cannot be patched until you send link_to: 0 — see FinanceEntryInput.link_to for why non-zero is refused at all). The patch is read from the JSON request BODY only: query-string parameters are never treated as patch fields, and a body containing no patchable field at all (empty, or only unknown keys) is a 422 rather than a no-op that rewrites the row with its own values. Refuses (422) when the EXISTING row's type1 is outside {rash, doh} — a shift_plus/shift_minus row can never be retyped or edited through this API. A successful update is journalled to doh_rash_history with a full before/after row snapshot, best-effort: a journal-write failure is logged (with the full payload) but never rolls back the doh_rash write that already succeeded, so a 200 means the ledger row changed and is not by itself a guarantee that a history row exists for it.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "doh_rash.dr_id."
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "description": "Any subset of these fields, sent in the JSON request body (query-string parameters are ignored). At least one of these fields must be present — a body of only unknown keys is a 422. Same field semantics as FinanceEntryInput; see that schema for what each field means.",
+                                "properties": {
+                                    "type1": {
+                                        "type": "string",
+                                        "enum": [
+                                            "rash",
+                                            "doh"
+                                        ],
+                                        "description": "Direction. See FinanceEntryInput.type1."
+                                    },
+                                    "type2": {
+                                        "type": "string",
+                                        "maxLength": 64,
+                                        "description": "Article code. See FinanceEntryInput.type2 — must be an is_active code in the dictionary matching the (possibly patched) type1."
+                                    },
+                                    "date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Accounting date. See FinanceEntryInput.date."
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "exclusiveMinimum": 0,
+                                        "description": "Positive magnitude. See FinanceEntryInput.amount."
+                                    },
+                                    "kassa": {
+                                        "type": "string",
+                                        "enum": [
+                                            "k1",
+                                            "k2",
+                                            "bank",
+                                            "card"
+                                        ],
+                                        "description": "Where the money sits. Must pair validly with the (possibly patched) channel — see FinanceEntryInput.kassa."
+                                    },
+                                    "channel": {
+                                        "type": "string",
+                                        "description": "Where it happened. Must pair validly with the (possibly patched) kassa — see FinanceEntryInput.channel."
+                                    },
+                                    "info": {
+                                        "type": "string",
+                                        "maxLength": 2000,
+                                        "description": "Free-text description. See FinanceEntryInput.info."
+                                    },
+                                    "dr_name_id": {
+                                        "type": "integer",
+                                        "nullable": true,
+                                        "description": "Attributed employee. Required for type2 zpl/avans (using the merged, i.e. possibly-patched, type2) — see FinanceEntryInput.dr_name_id."
+                                    },
+                                    "link_to": {
+                                        "type": "integer",
+                                        "nullable": true,
+                                        "enum": [
+                                            0,
+                                            null
+                                        ],
+                                        "description": "Must be 0. See FinanceEntryInput.link_to — and note a legacy row that already holds a non-zero link_to can only be patched by sending link_to: 0 to clear it. Omitting the field (or sending null) is equivalent to 0."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/FinanceEntryWriteResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "description": "Finance entry not found."
+                    },
+                    "422": {
+                        "description": "Either the merged row failed field validation, or the existing row is not editable through this API (see FinanceEntryNotEditable).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errors": {
+                                            "type": "object"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "tiktak_finance_entries_delete",
+                "summary": "Physically delete a ledger entry.",
+                "description": "This is a hard delete — the row is actually removed from doh_rash, there is no soft-delete flag. Recovery is via GET /finance/entries/history (the before snapshot journalled at delete time), not a status flag. Refuses (422) when the row's type1 is outside {rash, doh} — deleting one half of a shift_plus/shift_minus pair would leave the other half dangling and the till balance wrong. The journal actor is resolved BEFORE the row is touched, so a delete that could not be journalled fails with a 500 and leaves the row intact rather than becoming unrecoverable; the journal INSERT itself is still best-effort (a failure is logged with the full row snapshot, never rolled back).",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "doh_rash.dr_id."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/FinanceEntryDeleteResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "description": "Finance entry not found."
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/FinanceEntryNotEditable"
+                    },
+                    "500": {
+                        "description": "Delete aborted because the journal actor could not be resolved — an unjournalled delete would be unrecoverable, so the row is left intact."
+                    }
+                }
+            }
+        },
+        "/finance/entries/history": {
+            "get": {
+                "operationId": "tiktak_finance_entries_history",
+                "summary": "Read the change journal (doh_rash_history) — update/delete only.",
+                "description": "Records only 'update' and 'delete' actions with a full before/after row snapshot; 'create' is never journalled because a newly created row is already self-describing via its own created_by/created_at. This is the recovery mechanism for a mistaken PATCH or DELETE made through this API. A reversed range (to earlier than from) is rejected with a 422 rather than returning an empty page.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "dr_id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Filter to journal rows about this doh_rash entry (works even after the entry itself has been deleted)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "action",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "update",
+                                "delete"
+                            ]
+                        },
+                        "description": "Filter by action type."
+                    },
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter journal created_at >= this date."
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter journal created_at <= this date. Must not be earlier than `from` — a reversed range is a 422, not an empty result set."
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        },
+                        "description": "Page number."
+                    },
+                    {
+                        "in": "query",
+                        "name": "per_page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 100,
+                            "maximum": 500
+                        },
+                        "description": "Items per page."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/FinanceEntryHistoryEnvelope"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                }
+            }
+        },
         "/operations/funnel": {
             "get": {
                 "operationId": "tiktak_operations_funnel",
@@ -3865,6 +5153,43 @@
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/OperationsByLocationEnvelope"
+                    }
+                }
+            }
+        },
+        "/operations/deals-by-model": {
+            "get": {
+                "operationId": "tiktak_operations_deals_by_model",
+                "summary": "New deals started per model per period, with units_at_period_end (historical inventory denominator) and deals_per_unit as a turnover proxy.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/from"
+                    },
+                    {
+                        "$ref": "#/components/parameters/to"
+                    },
+                    {
+                        "$ref": "#/components/parameters/granularity"
+                    },
+                    {
+                        "$ref": "#/components/parameters/category"
+                    },
+                    {
+                        "in": "query",
+                        "name": "model_id",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Restrict to one model."
+                    },
+                    {
+                        "$ref": "#/components/parameters/include_carnival"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/OperationsDealsByModelEnvelope"
                     }
                 }
             }
@@ -3975,6 +5300,137 @@
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/InventoryIdleEnvelope"
+                    }
+                }
+            }
+        },
+        "/pricing/history": {
+            "get": {
+                "operationId": "tiktak_pricing_history",
+                "summary": "Change log of tariff edits from rent_tarif_history. Each event carries a full before/after snapshot of the tariff row, not a diff — reconstructing the price list on an arbitrary date means taking, per tarif_id, the latest event with changed_at <= that date (see /pricing/snapshot, which does exactly that).",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "model_id",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Restrict to one model."
+                    },
+                    {
+                        "in": "query",
+                        "name": "category",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Single category slug, or comma-separated list of slugs. Default: 'all'."
+                    },
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Inclusive lower bound on changed_at. Default: no lower bound."
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Inclusive upper bound on changed_at. Default: no upper bound."
+                    },
+                    {
+                        "in": "query",
+                        "name": "change_type",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "baseline",
+                                "create",
+                                "update",
+                                "delete"
+                            ]
+                        },
+                        "description": "Restrict to one change type. Default: all."
+                    },
+                    {
+                        "in": "query",
+                        "name": "actor_user_id",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Restrict to events written by one admin user (rent_tarif_history.actor_user_id)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer",
+                            "default": 100,
+                            "minimum": 1,
+                            "maximum": 500
+                        },
+                        "description": "Rows per page."
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PricingHistoryEnvelope"
+                    }
+                }
+            }
+        },
+        "/pricing/snapshot": {
+            "get": {
+                "operationId": "tiktak_pricing_snapshot",
+                "summary": "Price list reconstructed as of `as_of`: for each tarif_id, the latest rent_tarif_history event with changed_at <= as_of (deleted tariffs excluded). A tariff row with no recorded event before as_of, but already effective on that date (new_start_date <= as_of), is still returned — with extrapolated=true — using its baseline snapshot (the state as of its own earliest known edit, dated anywhere from 2013 to today); this share shrinks as more real events accumulate. See meta.warnings for the extrapolated-row count on a given response.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "as_of",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Reconstruct the price list as of this date (inclusive, end of day)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "model_id",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Restrict to one model."
+                    },
+                    {
+                        "in": "query",
+                        "name": "category",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Single category slug, or comma-separated list of slugs. Default: 'all'."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PricingSnapshotEnvelope"
                     }
                 }
             }
@@ -4320,6 +5776,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "ai_result",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Filter by exact ai_result value."
+                    },
+                    {
+                        "in": "query",
+                        "name": "is_internal",
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "description": "Filter by internal-call flag (both parties are company numbers)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "has_missed",
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "description": "When 1, only rows where missed_reason IS NOT NULL."
+                    },
+                    {
+                        "in": "query",
                         "name": "page",
                         "schema": {
                             "type": "integer",
@@ -4459,6 +5947,28 @@
                                                         "type": "string",
                                                         "nullable": true,
                                                         "description": "Detailed explanation of the outcome"
+                                                    },
+                                                    "is_internal": {
+                                                        "type": "boolean",
+                                                        "description": "True when both caller and callee are company numbers (config/tiktak.php internal_phones)"
+                                                    },
+                                                    "missed_reason": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": [
+                                                            "stock",
+                                                            "assortment"
+                                                        ],
+                                                        "description": "Set when the call's main outcome was missed demand: item out of stock (stock) vs not carried at all (assortment)"
+                                                    },
+                                                    "missed_outcome": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": [
+                                                            "hard",
+                                                            "soft"
+                                                        ],
+                                                        "description": "hard = client refused, soft = client willing to wait/substitute"
                                                     }
                                                 }
                                             }
@@ -4651,7 +6161,7 @@
             },
             "post": {
                 "operationId": "tiktak_calls_recordings_analysis_submit",
-                "summary": "Submit AI analysis result. Body: {transcript, ai_summary, ai_result, ai_result_detail, discussed_items[], missed_item, client_sentiment, consultant_sentiment, ai_business_note} for success, or {error} for failure. Sets ai_status=done or error.",
+                "summary": "Submit AI analysis result. Body: {transcript, ai_summary, ai_result, ai_result_detail, discussed_items[], missed_item, client_sentiment, consultant_sentiment, ai_business_note, is_internal, missed_reason, missed_outcome} for success, or {error} for failure. Sets ai_status=done or error.",
                 "parameters": [
                     {
                         "in": "path",
@@ -4681,7 +6191,10 @@
                                             "booking",
                                             "complaint",
                                             "info",
-                                            "other"
+                                            "other",
+                                            "extension",
+                                            "service",
+                                            "missed"
                                         ]
                                     },
                                     "ai_result_detail": {
@@ -4714,6 +6227,28 @@
                                     },
                                     "ai_business_note": {
                                         "type": "string"
+                                    },
+                                    "is_internal": {
+                                        "type": "boolean",
+                                        "description": "True when both parties are company numbers. Excluded from calls_analyzed and demand analytics."
+                                    },
+                                    "missed_reason": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": [
+                                            "stock",
+                                            "assortment"
+                                        ],
+                                        "description": "Invalid values are silently stored as NULL."
+                                    },
+                                    "missed_outcome": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": [
+                                            "hard",
+                                            "soft"
+                                        ],
+                                        "description": "Invalid values are silently stored as NULL."
                                     },
                                     "error": {
                                         "type": "string",
@@ -4760,7 +6295,7 @@
             },
             "post": {
                 "operationId": "tiktak_calls_daily_summary_submit",
-                "summary": "Upsert AI daily summary. Body: {summary_text, key_themes[]}. Counts (total_calls, incoming_calls, outgoing_calls, missed_calls, calls_analyzed) are auto-filled from a1_cdr on the server.",
+                "summary": "Upsert AI daily summary. Body: {summary_text, key_themes[]}. Counts (total_calls, incoming_calls, outgoing_calls, missed_calls, calls_analyzed, internal_calls) are auto-filled from a1_cdr/a1_call_analysis on the server. calls_analyzed and internal_calls are mutually exclusive (is_internal=0 vs 1).",
                 "parameters": [
                     {
                         "in": "path",
@@ -4822,6 +6357,316 @@
                     },
                     "404": {
                         "description": "No analysis record found for this uuid."
+                    }
+                }
+            }
+        },
+        "/calls/recordings/{uuid}/items": {
+            "get": {
+                "operationId": "tiktak_calls_recordings_items_get",
+                "summary": "Get the per-phrase demand items (call_demand_items rows) for a recording.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "uuid",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Demand items for this recording in {query, data, meta} envelope.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "query": {
+                                            "type": "object",
+                                            "properties": {
+                                                "uuid": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "recording_uuid": {
+                                                        "type": "string"
+                                                    },
+                                                    "call_date": {
+                                                        "type": "string",
+                                                        "format": "date"
+                                                    },
+                                                    "phrase": {
+                                                        "type": "string"
+                                                    },
+                                                    "cat_id": {
+                                                        "type": "integer",
+                                                        "nullable": true
+                                                    },
+                                                    "cat_name": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "kind": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "demand",
+                                                            "missed",
+                                                            "mention"
+                                                        ]
+                                                    },
+                                                    "missed_reason": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": [
+                                                            "stock",
+                                                            "assortment"
+                                                        ]
+                                                    },
+                                                    "missed_outcome": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "enum": [
+                                                            "hard",
+                                                            "soft"
+                                                        ]
+                                                    },
+                                                    "match_source": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "alias",
+                                                            "fuzzy",
+                                                            "model",
+                                                            "manual",
+                                                            "unmatched"
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "tiktak_calls_recordings_items_submit",
+                "summary": "Replace the demand items for a recording. Body: JSON array of {phrase, kind, cat_id, cat_name, match_source, missed_reason, missed_outcome}. Deletes all existing non-manual rows for this uuid and inserts the given items; rows with match_source='manual' are preserved by matching phrase (their cat_id/cat_name/match_source win over the submitted values).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "uuid",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "phrase": {
+                                            "type": "string"
+                                        },
+                                        "kind": {
+                                            "type": "string",
+                                            "enum": [
+                                                "demand",
+                                                "missed",
+                                                "mention"
+                                            ]
+                                        },
+                                        "cat_id": {
+                                            "type": "integer",
+                                            "nullable": true
+                                        },
+                                        "cat_name": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "match_source": {
+                                            "type": "string",
+                                            "enum": [
+                                                "alias",
+                                                "fuzzy",
+                                                "model",
+                                                "manual",
+                                                "unmatched"
+                                            ]
+                                        },
+                                        "missed_reason": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "enum": [
+                                                "stock",
+                                                "assortment"
+                                            ]
+                                        },
+                                        "missed_outcome": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "enum": [
+                                                "hard",
+                                                "soft"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "phrase",
+                                        "kind",
+                                        "match_source"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "{\"status\": \"ok\"}"
+                    }
+                }
+            }
+        },
+        "/calls/demand": {
+            "get": {
+                "operationId": "tiktak_calls_demand_aggregate",
+                "summary": "Aggregate call_demand_items by category, excluding internal calls (a1_call_analysis.is_internal=1). Used by the 'Спрос по категориям' admin report (bb/call_demand.php) to surface demand for missing/out-of-stock inventory.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filters on call_demand_items.call_date. Default: 30 days ago"
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Default: today"
+                    },
+                    {
+                        "in": "query",
+                        "name": "kind",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "demand",
+                                "missed",
+                                "mention"
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "missed_reason",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "stock",
+                                "assortment"
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "missed_outcome",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "hard",
+                                "soft"
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "razdel_id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Restricts to categories under this razdel (via tovar_rent_cat -> sub_razdel). Rows with cat_id=NULL (phrase never matched to a catalog category) are always included regardless of this filter."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Per-category demand aggregate in {query, data, meta} envelope.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "cat_id": {
+                                                        "type": "integer",
+                                                        "nullable": true
+                                                    },
+                                                    "cat_name": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "mentions": {
+                                                        "type": "integer",
+                                                        "description": "Total call_demand_items rows for this category in range"
+                                                    },
+                                                    "missed_hard": {
+                                                        "type": "integer",
+                                                        "description": "Count where kind=missed AND missed_outcome=hard"
+                                                    },
+                                                    "missed_soft": {
+                                                        "type": "integer",
+                                                        "description": "Count where kind=missed AND missed_outcome=soft"
+                                                    },
+                                                    "top_phrases": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "description": "Up to 5 unique verbatim phrases for this category"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_categories": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -5095,7 +6940,7 @@
                                     "comment": {
                                         "type": "string",
                                         "nullable": true,
-                                        "maxLength": 1000
+                                        "maxLength": 255
                                     }
                                 }
                             }

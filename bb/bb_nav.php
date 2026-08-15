@@ -57,6 +57,12 @@ if (isset($_SESSION['user_id']) && \bb\models\User::getCurrentUser()->isManageme
         'page'  => 'a1_calls.php',
         'badge' => 'calls',
     ];
+    $_bb_nav_items[] = [
+        'label' => 'Спрос',
+        'href'  => '/bb/call_demand.php',
+        'icon'  => '<svg class="bb-icon-nav__home-icon" viewBox="0 0 24 24" fill="none" stroke="#3a4a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-5 5"/></svg>',
+        'page'  => 'call_demand.php',
+    ];
     $_bb_nav_items[] = $archivItem;
 }
 ?>

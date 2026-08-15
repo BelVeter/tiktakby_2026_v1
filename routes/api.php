@@ -6,6 +6,7 @@ use App\Http\Controllers\Mcp\CategoriesController;
 use App\Http\Controllers\Mcp\CustomersController;
 use App\Http\Controllers\Mcp\ExportController;
 use App\Http\Controllers\Mcp\FinanceController;
+use App\Http\Controllers\Mcp\FinanceEntriesController;
 use App\Http\Controllers\Mcp\GeoController;
 use App\Http\Controllers\Mcp\HealthController;
 use App\Http\Controllers\Mcp\InventoryController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Mcp\OperationsController;
 use App\Http\Controllers\Mcp\PagesHistoryController;
 use App\Http\Controllers\Mcp\PagesListingController;
 use App\Http\Controllers\Mcp\PagesProductController;
+use App\Http\Controllers\Mcp\PricingController;
 use App\Http\Controllers\Mcp\RedirectsController;
 use App\Http\Controllers\Mcp\SmsController;
 use Illuminate\Support\Facades\Route;
@@ -60,11 +62,24 @@ Route::prefix('mcp/v1')
         Route::get('finance/expenses',            [FinanceController::class, 'expenses'])->name('finance.expenses');
         Route::get('finance/cash-flow', [FinanceController::class, 'cashFlow'])->name('finance.cash-flow');
 
+        // Finance entries — CRUD over the doh_rash ledger (read half, Task 3).
+        // Route order matters: /history must be registered before the /{id}
+        // wildcard, or it gets swallowed as an id.
+        Route::get('finance/entries',         [FinanceEntriesController::class, 'index'])->name('finance.entries.index');
+        Route::get('finance/entries/history', [FinanceEntriesController::class, 'history'])->name('finance.entries.history');
+        Route::get('finance/entries/{id}',    [FinanceEntriesController::class, 'show'])->name('finance.entries.show')->where('id', '[0-9]+');
+
+        // Finance entries — write half (Task 5): create/update/delete over doh_rash + change journal.
+        Route::post('finance/entries',          [FinanceEntriesController::class, 'store'])->name('finance.entries.store');
+        Route::patch('finance/entries/{id}',    [FinanceEntriesController::class, 'update'])->name('finance.entries.update')->where('id', '[0-9]+');
+        Route::delete('finance/entries/{id}',   [FinanceEntriesController::class, 'destroy'])->name('finance.entries.destroy')->where('id', '[0-9]+');
+
         // Operations (A.5)
         Route::get('operations/funnel',      [OperationsController::class, 'funnel'])->name('operations.funnel');
         Route::get('operations/timeline',    [OperationsController::class, 'timeline'])->name('operations.timeline');
         Route::get('operations/by-category', [OperationsController::class, 'byCategory'])->name('operations.by-category');
         Route::get('operations/by-location', [OperationsController::class, 'byLocation'])->name('operations.by-location');
+        Route::get('operations/deals-by-model', [OperationsController::class, 'dealsByModel'])->name('operations.deals-by-model');
 
         // Inventory (A.6 + existing)
         Route::get('inventory/free-tree',      [InventoryController::class, 'freeTree'])->name('inventory.free-tree');
@@ -73,6 +88,10 @@ Route::prefix('mcp/v1')
         Route::get('inventory/utilization',    [InventoryController::class, 'utilization'])->name('inventory.utilization');
         Route::get('inventory/turnover',       [InventoryController::class, 'turnover'])->name('inventory.turnover');
         Route::get('inventory/idle',           [InventoryController::class, 'idle'])->name('inventory.idle');
+
+        // Pricing history (2026-07-31)
+        Route::get('pricing/history',  [PricingController::class, 'history'])->name('pricing.history');
+        Route::get('pricing/snapshot', [PricingController::class, 'snapshot'])->name('pricing.snapshot');
 
         // Customers (A.7 + existing /clients/ltv)
         Route::get('customers/timeline',          [CustomersController::class, 'timeline'])->name('customers.timeline');
@@ -100,6 +119,11 @@ Route::prefix('mcp/v1')
         Route::get('export/monthly/{topic}', [ExportController::class, 'monthly'])
             ->where('topic', '[a-z_-]+')
             ->name('export.monthly');
+
+        // A1 Calls: demand reporting (new)
+        Route::get('calls/demand', [CallsController::class, 'getDemandAggregate'])->name('calls.demand');
+        Route::get('calls/recordings/{uuid}/items', [CallsController::class, 'getDemandItems'])->name('calls.recordings.items.get');
+        Route::post('calls/recordings/{uuid}/items', [CallsController::class, 'submitDemandItems'])->name('calls.recordings.items.post');
 
         // A1 Calls: recordings (existing)
         Route::get('calls/recordings', [CallsController::class, 'index'])->name('calls.recordings');

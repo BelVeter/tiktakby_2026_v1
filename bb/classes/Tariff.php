@@ -8,6 +8,8 @@ use bb\Base;
 use bb\Db;
 use bb\models\User;
 
+require_once __DIR__ . '/TariffHistory.php';
+
 class Tariff
 {
     public $tarif_id;
@@ -29,6 +31,12 @@ class Tariff
     public $change_date;
     public $change_who;
 
+    /**
+     * Откуда пришло изменение — попадает в журнал `rent_tarif_history`.
+     * @var string одна из TariffHistory::SOURCE_* констант
+     */
+    public $historySource = TariffHistory::SOURCE_BB_ADMIN;
+
     public function shortStepText(){
         switch ($this->step) {
             case 'day':
@@ -48,10 +56,10 @@ class Tariff
 
     public function save(){
         if ($this->tarif_id < 1) {
-            $this->saveNew();
+            return $this->saveNew();
         }
         else {
-            $this->update();
+            return $this->update();
         }
     }
 
@@ -62,18 +70,86 @@ class Tariff
         if (!$mysqli->query($query_new_tarif)) {die('Сбой при доступе к базе данных: '.$query_new_tarif.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
         $this->tarif_id=$mysqli->insert_id;
 
+        TariffHistory::log(TariffHistory::TYPE_CREATE, null, $this, $this->historySource);
+
         return true;
     }
     private function update(){
+        $before = self::getById($this->tarif_id);
+
+        // Тариф не существует — ничего не обновляем и не логируем.
+        if (!$before) {
+            return false;
+        }
+
+        // Пустой UPDATE не должен засорять журнал: форма сохраняется и тогда,
+        // когда оператор ничего не поменял.
+        if (!$this->differsFrom($before)) {
+            return true;
+        }
+
         $mysqli = Db::getInstance()->getConnection();
         $query_new_tarif = "UPDATE rent_tarif_act
             SET model_id='$this->model_id', start_date='".$this->start_date->getTimestamp()."', step='$this->step', kol_vo='$this->kol_vo', kol_vo_min='$this->kol_vo_min', rent_amount='$this->rent_amount', rent_per_step='$this->rent_per_step', sort_num='$this->sort_num', change_date='".time()."', change_who='".User::getCurrentUser()->id_user."'
             WHERE tarif_id='$this->tarif_id'";
         if (!$mysqli->query($query_new_tarif)) {die('Сбой при доступе к базе данных: '.$query_new_tarif.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
 
+        TariffHistory::log(TariffHistory::TYPE_UPDATE, $before, $this, $this->historySource);
+
         return true;
     }
 
+    /**
+     * Удаляет тариф и пишет событие в журнал.
+     *
+     * Раньше удаление жило прямо в bb/rent_tarifs.php и складывало строку в
+     * `rent_tarif_prev`. Теперь архив — это журнал; писать в старую таблицу
+     * перестали, но её данные импортированы миграцией.
+     *
+     * @return bool
+     */
+    public function delete(){
+        if ($this->tarif_id < 1) {
+            return false;
+        }
+
+        $before = self::getById($this->tarif_id);
+        if (!$before) {
+            return false;
+        }
+
+        $mysqli = Db::getInstance()->getConnection();
+        $query_del = "DELETE FROM rent_tarif_act WHERE tarif_id='".(int) $this->tarif_id."'";
+        if (!$mysqli->query($query_del)) {die('Сбой при доступе к базе данных: '.$query_del.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
+
+        TariffHistory::log(TariffHistory::TYPE_DELETE, $before, null, $this->historySource);
+
+        return true;
+    }
+
+    /**
+     * Отличается ли этот тариф от другого по значимым полям.
+     * `change_date` и `change_who` не сравниваются — они меняются всегда.
+     *
+     * @param Tariff $other
+     * @return bool
+     */
+    public function differsFrom($other){
+        if (!$other) {
+            return true;
+        }
+
+        $thisStart  = $this->start_date instanceof \DateTime ? $this->start_date->getTimestamp() : 0;
+        $otherStart = $other->start_date instanceof \DateTime ? $other->start_date->getTimestamp() : 0;
+
+        return (string) $this->step !== (string) $other->step
+            || (int) $this->kol_vo !== (int) $other->kol_vo
+            || (int) $this->kol_vo_min !== (int) $other->kol_vo_min
+            || (int) $this->sort_num !== (int) $other->sort_num
+            || $thisStart !== $otherStart
+            || number_format((float) $this->rent_amount, 2, '.', '') !== number_format((float) $other->rent_amount, 2, '.', '')
+            || number_format((float) $this->rent_per_step, 2, '.', '') !== number_format((float) $other->rent_per_step, 2, '.', '');
+    }
 
     /**
      * @return Tariff|false|void|null

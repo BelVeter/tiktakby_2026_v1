@@ -32,6 +32,9 @@ class CallsController extends BaseController
         $to      = $request->get('to',   date('Y-m-d'));
         $caller  = $request->get('caller');
         $callee  = $request->get('callee');
+        $aiResult   = $request->get('ai_result');
+        $isInternal = $request->get('is_internal');
+        $hasMissed  = $request->get('has_missed');
         $page    = max(1, (int) $request->get('page', 1));
         $perPage = min(500, max(1, (int) $request->get('per_page', 100)));
 
@@ -47,6 +50,15 @@ class CallsController extends BaseController
         }
         if ($callee) {
             $query->where('a1_call_recordings.callee_part', 'like', '%' . $callee . '%');
+        }
+        if ($aiResult) {
+            $query->where('a1_call_analysis.ai_result', $aiResult);
+        }
+        if ($isInternal !== null) {
+            $query->where('a1_call_analysis.is_internal', (int) $isInternal);
+        }
+        if ($hasMissed) {
+            $query->whereNotNull('a1_call_analysis.missed_reason');
         }
 
         $total = $query->count();
@@ -71,7 +83,10 @@ class CallsController extends BaseController
                 'a1_call_analysis.client_sentiment',
                 'a1_call_analysis.consultant_sentiment',
                 'a1_call_analysis.ai_result',
-                'a1_call_analysis.ai_result_detail'
+                'a1_call_analysis.ai_result_detail',
+                'a1_call_analysis.is_internal',
+                'a1_call_analysis.missed_reason',
+                'a1_call_analysis.missed_outcome',
             ]);
 
         $totalSizeBytes = (int) Cache::remember('a1.recordings.total_size', 300, function () {
@@ -106,6 +121,9 @@ class CallsController extends BaseController
                 'consultant_sentiment' => $row->consultant_sentiment,
                 'ai_result'            => $row->ai_result,
                 'ai_result_detail'     => $row->ai_result_detail,
+                'is_internal'          => (bool) $row->is_internal,
+                'missed_reason'        => $row->missed_reason,
+                'missed_outcome'       => $row->missed_outcome,
             ];
         })->values()->all();
 
@@ -468,6 +486,9 @@ class CallsController extends BaseController
                 'missed_item'          => $request->input('missed_item'),
                 'client_sentiment'     => $request->input('client_sentiment'),
                 'consultant_sentiment' => $request->input('consultant_sentiment'),
+                'is_internal'          => (bool) $request->input('is_internal', false),
+                'missed_reason'        => in_array($request->input('missed_reason'), ['stock', 'assortment']) ? $request->input('missed_reason') : null,
+                'missed_outcome'       => in_array($request->input('missed_outcome'), ['hard', 'soft']) ? $request->input('missed_outcome') : null,
                 'ai_status'            => 'done',
                 'ai_processed_at'      => date('Y-m-d H:i:s'),
                 'updated_at'           => date('Y-m-d H:i:s'),
@@ -571,6 +592,14 @@ class CallsController extends BaseController
             ->join('a1_call_recordings as r', 'r.uuid', '=', 'ca.recording_uuid')
             ->whereBetween('r.call_date', [$fromDt, $toDt])
             ->where('ca.ai_status', 'done')
+            ->where('ca.is_internal', 0)
+            ->count();
+
+        $internal = DB::table('a1_call_analysis as ca')
+            ->join('a1_call_recordings as r', 'r.uuid', '=', 'ca.recording_uuid')
+            ->whereBetween('r.call_date', [$fromDt, $toDt])
+            ->where('ca.ai_status', 'done')
+            ->where('ca.is_internal', 1)
             ->count();
 
         $payload = [
@@ -581,6 +610,7 @@ class CallsController extends BaseController
             'outgoing_calls' => (int) ($counts->outgoing ?? 0),
             'missed_calls'   => (int) ($counts->missed   ?? 0),
             'calls_analyzed' => $analyzed,
+            'internal_calls' => $internal,
             'key_themes'     => json_encode($request->input('key_themes', [])),
             'updated_at'     => date('Y-m-d H:i:s'),
         ];
@@ -598,5 +628,150 @@ class CallsController extends BaseController
         $data['key_themes'] = json_decode($row->key_themes ?? '[]', true);
 
         return $this->envelope(['date' => $date], $data, []);
+    }
+
+    /**
+     * POST /api/mcp/v1/calls/recordings/{uuid}/items
+     */
+    public function submitDemandItems(Request $request, string $uuid): JsonResponse
+    {
+        $items = $request->json()->all();
+        
+        DB::transaction(function() use ($uuid, $items) {
+            $manuals = DB::table('call_demand_items')
+                ->where('recording_uuid', $uuid)
+                ->where('match_source', 'manual')
+                ->get()
+                ->keyBy('phrase');
+
+            DB::table('call_demand_items')->where('recording_uuid', $uuid)->delete();
+
+            $callDate = DB::table('a1_call_recordings')
+                ->where('uuid', $uuid)->value('call_date');
+            
+            if (!$callDate) {
+                return;
+            }
+            $date = substr($callDate, 0, 10);
+
+            $rows = [];
+            foreach ($items as $item) {
+                if (isset($manuals[$item['phrase']])) {
+                    $m = $manuals[$item['phrase']];
+                    $item['cat_id']  = $m->cat_id;
+                    $item['cat_name']= $m->cat_name;
+                    $item['match_source'] = 'manual';
+                }
+                $rows[] = array_merge($item, [
+                    'recording_uuid' => $uuid,
+                    'call_date'      => $date,
+                    'created_at'     => now(), 
+                    'updated_at'     => now(),
+                ]);
+            }
+            
+            if (!empty($rows)) {
+                DB::table('call_demand_items')->insert($rows);
+            }
+        });
+        
+        return response()->json(['status' => 'ok']);
+    }
+
+    /**
+     * GET /api/mcp/v1/calls/recordings/{uuid}/items
+     */
+    public function getDemandItems(string $uuid): JsonResponse
+    {
+        $items = DB::table('call_demand_items')->where('recording_uuid', $uuid)->get();
+        return $this->envelope(['uuid' => $uuid], $items->toArray(), []);
+    }
+
+    /**
+     * GET /api/mcp/v1/calls/demand
+     */
+    public function getDemandAggregate(Request $request): JsonResponse
+    {
+        $from    = $request->get('from', date('Y-m-d', strtotime('-30 days')));
+        $to      = $request->get('to',   date('Y-m-d'));
+        $kind    = $request->get('kind');
+        $reason  = $request->get('missed_reason');
+        $outcome = $request->get('missed_outcome');
+        $razdelId = $request->get('razdel_id');
+
+        $query = DB::table('call_demand_items as cdi')
+            ->leftJoin('a1_call_analysis as ca', 'ca.recording_uuid', '=', 'cdi.recording_uuid')
+            ->whereBetween('cdi.call_date', [$from, $to])
+            ->where('ca.is_internal', 0);
+
+        if ($kind) {
+            $query->where('cdi.kind', $kind);
+        }
+        if ($reason) {
+            $query->where('cdi.missed_reason', $reason);
+        }
+        if ($outcome) {
+            $query->where('cdi.missed_outcome', $outcome);
+        }
+        if ($razdelId) {
+            // Items with cat_id matching the razdel, OR unmatched items (cat_id IS NULL)
+            $catIds = DB::table('tovar_rent_cat as trc')
+                ->join('sub_razdel as sr', 'sr.id_sub_razdel', '=', 'trc.main_sub_razdel_id')
+                ->where('sr.main_razdel_id', $razdelId)
+                ->pluck('trc.tovar_rent_cat_id');
+            $query->where(function ($q) use ($catIds) {
+                $q->whereIn('cdi.cat_id', $catIds)
+                  ->orWhereNull('cdi.cat_id');
+            });
+        }
+
+        $rows = $query->select(
+                'cdi.cat_id',
+                'cdi.cat_name',
+                DB::raw('COUNT(*) AS mentions'),
+                DB::raw("SUM(cdi.kind='missed' AND cdi.missed_outcome='hard') AS missed_hard"),
+                DB::raw("SUM(cdi.kind='missed' AND cdi.missed_outcome='soft') AS missed_soft"),
+                DB::raw("GROUP_CONCAT(cdi.phrase SEPARATOR '|||') AS phrases_raw")
+            )
+            ->groupBy('cdi.cat_id', 'cdi.cat_name')
+            ->orderByDesc('mentions')
+            ->get();
+
+        // Resolve official category names from the catalog for matched items
+        $catIds = $rows->pluck('cat_id')->filter()->unique()->values()->all();
+        $catNames = [];
+        if (!empty($catIds)) {
+            $catNames = DB::table('tovar_rent_cat')
+                ->whereIn('tovar_rent_cat_id', $catIds)
+                ->pluck('rent_cat_name', 'tovar_rent_cat_id')
+                ->all();
+        }
+
+        $data = $rows->map(function ($row) use ($catNames) {
+            $phrases = explode('|||', $row->phrases_raw);
+            $uniquePhrases = array_values(array_unique(array_filter($phrases)));
+
+            return [
+                'cat_id'      => $row->cat_id,
+                'cat_name'    => $row->cat_id ? ($catNames[$row->cat_id] ?? $row->cat_name) : $row->cat_name,
+                'mentions'    => (int)$row->mentions,
+                'missed_hard' => (int)$row->missed_hard,
+                'missed_soft' => (int)$row->missed_soft,
+                'top_phrases' => array_slice($uniquePhrases, 0, 5)
+            ];
+        })->toArray();
+
+        return $this->envelope(
+            [
+                'from' => $from, 
+                'to' => $to, 
+                'kind' => $kind, 
+                'missed_reason' => $reason, 
+                'missed_outcome' => $outcome, 
+                'razdel_id' => $razdelId
+            ],
+            $data,
+            ['total_categories' => count($data)]
+        );
     }
 }

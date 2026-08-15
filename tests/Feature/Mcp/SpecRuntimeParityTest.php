@@ -55,6 +55,7 @@ class SpecRuntimeParityTest extends McpTestCase
             'finance/revenue'              => ['finance/revenue',              $range + ['granularity' => 'year'],                                            'array_row', null],
             'finance/expenses'             => ['finance/expenses',             $range + ['granularity' => 'year'],                                            'array_row', null],
             'finance/cash-flow'            => ['finance/cash-flow',            $range + ['granularity' => 'year'],                                            'array_row', null],
+            'finance/entries'              => ['finance/entries',              ['per_page' => 1],                                                             'array_row', null],
 
             // Operations
             'operations/funnel'            => ['operations/funnel',            $range,                                                                        'object',    null],
@@ -95,6 +96,11 @@ class SpecRuntimeParityTest extends McpTestCase
             // Pages (SEO content)
             'pages/product'                => ['pages/product',                ['per_page' => 1],                                                             'array_row', null],
             'pages/history'                => ['pages/history',                ['per_page' => 1],                                                             'array_row', null],
+
+            // Pricing history (2026-07-31)
+            'pricing/history'              => ['pricing/history',              ['limit' => 5],                                                                'array_row', null],
+            'pricing/snapshot'             => ['pricing/snapshot',             ['as_of' => '2026-01-01'],                                                     'array_row', null],
+            'operations/deals-by-model'    => ['operations/deals-by-model',    $range + ['granularity' => 'month'],                                           'array_row', null],
         ];
     }
 
@@ -180,7 +186,7 @@ class SpecRuntimeParityTest extends McpTestCase
     public function test_spec_version_matches(): void
     {
         $this->assertSame(
-            '2.3.0',
+            '2.4.0',
             $this->spec['info']['version'],
             'bumping spec without updating this assertion is a footgun — update both together'
         );
