@@ -49,7 +49,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
-<link href="/bb/assets/styles/category_picker.css?v=3" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=4" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>

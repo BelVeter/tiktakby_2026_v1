@@ -243,15 +243,30 @@
     margin-right: 4px;
     font-size: 14px;
     cursor: pointer;
-    background: #eef1f5;
     border: 1px solid #b5b5b5;
     border-bottom: none;
     border-radius: 3px 3px 0 0;
 }
 
+/* Каждая вкладка тонирована в цвет своей фазы всегда, не только когда
+   открыта — чтобы было видно с первого взгляда, не дожидаясь клика. */
+#tab_new {
+    background: #f2f8ff;
+}
+
+#tab_edit {
+    background: #fff6da;
+}
+
 .catp-tab--active {
-    background: transparent;
     font-weight: bold;
+}
+
+/* Открытая вкладка становится прозрачной и сливается с заливкой области
+   под ней (см. #new_model_div.catp-phase--*) — так видно, какая открыта. */
+#tab_new.catp-tab--active,
+#tab_edit.catp-tab--active {
+    background: transparent;
 }
 
 /* ------------------------------------------------------- фазы вкладки-редактирования */
