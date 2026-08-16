@@ -308,7 +308,8 @@
     cursor: pointer;
 }
 
-#model_edit_cancel {
+#model_edit_cancel,
+#model_reset_search {
     background: #eef1f5;
     color: #555;
     border: 1px solid #b5b5b5;

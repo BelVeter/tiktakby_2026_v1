@@ -20,8 +20,8 @@ var STUB_IDS = [
 	'model_search', 'model_new', 'model_results', 'model_hint',
 	'cat_select_new', 'producer_select_new', 'model_id',
 	'tab_new', 'tab_edit', 'submit_btn',
-	'model_edit_start', 'model_edit_cancel', 'edit_phase_banner', 'new_model_div',
-	'cat_create_open', 'prod_create_open', 'prod_edit_open',
+	'model_edit_start', 'model_edit_cancel', 'model_reset_search', 'edit_phase_banner', 'new_model_div',
+	'cat_create_open', 'prod_create_open', 'prod_edit_open', 'cat_input_dog_new',
 	'color_new', 'm_set_new', 'color_multicolor_btn'
 ];
 
@@ -89,8 +89,16 @@ function loadPage(initialTab, overrides, initialModel) {
 	// проверить, что «Отмена» реально откатывает категорию/фирму, а не просто
 	// зовёт функцию вхолостую (оба window.*Picker отсутствуют в реальном DOM-стабе
 	// иначе, и вызов был бы неотличим от no-op).
-	global.window.categoryPicker = { lastChoice: null, choose: function (item) { this.lastChoice = item; } };
-	global.window.producerPicker = { lastChoice: null, choose: function (item) { this.lastChoice = item; } };
+	global.window.categoryPicker = {
+		lastChoice: null, resetCalled: false,
+		choose: function (item) { this.lastChoice = item; },
+		reset: function () { this.resetCalled = true; }
+	};
+	global.window.producerPicker = {
+		lastChoice: null, resetCalled: false,
+		choose: function (item) { this.lastChoice = item; },
+		reset: function () { this.resetCalled = true; }
+	};
 
 	delete require.cache[require.resolve(LIVE_PICKER_PATH)];
 	delete require.cache[require.resolve(MODEL_PICKER_PATH)];
@@ -250,7 +258,27 @@ assert.strictEqual(
 	'«Внести изменения» обязана пересинхронизировать #model_new к снэпшоту, а не оставить "уплывший" текст поиска (иначе UPDATE переименует чужую запись)'
 );
 
-console.log('model_picker_init.test.js: OK (27 assertions)');
+// --- Сценарий 11: «Начать поиск заново» в locate — одним кликом сброс категории/фирмы/модели, без «Внести изменения» ---
+var initialModel11 = { id: 66, name: 'Lion', cat_id: 9, cat_name: 'Санки', cat_dog_name: 'санки', producer: 'Nika', color: 'красный' };
+var els11 = loadPage('edit', { model_search: 'Lion', model_new: 'Lion', cat_select_new: '9', producer_select_new: 'Nika', cat_input_dog_new: 'санки' }, initialModel11);
+assert.strictEqual(els11.model_reset_search.style.display, 'inline-block', 'в locate «начать поиск заново» видна сразу (модель уже найдена деплинком)');
+els11.model_reset_search.dispatchEvent('click');
+assert.strictEqual(els11.model_search.value, '', '«начать заново» очищает поле поиска модели');
+assert.strictEqual(els11.model_new.value, '', '«начать заново» очищает скрытое значение модели');
+assert.strictEqual(els11.model_id.value, '', '«начать заново» очищает id редактируемой модели');
+assert.strictEqual(els11.cat_input_dog_new.value, '', '«начать заново» очищает подставленное название для договора');
+assert.strictEqual(global.window.categoryPicker.resetCalled, true, '«начать заново» реально зовёт categoryPicker.reset()');
+assert.strictEqual(global.window.producerPicker.resetCalled, true, '«начать заново» реально зовёт producerPicker.reset()');
+assert.strictEqual(els11.model_edit_start.style.display, 'none', 'после сброса «Внести изменения» снова скрыта — currentEditItem обнулён');
+assert.strictEqual(els11.model_reset_search.style.display, 'inline-block', '«начать заново» остаётся видна — мы всё ещё в locate');
+
+// --- Сценарий 12: в unlocked «начать поиск заново» скрыта — там уже есть «Отмена» для отката ---
+var initialModel12 = { id: 71, name: 'Bear', cat_id: 2, cat_name: 'Санки', cat_dog_name: 'санки', producer: 'Nika', color: 'синий' };
+var els12 = loadPage('edit', { model_search: 'Bear', model_new: 'Bear', color_new: 'синий' }, initialModel12);
+els12.model_edit_start.dispatchEvent('click');
+assert.strictEqual(els12.model_reset_search.style.display, 'none', 'в unlocked «начать поиск заново» скрыта — сброс уже делает «Отмена»');
+
+console.log('model_picker_init.test.js: OK (37 assertions)');
 
 // SEARCH_DELAY-таймер, запущенный сценарием 3, через 200мс дёрнул бы
 // LivePicker.request() -> new XMLHttpRequest(), которого в Node нет. Синхронные

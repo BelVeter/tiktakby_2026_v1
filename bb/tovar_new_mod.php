@@ -37,7 +37,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
-<link href="/bb/assets/styles/category_picker.css?v=6" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=7" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>
@@ -659,6 +659,7 @@ echo '
 </div>
 
 <br /><br />
+<input type="button" id="model_reset_search" value="Начать поиск заново" style="display:none;" />
 <input type="button" id="model_edit_start" value="Внести изменения" style="display:none;" />
 <input type="button" id="model_edit_cancel" value="Отмена" style="display:none;" />
 ' . ($action == 'редактировать' ? '<input type="submit" name="action" id="submit_btn" value="обновить" onclick="return send_form_ch();"' . $locate_hidden . $locate_disabled . '/>' : '<input type="submit" name="action" id="submit_btn" value="сохранить" onclick="return send_form_ch();"/>') . '
@@ -803,7 +804,7 @@ window.TOVAR_MOD_INITIAL_MODEL = ' . $initial_model_json . ';
 </script>
 <script src="/bb/assets/js/category_picker.js?v=4"></script>
 <script src="/bb/assets/js/producer_picker.js?v=4"></script>
-<script src="/bb/assets/js/model_picker.js?v=3"></script>
+<script src="/bb/assets/js/model_picker.js?v=4"></script>
 ';
 
 echo '</body>';

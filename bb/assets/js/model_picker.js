@@ -131,6 +131,7 @@
 				showEditStart: false,
 				showSubmit: true,
 				showCancel: false,
+				showResetSearch: true,
 				fieldsDisabled: false,
 				createControlsVisible: true,
 				filterActive: false
@@ -142,6 +143,7 @@
 				showEditStart: false,
 				showSubmit: true,
 				showCancel: true,
+				showResetSearch: false,
 				fieldsDisabled: false,
 				createControlsVisible: true,
 				filterActive: false
@@ -153,6 +155,7 @@
 			showEditStart: hasModel,
 			showSubmit: false,
 			showCancel: false,
+			showResetSearch: true,
 			fieldsDisabled: true,
 			createControlsVisible: false,
 			filterActive: true
@@ -176,6 +179,7 @@
 			els.submitBtn.disabled = !ui.showSubmit;
 		}
 		if (els.cancelBtn)    { els.cancelBtn.style.display = ui.showCancel ? 'inline-block' : 'none'; }
+		if (els.resetSearchBtn) { els.resetSearchBtn.style.display = ui.showResetSearch ? 'inline-block' : 'none'; }
 		if (els.catCreateBtn)  { els.catCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
 		if (els.prodCreateBtn) { els.prodCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
 		if (els.prodEditBtn) {
@@ -230,6 +234,25 @@
 			fillEditFields(currentEditItem);
 			hardSelectCategoryAndProducer(currentEditItem);
 		}
+		hideHint();
+		applyPhaseUI();
+	}
+
+	/**
+	 * Возвращает категорию/фирму/модель к пустому поиску одним кликом —
+	 * вместо того, чтобы чистить три поля по отдельности. Доступна, пока
+	 * ничего не заблокировано на редактирование (locate и вкладка «Новая
+	 * модель») — в unlocked за откат уже отвечает «Отмена» (cancelEdit).
+	 */
+	function resetSearch() {
+		if (picker) { picker.reset(); }
+		if (window.categoryPicker) { window.categoryPicker.reset(); }
+		if (window.producerPicker) { window.producerPicker.reset(); }
+		var dogNameField = $('cat_input_dog_new');
+		if (dogNameField) { dogNameField.value = ''; }
+		if (els.modelId) { els.modelId.value = ''; }
+		currentEditItem = null;
+		pendingEditGroup = null;
 		hideHint();
 		applyPhaseUI();
 	}
@@ -410,6 +433,7 @@
 		els.submitBtn = $('submit_btn');
 		els.editStartBtn  = $('model_edit_start');
 		els.cancelBtn     = $('model_edit_cancel');
+		els.resetSearchBtn = $('model_reset_search');
 		els.phaseBanner   = $('edit_phase_banner');
 		els.area          = $('new_model_div');
 		els.catCreateBtn  = $('cat_create_open');
@@ -504,6 +528,11 @@
 		if (els.cancelBtn) {
 			els.cancelBtn.addEventListener('click', function () {
 				cancelEdit();
+			});
+		}
+		if (els.resetSearchBtn) {
+			els.resetSearchBtn.addEventListener('click', function () {
+				resetSearch();
 			});
 		}
 
