@@ -37,7 +37,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
-<link href="/bb/assets/styles/category_picker.css?v=4" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=5" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>
@@ -476,6 +476,7 @@ if ($action === 'редактировать') {
 echo '
 <form name="tovar" action="tovar_new_mod.php" method="post">
 <div id="new_model_div" class="new_div_r ' . ($action === 'редактировать' ? 'catp-phase--locate' : 'catp-phase--new') . '">
+<div id="ajax_spinner" class="catp-spinner" style="display:none;" aria-hidden="true"></div>
 <strong>ID модели: ' . $model_id . '<br /></strong>
 
 <div class="catp-tabs">
@@ -767,7 +768,7 @@ echo '
 	</div>
 </div>
 
-<script src="/bb/assets/js/live_picker.js?v=4"></script>
+<script src="/bb/assets/js/live_picker.js?v=5"></script>
 <script>
 // Подразделы отдаём прямо в страницу: их 30, отдельный запрос не нужен.
 window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
@@ -778,6 +779,27 @@ window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
 }, $sub_razdels_all), JSON_UNESCAPED_UNICODE) . ';
 window.TOVAR_MOD_INITIAL_TAB = ' . json_encode($action === 'редактировать' ? 'edit' : 'new') . ';
 window.TOVAR_MOD_INITIAL_MODEL = ' . $initial_model_json . ';
+
+// Индикатор в углу заливки — иначе на время ответа сервера (~200-600мс на
+// живой поиск) поле выглядит просто пустым, как будто ничего не нашлось
+// (реальная жалоба при первом ручном тестировании 16.08.2026). Считаем
+// открытые запросы: несколько виджетов могут спрашивать одновременно,
+// прятать индикатор можно только когда закрылся последний.
+(function () {
+	var ajaxCount = 0;
+	window.__onAjaxStart = function () {
+		ajaxCount++;
+		var el = document.getElementById(\'ajax_spinner\');
+		if (el) { el.style.display = \'block\'; }
+	};
+	window.__onAjaxEnd = function () {
+		ajaxCount = Math.max(0, ajaxCount - 1);
+		if (ajaxCount === 0) {
+			var el = document.getElementById(\'ajax_spinner\');
+			if (el) { el.style.display = \'none\'; }
+		}
+	};
+})();
 </script>
 <script src="/bb/assets/js/category_picker.js?v=4"></script>
 <script src="/bb/assets/js/producer_picker.js?v=4"></script>

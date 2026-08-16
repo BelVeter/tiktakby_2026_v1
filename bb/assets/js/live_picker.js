@@ -33,6 +33,12 @@
  * показывается ВЕСЬ список (ведёт себя как выпадашка), а при вводе — фильтрует.
  * Так работает выбор подраздела: их всего 30, список удобно листать глазами,
  * но и напечатать пару букв быстрее, чем искать в нём мышкой.
+ *
+ * window.__onAjaxStart / window.__onAjaxEnd — необязательные глобальные
+ * колбэки без аргументов; если определены, LivePicker.request() зовёт их
+ * вокруг каждого XHR (в т.ч. из модалок создания категории/производителя) —
+ * страница может показать индикатор загрузки, ничего не подключая внутрь
+ * самого виджета. Без них — тихо ничего не делает.
  */
 (function () {
 	'use strict';
@@ -335,10 +341,13 @@
 			xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 		}
 
+		if (window.__onAjaxStart) { window.__onAjaxStart(); }
+
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState !== 4) {
 				return;
 			}
+			if (window.__onAjaxEnd) { window.__onAjaxEnd(); }
 			if (xhr.status !== 200) {
 				if (onError) { onError(); }
 				return;
