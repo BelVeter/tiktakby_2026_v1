@@ -6,6 +6,9 @@
  *   q=<строка>            — подсказки для поля выбора категории;
  *   q=<строка>&check=1    — плюс проверка вводимого НОВОГО названия: точный
  *                           дубль после нормализации и похожие названия.
+ *   q=<строка>&producer=<имя>&filter=1 — плюс жёсткий фильтр: только
+ *                           категории, где реально есть модели этого
+ *                           производителя.
  *
  * Отдаёт `dog_name` прямо в подсказке, поэтому поле «для договора (ед.ч.)»
  * заполняется без второго запроса. Раньше этим занимался `select_ch3()`,
@@ -30,6 +33,8 @@ $mysqli = \bb\Db::getInstance()->getConnection();
 
 $query = trim($_REQUEST['q'] ?? '');
 $check = !empty($_REQUEST['check']);
+$producer = trim($_REQUEST['producer'] ?? '');
+$filter = !empty($_REQUEST['filter']);
 
 /**
  * Все категории с местом в дереве каталога и числом моделей.
@@ -66,6 +71,23 @@ while ($row = $result->fetch_assoc()) {
     $row['models'] = (int) $row['models'];
     $row['in_tree'] = $row['tree_path'] !== null && $row['tree_path'] !== '';
     $all[] = $row;
+}
+
+// Жёсткий фильтр (tovar_new_mod.php, вкладка «Редактировать», фаза locate):
+// только категории, в которых реально есть модели этого производителя. Без
+// &filter=1 (или без producer=) поведение не меняется.
+if ($producer !== '' && $filter) {
+    $usedByProducer = [];
+    $result2 = $mysqli->query(
+        "SELECT DISTINCT tovar_rent_cat_id FROM tovar_rent WHERE producer='"
+        . $mysqli->real_escape_string($producer) . "'"
+    );
+    while ($row2 = $result2->fetch_assoc()) {
+        $usedByProducer[(int) $row2['tovar_rent_cat_id']] = true;
+    }
+    $all = array_values(array_filter($all, function ($row) use ($usedByProducer) {
+        return isset($usedByProducer[$row['id']]);
+    }));
 }
 
 $response = ['items' => []];
