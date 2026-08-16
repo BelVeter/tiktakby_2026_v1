@@ -47,7 +47,7 @@ $active = \bb\classes\Producer::getAllActive();
 // Жёсткий фильтр (tovar_new_mod.php, вкладка «Редактировать», фаза locate):
 // только производители, у которых реально есть модели в категории $catId.
 // Без &filter=1 ничего не меняется — мягкая сортировка по $usedInCat ниже
-// как работала, так и работает (её использует tovar_new.php).
+// как работала, так и работает (её использует вкладка «Новая модель» tovar_new_mod.php).
 if ($catId > 0 && $filter) {
     $active = array_values(array_filter($active, function ($p) use ($usedInCat) {
         return isset($usedInCat[$p->getName()]);

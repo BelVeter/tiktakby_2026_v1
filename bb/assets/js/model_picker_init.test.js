@@ -142,12 +142,14 @@ var initialModel = { id: 42, name: 'Fox', cat_id: 7, cat_name: 'Коляски',
 var els4 = loadPage('edit', { model_search: 'Fox', model_new: 'Fox', color_new: 'красный' }, initialModel);
 assert.strictEqual(els4.model_edit_start.style.display, 'inline-block', 'модель уже найдена деплинком -> «Внести изменения» видна сразу');
 assert.strictEqual(els4.submit_btn.style.display, 'none', 'в locate сабмит скрыт, даже придя по прямой ссылке');
+assert.strictEqual(els4.submit_btn.disabled, true, 'submit_btn задизейблен в locate — Enter не должен уметь имплицитно сабмитить форму (C1)');
 assert.strictEqual(els4.color_new.disabled, true, 'поля предпросмотра заблокированы в locate');
 
 // --- Сценарий 5: клик «Внести изменения» -> unlocked, поля разблокированы ---
 els4.model_edit_start.dispatchEvent('click');
 assert.strictEqual(els4.color_new.disabled, false, 'после «Внести изменения» поле цвета редактируемо');
 assert.strictEqual(els4.submit_btn.style.display, 'inline-block', 'в unlocked сабмит виден');
+assert.strictEqual(els4.submit_btn.disabled, false, 'submit_btn разблокирован в unlocked (C1)');
 assert.strictEqual(els4.model_edit_cancel.style.display, 'inline-block', 'в unlocked видна «Отмена»');
 assert.strictEqual(els4.cat_create_open.style.display, 'inline-block', 'в unlocked доступно «+ создать категорию»');
 
@@ -169,7 +171,64 @@ assert.deepStrictEqual(
 	'«Отмена» реально зовёт producerPicker.choose() со снэпшотом фирмы'
 );
 
-console.log('model_picker_init.test.js: OK (15 assertions)');
+// --- Сценарий 7: переименование модели в unlocked -> «Отмена» обязана вернуть исходное имя (C2) ---
+var initialModel7 = { id: 55, name: 'Zebra', cat_id: 3, cat_name: 'Кроватки', cat_dog_name: 'кроватка', producer: 'Chicco', color: 'белый' };
+var els7 = loadPage('edit', { model_search: 'Zebra', model_new: 'Zebra', color_new: 'белый' }, initialModel7);
+els7.model_edit_start.dispatchEvent('click'); // -> unlocked, поля разблокированы
+els7.model_search.value = 'Zebra Renamed';
+els7.model_search.dispatchEvent('input');
+assert.strictEqual(
+	els7.model_new.value,
+	'Zebra Renamed',
+	'переименование в unlocked долетает до #model_new — это разрешённая правка, freeText-синк LivePicker'
+);
+els7.model_edit_cancel.dispatchEvent('click');
+assert.strictEqual(
+	els7.model_search.value,
+	'Zebra',
+	'«Отмена» обязана вернуть исходное имя модели в видимое поле поиска, а не оставить переименование (C2 fix)'
+);
+assert.strictEqual(
+	els7.model_new.value,
+	'Zebra',
+	'«Отмена» обязана вернуть исходное имя модели в скрытое поле #model_new (C2 fix)'
+);
+
+// --- Сценарий 8: категория "уплыла" в locate (её трогали, новую модель не выбирали) -> «Внести изменения» обязана пересинхронизировать её к снэпшоту (I1) ---
+var initialModel8 = { id: 77, name: 'Panda', cat_id: 11, cat_name: 'Стульчики', cat_dog_name: 'стульчик', producer: 'Peg-Perego', color: 'синий' };
+var els8 = loadPage('edit', { model_search: 'Panda', model_new: 'Panda', color_new: 'синий', cat_select_new: '11' }, initialModel8);
+// Симулируем «уплывшую» категорию: пользователь в locate полистал живой поиск
+// категории и выбрал ДРУГУЮ (id=99), новую модель при этом не выбирал — та же
+// ситуация, что описана в I1.
+global.window.categoryPicker.choose({ id: 99, name: 'Другая категория', dog_name: 'другая' });
+els8.cat_select_new.value = '99';
+assert.strictEqual(
+	global.window.categoryPicker.lastChoice.id,
+	99,
+	'подготовка сценария: категория действительно "уплыла" перед кликом «Внести изменения»'
+);
+els8.model_edit_start.dispatchEvent('click');
+assert.strictEqual(
+	global.window.categoryPicker.lastChoice.id,
+	initialModel8.cat_id,
+	'«Внести изменения» обязана пересинхронизировать категорию к снэпшоту найденной модели, а не оставить "уплывшую" (I1 fix)'
+);
+
+// --- Сценарий 9: producer_picker.js мог показать «переименовать» вне зависимости от фазы -> applyPhaseUI обязана пере-скрыть её, пока мы ещё в locate (I2) ---
+var initialModel9 = { id: 88, name: 'Duckling', cat_id: 5, cat_name: 'Ванночки', cat_dog_name: 'ванночка', producer: 'Roxy Kids', color: 'жёлтый' };
+var els9 = loadPage('edit', { model_search: 'Duckling', model_new: 'Duckling', color_new: 'жёлтый' }, initialModel9);
+// Мы всё ещё в locate (model_edit_start ещё не нажата). Симулируем то, что
+// producer_picker.js:toggleEditButton() реально делает при выборе производителя —
+// безусловно показывает кнопку переименования, независимо от фазы.
+els9.prod_edit_open.style.display = 'inline-block';
+window.__onProducerChosen();
+assert.strictEqual(
+	els9.prod_edit_open.style.display,
+	'none',
+	'__onProducerChosen обязана пере-применить applyPhaseUI() и снова спрятать prod_edit_open, пока мы ещё в locate (I2 fix)'
+);
+
+console.log('model_picker_init.test.js: OK (25 assertions)');
 
 // SEARCH_DELAY-таймер, запущенный сценарием 3, через 200мс дёрнул бы
 // LivePicker.request() -> new XMLHttpRequest(), которого в Node нет. Синхронные

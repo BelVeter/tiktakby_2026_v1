@@ -171,7 +171,10 @@
 		});
 
 		if (els.editStartBtn) { els.editStartBtn.style.display = ui.showEditStart ? 'inline-block' : 'none'; }
-		if (els.submitBtn)    { els.submitBtn.style.display = ui.showSubmit ? 'inline-block' : 'none'; }
+		if (els.submitBtn) {
+			els.submitBtn.style.display = ui.showSubmit ? 'inline-block' : 'none';
+			els.submitBtn.disabled = !ui.showSubmit;
+		}
 		if (els.cancelBtn)    { els.cancelBtn.style.display = ui.showCancel ? 'inline-block' : 'none'; }
 		if (els.catCreateBtn)  { els.catCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
 		if (els.prodCreateBtn) { els.prodCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
@@ -201,17 +204,23 @@
 	}
 
 	function enterUnlocked() {
+		if (currentEditItem) {
+			hardSelectCategoryAndProducer(currentEditItem);
+		}
 		editPhase = 'unlocked';
 		applyPhaseUI();
 	}
 
 	/** Откатывает к состоянию сразу после выбора модели — как будто «Внести изменения» не нажималась. */
 	function cancelEdit() {
+		editPhase = 'locate';
 		if (currentEditItem) {
+			if (els.search) { els.search.value = currentEditItem.name; }
+			if (els.hidden) { els.hidden.value = currentEditItem.name; }
+			if (picker) { picker.lastValue = currentEditItem.name; }
 			fillEditFields(currentEditItem);
 			hardSelectCategoryAndProducer(currentEditItem);
 		}
-		editPhase = 'locate';
 		hideHint();
 		applyPhaseUI();
 	}
@@ -490,11 +499,13 @@
 		}
 
 		window.__onCategoryChosen = function () {
+			applyPhaseUI();
 			if (mode === CHECK.EDIT && editPhase === 'unlocked') {
 				picker.search();
 			}
 		};
 		window.__onProducerChosen = function () {
+			applyPhaseUI();
 			if (mode === CHECK.EDIT && editPhase === 'unlocked') {
 				picker.search();
 			}

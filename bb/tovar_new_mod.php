@@ -207,6 +207,16 @@ if (isset($_POST['action'])) {
 				die('Модель для редактирования не выбрана. Найдите её в поле «Модель».');
 			}
 
+			// Защита от неполного POST (см. docs/superpowers/plans/2026-08-16-tovar-new-mod-edit-lock.md,
+			// whole-branch review C1): в фазе locate все 19 полей предпросмотра —
+			// disabled, браузер их не отправляет вовсе; случайный implicit submit
+			// (Enter в живом поиске) должен быть невозможен уже на клиенте
+			// (submit_btn.disabled), но эта проверка ловит его и здесь, если
+			// клиентская защита когда-нибудь окажется обойдена.
+			if (!isset($_POST['color_new'], $_POST['m_set_new'], $_POST['m_price_new'], $_POST['m_price_cur_new'], $_POST['price_new_new'], $_POST['lom_srok_new'], $_POST['model_addr_new'], $_POST['ph_addr_new'], $_POST['age_from'], $_POST['age_to'], $_POST['weight_from'], $_POST['weight_to'], $_POST['collateral'], $_POST['m_sex'], $_POST['ny'], $_POST['zv'], $_POST['tale'], $_POST['rez1'], $_POST['rez2'])) {
+				die('Форма отправлена не полностью — перезагрузите страницу, найдите модель и нажмите «Внести изменения».');
+			}
+
 			// Как и в «сохранить»: id приходит из живого поиска либо из модалки.
 			// Переименование категории отсюда убрано — оно правило только название
 			// и `dog_name`, оставляя `cat_url_key` от старого имени. Полное
@@ -459,12 +469,13 @@ if ($action === 'редактировать') {
         'cat_id'       => (int) $cat_id,
         'cat_name'     => $cat_def['rent_cat_name'],
         'cat_dog_name' => $cat_def['dog_name'],
-    )), JSON_UNESCAPED_UNICODE);
+        'name'         => $model_def['model'],
+    )), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: 'null';
 }
 
 echo '
 <form name="tovar" action="tovar_new_mod.php" method="post">
-<div id="new_model_div" class="new_div_r">
+<div id="new_model_div" class="new_div_r ' . ($action === 'редактировать' ? 'catp-phase--locate' : 'catp-phase--new') . '">
 <strong>ID модели: ' . $model_id . '<br /></strong>
 
 <div class="catp-tabs">
@@ -535,7 +546,7 @@ echo '
 
 	<tr>
 		<td>Цвет:</td>
-		<td> <input type="text" name="color_new" size="30" id="color_new" value="' . good_print($model_def['color']) . '"' . $locate_disabled . ' /> нет цвета - ставим "0", <input type="button" id="color_multicolor_btn" value="multicolor" onclick="document.getElementById(\'color_new\').value=\'multicolor\'"' . $locate_disabled . ' /></td>
+		<td> <input type="text" name="color_new" size="30" id="color_new" value="' . good_print($model_def['color']) . '"' . $locate_disabled . ' /> нет цвета - ставим "0", <input type="button" id="color_multicolor_btn" value="multicolor" onclick="document.getElementById(\'color_new\').value=\'multicolor\';document.getElementById(\'color_new\').dispatchEvent(new Event(\'input\'))"' . $locate_disabled . ' /></td>
 	</tr>
 
 	<tr>
@@ -649,7 +660,7 @@ echo '
 <br /><br />
 <input type="button" id="model_edit_start" value="Внести изменения" style="display:none;" />
 <input type="button" id="model_edit_cancel" value="Отмена" style="display:none;" />
-' . ($action == 'редактировать' ? '<input type="submit" name="action" id="submit_btn" value="обновить" onclick="return send_form_ch();"' . $locate_hidden . '/>' : '<input type="submit" name="action" id="submit_btn" value="сохранить" onclick="return send_form_ch();"/>') . '
+' . ($action == 'редактировать' ? '<input type="submit" name="action" id="submit_btn" value="обновить" onclick="return send_form_ch();"' . $locate_hidden . $locate_disabled . '/>' : '<input type="submit" name="action" id="submit_btn" value="сохранить" onclick="return send_form_ch();"/>') . '
 
 </form>
 
