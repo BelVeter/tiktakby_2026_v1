@@ -9,6 +9,8 @@
  *   q=<строка>&check=1        — плюс exact/similar для модалки создания;
  *   &cat_id=<id>               — бренды, уже встречавшиеся в этой категории,
  *                                идут первыми.
+ *   &cat_id=<id>&filter=1      — то же самое, но жёстко: только те, у кого
+ *                                реально есть модели в этой категории.
  */
 
 session_start();
@@ -30,6 +32,7 @@ $mysqli = \bb\Db::getInstance()->getConnection();
 $query = trim($_REQUEST['q'] ?? '');
 $check = !empty($_REQUEST['check']);
 $catId = (int) ($_REQUEST['cat_id'] ?? 0);
+$filter = !empty($_REQUEST['filter']);
 
 $usedInCat = [];
 if ($catId > 0) {
@@ -40,6 +43,16 @@ if ($catId > 0) {
 }
 
 $active = \bb\classes\Producer::getAllActive();
+
+// Жёсткий фильтр (tovar_new_mod.php, вкладка «Редактировать», фаза locate):
+// только производители, у которых реально есть модели в категории $catId.
+// Без &filter=1 ничего не меняется — мягкая сортировка по $usedInCat ниже
+// как работала, так и работает (её использует tovar_new.php).
+if ($catId > 0 && $filter) {
+    $active = array_values(array_filter($active, function ($p) use ($usedInCat) {
+        return isset($usedInCat[$p->getName()]);
+    }));
+}
 
 $response = ['items' => []];
 
