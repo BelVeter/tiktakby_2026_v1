@@ -37,7 +37,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
-<link href="/bb/assets/styles/category_picker.css?v=3" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=4" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>
@@ -444,6 +444,24 @@ usort($sub_razdels_all, function ($a, $b) {
 	return strcmp($a->getNameSubRazdelText(), $b->getNameSubRazdelText());
 });
 
+// Фаза «locate» вкладки «Редактировать»: поля — только предпросмотр найденной
+// записи, править нельзя, пока не нажата «Внести изменения». model_picker.js
+// делает то же самое динамически при живом поиске; здесь — чтобы не было
+// мигания незаблокированных полей при заходе по прямой ссылке с готовым
+// model_id (см. docs/superpowers/specs/2026-08-16-tovar-new-mod-edit-lock-design.md).
+$locate_disabled = ($action === 'редактировать') ? ' disabled="disabled"' : '';
+$locate_hidden    = ($action === 'редактировать') ? ' style="display:none;"' : '';
+
+$initial_model_json = 'null';
+if ($action === 'редактировать') {
+    $initial_model_json = json_encode(array_merge($model_def, array(
+        'id'           => (int) $model_id,
+        'cat_id'       => (int) $cat_id,
+        'cat_name'     => $cat_def['rent_cat_name'],
+        'cat_dog_name' => $cat_def['dog_name'],
+    )), JSON_UNESCAPED_UNICODE);
+}
+
 echo '
 <form name="tovar" action="tovar_new_mod.php" method="post">
 <div id="new_model_div" class="new_div_r">
@@ -453,6 +471,8 @@ echo '
 	<button type="button" id="tab_new" class="catp-tab">Новая модель</button>
 	<button type="button" id="tab_edit" class="catp-tab">Редактировать действующую</button>
 </div>
+
+<div id="edit_phase_banner" class="catp-phase-banner" style="display:none;"></div>
 
 <table border="1" cellspacing="0">
 	<tr>
@@ -467,7 +487,7 @@ echo '
 					. ($cat_id > 0 ? 'Выбрана категория #' . (int) $cat_id . ' — ' . good_print($cat_def['rent_cat_name']) : '') . '</div>
 			</div>
 			<input type="hidden" name="cat_select_new" id="cat_select_new" value="' . (int) $cat_id . '" />
-			<input type="button" id="cat_create_open" value="+ создать категорию" />
+			<input type="button" id="cat_create_open" value="+ создать категорию"' . $locate_hidden . ' />
 
 			<br />и для договора (ед.ч.):
 			<input type="text" name="cat_input_dog_new" size="30" id="cat_input_dog_new" readonly="readonly" value="' . good_print($cat_def['dog_name']) . '"/>
@@ -478,8 +498,8 @@ echo '
 	</tr>
 	<tr>
 		<td>Альтернативное название категории для печати в договоре (если стандарт - оставляем пустое поле):</td>
-		<td><input type="text" name="model_addr_new" size="70" id="model_addr_new" value="' . good_print($model_def['model_addr']) . '" /><br />
-			<span style="display:none;">Адрес фото:<input type="text" name="ph_addr_new" size="70" id="ph_addr_new" value="' . good_print($model_def['ph_addr']) . '" /></span>
+		<td><input type="text" name="model_addr_new" size="70" id="model_addr_new" value="' . good_print($model_def['model_addr']) . '"' . $locate_disabled . ' /><br />
+			<span style="display:none;">Адрес фото:<input type="text" name="ph_addr_new" size="70" id="ph_addr_new" value="' . good_print($model_def['ph_addr']) . '"' . $locate_disabled . ' /></span>
 			</td>
 	</tr>
 	<tr>
@@ -494,7 +514,7 @@ echo '
 					. ($model_def['producer'] !== '' ? 'Выбрано: ' . good_print($model_def['producer']) : '') . '</div>
 			</div>
 			<input type="hidden" name="producer_select_new" id="producer_select_new" value="' . good_print($model_def['producer']) . '" />
-			<input type="button" id="prod_create_open" value="+ создать производителя" />
+			<input type="button" id="prod_create_open" value="+ создать производителя"' . $locate_hidden . ' />
 			<input type="button" id="prod_edit_open" value="редактировать" style="display:none;" />
 		</td>
 	</tr>
@@ -515,19 +535,19 @@ echo '
 
 	<tr>
 		<td>Цвет:</td>
-		<td> <input type="text" name="color_new" size="30" id="color_new" value="' . good_print($model_def['color']) . '" /> нет цвета - ставим "0", <input type="button" value="multicolor" onclick="document.getElementById(\'color_new\').value=\'multicolor\'" /></td>
+		<td> <input type="text" name="color_new" size="30" id="color_new" value="' . good_print($model_def['color']) . '"' . $locate_disabled . ' /> нет цвета - ставим "0", <input type="button" id="color_multicolor_btn" value="multicolor" onclick="document.getElementById(\'color_new\').value=\'multicolor\'"' . $locate_disabled . ' /></td>
 	</tr>
 
 	<tr>
 		<td>Комплектация модели (стандарт):</td>
-		<td><input type="text" name="m_set_new" size="70" id="m_set_new" value="' . good_print($model_def['set']) . '" /></td>
+		<td><input type="text" name="m_set_new" size="70" id="m_set_new" value="' . good_print($model_def['set']) . '"' . $locate_disabled . ' /></td>
 	</tr>
 
 	<tr>
 		<td>Оценочная стоимость:</td>
 		<td>
-			<input type="number" step="any" min="0" name="m_price_new" size="70" id="m_price_new" value="' . $model_def['agr_price'] . '" />
-			<select name="m_price_cur_new" id="m_price_cur_new">
+			<input type="number" step="any" min="0" name="m_price_new" size="70" id="m_price_new" value="' . $model_def['agr_price'] . '"' . $locate_disabled . ' />
+			<select name="m_price_cur_new" id="m_price_cur_new"' . $locate_disabled . '>
 		    	<option value="USD" ' . sel_d($model_def['agr_price_cur'], 'USD') . ' >USD</option>
 		 	  	<option value="EUR" ' . sel_d($model_def['agr_price_cur'], 'EUR') . ' >EUR</option>
 		    	<option value="TBYR" ' . sel_d($model_def['agr_price_cur'], 'TBYR') . ' >бел.руб.</option>
@@ -537,20 +557,20 @@ echo '
     <tr>
         <td>Цена нового:</td>
         <td>
-            <input type="number" step="1" min="0" name="price_new_new" size="70" id="price_new_new" value="' . (isset($model_def['price_new']) ? $model_def['price_new'] : '') . '" /> бел. руб.
+            <input type="number" step="1" min="0" name="price_new_new" size="70" id="price_new_new" value="' . (isset($model_def['price_new']) ? $model_def['price_new'] : '') . '"' . $locate_disabled . ' /> бел. руб.
         </td>
     </tr>
 
 	<tr>
 		<td>Прогноз срока службы (непрервыное использование):</td>
 		<td>
-			<input type="number" step="any" min="0" name="lom_srok_new" size="5" id="lom_srok_new" value="' . $model_def['lom_srok'] . '" /> года (лет).
+			<input type="number" step="any" min="0" name="lom_srok_new" size="5" id="lom_srok_new" value="' . $model_def['lom_srok'] . '"' . $locate_disabled . ' /> года (лет).
 		</td>
 	</tr>
 	<tr>
 		<td>Пол:</td>
 		<td>
-			<select name="m_sex" id="m_sex">
+			<select name="m_sex" id="m_sex"' . $locate_disabled . '>
 				<option value="0" ' . sel_d($model_def['m_sex'], '0') . '>на товаре</option>
 				<option value="u" ' . sel_d($model_def['m_sex'], 'u') . '>унисекс</option>
 				<option value="m" ' . sel_d($model_def['m_sex'], 'm') . '>для мальчиков</option>
@@ -561,57 +581,57 @@ echo '
 	<tr>
 		<td>возраст от:</td>
 		<td>
-			<input type="number" step="any" min="0" name="age_from" size="5" id="age_from_new" value="' . $model_def['age_from'] . '" /> месяцев.
+			<input type="number" step="any" min="0" name="age_from" size="5" id="age_from_new" value="' . $model_def['age_from'] . '"' . $locate_disabled . ' /> месяцев.
 		</td>
 	</tr>
 	<tr>
 		<td>возраст до (включительно):</td>
 		<td>
-			<input type="number" step="any" min="0" name="age_to" size="5" id="age_to_new" value="' . $model_def['age_to'] . '" /> месяцев.
+			<input type="number" step="any" min="0" name="age_to" size="5" id="age_to_new" value="' . $model_def['age_to'] . '"' . $locate_disabled . ' /> месяцев.
 		</td>
 	</tr>
 	<td>вес от:</td>
 		<td>
-			<input type="number" step="any" min="0" name="weight_from" size="5" id="weight_from_new" value="' . $model_def['weight_from'] . '" /> кг.
+			<input type="number" step="any" min="0" name="weight_from" size="5" id="weight_from_new" value="' . $model_def['weight_from'] . '"' . $locate_disabled . ' /> кг.
 		</td>
 	</tr>
 	<tr>
 	<td>вес до (включительно):</td>
 		<td>
-			<input type="number" step="any" min="0" name="weight_to" size="5" id="weight_to_new" value="' . $model_def['weight_to'] . '" /> кг.
+			<input type="number" step="any" min="0" name="weight_to" size="5" id="weight_to_new" value="' . $model_def['weight_to'] . '"' . $locate_disabled . ' /> кг.
 		</td>
 	</tr>
 	<tr>
 	<td>Для карнавала:</td>
 		<td>
-			Залог: <input type="number" step="any" min="0" name="collateral" id="collateral_new" style="width:70px;"  value="' . $model_def['collateral'] . '" /> руб.;
+			Залог: <input type="number" step="any" min="0" name="collateral" id="collateral_new" style="width:70px;"  value="' . $model_def['collateral'] . '"' . $locate_disabled . ' /> руб.;
 			Новый год:
-			<select name="ny" id="ny_new" style="width:50px;" >
+			<select name="ny" id="ny_new" style="width:50px;"' . $locate_disabled . ' >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['ny'], '1') . '>да</option>
 			</select>;
 
 			Зверь:
-			<select name="zv" id="zv_new" style="width:50px;" >
+			<select name="zv" id="zv_new" style="width:50px;"' . $locate_disabled . ' >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['zv'], '1') . '>да</option>
 			</select>;
 
 			Сказка:
-			<select name="tale" id="tale_new" style="width:50px;" >
+			<select name="tale" id="tale_new" style="width:50px;"' . $locate_disabled . ' >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['tale'], '1') . '>да</option>
 			</select>;
 
 		<span style="display:none;">
 			Резерв1:
-			<select name="rez1" id="rez1_new" style="width:50px;" >
+			<select name="rez1" id="rez1_new" style="width:50px;"' . $locate_disabled . ' >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['rez1'], '1') . '>да</option>
 			</select>;
 
 			Резерв2:
-			<select name="rez2" id="rez2_new" style="width:50px;" >
+			<select name="rez2" id="rez2_new" style="width:50px;"' . $locate_disabled . ' >
 			    <option value="0">нет</option>
 				<option value="1" ' . sel_d($model_def['rez2'], '1') . '>да</option>
 			</select>;
@@ -627,7 +647,9 @@ echo '
 </div>
 
 <br /><br />
-' . ($action == 'редактировать' ? '<input type="submit" name="action" id="submit_btn" value="обновить" onclick="return send_form_ch();"/>' : '<input type="submit" name="action" id="submit_btn" value="сохранить" onclick="return send_form_ch();"/>') . '
+<input type="button" id="model_edit_start" value="Внести изменения" style="display:none;" />
+<input type="button" id="model_edit_cancel" value="Отмена" style="display:none;" />
+' . ($action == 'редактировать' ? '<input type="submit" name="action" id="submit_btn" value="обновить" onclick="return send_form_ch();"' . $locate_hidden . '/>' : '<input type="submit" name="action" id="submit_btn" value="сохранить" onclick="return send_form_ch();"/>') . '
 
 </form>
 
@@ -744,10 +766,11 @@ window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
 	);
 }, $sub_razdels_all), JSON_UNESCAPED_UNICODE) . ';
 window.TOVAR_MOD_INITIAL_TAB = ' . json_encode($action === 'редактировать' ? 'edit' : 'new') . ';
+window.TOVAR_MOD_INITIAL_MODEL = ' . $initial_model_json . ';
 </script>
-<script src="/bb/assets/js/category_picker.js?v=3"></script>
-<script src="/bb/assets/js/producer_picker.js?v=3"></script>
-<script src="/bb/assets/js/model_picker.js?v=2"></script>
+<script src="/bb/assets/js/category_picker.js?v=4"></script>
+<script src="/bb/assets/js/producer_picker.js?v=4"></script>
+<script src="/bb/assets/js/model_picker.js?v=3"></script>
 ';
 
 echo '</body>';
