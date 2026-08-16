@@ -216,6 +216,47 @@
 		applyPhaseUI();
 	}
 
+	/**
+	 * Ищет среди подсказок точное совпадение по имени+цвету, кроме самой
+	 * редактируемой записи. Используется только в unlocked-фазе — до этого
+	 * подсказка «уже есть» показывает совсем другое (см. resolveHint).
+	 */
+	function findDuplicateMatch(items, params) {
+		var needle = window.LivePicker.normalize(params.name);
+
+		var matches = items.filter(function (item) {
+			return window.LivePicker.normalize(item.name) === needle
+				&& item.color === params.color
+				&& item.id !== params.excludeId;
+		});
+
+		return matches.length ? matches[0] : null;
+	}
+
+	/** Только unlocked-фаза: предупреждает, если правки сольются с ДРУГОЙ записью. */
+	function checkDuplicateAndWarn(items, query) {
+		var name = query.trim();
+		if (name === '') {
+			hideHint();
+			return;
+		}
+
+		var excludeId = currentEditItem ? currentEditItem.id : null;
+		var match = findDuplicateMatch(items, {
+			name: name,
+			color: els.color ? els.color.value : '',
+			excludeId: excludeId
+		});
+
+		if (match) {
+			showHintText('Эта комбинация совпадает с моделью #' + match.id
+				+ ' (' + match.producer + ' · ' + match.cat_name + ') — сохранение объединит записи');
+			return;
+		}
+
+		hideHint();
+	}
+
 	function showHintText(text) {
 		els.hint.textContent = '';
 		els.hint.appendChild(document.createTextNode(text));
@@ -357,6 +398,13 @@
 		els.prodCreateBtn = $('prod_create_open');
 		els.prodEditBtn   = $('prod_edit_open');
 		els.color         = $('color_new');
+		if (els.color) {
+			els.color.addEventListener('input', function () {
+				if (mode === CHECK.EDIT && editPhase === 'unlocked') {
+					picker.search();
+				}
+			});
+		}
 
 		if (!els.search || !els.hidden || !els.results || !window.LivePicker) {
 			return;
@@ -386,6 +434,10 @@
 				return params;
 			},
 			onItems: function (items, query) {
+				if (mode === CHECK.EDIT && editPhase === 'unlocked') {
+					checkDuplicateAndWarn(items, query);
+					return [];
+				}
 				updateHint(items, query);
 				return mode === CHECK.NEW ? groupByName(items) : items;
 			},
@@ -437,10 +489,21 @@
 			});
 		}
 
+		window.__onCategoryChosen = function () {
+			if (mode === CHECK.EDIT && editPhase === 'unlocked') {
+				picker.search();
+			}
+		};
+		window.__onProducerChosen = function () {
+			if (mode === CHECK.EDIT && editPhase === 'unlocked') {
+				picker.search();
+			}
+		};
+
 		setMode(window.TOVAR_MOD_INITIAL_TAB === 'edit' ? CHECK.EDIT : CHECK.NEW, { reset: false });
 	}
 
-	window.__modelPickerTestHooks = { groupByName: groupByName, resolveHint: resolveHint, resolveEditPhaseUI: resolveEditPhaseUI };
+	window.__modelPickerTestHooks = { groupByName: groupByName, resolveHint: resolveHint, resolveEditPhaseUI: resolveEditPhaseUI, findDuplicateMatch: findDuplicateMatch };
 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', init);

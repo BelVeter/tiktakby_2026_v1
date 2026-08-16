@@ -83,4 +83,30 @@ assert.deepStrictEqual(
 	'unlocked — полное редактирование, «Сохранить»/«Отмена», фильтр выключен'
 );
 
-console.log('model_picker.test.js: OK (16 assertions)');
+// --- findDuplicateMatch: точный дубль (имя+цвет), кроме самой редактируемой записи ---
+var dupRows = [
+	{ id: 10, name: 'Fox', color: 'красный', producer: 'Bugaboo', cat_name: 'Коляски' },
+	{ id: 11, name: 'Fox', color: 'синий', producer: 'Bugaboo', cat_name: 'Коляски' }
+];
+assert.strictEqual(
+	hooks.findDuplicateMatch(dupRows, { name: 'Fox', color: 'красный', excludeId: 10 }),
+	null,
+	'совпадение только с самой редактируемой записью (id=10) — не дубль'
+);
+assert.strictEqual(
+	hooks.findDuplicateMatch(dupRows, { name: 'Fox', color: 'красный', excludeId: 999 }),
+	dupRows[0],
+	'совпадение имя+цвет с ДРУГОЙ записью — дубль'
+);
+assert.strictEqual(
+	hooks.findDuplicateMatch(dupRows, { name: 'Fox', color: 'зелёный', excludeId: 999 }),
+	null,
+	'то же имя, но другой цвет — не дубль (это и есть штатная штатная новая вариация)'
+);
+assert.strictEqual(
+	hooks.findDuplicateMatch(dupRows, { name: 'Cameleon', color: 'красный', excludeId: 999 }),
+	null,
+	'другое имя — не дубль'
+);
+
+console.log('model_picker.test.js: OK (20 assertions)');
