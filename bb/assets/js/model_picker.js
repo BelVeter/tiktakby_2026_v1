@@ -52,6 +52,12 @@
 	var picker = null;
 	var mode = CHECK.NEW;
 	var pendingEditGroup = null;
+	var editPhase = 'locate';
+	var currentEditItem = null;
+
+	var EDIT_PHASE_FIELD_IDS = Object.keys(EDIT_FIELD_MAP).map(function (key) {
+		return EDIT_FIELD_MAP[key];
+	}).concat(['color_multicolor_btn']);
 
 	function $(id) {
 		return document.getElementById(id);
@@ -111,6 +117,103 @@
 			query:     query,
 			hasFilter: catVal > 0 || !!prodVal
 		};
+	}
+
+	/**
+	 * Что показать/скрыть/заблокировать для комбинации режим+фаза. Чистая
+	 * функция — без DOM, тестируется в model_picker.test.js. Единственная
+	 * точка правды: applyPhaseUI() только переносит это на DOM, никакой
+	 * своей логики видимости не содержит.
+	 */
+	function resolveEditPhaseUI(mode, editPhase, hasModel) {
+		if (mode === CHECK.NEW) {
+			return {
+				showEditStart: false,
+				showSubmit: true,
+				showCancel: false,
+				fieldsDisabled: false,
+				createControlsVisible: true,
+				filterActive: false
+			};
+		}
+
+		if (editPhase === 'unlocked') {
+			return {
+				showEditStart: false,
+				showSubmit: true,
+				showCancel: true,
+				fieldsDisabled: false,
+				createControlsVisible: true,
+				filterActive: false
+			};
+		}
+
+		// editPhase === 'locate'
+		return {
+			showEditStart: hasModel,
+			showSubmit: false,
+			showCancel: false,
+			fieldsDisabled: true,
+			createControlsVisible: false,
+			filterActive: true
+		};
+	}
+
+	/** Переносит resolveEditPhaseUI() на реальный DOM. */
+	function applyPhaseUI() {
+		var ui = resolveEditPhaseUI(mode, editPhase, !!currentEditItem);
+
+		EDIT_PHASE_FIELD_IDS.forEach(function (id) {
+			var field = $(id);
+			if (field) {
+				field.disabled = ui.fieldsDisabled;
+			}
+		});
+
+		if (els.editStartBtn) { els.editStartBtn.style.display = ui.showEditStart ? 'inline-block' : 'none'; }
+		if (els.submitBtn)    { els.submitBtn.style.display = ui.showSubmit ? 'inline-block' : 'none'; }
+		if (els.cancelBtn)    { els.cancelBtn.style.display = ui.showCancel ? 'inline-block' : 'none'; }
+		if (els.catCreateBtn)  { els.catCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
+		if (els.prodCreateBtn) { els.prodCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
+		if (els.prodEditBtn) {
+			// Дублирует условие producer_picker.js:toggleEditButton() одной
+			// строкой — заводить общий API ради одной строки не стали;
+			// порядок подключения скриптов (после producer_picker.js)
+			// гарантирует, что здесь будет последнее слово.
+			els.prodEditBtn.style.display = (ui.createControlsVisible && els.prod && els.prod.value) ? 'inline-block' : 'none';
+		}
+
+		window.TOVAR_MOD_LOCATE_FILTER = ui.filterActive;
+
+		if (els.area) {
+			els.area.classList.toggle('catp-phase--new', mode === CHECK.NEW);
+			els.area.classList.toggle('catp-phase--locate', mode === CHECK.EDIT && editPhase === 'locate');
+			els.area.classList.toggle('catp-phase--unlocked', mode === CHECK.EDIT && editPhase === 'unlocked');
+		}
+
+		if (els.phaseBanner) {
+			var showBanner = mode === CHECK.EDIT && editPhase === 'unlocked';
+			els.phaseBanner.style.display = showBanner ? 'block' : 'none';
+			els.phaseBanner.textContent = showBanner
+				? 'Режим редактирования — изменения сохранятся только по кнопке «Сохранить»'
+				: '';
+		}
+	}
+
+	function enterUnlocked() {
+		editPhase = 'unlocked';
+		applyPhaseUI();
+	}
+
+	/** Откатывает к состоянию сразу после выбора модели — как будто «Внести изменения» не нажималась. */
+	function cancelEdit() {
+		if (currentEditItem) {
+			fillEditFields(currentEditItem);
+			hardSelectCategoryAndProducer(currentEditItem);
+		}
+		editPhase = 'locate';
+		hideHint();
+		applyPhaseUI();
 	}
 
 	function showHintText(text) {
@@ -194,8 +297,13 @@
 		var shouldReset = !options || options.reset !== false;
 
 		mode = newMode;
+		editPhase = 'locate';
 		pendingEditGroup = null;
 		hideHint();
+
+		if (shouldReset) {
+			currentEditItem = null;
+		}
 
 		if (els.tabNew) {
 			els.tabNew.classList.toggle('catp-tab--active', mode === CHECK.NEW);
@@ -217,6 +325,8 @@
 		if (picker && shouldReset) {
 			picker.reset();
 		}
+
+		applyPhaseUI();
 	}
 
 	function switchToEditWithQuery(name) {
@@ -239,9 +349,21 @@
 		els.tabNew    = $('tab_new');
 		els.tabEdit   = $('tab_edit');
 		els.submitBtn = $('submit_btn');
+		els.editStartBtn  = $('model_edit_start');
+		els.cancelBtn     = $('model_edit_cancel');
+		els.phaseBanner   = $('edit_phase_banner');
+		els.area          = $('new_model_div');
+		els.catCreateBtn  = $('cat_create_open');
+		els.prodCreateBtn = $('prod_create_open');
+		els.prodEditBtn   = $('prod_edit_open');
+		els.color         = $('color_new');
 
 		if (!els.search || !els.hidden || !els.results || !window.LivePicker) {
 			return;
+		}
+
+		if (window.TOVAR_MOD_INITIAL_MODEL) {
+			currentEditItem = window.TOVAR_MOD_INITIAL_MODEL;
 		}
 
 		picker = new window.LivePicker({
@@ -277,7 +399,9 @@
 			onChoose: function (item) {
 				hardSelectCategoryAndProducer(item);
 				if (mode === CHECK.EDIT) {
+					currentEditItem = item;
 					fillEditFields(item);
+					applyPhaseUI();
 				}
 				hideHint();
 			}
@@ -300,11 +424,23 @@
 		if (els.tabEdit) {
 			els.tabEdit.addEventListener('click', function () { setMode(CHECK.EDIT); });
 		}
+		if (els.editStartBtn) {
+			els.editStartBtn.addEventListener('click', function () {
+				if (mode === CHECK.EDIT && currentEditItem) {
+					enterUnlocked();
+				}
+			});
+		}
+		if (els.cancelBtn) {
+			els.cancelBtn.addEventListener('click', function () {
+				cancelEdit();
+			});
+		}
 
 		setMode(window.TOVAR_MOD_INITIAL_TAB === 'edit' ? CHECK.EDIT : CHECK.NEW, { reset: false });
 	}
 
-	window.__modelPickerTestHooks = { groupByName: groupByName, resolveHint: resolveHint };
+	window.__modelPickerTestHooks = { groupByName: groupByName, resolveHint: resolveHint, resolveEditPhaseUI: resolveEditPhaseUI };
 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', init);

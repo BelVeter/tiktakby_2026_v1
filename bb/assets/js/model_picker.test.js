@@ -61,4 +61,26 @@ assert.strictEqual(
 	'на вкладке редактирования подсказки «уже есть» не бывает — сюда и пришли, чтобы редактировать'
 );
 
-console.log('model_picker.test.js: OK (12 assertions)');
+// --- resolveEditPhaseUI: что показать/скрыть/заблокировать для режим+фаза ---
+assert.deepStrictEqual(
+	hooks.resolveEditPhaseUI('new', 'locate', false),
+	{ showEditStart: false, showSubmit: true, showCancel: false, fieldsDisabled: false, createControlsVisible: true, filterActive: false },
+	'вкладка «Новая модель» — всегда как сегодня, фаза не влияет'
+);
+assert.deepStrictEqual(
+	hooks.resolveEditPhaseUI('edit', 'locate', false),
+	{ showEditStart: false, showSubmit: false, showCancel: false, fieldsDisabled: true, createControlsVisible: false, filterActive: true },
+	'locate без выбранной модели — всё заблокировано, кнопки «Внести изменения» ещё нет'
+);
+assert.deepStrictEqual(
+	hooks.resolveEditPhaseUI('edit', 'locate', true),
+	{ showEditStart: true, showSubmit: false, showCancel: false, fieldsDisabled: true, createControlsVisible: false, filterActive: true },
+	'locate с выбранной моделью — предпросмотр, появляется «Внести изменения»'
+);
+assert.deepStrictEqual(
+	hooks.resolveEditPhaseUI('edit', 'unlocked', true),
+	{ showEditStart: false, showSubmit: true, showCancel: true, fieldsDisabled: false, createControlsVisible: true, filterActive: false },
+	'unlocked — полное редактирование, «Сохранить»/«Отмена», фильтр выключен'
+);
+
+console.log('model_picker.test.js: OK (16 assertions)');

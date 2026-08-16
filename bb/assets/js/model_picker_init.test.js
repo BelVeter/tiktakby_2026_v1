@@ -19,7 +19,10 @@ var MODEL_PICKER_PATH = path.join(__dirname, 'model_picker.js');
 var STUB_IDS = [
 	'model_search', 'model_new', 'model_results', 'model_hint',
 	'cat_select_new', 'producer_select_new', 'model_id',
-	'tab_new', 'tab_edit', 'submit_btn'
+	'tab_new', 'tab_edit', 'submit_btn',
+	'model_edit_start', 'model_edit_cancel', 'edit_phase_banner', 'new_model_div',
+	'cat_create_open', 'prod_create_open', 'prod_edit_open',
+	'color_new', 'm_set_new', 'color_multicolor_btn'
 ];
 
 function makeElement(initialValue) {
@@ -56,7 +59,7 @@ function makeElement(initialValue) {
  * модуля — свой picker, свой mode и т.д., как будто это отдельная загрузка
  * страницы, а не переиспользование состояния между сценариями.
  */
-function loadPage(initialTab, overrides) {
+function loadPage(initialTab, overrides, initialModel) {
 	overrides = overrides || {};
 
 	var elements = {};
@@ -79,6 +82,7 @@ function loadPage(initialTab, overrides) {
 
 	global.window = {};
 	global.window.TOVAR_MOD_INITIAL_TAB = initialTab;
+	global.window.TOVAR_MOD_INITIAL_MODEL = initialModel || null;
 
 	delete require.cache[require.resolve(LIVE_PICKER_PATH)];
 	delete require.cache[require.resolve(MODEL_PICKER_PATH)];
@@ -125,7 +129,29 @@ assert.strictEqual(
 	'напечатанное имя новой модели должно попасть в #model_new немедленно, без выбора из списка'
 );
 
-console.log('model_picker_init.test.js: OK (4 assertions)');
+// --- Сценарий 4: заход по прямой ссылке с готовым model_id -> сразу locate с найденной моделью ---
+var initialModel = { id: 42, name: 'Fox', cat_id: 7, cat_name: 'Коляски', cat_dog_name: 'коляска', producer: 'Bugaboo', color: 'красный' };
+var els4 = loadPage('edit', { model_search: 'Fox', model_new: 'Fox', color_new: 'красный' }, initialModel);
+assert.strictEqual(els4.model_edit_start.style.display, 'inline-block', 'модель уже найдена деплинком -> «Внести изменения» видна сразу');
+assert.strictEqual(els4.submit_btn.style.display, 'none', 'в locate сабмит скрыт, даже придя по прямой ссылке');
+assert.strictEqual(els4.color_new.disabled, true, 'поля предпросмотра заблокированы в locate');
+
+// --- Сценарий 5: клик «Внести изменения» -> unlocked, поля разблокированы ---
+els4.model_edit_start.dispatchEvent('click');
+assert.strictEqual(els4.color_new.disabled, false, 'после «Внести изменения» поле цвета редактируемо');
+assert.strictEqual(els4.submit_btn.style.display, 'inline-block', 'в unlocked сабмит виден');
+assert.strictEqual(els4.model_edit_cancel.style.display, 'inline-block', 'в unlocked видна «Отмена»');
+assert.strictEqual(els4.cat_create_open.style.display, 'inline-block', 'в unlocked доступно «+ создать категорию»');
+
+// --- Сценарий 6: «Отмена» откатывает правки и блокирует поля обратно ---
+els4.color_new.value = 'зелёный';
+els4.model_edit_cancel.dispatchEvent('click');
+assert.strictEqual(els4.color_new.value, 'красный', '«Отмена» возвращает исходный цвет из снэпшота');
+assert.strictEqual(els4.color_new.disabled, true, '«Отмена» блокирует поля обратно');
+assert.strictEqual(els4.submit_btn.style.display, 'none', '«Отмена» снова прячет сабмит (обратно в locate)');
+assert.strictEqual(els4.model_edit_start.style.display, 'inline-block', '«Отмена» возвращает «Внести изменения»');
+
+console.log('model_picker_init.test.js: OK (13 assertions)');
 
 // SEARCH_DELAY-таймер, запущенный сценарием 3, через 200мс дёрнул бы
 // LivePicker.request() -> new XMLHttpRequest(), которого в Node нет. Синхронные
