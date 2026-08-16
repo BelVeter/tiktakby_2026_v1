@@ -802,7 +802,7 @@ window.TOVAR_MOD_INITIAL_MODEL = ' . $initial_model_json . ';
 	};
 })();
 </script>
-<script src="/bb/assets/js/category_picker.js?v=4"></script>
+<script src="/bb/assets/js/category_picker.js?v=5"></script>
 <script src="/bb/assets/js/producer_picker.js?v=4"></script>
 <script src="/bb/assets/js/model_picker.js?v=4"></script>
 ';

@@ -45,11 +45,15 @@
 			url:       '/bb/ajax_category_suggest.php',
 			minQuery:  0,
 			extraParams: function () {
-				var prodField = $('producer_select_new');
-				if (window.TOVAR_MOD_LOCATE_FILTER && prodField && prodField.value) {
-					return { producer: prodField.value, filter: 1 };
+				if (!window.TOVAR_MOD_LOCATE_FILTER) {
+					return {};
 				}
-				return {};
+				var prodField = $('producer_select_new');
+				var params = { filter: 1 };
+				if (prodField && prodField.value) {
+					params.producer = prodField.value;
+				}
+				return params;
 			},
 			renderMeta: function (item) {
 				return (item.tree_path ? item.tree_path : 'вне дерева каталога')
