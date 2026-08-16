@@ -132,6 +132,7 @@
 				showSubmit: true,
 				showCancel: false,
 				showResetSearch: true,
+				showModelLinks: false,
 				fieldsDisabled: false,
 				createControlsVisible: true,
 				filterActive: false
@@ -144,6 +145,7 @@
 				showSubmit: true,
 				showCancel: true,
 				showResetSearch: false,
+				showModelLinks: true,
 				fieldsDisabled: false,
 				createControlsVisible: true,
 				filterActive: false
@@ -156,6 +158,7 @@
 			showSubmit: false,
 			showCancel: false,
 			showResetSearch: true,
+			showModelLinks: hasModel,
 			fieldsDisabled: true,
 			createControlsVisible: false,
 			filterActive: true
@@ -180,6 +183,13 @@
 		}
 		if (els.cancelBtn)    { els.cancelBtn.style.display = ui.showCancel ? 'inline-block' : 'none'; }
 		if (els.resetSearchBtn) { els.resetSearchBtn.style.display = ui.showResetSearch ? 'inline-block' : 'none'; }
+		if (els.modelLinksWrap) {
+			els.modelLinksWrap.style.display = ui.showModelLinks ? 'block' : 'none';
+			if (ui.showModelLinks && currentEditItem) {
+				if (els.linksTarifId) { els.linksTarifId.value = currentEditItem.id; }
+				if (els.linksCatId)   { els.linksCatId.value = currentEditItem.cat_id; }
+			}
+		}
 		if (els.catCreateBtn)  { els.catCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
 		if (els.prodCreateBtn) { els.prodCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
 		if (els.prodEditBtn) {
@@ -254,7 +264,14 @@
 		currentEditItem = null;
 		pendingEditGroup = null;
 		hideHint();
+		hideSuccessBanner();
 		applyPhaseUI();
+	}
+
+	/** Квитанция «Модель успешно обновлена» из предыдущего сохранения устаревает,
+	 * как только начался новый поиск — прячем её, чтобы не вводить в заблуждение. */
+	function hideSuccessBanner() {
+		if (els.successBanner) { els.successBanner.style.display = 'none'; }
 	}
 
 	/**
@@ -385,6 +402,7 @@
 
 		if (shouldReset) {
 			currentEditItem = null;
+			hideSuccessBanner();
 		}
 
 		if (els.tabNew) {
@@ -435,6 +453,10 @@
 		els.cancelBtn     = $('model_edit_cancel');
 		els.resetSearchBtn = $('model_reset_search');
 		els.phaseBanner   = $('edit_phase_banner');
+		els.successBanner = $('update_success_banner');
+		els.modelLinksWrap = $('model_quick_links');
+		els.linksTarifId  = $('model_links_tarif_id');
+		els.linksCatId    = $('model_links_cat_id');
 		els.area          = $('new_model_div');
 		els.catCreateBtn  = $('cat_create_open');
 		els.prodCreateBtn = $('prod_create_open');
@@ -495,6 +517,7 @@
 				if (mode === CHECK.EDIT) {
 					currentEditItem = item;
 					fillEditFields(item);
+					hideSuccessBanner();
 					applyPhaseUI();
 				}
 				hideHint();

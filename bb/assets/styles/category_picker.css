@@ -214,6 +214,11 @@
     color: #6b5200;
 }
 
+.catp__warn--success {
+    background: #e2f5e2;
+    color: #1f6b1f;
+}
+
 /* Строка с чекбоксом в попапе редактирования производителя. */
 .catp-modal__row--checkbox {
     display: flex;
@@ -317,6 +322,15 @@
     border-radius: 3px;
     cursor: pointer;
     margin-left: 6px;
+}
+
+/* Ссылки-кнопки под вкладкой «Редактировать» — <button> внутри отдельных
+   форм (нужен POST с model_id/cat_id), но должны выглядеть как обычные
+   .div_item-ссылки сверху страницы, а не как системная кнопка браузера. */
+#model_quick_links button.div_item {
+    border: none;
+    cursor: pointer;
+    font: inherit;
 }
 
 /* ------------------------------------------------------- индикатор запроса */

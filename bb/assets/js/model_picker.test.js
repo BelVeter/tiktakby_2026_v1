@@ -64,23 +64,23 @@ assert.strictEqual(
 // --- resolveEditPhaseUI: что показать/скрыть/заблокировать для режим+фаза ---
 assert.deepStrictEqual(
 	hooks.resolveEditPhaseUI('new', 'locate', false),
-	{ showEditStart: false, showSubmit: true, showCancel: false, showResetSearch: true, fieldsDisabled: false, createControlsVisible: true, filterActive: false },
-	'вкладка «Новая модель» — всегда как сегодня, фаза не влияет; «начать заново» доступна'
+	{ showEditStart: false, showSubmit: true, showCancel: false, showResetSearch: true, showModelLinks: false, fieldsDisabled: false, createControlsVisible: true, filterActive: false },
+	'вкладка «Новая модель» — всегда как сегодня, фаза не влияет; «начать заново» доступна, ссылок на тарифы/товары нет'
 );
 assert.deepStrictEqual(
 	hooks.resolveEditPhaseUI('edit', 'locate', false),
-	{ showEditStart: false, showSubmit: false, showCancel: false, showResetSearch: true, fieldsDisabled: true, createControlsVisible: false, filterActive: true },
-	'locate без выбранной модели — всё заблокировано, кнопки «Внести изменения» ещё нет, но «начать заново» есть'
+	{ showEditStart: false, showSubmit: false, showCancel: false, showResetSearch: true, showModelLinks: false, fieldsDisabled: true, createControlsVisible: false, filterActive: true },
+	'locate без выбранной модели — всё заблокировано, кнопки «Внести изменения» ещё нет, но «начать заново» есть; ссылки на тарифы/товары ещё не о чём — модель не выбрана'
 );
 assert.deepStrictEqual(
 	hooks.resolveEditPhaseUI('edit', 'locate', true),
-	{ showEditStart: true, showSubmit: false, showCancel: false, showResetSearch: true, fieldsDisabled: true, createControlsVisible: false, filterActive: true },
-	'locate с выбранной моделью — предпросмотр, появляется «Внести изменения», «начать заново» тоже видна'
+	{ showEditStart: true, showSubmit: false, showCancel: false, showResetSearch: true, showModelLinks: true, fieldsDisabled: true, createControlsVisible: false, filterActive: true },
+	'locate с выбранной моделью — предпросмотр, появляется «Внести изменения», «начать заново» тоже видна, и ссылки на тарифы/товары этой модели'
 );
 assert.deepStrictEqual(
 	hooks.resolveEditPhaseUI('edit', 'unlocked', true),
-	{ showEditStart: false, showSubmit: true, showCancel: true, showResetSearch: false, fieldsDisabled: false, createControlsVisible: true, filterActive: false },
-	'unlocked — полное редактирование, «Сохранить»/«Отмена», фильтр выключен; «начать заново» скрыта — тут уже «Отмена»'
+	{ showEditStart: false, showSubmit: true, showCancel: true, showResetSearch: false, showModelLinks: true, fieldsDisabled: false, createControlsVisible: true, filterActive: false },
+	'unlocked — полное редактирование, «Сохранить»/«Отмена», фильтр выключен; «начать заново» скрыта — тут уже «Отмена»; ссылки на тарифы/товары остаются видны — модель та же'
 );
 
 // --- findDuplicateMatch: точный дубль (имя+цвет), кроме самой редактируемой записи ---

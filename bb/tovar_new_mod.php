@@ -37,7 +37,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
-<link href="/bb/assets/styles/category_picker.css?v=7" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=8" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>
@@ -65,6 +65,7 @@ echo '
 $model_id = '';
 $cat_select_new = '';
 $model_double_text = '';
+$update_success_message = '';
 $cat_id = 0;
 
 // Заполняются только в режиме «редактировать»; в режиме новой модели поля
@@ -280,31 +281,33 @@ if (isset($_POST['action'])) {
 				die('Сбой при доступе к базе данных: ' . $query_items_upd . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 			}
 
-			die('
-			</head>
-			<body>
-				Модель успешно обновлена. <br />' . $model_double_text . '
-				<form method="post" id="tovar_tarif" action="rent_tarifs.php">
-					<input type="hidden" name="model_id" value="' . $model_id . '" />
-					<input type="submit" name="action" value="редактировать тарифы (эта модель)" />
-				</form>
+			// Раньше здесь стоял die() с отдельной страницей-квитанцией — после
+			// сохранения человек терял место в поиске и должен был заново искать
+			// эту же модель, чтобы продолжить с ней работать. Вместо die() —
+			// перезагружаем $model_def/$cat_def из базы (там уже сохранённые
+			// значения) и подставляем $action='редактировать', чтобы страница
+			// ниже отрисовалась в той же фазе locate, как будто модель только
+			// что нашли поиском — редактировать тарифы/перейти к товарам теперь
+			// не разовые кнопки квитанции, а постоянные ссылки внизу вкладки
+			// (см. #model_quick_links).
+			$update_success_message = 'Модель успешно обновлена.' . ($model_double_text !== '' ? '<br />' . $model_double_text : '');
 
-				<form method="post" id="tovar_tarif" action="kr_baza_new.php">
-					<input type="hidden" name="cat_id" value="' . $cat_id . '" />
-					<input type="submit" name="action" value="к товарам (эта категория)" />
-				</form>
+			$query_model = "SELECT * FROM tovar_rent WHERE tovar_rent_id='$model_id'";
+			$result_model = $mysqli->query($query_model);
+			if (!$result_model) {
+				die('Сбой при доступе к базе данных: ' . $query_model . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+			$model_def = $result_model->fetch_assoc();
 
-				<div class="top_menu">
-					<a class="div_item" href="/bb/tovar_new.php">Новый товар</a>
-				</div>
-				<br /><br />
+			$query_cat = "SELECT * FROM tovar_rent_cat WHERE tovar_rent_cat_id='" . $model_def['tovar_rent_cat_id'] . "'";
+			$result_cat = $mysqli->query($query_cat);
+			if (!$result_cat) {
+				die('Сбой при доступе к базе данных: ' . $query_cat . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+			$cat_def = $result_cat->fetch_assoc();
+			$cat_id = $cat_def['tovar_rent_cat_id'];
 
-				<div class="top_menu">
-					<a class="div_item" href="/bb/rent_tarifs.php">Работа с тарифами</a>
-				</div>
-				</body></html>
-		');
-
+			$action = 'редактировать';
 
 			break;
 
@@ -478,6 +481,8 @@ echo '
 <div id="new_model_div" class="new_div_r ' . ($action === 'редактировать' ? 'catp-phase--locate' : 'catp-phase--new') . '">
 <div id="ajax_spinner" class="catp-spinner" style="display:none;" aria-hidden="true"></div>
 <strong>ID модели: ' . $model_id . '<br /></strong>
+
+' . ($update_success_message !== '' ? '<div id="update_success_banner" class="catp__warn catp__warn--success" style="display:block;">' . $update_success_message . '</div>' : '') . '
 
 <div class="catp-tabs">
 	<button type="button" id="tab_new" class="catp-tab">Новая модель</button>
@@ -666,6 +671,17 @@ echo '
 
 </form>
 
+<div id="model_quick_links" class="top_menu"' . ($action === 'редактировать' ? ' style="display:block;"' : ' style="display:none;"') . '>
+	<form method="post" action="rent_tarifs.php" style="display:inline;">
+		<input type="hidden" name="model_id" id="model_links_tarif_id" value="' . $model_id . '" />
+		<button type="submit" class="div_item">редактировать тарифы (эта модель)</button>
+	</form>
+	<form method="post" action="kr_baza_new.php" style="display:inline;">
+		<input type="hidden" name="cat_id" id="model_links_cat_id" value="' . $cat_id . '" />
+		<button type="submit" class="div_item">к товарам (эта категория)</button>
+	</form>
+</div>
+
 				';
 
 
@@ -804,7 +820,7 @@ window.TOVAR_MOD_INITIAL_MODEL = ' . $initial_model_json . ';
 </script>
 <script src="/bb/assets/js/category_picker.js?v=5"></script>
 <script src="/bb/assets/js/producer_picker.js?v=4"></script>
-<script src="/bb/assets/js/model_picker.js?v=4"></script>
+<script src="/bb/assets/js/model_picker.js?v=5"></script>
 ';
 
 echo '</body>';
