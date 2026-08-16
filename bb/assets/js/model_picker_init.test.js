@@ -83,6 +83,14 @@ function loadPage(initialTab, overrides, initialModel) {
 	global.window = {};
 	global.window.TOVAR_MOD_INITIAL_TAB = initialTab;
 	global.window.TOVAR_MOD_INITIAL_MODEL = initialModel || null;
+	// Стабы categoryPicker/producerPicker — hardSelectCategoryAndProducer() (вызывается
+	// и при выборе модели, и из cancelEdit() при «Отмена») дёргает их .choose(item) и
+	// больше ничего; записываем последний переданный item, чтобы сценарии могли
+	// проверить, что «Отмена» реально откатывает категорию/фирму, а не просто
+	// зовёт функцию вхолостую (оба window.*Picker отсутствуют в реальном DOM-стабе
+	// иначе, и вызов был бы неотличим от no-op).
+	global.window.categoryPicker = { lastChoice: null, choose: function (item) { this.lastChoice = item; } };
+	global.window.producerPicker = { lastChoice: null, choose: function (item) { this.lastChoice = item; } };
 
 	delete require.cache[require.resolve(LIVE_PICKER_PATH)];
 	delete require.cache[require.resolve(MODEL_PICKER_PATH)];
@@ -150,8 +158,18 @@ assert.strictEqual(els4.color_new.value, 'красный', '«Отмена» в�
 assert.strictEqual(els4.color_new.disabled, true, '«Отмена» блокирует поля обратно');
 assert.strictEqual(els4.submit_btn.style.display, 'none', '«Отмена» снова прячет сабмит (обратно в locate)');
 assert.strictEqual(els4.model_edit_start.style.display, 'inline-block', '«Отмена» возвращает «Внести изменения»');
+assert.deepStrictEqual(
+	global.window.categoryPicker.lastChoice,
+	{ id: initialModel.cat_id, name: initialModel.cat_name, dog_name: initialModel.cat_dog_name },
+	'«Отмена» реально зовёт categoryPicker.choose() со снэпшотом категории, а не просто текстовые поля'
+);
+assert.deepStrictEqual(
+	global.window.producerPicker.lastChoice,
+	{ name: initialModel.producer },
+	'«Отмена» реально зовёт producerPicker.choose() со снэпшотом фирмы'
+);
 
-console.log('model_picker_init.test.js: OK (13 assertions)');
+console.log('model_picker_init.test.js: OK (15 assertions)');
 
 // SEARCH_DELAY-таймер, запущенный сценарием 3, через 200мс дёрнул бы
 // LivePicker.request() -> new XMLHttpRequest(), которого в Node нет. Синхронные
