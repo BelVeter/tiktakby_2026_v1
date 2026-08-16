@@ -206,18 +206,27 @@
 	function enterUnlocked() {
 		if (currentEditItem) {
 			hardSelectCategoryAndProducer(currentEditItem);
+			restoreModelNameFromSnapshot();
 		}
 		editPhase = 'unlocked';
 		applyPhaseUI();
+	}
+
+	/** Откатывает поля «Модель» (текст, скрытое значение, lastValue виджета) к снэпшоту. */
+	function restoreModelNameFromSnapshot() {
+		if (!currentEditItem) {
+			return;
+		}
+		if (els.search) { els.search.value = currentEditItem.name; }
+		if (els.hidden) { els.hidden.value = currentEditItem.name; }
+		if (picker) { picker.lastValue = currentEditItem.name; }
 	}
 
 	/** Откатывает к состоянию сразу после выбора модели — как будто «Внести изменения» не нажималась. */
 	function cancelEdit() {
 		editPhase = 'locate';
 		if (currentEditItem) {
-			if (els.search) { els.search.value = currentEditItem.name; }
-			if (els.hidden) { els.hidden.value = currentEditItem.name; }
-			if (picker) { picker.lastValue = currentEditItem.name; }
+			restoreModelNameFromSnapshot();
 			fillEditFields(currentEditItem);
 			hardSelectCategoryAndProducer(currentEditItem);
 		}

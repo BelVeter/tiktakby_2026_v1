@@ -228,7 +228,29 @@ assert.strictEqual(
 	'__onProducerChosen обязана пере-применить applyPhaseUI() и снова спрятать prod_edit_open, пока мы ещё в locate (I2 fix)'
 );
 
-console.log('model_picker_init.test.js: OK (25 assertions)');
+// --- Сценарий 10: имя "уплыло" в locate (искали, но новую строку не выбирали) -> «Внести изменения» обязана пересинхронизировать #model_new к снэпшоту, иначе UPDATE переименует чужую запись (adversarial re-review finding) ---
+var initialModel10 = { id: 99, name: 'Mercedes AMG', cat_id: 4, cat_name: 'Электромобили', cat_dog_name: 'электромобиль', producer: 'Mercedes', color: 'чёрный' };
+var els10 = loadPage('edit', { model_search: 'Mercedes AMG', model_new: 'Mercedes AMG', color_new: 'чёрный' }, initialModel10);
+// Мы всё ещё в locate (model_edit_start ещё не нажата). Симулируем: пользователь
+// уже выбрал реальную модель (currentEditItem = initialModel10 через деплинк),
+// но потом продолжил печатать/удалять в поле поиска в охоте за ДРУГОЙ записью,
+// не кликая по новой строке — currentEditItem остаётся старым, а freeText-синк
+// LivePicker уже утащил #model_new за напечатанным текстом.
+els10.model_search.value = 'Mercedes AM';
+els10.model_search.dispatchEvent('input');
+assert.strictEqual(
+	els10.model_new.value,
+	'Mercedes AM',
+	'подготовка сценария: недопечатанный текст в locate уже долетел до #model_new (freeText-синк)'
+);
+els10.model_edit_start.dispatchEvent('click');
+assert.strictEqual(
+	els10.model_new.value,
+	'Mercedes AMG',
+	'«Внести изменения» обязана пересинхронизировать #model_new к снэпшоту, а не оставить "уплывший" текст поиска (иначе UPDATE переименует чужую запись)'
+);
+
+console.log('model_picker_init.test.js: OK (27 assertions)');
 
 // SEARCH_DELAY-таймер, запущенный сценарием 3, через 200мс дёрнул бы
 // LivePicker.request() -> new XMLHttpRequest(), которого в Node нет. Синхронные
