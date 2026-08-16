@@ -74,20 +74,28 @@ while ($row = $result->fetch_assoc()) {
 }
 
 // Жёсткий фильтр (tovar_new_mod.php, вкладка «Редактировать», фаза locate):
-// только категории, в которых реально есть модели этого производителя. Без
-// &filter=1 (или без producer=) поведение не меняется.
-if ($producer !== '' && $filter) {
-    $usedByProducer = [];
-    $result2 = $mysqli->query(
-        "SELECT DISTINCT tovar_rent_cat_id FROM tovar_rent WHERE producer='"
-        . $mysqli->real_escape_string($producer) . "'"
-    );
-    while ($row2 = $result2->fetch_assoc()) {
-        $usedByProducer[(int) $row2['tovar_rent_cat_id']] = true;
+// на этой вкладке мы ИЩЕМ существующую модель, поэтому категория без единой
+// модели — гарантированный тупик, её не должно быть в списке вовсе. Если
+// вдобавок уже выбран производитель — сужаем ещё точнее, до его категорий.
+// Без &filter=1 поведение не меняется.
+if ($filter) {
+    if ($producer !== '') {
+        $usedByProducer = [];
+        $result2 = $mysqli->query(
+            "SELECT DISTINCT tovar_rent_cat_id FROM tovar_rent WHERE producer='"
+            . $mysqli->real_escape_string($producer) . "'"
+        );
+        while ($row2 = $result2->fetch_assoc()) {
+            $usedByProducer[(int) $row2['tovar_rent_cat_id']] = true;
+        }
+        $all = array_values(array_filter($all, function ($row) use ($usedByProducer) {
+            return isset($usedByProducer[$row['id']]);
+        }));
+    } else {
+        $all = array_values(array_filter($all, function ($row) {
+            return $row['models'] > 0;
+        }));
     }
-    $all = array_values(array_filter($all, function ($row) use ($usedByProducer) {
-        return isset($usedByProducer[$row['id']]);
-    }));
 }
 
 $response = ['items' => []];

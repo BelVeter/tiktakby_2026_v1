@@ -45,13 +45,26 @@ if ($catId > 0) {
 $active = \bb\classes\Producer::getAllActive();
 
 // Жёсткий фильтр (tovar_new_mod.php, вкладка «Редактировать», фаза locate):
-// только производители, у которых реально есть модели в категории $catId.
+// на этой вкладке мы ИЩЕМ существующую модель, поэтому производитель без
+// единой модели — гарантированный тупик, его не должно быть в списке вовсе.
+// Если вдобавок уже выбрана категория — сужаем ещё точнее, до неё.
 // Без &filter=1 ничего не меняется — мягкая сортировка по $usedInCat ниже
 // как работала, так и работает (её использует вкладка «Новая модель» tovar_new_mod.php).
-if ($catId > 0 && $filter) {
-    $active = array_values(array_filter($active, function ($p) use ($usedInCat) {
-        return isset($usedInCat[$p->getName()]);
-    }));
+if ($filter) {
+    if ($catId > 0) {
+        $active = array_values(array_filter($active, function ($p) use ($usedInCat) {
+            return isset($usedInCat[$p->getName()]);
+        }));
+    } else {
+        $usedAny = [];
+        $resultAny = $mysqli->query('SELECT DISTINCT producer FROM tovar_rent');
+        while ($rowAny = $resultAny->fetch_assoc()) {
+            $usedAny[$rowAny['producer']] = true;
+        }
+        $active = array_values(array_filter($active, function ($p) use ($usedAny) {
+            return isset($usedAny[$p->getName()]);
+        }));
+    }
 }
 
 $response = ['items' => []];
