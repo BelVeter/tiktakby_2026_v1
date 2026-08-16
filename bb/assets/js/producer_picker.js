@@ -41,13 +41,20 @@
 			emptyValue: '',
 			extraParams: function () {
 				var catField = $('cat_select_new');
-				return catField && catField.value ? { cat_id: catField.value } : {};
+				var params = catField && catField.value ? { cat_id: catField.value } : {};
+				if (window.TOVAR_MOD_LOCATE_FILTER) {
+					params.filter = 1;
+				}
+				return params;
 			},
 			renderMeta: function (item) {
 				return item.hidden ? 'скрыт' : '';
 			},
 			onChoose: function () {
 				toggleEditButton();
+				if (window.__onProducerChosen) {
+					window.__onProducerChosen();
+				}
 			}
 		});
 
