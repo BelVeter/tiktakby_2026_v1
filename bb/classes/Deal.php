@@ -576,6 +576,38 @@ class Deal
     return $to_pay;
   }
 
+  /**
+   * Дневная ставка последней суб-сделки — «последний использованный тариф»,
+   * которым ограничивается цена продления.
+   *
+   * Считается по самой суб-сделке (сумма ÷ длительность), а не по паре
+   * tarif_value + tarif_step: эта пара денормализована и в части старых сделок
+   * рассинхронизирована — цена за день записана при tarif_step='week'/'month'
+   * (чинилось в calculateNew(), #259). Форма продления делила такое значение
+   * на 7 или 30 и сохраняла результат уже как дневной тариф, из-за чего сделка
+   * навсегда получала ставку в разы ниже реальной.
+   *
+   * Пара используется только как запасной вариант — когда период суб-сделки
+   * не определён (плановая выдача, нулевая длительность).
+   */
+  public static function lastTarifPerDay($sub_deal)
+  {
+    if (!is_array($sub_deal)) {
+      return 0.0;
+    }
+
+    $days = (int) round((((int)$sub_deal['to'] - (int)$sub_deal['from']) / 86400));
+    $paid = (float) $sub_deal['r_to_pay'];
+
+    if ($days > 0 && $paid > 0) {
+      return round($paid / $days, 2);
+    }
+
+    $step_days = ($sub_deal['tarif_step'] == 'month' ? 30 : ($sub_deal['tarif_step'] == 'week' ? 7 : 1));
+
+    return round(((float) $sub_deal['tarif_value']) / $step_days, 2);
+  }
+
   public static function recalculateAmounts($dl_id)
   {
     if ($dl_id < 1) {
