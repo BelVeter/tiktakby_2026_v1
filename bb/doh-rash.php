@@ -41,6 +41,10 @@ if ($_SESSION['svoi'] != 8941 || !(in_array($_SESSION['level'], $in_level))) {
 
 $in_del = array(2, 3, 5, 22);
 
+// С этой даты авансы считаются с нуля: раньше «возврат аванса» не записывал
+// сотрудника, и восстановить исторические остатки по людям не из чего.
+define('AVANS_START_DATE', '2026-08-18');
+
 
 if ($_SESSION['level'] < 5) {
 	$dates_readonly = 'readonly="readonly"';
@@ -91,6 +95,26 @@ echo '
 	.rx-show:hover { background:#3a6bea; }
 	.rx-frow--sub .rx-field label { font-size:11px; }
 	.rx-frow--sub select { height:34px; font-size:13px; }
+
+	/* остатки в строке фильтров: сейф и непогашенные авансы. Это не фильтры,
+	   а цифры на текущий момент, поэтому вынесены к правому краю. */
+	.rx-money { margin-left:auto; display:flex; gap:10px; }
+	.rx-money-box { position:relative; min-width:148px; padding:8px 12px; border:1px solid #d7eade; border-radius:11px; background:#f4faf6; }
+	.rx-money-box--av { border-color:#efe1c4; background:#fdf9f0; }
+	.rx-money-lbl { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#6b7686; }
+	.rx-money-val { margin-top:1px; font-size:19px; font-weight:700; color:#178a5b; font-variant-numeric:tabular-nums; letter-spacing:-.2px; }
+	.rx-money-box--av .rx-money-val { color:#a9761a; }
+	.rx-money-val small { font-size:11px; font-weight:600; margin-left:3px; opacity:.7; }
+	.rx-money-hint { font-size:11px; color:#8b93a7; }
+	.rx-money-toggle { margin-left:auto; border:none; background:none; padding:0 2px; font-size:12px; line-height:1; color:#8b93a7; cursor:pointer; }
+	.rx-money-toggle:hover { color:#4a5567; }
+	.rx-money-toggle.open { transform:rotate(180deg); }
+	.rx-money-drop { position:absolute; z-index:30; top:100%; right:0; margin-top:6px; min-width:240px; padding:5px 0; background:#fff; border:1px solid #e6eaf0; border-radius:11px; box-shadow:0 12px 28px rgba(15,25,45,.16); }
+	.rx-money-drop-row { display:flex; gap:14px; padding:6px 14px; font-size:13px; }
+	.rx-money-drop-row:hover { background:#fafbfe; }
+	.rx-money-drop-row span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+	.rx-money-drop-row b { font-variant-numeric:tabular-nums; white-space:nowrap; }
+	.rx-money-drop-empty { padding:8px 14px; font-size:12px; color:#8b93a7; }
 
 	/* плитки итогов */
 	.rx-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:16px; }
@@ -245,6 +269,12 @@ switch ($action) {
 			$flashMessage = 'Канал-получатель должен отличаться от канала-источника.';
 			break;
 		}
+		// на статьях по сотрудникам без сотрудника операция не считается: она
+		// повиснет в «не указан сотрудник» на плитке непогашенных авансов
+		if (needs_employee($type2) && (int) $zp_name <= 0) {
+			$flashMessage = 'Для этой статьи нужно выбрать сотрудника.';
+			break;
+		}
 
 		list($office, $kassa) = channel_to_office_kassa($channel);
 
@@ -325,7 +355,7 @@ switch ($action) {
 
 	case 'update_rash':  //оплата
 		$zplAdd = '';
-		if ($type2 == 'zpl') {
+		if (needs_employee($type2)) {
 			$zplAdd = ", dr_name_id='$zp_name' ";
 		}
 		$query = "UPDATE doh_rash SET type2='$type2', info='$info_upd'$zplAdd WHERE dr_id='$dr_id'";
@@ -435,17 +465,9 @@ if ($type1_s == 'doh') {
 }
 
 
-//формируем перечень пользователей
-$rd_lp = "SELECT * FROM logpass";
-$result_lp = $mysqli->query($rd_lp);
-if (!$result_lp) {
-	die('Сбой при доступе к базе данных: ' . $rd_lp . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-}
-
-$lp_list = '';
-while ($lp_l = $result_lp->fetch_assoc()) {
-	$lp_list[$lp_l['logpass_id']] = $lp_l['lp_fio'];
-}
+// перечень пользователей отсюда убран: $lp_list никто не читал, а из-за
+// инициализации строкой присвоение $lp_list[id] писало в строковый offset
+// один байт вместо ФИО. Имена сотрудников берутся запросами по месту.
 ?>
 
 <script language="javascript">
@@ -463,10 +485,16 @@ while ($lp_l = $result_lp->fetch_assoc()) {
 		document.getElementById('srch_form').submit();
 	}
 
-	// фильтр по сотруднику имеет смысл только для зарплаты и аванса
+	// статьи, которые ведутся по сотрудникам, — единый список для формы,
+	// фильтра и правки статьи в таблице
+	function rxNeedsEmployee(code) {
+		return code === 'zpl' || code === 'avans' || code === 'av_return';
+	}
+
+	// фильтр по сотруднику имеет смысл только для статей по сотрудникам
 	function zp_name_show() {
 		var v = document.getElementById('type2_s').value;
-		if (v !== "zpl" && v !== "avans") {
+		if (!rxNeedsEmployee(v)) {
 			document.getElementById('zp_sel_s').value = "all";
 		}
 		document.getElementById('srch_form').submit();
@@ -502,6 +530,11 @@ while ($zp = $result_zp->fetch_assoc()) {
 	$zp_select .= '<option value="' . $zp['logpass_id'] . '">' . $zp['lp_fio'] . '</option>';
 	$zp_select_s .= '<option value="' . $zp['logpass_id'] . '" ' . sel_d($zp['logpass_id'], $zp_sel_s) . '>' . $zp['lp_fio'] . '</option>';
 }
+
+// Сейф и авансы считаются на текущий момент и от выбранного периода
+// не зависят — это остатки, а не обороты.
+$safeBalance = channels_user_can_see_all() ? safe_balance($mysqli) : null;
+$avans       = avans_outstanding($mysqli);
 
 $from_date = strtotime($i_from_date);
 $to_date = strtotime($i_to_date . ' 23:59:59');
@@ -626,12 +659,43 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 					<?php echo $t2_select; ?>
 				</select>
 			</div>
-			<div class="rx-field" id="zp_sel_span" <?php echo (($type2_s == 'zpl' || $type2_s == 'avans') ? '' : 'style="display:none;"'); ?>>
+			<div class="rx-field" id="zp_sel_span" <?php echo (needs_employee($type2_s) ? '' : 'style="display:none;"'); ?>>
 				<label for="zp_sel_s">Сотрудник</label>
 				<select name="zp_sel_s" id="zp_sel_s" onchange="document.getElementById('srch_form').submit();">
 					<option value="all">все сотрудники</option>
 					<?php echo $zp_select_s; ?>
 				</select>
+			</div>
+
+			<div class="rx-money">
+				<?php if ($safeBalance !== null): ?>
+				<div class="rx-money-box">
+					<div class="rx-money-lbl">Сейф</div>
+					<div class="rx-money-val"><?php echo number_format($safeBalance, 2, ',', ' '); ?><small>BYN</small></div>
+					<div class="rx-money-hint">на <?php echo date('d.m.Y'); ?></div>
+				</div>
+				<?php endif; ?>
+
+				<div class="rx-money-box rx-money-box--av">
+					<div class="rx-money-lbl">
+						Авансы
+						<button type="button" class="rx-money-toggle" id="rx_av_toggle"
+								title="по сотрудникам">&#9662;</button>
+					</div>
+					<div class="rx-money-val"><?php echo number_format($avans['total'], 2, ',', ' '); ?><small>BYN</small></div>
+					<div class="rx-money-hint">не погашено с <?php echo date('d.m.Y', strtotime(AVANS_START_DATE)); ?></div>
+
+					<div class="rx-money-drop hide" id="rx_av_drop">
+						<?php if (count($avans['rows']) == 0): ?>
+							<div class="rx-money-drop-empty">непогашенных авансов нет</div>
+						<?php else: foreach ($avans['rows'] as $av): ?>
+							<div class="rx-money-drop-row">
+								<span title="<?php echo htmlspecialchars($av['name']); ?>"><?php echo htmlspecialchars($av['name']); ?></span>
+								<b><?php echo number_format($av['amount'], 2, ',', ' '); ?></b>
+							</div>
+						<?php endforeach; endif; ?>
+					</div>
+				</div>
 			</div>
 		</div>
 	</form>
@@ -721,7 +785,7 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 										<option value="0">не выбрано</option>
 										<?php echo $ri_t1; ?>
 									</select>
-									<select name="zp_name" class="zp_name_id_update <?php echo ($dr['type2'] == 'zpl' ? '' : 'hide'); ?>">
+									<select name="zp_name" class="zp_name_id_update <?php echo (needs_employee($dr['type2']) ? '' : 'hide'); ?>">
 										<option value="0">не выбрано</option>
 										<?php echo $zp_select; ?>
 									</select>
@@ -893,7 +957,7 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 
 				<div class="rx-mrow one" id="rx_zp_wrap" style="display:none;">
 					<div class="rx-mfield">
-						<label for="zp_name">Кому (сотрудник)</label>
+						<label for="zp_name" id="zp_label">Кому (сотрудник)</label>
 						<select name="zp_name" id="zp_name">
 							<option value="0">не выбрано</option>
 							<?php echo $zp_select; ?>
@@ -909,7 +973,7 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 				</div>
 
 				<button type="submit" name="action" value="сохранить" class="rx-save">Сохранить</button>
-				<div class="rx-mhint">для зарплаты и аванса обязательны сотрудник и комментарий</div>
+				<div class="rx-mhint">сотрудник обязателен для зарплаты, аванса и возврата аванса; комментарий — для зарплаты</div>
 			</form>
 		</div>
 	</div>
@@ -970,11 +1034,13 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 		rxZpToggle();
 	}
 
-	// «кому» показываем только для зарплаты и аванса
+	// «кому» показываем только для статей по сотрудникам
 	function rxZpToggle() {
 		var v    = document.getElementById('type2').value;
-		var show = (v === 'zpl' || v === 'avans');
+		var show = rxNeedsEmployee(v);
 		document.getElementById('rx_zp_wrap').style.display = show ? '' : 'none';
+		document.getElementById('zp_label').innerText =
+			v === 'av_return' ? 'От кого (сотрудник)' : 'Кому (сотрудник)';
 		if (!show) document.getElementById('zp_name').value = '0';
 	}
 	document.getElementById('type2').onchange = rxZpToggle;
@@ -996,7 +1062,7 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 		var amount = document.getElementById('amount').value;
 		if (amount === '' || parseFloat(amount) === 0) errors.push('заполните сумму');
 
-		if ((t2 === 'zpl' || t2 === 'avans') && document.getElementById('zp_name').value === '0') {
+		if (rxNeedsEmployee(t2) && document.getElementById('zp_name').value === '0') {
 			errors.push('выберите сотрудника');
 		}
 		if (t2 === 'zpl' && document.getElementById('info').value === '') {
@@ -1015,6 +1081,26 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 	}
 
 	rxSetType1('rash');
+
+	// список авансов по сотрудникам
+	(function () {
+		var toggle = document.getElementById('rx_av_toggle');
+		var drop   = document.getElementById('rx_av_drop');
+
+		toggle.onclick = function (e) {
+			e.stopPropagation();
+			drop.classList.toggle('hide');
+			toggle.classList.toggle('open');
+		};
+
+		// клик мимо списка закрывает его
+		document.addEventListener('click', function (e) {
+			if (drop.classList.contains('hide')) return;
+			if (drop.contains(e.target)) return;
+			drop.classList.add('hide');
+			toggle.classList.remove('open');
+		});
+	})();
 </script>
 
 <?php
@@ -1051,7 +1137,7 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 			form.classList.remove('hide');
 			infoTextArea.classList.remove('hide');
 			selectRash.value = type2;
-			if (type2 == 'zpl') {
+			if (rxNeedsEmployee(type2)) {
 				selectZpId.value = salaryUserId;
 				selectZpId.classList.remove('hide');
 			}
@@ -1072,7 +1158,7 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 		let selectRash = td.querySelector('.type2_update');
 		let selectZpId = td.querySelector('.zp_name_id_update');
 
-		if (selectRash.value == 'zpl') {
+		if (rxNeedsEmployee(selectRash.value)) {
 			selectZpId.classList.remove('hide');
 		}
 		else {
@@ -1094,9 +1180,9 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 			rez = false;
 			message += 'Выберите новый тип расхода, ';
 		}
-		if (selectRash.value == 'zpl' && (selectZpId.value == 0 || (selectZpId.value == ''))) {
+		if (rxNeedsEmployee(selectRash.value) && (selectZpId.value == 0 || (selectZpId.value == ''))) {
 			rez = false;
-			message += 'Выберите сотрудника по зарплате, ';
+			message += 'Выберите сотрудника, ';
 		}
 
 		if (rez) {
@@ -1239,6 +1325,96 @@ function channel_sql_filter($code)
 	return $ch['sql_kassa']
 		? " AND `channel`='".$ch['channel']."' AND `kassa`='".$ch['kassa']."'"
 		: " AND `channel`='".$ch['channel']."'";
+}
+
+/**
+ * Статьи, которые ведутся по сотрудникам: зарплата, аванс и возврат аванса.
+ * По авансу и его возврату считается плитка непогашенных авансов, поэтому
+ * сотрудник в них обязателен.
+ *
+ * @param $code
+ * @return bool
+ */
+function needs_employee($code)
+{
+	return in_array($code, array('zpl', 'avans', 'av_return'), true);
+}
+
+/**
+ * Остаток в сейфе на сегодня.
+ *
+ * Сейф пополняется и опустошается только переводами между каналами (см.
+ * channels_all(): shift_only), а перевод пишется парой строк со знаком —
+ * расход по источнику и приход по получателю. Поэтому вся история сейфа
+ * это сумма его операций со знаком, отдельного учёта остатков сейфу
+ * не ведётся (в таблице kassas строк по нему нет).
+ *
+ * @param $mysqli
+ * @return float
+ */
+function safe_balance($mysqli)
+{
+	$today_end = strtotime('today 23:59:59');
+
+	$res = $mysqli->query("SELECT SUM(`amount`) AS s FROM doh_rash
+		WHERE `channel`='safe' AND `acc_date`<='" . $today_end . "'");
+	if (!$res) return 0.0;
+
+	$row = $res->fetch_assoc();
+	return (float) $row['s'];
+}
+
+/**
+ * Непогашенные авансы по сотрудникам: выдано минус возвращено, начиная
+ * с AVANS_START_DATE.
+ *
+ * Отсчёт с даты, а не с начала истории, потому что до неё «возврат аванса»
+ * не записывал сотрудника (все 377 старых возвратов обезличены) — раскидать
+ * их по людям не из чего, и старые долги повисли бы на давно уволенных.
+ * С этой даты авансы ведутся с нуля.
+ *
+ * Операции без сотрудника (старый API, ручные правки) собираются в отдельную
+ * строку, чтобы деньги не пропадали из общей суммы молча.
+ *
+ * @param $mysqli
+ * @return array  ['total' => float, 'rows' => [['name','amount'], ...]]
+ */
+function avans_outstanding($mysqli)
+{
+	$from      = strtotime(AVANS_START_DATE);
+	$today_end = strtotime('today 23:59:59');
+
+	$res = $mysqli->query("SELECT d.`dr_name_id` AS uid, l.`lp_fio` AS fio,
+			SUM(CASE WHEN d.`type2`='avans'     THEN -d.`amount` ELSE 0 END) AS given,
+			SUM(CASE WHEN d.`type2`='av_return' THEN  d.`amount` ELSE 0 END) AS back
+		FROM doh_rash d
+		LEFT JOIN logpass l ON l.`logpass_id`=d.`dr_name_id`
+		WHERE d.`type2` IN ('avans','av_return')
+			AND d.`acc_date`>='" . $from . "' AND d.`acc_date`<='" . $today_end . "'
+		GROUP BY d.`dr_name_id`, l.`lp_fio`");
+
+	$rows  = array();
+	$total = 0.0;
+
+	if ($res) {
+		while ($r = $res->fetch_assoc()) {
+			$amount = round((float) $r['given'] - (float) $r['back'], 2);
+			if ($amount == 0) continue;   // рассчитался — в списке не нужен
+
+			$rows[] = array(
+				'name'   => $r['fio'] !== null && $r['fio'] !== '' ? $r['fio'] : 'не указан сотрудник',
+				'amount' => $amount,
+			);
+			$total += $amount;
+		}
+	}
+
+	usort($rows, function ($a, $b) {
+		if ($a['amount'] == $b['amount']) return 0;
+		return $a['amount'] < $b['amount'] ? 1 : -1;
+	});
+
+	return array('total' => round($total, 2), 'rows' => $rows);
 }
 
 /**
