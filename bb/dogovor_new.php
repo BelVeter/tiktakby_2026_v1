@@ -3450,17 +3450,19 @@ if ($cl_onh_num > 0) {
 			}
 		}
 
-		// последний применённый по сделке тариф — он же потолок цены продления
+		// последний применённый по сделке тариф — он же потолок цены продления.
+		// ставка выводится из самой суб-сделки, а не из tarif_value/tarif_step —
+		// см. Deal::lastTarifPerDay(); форма продления берёт её оттуда же
 		$ext_old = null;
-		$query_ext_old = "SELECT tarif_value, tarif_step FROM rent_sub_deals_act
+		$query_ext_old = "SELECT `from`, `to`, r_to_pay, tarif_value, tarif_step FROM rent_sub_deals_act
 							WHERE deal_id='" . (int)$cl_onh['deal_id'] . "'
 							AND type IN ('first_rent', 'extention', 'takeaway_plan')
 							ORDER BY sub_deal_id DESC LIMIT 1";
 		$result_ext_old = $mysqli->query($query_ext_old);
 		if ($result_ext_old && ($ext_old_row = $result_ext_old->fetch_assoc())) {
 			$ext_old = array(
-				'days'  => ($ext_old_row['tarif_step'] == 'month' ? 30 : ($ext_old_row['tarif_step'] == 'week' ? 7 : 1)),
-				'value' => (float)$ext_old_row['tarif_value'],
+				'days'  => 1,
+				'value' => Deal::lastTarifPerDay($ext_old_row),
 			);
 		}
 
