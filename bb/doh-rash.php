@@ -66,8 +66,14 @@ echo '
 	.rx-head { display:flex; align-items:center; gap:14px; background:#fff; border-radius:14px; padding:18px 22px; margin:10px 0 16px; box-shadow:0 1px 3px rgba(20,35,60,.08); }
 	.rx-head h1 { margin:0; font-size:22px; font-weight:700; letter-spacing:.2px; }
 	.rx-head .rx-period { color:#8b93a7; font-size:13px; margin-left:2px; }
-	.rx-add { margin-left:auto; width:44px; height:44px; flex:0 0 auto; border:none; border-radius:50%; background:#4a7dfc; color:#fff; font-size:26px; line-height:1; cursor:pointer; box-shadow:0 4px 12px rgba(74,125,252,.35); transition:transform .12s, background .12s; }
+	.rx-add { margin-left:auto; width:44px; height:44px; flex:0 0 auto; border:none; border-radius:50%; background:#4a7dfc; color:#fff; font-size:26px; line-height:1; cursor:pointer; box-shadow:0 4px 12px rgba(74,125,252,.35); transition:transform .12s, background .12s, margin-right .12s; }
 	.rx-add:hover { background:#3a6bea; transform:translateY(-1px); }
+	/* плашка «заказ на обратный звонок» висит в правом верхнем углу поверх страницы
+	   и накрывает «+». Пока она на экране, кнопка уходит левее; класс на body
+	   ставит includes/zv_show.php. На широких экранах плашка до карточки
+	   не достаёт — там сдвиг не нужен. */
+	body.zv-alert .rx-add { margin-right:160px; }
+	@media (min-width:1760px) { body.zv-alert .rx-add { margin-right:0; } }
 
 	/* фильтры */
 	.rx-filters { background:#fff; border-radius:14px; padding:16px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,35,60,.08); }
@@ -99,7 +105,7 @@ echo '
 	.rx-kpi--saldo .rx-kpi-val.pos { color:#22a06b; }
 
 	/* карточки */
-	.rx-cols { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:16px; align-items:start; }
+	.rx-cols { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:16px; align-items:start; }
 	@media (max-width:1100px) { .rx-cols { grid-template-columns:1fr; } }
 	.rx-card { background:#fff; border-radius:14px; box-shadow:0 1px 3px rgba(20,35,60,.08); overflow:hidden; }
 	.rx-card-head { display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid #eef1f5; }
@@ -109,8 +115,10 @@ echo '
 	/* таблица операций */
 	.rx-scroll { max-height:620px; overflow:auto; }
 	.rx-tbl { width:100%; border-collapse:collapse; font-size:13px; }
-	.rx-tbl th { position:sticky; top:0; z-index:1; background:#f7f9fc; text-align:left; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8b93a7; padding:9px 14px; border-bottom:1px solid #eef1f5; white-space:nowrap; }
-	.rx-tbl td { padding:9px 14px; border-bottom:1px solid #f2f4f8; vertical-align:top; }
+	.rx-tbl th { position:sticky; top:0; z-index:1; background:#f7f9fc; text-align:left; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8b93a7; padding:8px 10px; border-bottom:1px solid #eef1f5; white-space:nowrap; }
+	.rx-tbl td { padding:8px 10px; border-bottom:1px solid #f2f4f8; vertical-align:top; }
+	.rx-tbl .rx-chan { white-space:nowrap; }
+	.rx-tbl .rx-info { overflow-wrap:anywhere; } /* длинный комментарий переносится, а не растягивает таблицу вбок */
 	.rx-tbl tr:hover td { background:#fafbfe; }
 	.rx-tbl .rx-num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; font-weight:600; }
 	.rx-tbl .rx-date { white-space:nowrap; color:#4a5567; }
@@ -125,21 +133,22 @@ echo '
 	.rx-edit { border:none; background:#f3f5f8; color:#6b7686; border-radius:6px; width:22px; height:22px; cursor:pointer; font-size:11px; }
 	.rx-edit:hover { background:#e6eaf0; }
 	.rx-editform { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+	.rx-editform.hide { display:none; } /* .hide одной специфичности с .rx-editform и объявлен выше — без этого форма видна всегда */
 	.rx-editform select, .rx-editform textarea { border:1px solid #dfe4ea; border-radius:7px; padding:5px 8px; font-size:12px; font-family:inherit; }
 	.rx-editform button { border:none; border-radius:7px; background:#22a06b; color:#fff; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
 
 	/* распределение по статьям */
-	.rx-dist-row { display:grid; grid-template-columns:minmax(0,1fr) 110px 150px; align-items:center; gap:12px; padding:11px 20px; border-bottom:1px solid #f2f4f8; font-size:13px; }
+	.rx-dist-row { display:grid; grid-template-columns:minmax(0,1fr) 100px 150px; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid #f2f4f8; font-size:13px; }
 	.rx-dist-row:last-child { border-bottom:none; }
 	.rx-dist-name { display:flex; align-items:center; gap:9px; min-width:0; }
 	.rx-dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
 	.rx-dist-name span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 	.rx-dist-sum { text-align:right; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
 	.rx-dist-share { display:flex; align-items:center; gap:8px; }
-	.rx-dist-share em { font-style:normal; font-size:12px; color:#8b93a7; width:42px; text-align:right; flex:0 0 auto; font-variant-numeric:tabular-nums; }
+	.rx-dist-share em { font-style:normal; font-size:12px; color:#8b93a7; width:38px; text-align:right; flex:0 0 auto; font-variant-numeric:tabular-nums; }
 	.rx-bar { flex:1; height:7px; border-radius:4px; background:#eef1f5; overflow:hidden; }
 	.rx-bar i { display:block; height:100%; border-radius:4px; }
-	.rx-dist-head { display:grid; grid-template-columns:minmax(0,1fr) 110px 150px; gap:12px; padding:9px 20px; background:#f7f9fc; border-bottom:1px solid #eef1f5; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8b93a7; }
+	.rx-dist-head { display:grid; grid-template-columns:minmax(0,1fr) 100px 150px; gap:10px; padding:9px 14px; background:#f7f9fc; border-bottom:1px solid #eef1f5; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8b93a7; }
 	.rx-dist-head span:nth-child(2) { text-align:right; }
 
 	/* сообщение */
@@ -359,16 +368,16 @@ foreach (channels_all() as $code => $ch) {
 
 // Коды каналов из версии с четырьмя офисами: старые переводы хранят их в type2.
 // Из выпадающих списков эти точки убраны, но история по ним должна читаться.
-$rash['of1k1'] = 'Литературная_22_1';
-$rash['of1k2'] = 'Литературная_22_2';
+$rash['of1k1'] = $rash['k1'];   // та же касса, что К1 — старый код канала
+$rash['of1k2'] = $rash['k2'];   // та же касса, что К2
 $rash['of2k1'] = 'Ложинская_1';
 $rash['of2k2'] = 'Ложинская_2';
 $rash['of3k1'] = 'Победителей_127_1';
 $rash['of3k2'] = 'Победителей_127_2';
 $rash['of4k1'] = 'Склад_1';
 $rash['of4k2'] = 'Склад_2';
-$rash['curk1'] = 'Курьер_1';
-$rash['curk2'] = 'Курьер_2';
+$rash['curk1'] = $rash['cur']; // курьерских касс было две, канал один — как в фильтре
+$rash['curk2'] = $rash['cur'];
 
 $doh = $rash;
 
@@ -728,9 +737,9 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 								</form>
 							</td>
 
-							<td class="rx-muted"><?php echo htmlspecialchars(of_print($dr['channel']) . kassa_print($dr['kassa'])); ?></td>
+							<td class="rx-muted rx-chan"><?php echo htmlspecialchars(channel_print($dr['channel'], $dr['kassa'])); ?></td>
 
-							<td>
+							<td class="rx-info">
 								<?php echo htmlspecialchars($dr['info']); ?>
 								<textarea form="update_form_<?php echo $dr['dr_id']; ?>" name="info_upd" class="info_upd hide"><?php echo htmlspecialchars($dr['info']); ?></textarea>
 							</td>
@@ -1230,6 +1239,30 @@ function channel_sql_filter($code)
 	return $ch['sql_kassa']
 		? " AND `channel`='".$ch['channel']."' AND `kassa`='".$ch['kassa']."'"
 		: " AND `channel`='".$ch['channel']."'";
+}
+
+/**
+ * Название канала для колонки «канал оплаты» — теми же словами, что
+ * в фильтре и в форме внесения (справочник channels_all()).
+ *
+ * У курьера и банка касса не различается (sql_kassa=false) — точно так же,
+ * как это делает фильтр. Закрытые точки (Ложинская, Победителей, Склад)
+ * в справочнике не значатся, но их операции остаются в истории — для них
+ * старая расшифровка.
+ *
+ * @param $channel
+ * @param $kassa
+ * @return string
+ */
+function channel_print($channel, $kassa)
+{
+	foreach (channels_all() as $ch) {
+		if ($ch['channel'] == $channel && (!$ch['sql_kassa'] || $ch['kassa'] == $kassa)) {
+			return $ch['text'];
+		}
+	}
+
+	return of_print($channel) . kassa_print($kassa);
 }
 
 /**
