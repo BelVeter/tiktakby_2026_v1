@@ -79,28 +79,6 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 <!-- JQuery -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-<style>
-.radio-toolbar input[type="radio"] {
-  display: none;
-}
-.radio-toolbar label {
-  display: inline-block;
-  background-color: #00adef;
-  padding: 7px 10px;
-  font-family: Arial;
-  font-size: 16px;
-  cursor: pointer;
-    border-radius:10px;
-	-webkit-border-radius:10px;
-	-moz-border-radius:10px;
-	-khtml-border-radius:10px;
-}
-
-.radio-toolbar input[type="radio"]:checked+label {
-  background-color: yellow;
-}
-
-</style>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
 <link href="/bb/dogovor_new_style.css" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -337,7 +315,6 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 			disable('info');
 			disable('address_copy');
 			disable('action_save_cl');
-			//disable('source_sel');
 
 
 			if (document.getElementById('client_update').value == 0) { document.getElementById('client_update').value = 1; }
@@ -652,7 +629,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 		function form_check_cl() {
 			valid = true;
 
-			family = name = otch = city = str = dom = kv = pas_n = pas_who = pas_date = reg_city = reg_str = reg_dom = reg_kv = phone_1 = phone_2 = r_source = "";
+			family = name = otch = city = str = dom = kv = pas_n = pas_who = pas_date = reg_city = reg_str = reg_dom = reg_kv = phone_1 = phone_2 = "";
 
 			// проверка клиента
 			if (document.getElementById('family').value == "") {
@@ -739,7 +716,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 
 
 			if (valid == false) {
-				alert('Заполните все поля формы! В частности: ' + family + name + otch + city + str + dom + kv + pas_n + pas_date + pas_who + reg_city + reg_str + reg_dom + reg_kv + phone_1 + phone_2 + r_source);
+				alert('Заполните все поля формы! В частности: ' + family + name + otch + city + str + dom + kv + pas_n + pas_date + pas_who + reg_city + reg_str + reg_dom + reg_kv + phone_1 + phone_2);
 			}
 
 			return valid;
@@ -753,7 +730,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 		function form_check() {
 			valid = true;
 
-			family = name = otch = city = str = dom = kv = pas_n = pas_who = pas_date = reg_city = reg_str = reg_dom = reg_kv = phone_1 = phone_2 = inv_n_ok = start_date = rent_tarif = rent_tenor = r_to_pay = return_date = pl_date_ch = takeaway_info = r_source = set_is_checked = "";
+			family = name = otch = city = str = dom = kv = pas_n = pas_who = pas_date = reg_city = reg_str = reg_dom = reg_kv = phone_1 = phone_2 = inv_n_ok = start_date = rent_tarif = rent_tenor = r_to_pay = return_date = pl_date_ch = takeaway_info = set_is_checked = "";
 
 			// проверка клиента
 			if (document.getElementById('family').value == "") {
@@ -964,7 +941,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 
 
 			if (valid == false) {
-				alert('Заполните все поля формы! В частности: ' + family + name + otch + city + str + dom + kv + pas_n + pas_date + pas_who + reg_city + reg_str + reg_dom + reg_kv + phone_1 + phone_2 + r_source + inv_n_ok + start_date + rent_tarif + rent_tenor + r_to_pay + return_date + pl_date_ch + takeaway_info + set_is_checked);
+				alert('Заполните все поля формы! В частности: ' + family + name + otch + city + str + dom + kv + pas_n + pas_date + pas_who + reg_city + reg_str + reg_dom + reg_kv + phone_1 + phone_2 + inv_n_ok + start_date + rent_tarif + rent_tenor + r_to_pay + return_date + pl_date_ch + takeaway_info + set_is_checked);
 			}
 
 
@@ -1027,7 +1004,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 		function form_check_cur() {
 			valid = true;
 
-			city = str = dom = kv = phone_1 = inv_n_ok = start_date = r_source = "";
+			city = str = dom = kv = phone_1 = inv_n_ok = start_date = "";
 
 			// проверка клиента
 
@@ -1073,7 +1050,7 @@ if (!isset($_POST['action']) || $_POST['action'] != 'распечатать до
 
 
 			if (valid == false) {
-				alert('Заполните все поля формы! В частности: ' + city + str + dom + kv + phone_1 + inv_n_ok + start_date + r_source);
+				alert('Заполните все поля формы! В частности: ' + city + str + dom + kv + phone_1 + inv_n_ok + start_date);
 			}
 			else {
 				document.getElementById('del_to_pay').value = prompt("Стоимость доставки (руб.коп.):");
@@ -1528,7 +1505,6 @@ $cl_def['pas_ln'] = '';
 
 $delivery_to_pay = '';
 
-$source = '';
 
 if ($rez = Base::getErrorsString()) {
 	echo $rez;
@@ -1984,7 +1960,7 @@ if (isset($_POST['action'])) {
 
 				$pas_date = strtotime($pas_date); //приводим в формат юникс дату календаря гггг-мм-дд
 
-				$query = "INSERT INTO clients VALUES('', '$family', '$name', '$otch', '$city', '$str', '$dom', '$kv', '$pas_n', '$pas_ln', '$pas_date', '$pas_who', '$reg_city', '$reg_str', '$reg_dom', '$reg_kv', '$phone_1', '$phone_2', '$info', '', " . time() . ", '', '','', '" . $_SESSION['user_id'] . "', '$source')";
+				$query = "INSERT INTO clients VALUES('', '$family', '$name', '$otch', '$city', '$str', '$dom', '$kv', '$pas_n', '$pas_ln', '$pas_date', '$pas_who', '$reg_city', '$reg_str', '$reg_dom', '$reg_kv', '$phone_1', '$phone_2', '$info', '', " . time() . ", '', '','', '" . $_SESSION['user_id'] . "', '')"; // последняя колонка - clients.source, больше не заполняется
 				if (!$mysqli->query($query)) {
 					echo 'Сбой при вставке клиента в базу данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error;
 				}
@@ -2015,7 +1991,7 @@ if (isset($_POST['action'])) {
 				$reg_city = mb_convert_case($reg_city, MB_CASE_TITLE, 'UTF-8');
 				//$reg_str=mb_convert_case($reg_str, MB_CASE_TITLE, 'UTF-8');
 
-				$query_cl_upd = "UPDATE clients SET family='$family', name='$name', otch='$otch', city='$city', str='$str', dom='$dom', kv='$kv', pas_n='$pas_n', pas_ln='$pas_ln', pas_date='$pas_date', pas_who='$pas_who', reg_city='$reg_city', reg_str='$reg_str', reg_dom='$reg_dom', reg_kv='$reg_kv', phone_1='$phone_1', phone_2='$phone_2', info='$info', `source`='$source' WHERE client_id='$client_id'";
+				$query_cl_upd = "UPDATE clients SET family='$family', name='$name', otch='$otch', city='$city', str='$str', dom='$dom', kv='$kv', pas_n='$pas_n', pas_ln='$pas_ln', pas_date='$pas_date', pas_who='$pas_who', reg_city='$reg_city', reg_str='$reg_str', reg_dom='$reg_dom', reg_kv='$reg_kv', phone_1='$phone_1', phone_2='$phone_2', info='$info' WHERE client_id='$client_id'";
 				if (!$mysqli->query($query_cl_upd)) {
 					echo 'Сбой при обновлении данных клиента в базе данных: ' . $query_cl_upd . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error;
 				}
@@ -3104,30 +3080,6 @@ echo '<br />
 Телефон 2 (+375):<input type="text" name="phone_2" id="phone_2" size="30" ' . $d_disabled . ' value="' . phone_print($cl_def['phone_2']) . '" /> <i>Если 2-й телефон отсутствует - ставьте 0 (нуль)!!!</i><br />
 Дополнительная информация:<br/> <textarea cols="100" rows="3" name="info" id="info" ' . good_print($d_disabled) . '>' . $cl_def['info'] . '</textarea><br />';
 
-if ($client_id > 0) {
-	echo '
-        <select name="source" ' . $d_disabled . ' id="source_sel">
-            <option value="0">Не заполнено</option>
-            <option value="search" ' . Base::sel_d($cl_def['source'], 'search') . '>Поиск: google\yandex</option>
-            <option value="instagram" ' . Base::sel_d($cl_def['source'], 'instagram') . '>Инстаграм</option>
-            <option value="kufar" ' . Base::sel_d($cl_def['source'], 'kufar') . '>Куфар</option>
-            <option value="friends" ' . Base::sel_d($cl_def['source'], 'friends') . '>Рекомендация</option>
-            <option value="vyveska" ' . Base::sel_d($cl_def['source'], 'vyveska') . '>Вывеска</option>
-            <option value="other" ' . Base::sel_d($cl_def['source'], 'other') . '>Иное</option>
-        </select>
-    ';
-} else {
-	echo '
-        <div class="radio-toolbar" id="source_radio_div">
-            <input type="radio" name="source" value="search" id="search">     <label for="search">Поиск: google\yandex</label>
-            <input type="radio" name="source" value="instagram" id="instagram">     <label for="instagram">Инстаграм</label>
-            <input type="radio" name="source" value="kufar" id="kufar">     <label for="kufar">Куфар</label>
-            <input type="radio" name="source" value="friends" id="friends">     <label for="friends">Рекомендация</label>
-            <input type="radio" name="source" value="vyveska" id="vyveska">     <label for="vyveska">Вывеска</label>
-            <input type="radio" name="source" value="other" id="other">     <label for="other">Иное</label>
-        </div>
-    ';
-}
 ?>
 <script language="javascript">
 	function fill_placeholders() {
