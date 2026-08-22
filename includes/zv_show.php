@@ -19,6 +19,15 @@ function getXmlHttp(){
 
 
 
+// Плашка со звонками висит поверх страницы в правом верхнем углу и может
+// накрыть то, что там нарисовано. Класс на body позволяет странице подвинуть
+// свои элементы ровно на то время, пока плашка на экране.
+function zv_body_flag (on) {
+	if (!document.body || !document.body.classList) return;
+	if (on) document.body.classList.add('zv-alert');
+	else document.body.classList.remove('zv-alert');
+}
+
 function zv_check () {
 
 	//document.getElementById('post_div_').innerHTML='<img src="w.gif" />';
@@ -38,9 +47,11 @@ function zv_check () {
 	    	 
 	    	 if (zv_num>=1) {
 	    		 document.getElementById('zv_div').innerHTML='<div id="zvonki" style="position:absolute; right:0px; top:30px; background-color:#F03; width:150px;"> Заказ на обратный звонок: '+zv_num+' шт.!!!<br /><input type="button" value="обновить" onclick="zv_check()" /><br /><a href="/bb/zv_ch.php">перейти к звонкам</a></div>';
+	    		 zv_body_flag(true);
 	    	 }//if
 	    	 else {
 	    		 document.getElementById('zv_div').innerHTML='';
+	    		 zv_body_flag(false);
 	    	 }//else 
 	    					 
 			   }

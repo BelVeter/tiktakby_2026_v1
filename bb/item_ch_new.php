@@ -1005,7 +1005,8 @@ if ($item_rows == 1) {
 			die('Сбой при доступе к базе данных: ' . $query_sub_dl_def . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
 		$sub_dl_def = $result_sub_dl_def->fetch_assoc();
 
-		$oldTarifDays = ($sub_dl_def['tarif_step'] == 'month' ? 30 : ($sub_dl_def['tarif_step'] == 'week' ? 7 : 1));
+		// ставка выводится из самой суб-сделки, а не из tarif_value/tarif_step - см. Deal::lastTarifPerDay()
+		$oldPerDay = \bb\classes\Deal::lastTarifPerDay($sub_dl_def);
 
 		$item_output = '<br />
 
@@ -1018,10 +1019,10 @@ if ($item_rows == 1) {
     <div>
       <strong>Последний использованный тариф:</strong><br />
       <div style="border:2px solid #e57373;border-radius:6px;padding:6px 14px;cursor:pointer;display:inline-block;margin-top:4px;" onclick="apply_tarif(\\\'old\\\'); this.style.background=\\\'#a5d6a7\\\'; return false;">
-        <input type="hidden" value="1" id="kol_vo_old" /><input type="hidden" value="1" id="kol_vo_min_old" /><input type="hidden" value="' . $sub_dl_def['tarif_step'] . '" id="step_old" />
-        ' . $sub_dl_def['tarif_value'] . ' руб. в ' . tenor_print($sub_dl_def['tarif_step'], 'd') . '
-        <input type="hidden" value="' . $sub_dl_def['tarif_value'] . '" id="rent_per_step_old" />
-        <input type="hidden" class="tarifPrev" data-days="' . ($oldTarifDays) . '" value="' . ($sub_dl_def['tarif_value']) . '">
+        <input type="hidden" value="1" id="kol_vo_old" /><input type="hidden" value="1" id="kol_vo_min_old" /><input type="hidden" value="day" id="step_old" />
+        ' . $oldPerDay . ' руб. в день
+        <input type="hidden" value="' . $oldPerDay . '" id="rent_per_step_old" />
+        <input type="hidden" class="tarifPrev" data-days="1" value="' . $oldPerDay . '">
       </div>
     </div>
     <div>
