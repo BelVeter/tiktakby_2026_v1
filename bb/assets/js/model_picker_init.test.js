@@ -23,7 +23,7 @@ var STUB_IDS = [
 	'model_edit_start', 'model_edit_cancel', 'model_reset_search', 'edit_phase_banner', 'new_model_div',
 	'cat_create_open', 'prod_create_open', 'prod_edit_open', 'cat_input_dog_new',
 	'color_new', 'm_set_new', 'color_multicolor_btn',
-	'update_success_banner', 'model_quick_links', 'model_links_tarif_id', 'model_links_cat_id'
+	'update_success_banner', 'model_quick_links', 'model_links_tarif_id', 'model_links_cat_id', 'model_links_new_item_id'
 ];
 
 function makeElement(initialValue) {
@@ -279,16 +279,17 @@ var els12 = loadPage('edit', { model_search: 'Bear', model_new: 'Bear', color_ne
 els12.model_edit_start.dispatchEvent('click');
 assert.strictEqual(els12.model_reset_search.style.display, 'none', 'в unlocked «начать поиск заново» скрыта — сброс уже делает «Отмена»');
 
-// --- Сценарий 13: деплинк с готовым model_id -> ссылки «тарифы»/«товары» видны сразу и указывают на эту модель ---
+// --- Сценарий 13: деплинк с готовым model_id -> ссылки «тарифы»/«товары»/«новый товар» видны сразу и указывают на эту модель ---
 var initialModel13 = { id: 111, name: 'Panda XL', cat_id: 21, cat_name: 'Стульчики', cat_dog_name: 'стульчик', producer: 'Peg-Perego', color: 'зелёный' };
 var els13 = loadPage('edit', { model_search: 'Panda XL', model_new: 'Panda XL', color_new: 'зелёный' }, initialModel13);
-assert.strictEqual(els13.model_quick_links.style.display, 'block', 'модель уже найдена деплинком -> ссылки «тарифы»/«товары» видны сразу');
+assert.strictEqual(els13.model_quick_links.style.display, 'block', 'модель уже найдена деплинком -> ссылки «тарифы»/«товары»/«новый товар» видны сразу');
 assert.strictEqual(els13.model_links_tarif_id.value, 111, '«редактировать тарифы» указывает на id найденной модели');
 assert.strictEqual(els13.model_links_cat_id.value, 21, '«к товарам» указывает на категорию найденной модели');
+assert.strictEqual(els13.model_links_new_item_id.value, 111, '«новый товар (эта модель)» указывает на id найденной модели');
 
-// --- Сценарий 14: «Начать поиск заново» прячет ссылки «тарифы»/«товары» — они относились к прошлой модели ---
+// --- Сценарий 14: «Начать поиск заново» прячет ссылки «тарифы»/«товары»/«новый товар» — они относились к прошлой модели ---
 els13.model_reset_search.dispatchEvent('click');
-assert.strictEqual(els13.model_quick_links.style.display, 'none', '«начать заново» прячет ссылки «тарифы»/«товары»');
+assert.strictEqual(els13.model_quick_links.style.display, 'none', '«начать заново» прячет ссылки «тарифы»/«товары»/«новый товар»');
 
 // --- Сценарий 15: квитанция «Модель успешно обновлена» из прошлого сохранения прячется при новом поиске ---
 var initialModel15 = { id: 122, name: 'Rocket', cat_id: 8, cat_name: 'Санки', cat_dog_name: 'санки', producer: 'Nika', color: 'красный' };
@@ -332,7 +333,7 @@ assert.strictEqual(els19.color_new.value, 'жёлтый', 'подготовка 
 els19.tab_new.dispatchEvent('click');
 assert.strictEqual(els19.color_new.value, '', 'переключение Edit -> New чистит поле цвета найденной модели (I3 fix)');
 
-console.log('model_picker_init.test.js: OK (52 assertions)');
+console.log('model_picker_init.test.js: OK (53 assertions)');
 
 // SEARCH_DELAY-таймер, запущенный сценарием 3, через 200мс дёрнул бы
 // LivePicker.request() -> new XMLHttpRequest(), которого в Node нет. Синхронные

@@ -188,6 +188,7 @@
 			if (ui.showModelLinks && currentEditItem) {
 				if (els.linksTarifId) { els.linksTarifId.value = currentEditItem.id; }
 				if (els.linksCatId)   { els.linksCatId.value = currentEditItem.cat_id; }
+				if (els.linksNewItemId) { els.linksNewItemId.value = currentEditItem.id; }
 			}
 		}
 		if (els.catCreateBtn)  { els.catCreateBtn.style.display = ui.createControlsVisible ? 'inline-block' : 'none'; }
@@ -484,6 +485,7 @@
 		els.modelLinksWrap = $('model_quick_links');
 		els.linksTarifId  = $('model_links_tarif_id');
 		els.linksCatId    = $('model_links_cat_id');
+		els.linksNewItemId = $('model_links_new_item_id');
 		els.area          = $('new_model_div');
 		els.catCreateBtn  = $('cat_create_open');
 		els.prodCreateBtn = $('prod_create_open');

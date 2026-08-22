@@ -243,6 +243,48 @@ if (isset($_POST['action'])) {
 			break;
 
 
+		// Деплинк с bb/tovar_new_mod.php («новый товар (эта модель)», #model_quick_links):
+		// приходит только model_id, товара ещё нет — категория/фирма/модель/цвет
+		// заполняются из найденной модели, поля товара остаются пустыми (дефолты
+		// сверху файла), а сабмит формы ниже идёт через обычное action=сохранить.
+		case 'новый_товар':
+
+			$model_id = (int) $model_id;
+			if ($model_id < 1) {
+				die('Модель не указана.');
+			}
+
+			$query_model = "SELECT * FROM tovar_rent WHERE tovar_rent_id='$model_id'";
+			$result_model = $mysqli->query($query_model);
+			if (!$result_model) {
+				die('Сбой при доступе к базе данных: ' . $query_model . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+			$model_def = $result_model->fetch_assoc();
+
+			$query_cat = "SELECT * FROM tovar_rent_cat WHERE tovar_rent_cat_id='" . $model_def['tovar_rent_cat_id'] . "'";
+			$result_cat = $mysqli->query($query_cat);
+			if (!$result_cat) {
+				die('Сбой при доступе к базе данных: ' . $query_cat . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+			$cat_def = $result_cat->fetch_assoc();
+			$cat_id = $cat_def['tovar_rent_cat_id'];
+
+			//chose model list
+			$query_model = "SELECT DISTINCT model FROM tovar_rent ORDER BY model";
+			$result_model = $mysqli->query($query_model);
+			if (!$result_model) {
+				die('Сбой при доступе к базе данных: ' . $query_model . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+
+			while ($model_list = $result_model->fetch_assoc()) {
+				$model_options .= '<option value="' . good_print($model_list['model']) . '" ' . sel_d($model_def['model'], $model_list['model']) . '>' . good_print($model_list['model']) . '</option>';
+			}
+
+			$color_option = '<option value="' . $model_def['color'] . '" selected="selected">' . $model_def['color'] . '</option>';
+
+			break;
+
+
 		case 'редактировать':
 
 			$tovar = tovar::geTovarById($item_id);

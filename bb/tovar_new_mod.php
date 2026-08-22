@@ -147,35 +147,32 @@ if (isset($_POST['action'])) {
 			}
 
 
-			echo 'Модель успешно заведена. <br /> ID модели:' . $model_id . '<br />' . $model_double_text;
+			// Раньше здесь стоял die() с отдельной страницей-квитанцией — после
+			// заведения модели человек терял место и должен был заново искать
+			// эту же модель, чтобы продолжить с ней работать. Как и в
+			// «обновить»: перезагружаем $model_def/$cat_def из базы и
+			// подставляем $action='редактировать', чтобы страница ниже
+			// отрисовалась в фазе locate с этой моделью — «редактировать
+			// тарифы»/«к товарам»/«новый товар» теперь постоянные ссылки в
+			// #model_quick_links, а не разовые кнопки квитанции.
+			$update_success_message = 'Модель успешно заведена.' . ($model_double_text !== '' ? '<br />' . $model_double_text : '');
 
+			$query_model = "SELECT * FROM tovar_rent WHERE tovar_rent_id='$model_id'";
+			$result_model = $mysqli->query($query_model);
+			if (!$result_model) {
+				die('Сбой при доступе к базе данных: ' . $query_model . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+			$model_def = $result_model->fetch_assoc();
 
+			$query_cat = "SELECT * FROM tovar_rent_cat WHERE tovar_rent_cat_id='" . $model_def['tovar_rent_cat_id'] . "'";
+			$result_cat = $mysqli->query($query_cat);
+			if (!$result_cat) {
+				die('Сбой при доступе к базе данных: ' . $query_cat . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+			$cat_def = $result_cat->fetch_assoc();
+			$cat_id = $cat_def['tovar_rent_cat_id'];
 
-			die('
-			</head>
-			<form method="post" id="tovar_tarif" action="rent_tarifs.php">
-					<input type="hidden" name="model_id" value="' . $model_id . '" />
-					<input type="submit" name="action" value="редактировать тарифы (эта модель)" />
-				</form>
-
-				<form method="post" id="tovar_tarif" action="kr_baza_new.php">
-					<input type="hidden" name="cat_id" value="' . $cat_id . '" />
-					<input type="submit" name="action" value="к товарам (эта категория)" />
-				</form>
-
-				<div class="top_menu">
-					<a class="div_item" href="/bb/tovar_new.php">Новый товар</a>
-				</div>
-				<br /><br />
-
-				<div class="top_menu">
-					<a class="div_item" href="/bb/rent_tarifs.php">Работа с тарифами</a>
-				</div>
-			</body></html>
-		');
-
-
-
+			$action = 'редактировать';
 
 			break;
 
@@ -680,6 +677,11 @@ echo '
 		<input type="hidden" name="cat_id" id="model_links_cat_id" value="' . $cat_id . '" />
 		<button type="submit" class="div_item">к товарам (эта категория)</button>
 	</form>
+	<form method="post" action="tovar_new.php" style="display:inline;">
+		<input type="hidden" name="model_id" id="model_links_new_item_id" value="' . $model_id . '" />
+		<input type="hidden" name="action" value="новый_товар" />
+		<button type="submit" class="div_item">новый товар (эта модель)</button>
+	</form>
 </div>
 
 				';
@@ -820,7 +822,7 @@ window.TOVAR_MOD_INITIAL_MODEL = ' . $initial_model_json . ';
 </script>
 <script src="/bb/assets/js/category_picker.js?v=5"></script>
 <script src="/bb/assets/js/producer_picker.js?v=4"></script>
-<script src="/bb/assets/js/model_picker.js?v=6"></script>
+<script src="/bb/assets/js/model_picker.js?v=7"></script>
 ';
 
 echo '</body>';
