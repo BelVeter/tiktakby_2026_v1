@@ -255,16 +255,7 @@
 	 * модель») — в unlocked за откат уже отвечает «Отмена» (cancelEdit).
 	 */
 	function resetSearch() {
-		if (picker) { picker.reset(); }
-		if (window.categoryPicker) { window.categoryPicker.reset(); }
-		if (window.producerPicker) { window.producerPicker.reset(); }
-		var dogNameField = $('cat_input_dog_new');
-		if (dogNameField) { dogNameField.value = ''; }
-		if (els.modelId) { els.modelId.value = ''; }
-		currentEditItem = null;
-		pendingEditGroup = null;
-		hideHint();
-		hideSuccessBanner();
+		resetAllFields();
 		applyPhaseUI();
 	}
 
@@ -392,6 +383,46 @@
 		});
 	}
 
+	/**
+	 * Чистит все поля деталей модели (цвет, цена, возраст и т.д. — весь
+	 * EDIT_FIELD_MAP), не трогая категорию/фирму/модель — теми занимается
+	 * resetAllFields(). Для <select> откатывает к первому option (тот же
+	 * дефолт, что при чистой загрузке страницы), для остальных — value=''.
+	 */
+	function clearDetailFields() {
+		Object.keys(EDIT_FIELD_MAP).forEach(function (key) {
+			var field = $(EDIT_FIELD_MAP[key]);
+			if (!field) {
+				return;
+			}
+			if (field.tagName === 'SELECT' && field.options && field.options.length) {
+				field.value = field.options[0].value;
+			} else {
+				field.value = '';
+			}
+		});
+	}
+
+	/**
+	 * Полный сброс общего набора полей формы — категория/фирма/модель и все
+	 * поля деталей. Используется и кнопкой «Начать заново», и переключением
+	 * вкладок (иначе значения, набранные на одной вкладке, утекают на
+	 * другую — форма-то одна на обе вкладки).
+	 */
+	function resetAllFields() {
+		if (picker) { picker.reset(); }
+		if (window.categoryPicker) { window.categoryPicker.reset(); }
+		if (window.producerPicker) { window.producerPicker.reset(); }
+		var dogNameField = $('cat_input_dog_new');
+		if (dogNameField) { dogNameField.value = ''; }
+		if (els.modelId) { els.modelId.value = ''; }
+		clearDetailFields();
+		currentEditItem = null;
+		pendingEditGroup = null;
+		hideHint();
+		hideSuccessBanner();
+	}
+
 	function setMode(newMode, options) {
 		var shouldReset = !options || options.reset !== false;
 
@@ -401,8 +432,7 @@
 		hideHint();
 
 		if (shouldReset) {
-			currentEditItem = null;
-			hideSuccessBanner();
+			resetAllFields();
 		}
 
 		if (els.tabNew) {
@@ -421,9 +451,6 @@
 		}
 		if (mode === CHECK.NEW && els.modelId) {
 			els.modelId.value = '';
-		}
-		if (picker && shouldReset) {
-			picker.reset();
 		}
 
 		applyPhaseUI();

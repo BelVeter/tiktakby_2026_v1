@@ -304,7 +304,35 @@ els16.update_success_banner.style.display = 'block';
 els16.tab_new.dispatchEvent('click');
 assert.strictEqual(els16.update_success_banner.style.display, 'none', 'переключение на вкладку «Новая модель» прячет устаревшую квитанцию');
 
-console.log('model_picker_init.test.js: OK (43 assertions)');
+// --- Сценарий 17: «Начать заново» на вкладке «Новая модель» чистит не только поиск, но и детали (цвет, комплектация и т.п.) ---
+var els17 = loadPage('new', {});
+els17.model_search.value = 'Тестовая модель';
+els17.model_search.dispatchEvent('input');
+els17.color_new.value = 'красный';
+els17.m_set_new.value = 'корзина, дождевик';
+els17.model_reset_search.dispatchEvent('click');
+assert.strictEqual(els17.model_search.value, '', '«Начать заново» на вкладке «Новая модель» чистит поле модели');
+assert.strictEqual(els17.color_new.value, '', '«Начать заново» чистит поле цвета — не только категорию/фирму/модель (I3 fix)');
+assert.strictEqual(els17.m_set_new.value, '', '«Начать заново» чистит поле комплектации (I3 fix)');
+assert.strictEqual(global.window.categoryPicker.resetCalled, true, '«Начать заново» на вкладке «Новая модель» тоже сбрасывает категорию');
+assert.strictEqual(global.window.producerPicker.resetCalled, true, '«Начать заново» на вкладке «Новая модель» тоже сбрасывает фирму');
+
+// --- Сценарий 18: переключение «Новая модель» -> «Редактировать» тоже чистит детали, иначе они утекают на другую вкладку ---
+var els18 = loadPage('new', {});
+els18.color_new.value = 'зелёный';
+els18.m_set_new.value = 'подстаканник';
+els18.tab_edit.dispatchEvent('click');
+assert.strictEqual(els18.color_new.value, '', 'переключение New -> Edit чистит поле цвета, оставшееся с вкладки «Новая модель» (I3 fix)');
+assert.strictEqual(els18.m_set_new.value, '', 'переключение New -> Edit чистит поле комплектации, оставшееся с вкладки «Новая модель» (I3 fix)');
+
+// --- Сценарий 19: переключение «Редактировать» -> «Новая модель» тоже чистит детали найденной модели ---
+var initialModel19 = { id: 144, name: 'Fox19', cat_id: 12, cat_name: 'Санки', cat_dog_name: 'санки', producer: 'Nika', color: 'жёлтый' };
+var els19 = loadPage('edit', { model_search: 'Fox19', model_new: 'Fox19', color_new: 'жёлтый' }, initialModel19);
+assert.strictEqual(els19.color_new.value, 'жёлтый', 'подготовка сценария: цвет найденной модели прогрет с сервера');
+els19.tab_new.dispatchEvent('click');
+assert.strictEqual(els19.color_new.value, '', 'переключение Edit -> New чистит поле цвета найденной модели (I3 fix)');
+
+console.log('model_picker_init.test.js: OK (52 assertions)');
 
 // SEARCH_DELAY-таймер, запущенный сценарием 3, через 200мс дёрнул бы
 // LivePicker.request() -> new XMLHttpRequest(), которого в Node нет. Синхронные

@@ -664,7 +664,7 @@ echo '
 </div>
 
 <br /><br />
-<input type="button" id="model_reset_search" value="Начать поиск заново" style="display:none;" />
+<input type="button" id="model_reset_search" value="Начать заново" style="display:none;" />
 <input type="button" id="model_edit_start" value="Внести изменения" style="display:none;" />
 <input type="button" id="model_edit_cancel" value="Отмена" style="display:none;" />
 ' . ($action == 'редактировать' ? '<input type="submit" name="action" id="submit_btn" value="обновить" onclick="return send_form_ch();"' . $locate_hidden . $locate_disabled . '/>' : '<input type="submit" name="action" id="submit_btn" value="сохранить" onclick="return send_form_ch();"/>') . '
@@ -820,7 +820,7 @@ window.TOVAR_MOD_INITIAL_MODEL = ' . $initial_model_json . ';
 </script>
 <script src="/bb/assets/js/category_picker.js?v=5"></script>
 <script src="/bb/assets/js/producer_picker.js?v=4"></script>
-<script src="/bb/assets/js/model_picker.js?v=5"></script>
+<script src="/bb/assets/js/model_picker.js?v=6"></script>
 ';
 
 echo '</body>';
