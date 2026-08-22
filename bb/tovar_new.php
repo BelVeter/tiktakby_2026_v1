@@ -142,7 +142,20 @@ if (isset($_POST['action'])) {
 		case 'сохранить':
 
 			//нужно чтоб обязательно был кат айди.
-			$cat_id = $cat_select_old;
+			$cat_id = (int) $cat_select_old;
+			if ($cat_id < 1) {
+				die('Категория не выбрана. Найдите её в поле «Категория товара».');
+			}
+
+			$producer_name = trim($producer_select_old);
+			if ($producer_name === '' || $producer_name === '0') {
+				die('Производитель не выбран. Найдите его в поле «Фирма».');
+			}
+
+			$model_id = (int) $model_id;
+			if ($model_id < 1) {
+				die('Модель не выбрана. Найдите её в поле «Модель».');
+			}
 
 			//item inv n 1-t part calculation
 			if ($cat_id < 10) {
@@ -151,7 +164,13 @@ if (isset($_POST['action'])) {
 			} elseif ($cat_id < 100) {
 				$cat_n_pl = 7;
 				$cat_id_num = $cat_id;
-			} elseif ($cat_id < 1000) {
+			} else {
+				// было "elseif ($cat_id < 1000)" — за пределами тройки $cat_n_pl
+				// оставался неопределённым (notice + сломанный префикс номера).
+				// Категорий пока 202 (2026-08-23), но себя показать это могло
+				// не завтра, так что не хочется на это отвлекать другого
+				// человека — на 100+ префикс и так всегда пустой, тот же
+				// шаблон, что и для 100-999, просто без верхней границы.
 				$cat_n_pl = '';
 				$cat_id_num = $cat_id;
 			}
@@ -210,9 +229,25 @@ if (isset($_POST['action'])) {
 
 			//gotovim nekotorie znachtniya
 			$buy_date = strtotime($buy_date);
-			$producer_name = $producer_select_old;
 
-			$query_new_item = "INSERT INTO tovar_rent_items VALUES('', '$cat_id', '$producer_name', '$model_id', '$item_n', '$item_inv_n', '$item_sex', '$tovar_size', '$real_tovar_size', '$tovar_rost1', '$tovar_rost2', '$item_set', '$buy_date', '$buy_price', '$buy_currency', '$exchange_rate', '$seller', '$info', '" . time() . "', '" . $_SESSION['user_fio'] . "', '$tovar_status', '', '$item_color', '$tovar_place', '', '$tovar_state', '$tovar_clean', '')";
+			// Раньше был позиционный INSERT VALUES(...) на 28 колонок без имён —
+			// ровно та ловушка из docs/db_notes.md: добавь колонку в
+			// tovar_rent_items, и вставка молча съедет по всем полям после точки
+			// вставки. Заодно там на 27-й позиции (to_move) стояла
+			// необъявленная $tovar_clean — печатала Notice на каждое сохранение
+			// (см. закомментированный $item_def['to_clean'] выше — похоже,
+			// след переименования). Явные имена колонок чинят и то, и другое.
+			$query_new_item = "INSERT INTO tovar_rent_items (
+				cat_id, producer, model_id, item_n, item_inv_n, sex, item_size, real_item_size,
+				item_rost1, item_rost2, item_set, buy_date, buy_price, buy_price_cur, exch_to_byr,
+				seller, item_info, cr_ch_date, user, status, active_deal_id, item_color, item_place,
+				br_time, state, to_move, qr_yn
+			) VALUES (
+				'$cat_id', '$producer_name', '$model_id', '$item_n', '$item_inv_n', '$item_sex', '$tovar_size', '$real_tovar_size',
+				'$tovar_rost1', '$tovar_rost2', '$item_set', '$buy_date', '$buy_price', '$buy_currency', '$exchange_rate',
+				'$seller', '$info', '" . time() . "', '" . $_SESSION['user_fio'] . "', '$tovar_status', '', '$item_color', '$tovar_place',
+				'', '$tovar_state', '', ''
+			)";
 			$result_new_item = $mysqli->query($query_new_item);
 			if (!$result_new_item) {
 				die('Сбой при доступе к базе данных: ' . $query_new_item . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
