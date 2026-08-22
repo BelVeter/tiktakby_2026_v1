@@ -84,6 +84,7 @@ $model_id = '';
 $cat_id = '';
 $model_options = '';
 $color_option = '';
+$submit_token = '';
 
 $model_def['set'] = '';
 $model_def['producer'] = '';
@@ -140,6 +141,18 @@ if (isset($_POST['action'])) {
 	switch ($action) {
 
 		case 'сохранить':
+
+			// Разовый токен от F5/повторной отправки POST после сохранения —
+			// на этой странице (в отличие от tovar_new_mod.php) нет
+			// естественного ключа уникальности товара, чтобы поймать дубль
+			// по данным: "модель+цена+дата" законно повторяется, если купили
+			// несколько одинаковых штук в один день. Токен кладётся в сессию
+			// при каждой отрисовке формы (см. ниже) и гасится сразу после
+			// использования — повторная отправка того же токена не пройдёт.
+			if ($submit_token === '' || !isset($_SESSION['tovar_new_token']) || !hash_equals($_SESSION['tovar_new_token'], $submit_token)) {
+				die('Форма уже была отправлена (например, обновлением страницы) — повторное сохранение остановлено, товар не задвоен. <a href="/bb/tovar_new.php">Начать заново</a>.');
+			}
+			unset($_SESSION['tovar_new_token']);
 
 			//нужно чтоб обязательно был кат айди.
 			$cat_id = (int) $cat_select_old;
@@ -368,6 +381,12 @@ if (isset($_POST['action'])) {
 
 		case 'обновить':
 
+			// См. комментарий в 'сохранить' — тот же разовый токен от F5.
+			if ($submit_token === '' || !isset($_SESSION['tovar_new_token']) || !hash_equals($_SESSION['tovar_new_token'], $submit_token)) {
+				die('Форма уже была отправлена (например, обновлением страницы) — повторное сохранение остановлено. <a href="/bb/tovar_new.php">Начать заново</a>.');
+			}
+			unset($_SESSION['tovar_new_token']);
+
 			//инвентарный номер не пересчитываем !!!
 
 			$buy_date = strtotime($buy_date);
@@ -496,6 +515,17 @@ if (isset($_POST['action'])) {
 
 		if (valid == false) {
 			alert('Заполните все поля формы! В частности: ' + cat_chcc + cat_dogcc + prod_chcc + model_chcc + color_chcc + set_chcc + price_chcc + price_cur_chcc + lom_srokcc + item_color_chcc + item_set_chcc + buy_date_chcc + buy_price_chcc + buy_price_cur_chcc + exch_rate_chcc + seller_chcc + place);
+		}
+
+		if (valid) {
+			// Двойной клик/Enter не должен долетать дважды — токен на сервере
+			// и так поймает F5, но это дешёвая защита от самого частого случая.
+			// setTimeout(0), а не disabled сразу: иначе в части браузеров
+			// задизейбленная кнопка не долетает как submitter текущей отправки.
+			var btn = document.querySelector('form[name="tovar"] input[type="submit"]');
+			if (btn) {
+				setTimeout(function () { btn.disabled = true; }, 0);
+			}
 		}
 
 		return valid;
@@ -778,6 +808,10 @@ while ($cat_names = $result_cats->fetch_assoc()) {
 	$cat_list .= '<option value="' . $cat_names['tovar_rent_cat_id'] . '" ' . sel_d($cat_names['tovar_rent_cat_id'], $cat_id) . ' >' . good_print($cat_names['rent_cat_name']) . '</option>';
 }
 
+// Разовый токен формы — гасится в case 'сохранить'/'обновить' сразу после
+// использования, так что F5/повторная отправка POST с тем же телом не
+// пройдёт валидацию (см. комментарий там).
+$_SESSION['tovar_new_token'] = bin2hex(random_bytes(16));
 
 echo '
 <form method="post" id="model_edit" action="tovar_new_mod.php" style="display:none;" style="display:none;" >
@@ -789,6 +823,7 @@ echo '
 <form name="tovar" action="tovar_new.php" method="post">
 
 <input type="hidden" name="item_id_upd" id="item_id_upd" value="' . (isset($item_id) ? $item_id : '') . '">
+<input type="hidden" name="submit_token" value="' . $_SESSION['tovar_new_token'] . '" />
 
 
  ' . ($action == 'редактировать' ? '<a href="" class="link_ch_new" onclick="document.getElementById(\'model_edit\').submit(); return false;">редактировать модель</a>' : '') . '<br />
