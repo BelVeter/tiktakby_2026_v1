@@ -8,6 +8,8 @@ use bb\Base;
 use bb\Db;
 use function PHPUnit\Framework\stringStartsWith;
 
+require_once __DIR__ . '/Producer.php';
+
 class ModelWeb
 {
   private $web_id;
@@ -203,47 +205,60 @@ class ModelWeb
   /**
    * @return bool|void
    */
+  /**
+   * Предзаполняет поле логотипа при заведении НОВОЙ веб-страницы модели —
+   * логотипом бренда из справочника, если он там есть.
+   *
+   * @return bool
+   */
   public function loadLastProducerLogo()
   {
-    $mysqli = Db::getInstance()->getConnection();
     $model = Model::getById($this->getModelId());
-    if ($model) {
-      $model_ids = Model::getModelIdsArrayByProducer($model->getProducer());
+    if (!$model) {
+      return false;
+    }
 
-      if ($model_ids && count($model_ids) > 0) {
-        $query = "SELECT logo FROM rent_model_web WHERE model_id IN (" . implode(',', $model_ids) . ") ORDER BY model_id DESC";
-        $result = $mysqli->query($query);
-        if (!$result) {
-          die('Сбой при доступе к БД MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-        }
-        while ($row = $result->fetch_assoc()) {
-          if (substr($row['logo'], 0, 1) == '/') {
-            $this->setLogoUrlAddress($row['logo']);
-            return true;
-          }
-        }
-      }
+    $producer = Producer::getByName($model->getProducer());
+    if ($producer && $producer->getLogo() !== '') {
+      $this->setLogoUrlAddress($producer->getLogo());
+      return true;
     }
 
     return false;
-
   }
 
   /**
    * @return bool
    */
+  /**
+   * Заливка нового логотипа расходится на весь бренд ОДНОЙ строкой в
+   * справочнике, а не рассылкой копий по rent_model_web всех моделей бренда
+   * (так было раньше — отсюда расхождение копий у трёх брендов, найденное
+   * при аудите 2026-08-14). Собственный логотип ЭТОЙ модели (rent_model_web
+   * для текущего model_id) сохраняется отдельно, через save() — эта функция
+   * трогает только справочник.
+   *
+   * @return bool
+   */
   public function updateLogoUrlForAll()
   {
-    $mysqli = Db::getInstance()->getConnection();
     $model = Model::getById($this->getModelId());
-    $modelIds = Model::getModelIdsArrayByProducer($model->getProducer(), 0);
-    $query = "UPDATE rent_model_web SET logo='$this->logo' WHERE model_id IN (" . implode(',', $modelIds) . ")";
-    //echo $query;
-    $result = $mysqli->query($query);
-    if (!$result) {
-      die('Сбой при обновлении url лого в MYSQL: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    if (!$model) {
+      return false;
     }
-    return true;
+
+    $producer = Producer::getByName($model->getProducer());
+    if (!$producer) {
+      // Строка в обход справочника не бывает при обычной работе (он
+      // засеян из всех значений producer), но если такое всё же
+      // случилось — молча не рассылаем: сама модель уже сохранила свой
+      // логотип через save(), теряем только рассылку остальным.
+      return false;
+    }
+
+    $producer->setLogo($this->logo);
+
+    return $producer->save();
   }
 
   /**

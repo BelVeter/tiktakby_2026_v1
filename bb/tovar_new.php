@@ -49,6 +49,7 @@ echo '
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <link href="/bb/stile.css" rel="stylesheet" type="text/css" />
+<link href="/bb/assets/styles/category_picker.css?v=6" rel="stylesheet" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Товары.</title>
 <body>
@@ -81,11 +82,12 @@ $tovar = NULL;
 $action = '';
 $model_id = '';
 $cat_id = '';
-$producers_list = '';
 $model_options = '';
 $color_option = '';
+$submit_token = '';
 
 $model_def['set'] = '';
+$model_def['producer'] = '';
 $model_def['agr_price'] = '';
 $model_def['agr_price_cur'] = '';
 $model_def['lom_srok'] = '';
@@ -140,8 +142,33 @@ if (isset($_POST['action'])) {
 
 		case 'сохранить':
 
+			// Разовый токен от F5/повторной отправки POST после сохранения —
+			// на этой странице (в отличие от tovar_new_mod.php) нет
+			// естественного ключа уникальности товара, чтобы поймать дубль
+			// по данным: "модель+цена+дата" законно повторяется, если купили
+			// несколько одинаковых штук в один день. Токен кладётся в сессию
+			// при каждой отрисовке формы (см. ниже) и гасится сразу после
+			// использования — повторная отправка того же токена не пройдёт.
+			if ($submit_token === '' || !isset($_SESSION['tovar_new_token']) || !hash_equals($_SESSION['tovar_new_token'], $submit_token)) {
+				die('Форма уже была отправлена (например, обновлением страницы) — повторное сохранение остановлено, товар не задвоен. <a href="/bb/tovar_new.php">Начать заново</a>.');
+			}
+			unset($_SESSION['tovar_new_token']);
+
 			//нужно чтоб обязательно был кат айди.
-			$cat_id = $cat_select_old;
+			$cat_id = (int) $cat_select_old;
+			if ($cat_id < 1) {
+				die('Категория не выбрана. Найдите её в поле «Категория товара».');
+			}
+
+			$producer_name = trim($producer_select_old);
+			if ($producer_name === '' || $producer_name === '0') {
+				die('Производитель не выбран. Найдите его в поле «Фирма».');
+			}
+
+			$model_id = (int) $model_id;
+			if ($model_id < 1) {
+				die('Модель не выбрана. Найдите её в поле «Модель».');
+			}
 
 			//item inv n 1-t part calculation
 			if ($cat_id < 10) {
@@ -150,7 +177,13 @@ if (isset($_POST['action'])) {
 			} elseif ($cat_id < 100) {
 				$cat_n_pl = 7;
 				$cat_id_num = $cat_id;
-			} elseif ($cat_id < 1000) {
+			} else {
+				// было "elseif ($cat_id < 1000)" — за пределами тройки $cat_n_pl
+				// оставался неопределённым (notice + сломанный префикс номера).
+				// Категорий пока 202 (2026-08-23), но себя показать это могло
+				// не завтра, так что не хочется на это отвлекать другого
+				// человека — на 100+ префикс и так всегда пустой, тот же
+				// шаблон, что и для 100-999, просто без верхней границы.
 				$cat_n_pl = '';
 				$cat_id_num = $cat_id;
 			}
@@ -209,9 +242,25 @@ if (isset($_POST['action'])) {
 
 			//gotovim nekotorie znachtniya
 			$buy_date = strtotime($buy_date);
-			$producer_name = $producer_select_old;
 
-			$query_new_item = "INSERT INTO tovar_rent_items VALUES('', '$cat_id', '$producer_name', '$model_id', '$item_n', '$item_inv_n', '$item_sex', '$tovar_size', '$real_tovar_size', '$tovar_rost1', '$tovar_rost2', '$item_set', '$buy_date', '$buy_price', '$buy_currency', '$exchange_rate', '$seller', '$info', '" . time() . "', '" . $_SESSION['user_fio'] . "', '$tovar_status', '', '$item_color', '$tovar_place', '', '$tovar_state', '$tovar_clean', '')";
+			// Раньше был позиционный INSERT VALUES(...) на 28 колонок без имён —
+			// ровно та ловушка из docs/db_notes.md: добавь колонку в
+			// tovar_rent_items, и вставка молча съедет по всем полям после точки
+			// вставки. Заодно там на 27-й позиции (to_move) стояла
+			// необъявленная $tovar_clean — печатала Notice на каждое сохранение
+			// (см. закомментированный $item_def['to_clean'] выше — похоже,
+			// след переименования). Явные имена колонок чинят и то, и другое.
+			$query_new_item = "INSERT INTO tovar_rent_items (
+				cat_id, producer, model_id, item_n, item_inv_n, sex, item_size, real_item_size,
+				item_rost1, item_rost2, item_set, buy_date, buy_price, buy_price_cur, exch_to_byr,
+				seller, item_info, cr_ch_date, user, status, active_deal_id, item_color, item_place,
+				br_time, state, to_move, qr_yn
+			) VALUES (
+				'$cat_id', '$producer_name', '$model_id', '$item_n', '$item_inv_n', '$item_sex', '$tovar_size', '$real_tovar_size',
+				'$tovar_rost1', '$tovar_rost2', '$item_set', '$buy_date', '$buy_price', '$buy_currency', '$exchange_rate',
+				'$seller', '$info', '" . time() . "', '" . $_SESSION['user_fio'] . "', '$tovar_status', '', '$item_color', '$tovar_place',
+				'', '$tovar_state', '', ''
+			)";
 			$result_new_item = $mysqli->query($query_new_item);
 			if (!$result_new_item) {
 				die('Сбой при доступе к базе данных: ' . $query_new_item . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
@@ -238,6 +287,48 @@ if (isset($_POST['action'])) {
 
 
 
+
+			break;
+
+
+		// Деплинк с bb/tovar_new_mod.php («новый товар (эта модель)», #model_quick_links):
+		// приходит только model_id, товара ещё нет — категория/фирма/модель/цвет
+		// заполняются из найденной модели, поля товара остаются пустыми (дефолты
+		// сверху файла), а сабмит формы ниже идёт через обычное action=сохранить.
+		case 'новый_товар':
+
+			$model_id = (int) $model_id;
+			if ($model_id < 1) {
+				die('Модель не указана.');
+			}
+
+			$query_model = "SELECT * FROM tovar_rent WHERE tovar_rent_id='$model_id'";
+			$result_model = $mysqli->query($query_model);
+			if (!$result_model) {
+				die('Сбой при доступе к базе данных: ' . $query_model . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+			$model_def = $result_model->fetch_assoc();
+
+			$query_cat = "SELECT * FROM tovar_rent_cat WHERE tovar_rent_cat_id='" . $model_def['tovar_rent_cat_id'] . "'";
+			$result_cat = $mysqli->query($query_cat);
+			if (!$result_cat) {
+				die('Сбой при доступе к базе данных: ' . $query_cat . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+			$cat_def = $result_cat->fetch_assoc();
+			$cat_id = $cat_def['tovar_rent_cat_id'];
+
+			//chose model list
+			$query_model = "SELECT DISTINCT model FROM tovar_rent ORDER BY model";
+			$result_model = $mysqli->query($query_model);
+			if (!$result_model) {
+				die('Сбой при доступе к базе данных: ' . $query_model . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+			}
+
+			while ($model_list = $result_model->fetch_assoc()) {
+				$model_options .= '<option value="' . good_print($model_list['model']) . '" ' . sel_d($model_def['model'], $model_list['model']) . '>' . good_print($model_list['model']) . '</option>';
+			}
+
+			$color_option = '<option value="' . $model_def['color'] . '" selected="selected">' . $model_def['color'] . '</option>';
 
 			break;
 
@@ -271,18 +362,6 @@ if (isset($_POST['action'])) {
 			$cat_def = $result_cat->fetch_assoc();
 			$cat_id = $cat_def['tovar_rent_cat_id'];
 
-			//chose tovar producers
-			$query_prod = "SELECT DISTINCT producer FROM tovar_rent ORDER BY producer";
-			$result_prod = $mysqli->query($query_prod);
-			if (!$result_prod) {
-				die('Сбой при доступе к базе данных: ' . $query_prod . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-			}
-			while ($prod_names = $result_prod->fetch_assoc()) {
-				$producers_list .= '
-					<option value="' . good_print($prod_names['producer']) . '" ' . sel_d($model_def['producer'], $prod_names['producer']) . '>' . good_print($prod_names['producer']) . '</option>
-					';
-			}
-
 			//chose model list
 			$query_model = "SELECT DISTINCT model FROM tovar_rent ORDER BY model";
 			$result_model = $mysqli->query($query_model);
@@ -301,6 +380,12 @@ if (isset($_POST['action'])) {
 
 
 		case 'обновить':
+
+			// См. комментарий в 'сохранить' — тот же разовый токен от F5.
+			if ($submit_token === '' || !isset($_SESSION['tovar_new_token']) || !hash_equals($_SESSION['tovar_new_token'], $submit_token)) {
+				die('Форма уже была отправлена (например, обновлением страницы) — повторное сохранение остановлено. <a href="/bb/tovar_new.php">Начать заново</a>.');
+			}
+			unset($_SESSION['tovar_new_token']);
 
 			//инвентарный номер не пересчитываем !!!
 
@@ -430,6 +515,17 @@ if (isset($_POST['action'])) {
 
 		if (valid == false) {
 			alert('Заполните все поля формы! В частности: ' + cat_chcc + cat_dogcc + prod_chcc + model_chcc + color_chcc + set_chcc + price_chcc + price_cur_chcc + lom_srokcc + item_color_chcc + item_set_chcc + buy_date_chcc + buy_price_chcc + buy_price_cur_chcc + exch_rate_chcc + seller_chcc + place);
+		}
+
+		if (valid) {
+			// Двойной клик/Enter не должен долетать дважды — токен на сервере
+			// и так поймает F5, но это дешёвая защита от самого частого случая.
+			// setTimeout(0), а не disabled сразу: иначе в части браузеров
+			// задизейбленная кнопка не долетает как submitter текущей отправки.
+			var btn = document.querySelector('form[name="tovar"] input[type="submit"]');
+			if (btn) {
+				setTimeout(function () { btn.disabled = true; }, 0);
+			}
 		}
 
 		return valid;
@@ -712,6 +808,10 @@ while ($cat_names = $result_cats->fetch_assoc()) {
 	$cat_list .= '<option value="' . $cat_names['tovar_rent_cat_id'] . '" ' . sel_d($cat_names['tovar_rent_cat_id'], $cat_id) . ' >' . good_print($cat_names['rent_cat_name']) . '</option>';
 }
 
+// Разовый токен формы — гасится в case 'сохранить'/'обновить' сразу после
+// использования, так что F5/повторная отправка POST с тем же телом не
+// пройдёт валидацию (см. комментарий там).
+$_SESSION['tovar_new_token'] = bin2hex(random_bytes(16));
 
 echo '
 <form method="post" id="model_edit" action="tovar_new_mod.php" style="display:none;" style="display:none;" >
@@ -723,6 +823,7 @@ echo '
 <form name="tovar" action="tovar_new.php" method="post">
 
 <input type="hidden" name="item_id_upd" id="item_id_upd" value="' . (isset($item_id) ? $item_id : '') . '">
+<input type="hidden" name="submit_token" value="' . $_SESSION['tovar_new_token'] . '" />
 
 
  ' . ($action == 'редактировать' ? '<a href="" class="link_ch_new" onclick="document.getElementById(\'model_edit\').submit(); return false;">редактировать модель</a>' : '') . '<br />
@@ -743,10 +844,13 @@ echo '
 	<tr>
 		<td>Фирма:</td>
 		<td>
-			<select name="producer_select_old" id="producer_select_old" onchange="prod_ch();">
-    			<option value="0">----------</option>
-				' . $producers_list . '
-    		</select>
+			<div class="catp">
+				<input type="text" id="prod_old_search" class="catp__input" autocomplete="off"
+					placeholder="сначала выберите категорию"
+					value="' . good_print($model_def['producer']) . '" />
+				<div id="prod_old_results" class="catp__results"></div>
+			</div>
+			<input type="hidden" name="producer_select_old" id="producer_select_old" value="' . good_print($model_def['producer']) . '" />
 
 	  		<textarea id="produceer_sel_temp" readonly="readonly" style="display:none"></textarea> <!--- это чтобы кавычки двойные правильно сравнивались -->
 		</td>
@@ -1041,4 +1145,44 @@ function sel_d($value, $pattern)
 		}
 	}
 
+</script>
+
+<script src="/bb/assets/js/live_picker.js?v=5"></script>
+<script>
+(function () {
+	if (!window.LivePicker) {
+		return;
+	}
+
+	var producerPicker = new window.LivePicker({
+		inputId:   'prod_old_search',
+		hiddenId:  'producer_select_old',
+		resultsId: 'prod_old_results',
+		url:       '/bb/ajax_producer_by_category.php',
+		valueKey:  'name',
+		minQuery:  0,
+		extraParams: function () {
+			var cat = document.getElementById('cat_select_old');
+			return { cat_id: cat ? cat.value : 0 };
+		},
+		onChoose: function () {
+			// Сохраняет каскад: prod_ch() читает producer_select_old.value —
+			// LivePicker.choose() уже проставил его ДО этого колбэка.
+			prod_ch();
+		}
+	});
+
+	// cat_ch() (см. выше) сам НЕ трогается — этот обработчик довешивается
+	// рядом и сбрасывает бренд/модель при смене категории, как раньше делал
+	// select-каскад (cat_ch() пытается очистить producer_select_old через
+	// innerHTML, но у input это не имеет эффекта — сброс значения нужен
+	// явно здесь).
+	var catSelect = document.getElementById('cat_select_old');
+	if (catSelect) {
+		catSelect.addEventListener('change', function () {
+			producerPicker.reset();
+			document.getElementById('model_select_old').innerHTML = '<option value="0">----------</option>';
+		});
+	}
+})();
 </script>

@@ -5,6 +5,7 @@ namespace App\MyClasses;
 use bb\Base;
 use bb\classes\Model;
 use bb\classes\ModelWeb;
+use bb\classes\Producer;
 use bb\classes\Tariff;
 use bb\classes\TariffModel;
 use bb\classes\tovar;
@@ -205,6 +206,13 @@ class L3Page
 
   public function getProducerLogoUrl()
   {
+    if ($this->model) {
+      $producer = Producer::getByName($this->model->getProducer());
+      if ($producer && $producer->getLogo() !== '') {
+        return $producer->getLogo();
+      }
+    }
+
     return $this->modelWeb->getLogoUrlAddress();
   }
 

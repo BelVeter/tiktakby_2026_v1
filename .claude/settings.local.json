@@ -45,7 +45,16 @@
       "Bash(curl -sI -H \"Host: tiktak.by\" https://87.232.64.24/ -k --max-time 10)",
       "Bash(python3)",
       "Bash(grep -n '^class\\\\|^  class\\\\|extends\\\\|getFaqArray\\\\|\\\\$faq\\\\b' /home/dmitry/sites/tiktakby/app/MyClasses/CatMainPage.php)",
-      "Bash(python3 -c \"import paramiko; print\\('paramiko:', paramiko.__version__\\)\")"
+      "Bash(python3 -c \"import paramiko; print\\('paramiko:', paramiko.__version__\\)\")",
+      "Bash(/home/dmitry/.claude/plugins/cache/superpowers-marketplace/superpowers/6.1.0/skills/subagent-driven-development/scripts/review-package 9fb641b cacd545)",
+      "Bash(git merge-tree *)",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(grep -n '\\\\$saldo\\\\|\\\\$totalDohDr\\\\|\\\\$totalSales\\\\|\\\\$totalRash' /tmp/claude-1000/-home-dmitry-sites-tiktakby/69af1f81-783a-482a-a326-7b74d9ac1b7c/scratchpad/final.php)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "cloudflare",
+    "google-analytics",
+    "yandex-metrika"
+  ]
 }
