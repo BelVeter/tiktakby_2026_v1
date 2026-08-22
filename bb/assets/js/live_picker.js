@@ -226,7 +226,15 @@
 				self.active = index;
 				self.highlight();
 			});
-			row.addEventListener('click', function () {
+			// mousedown, не click: клик — это mousedown+mouseup+click, и между
+			// ними достаточно времени, чтобы соседний запрос успел отрисовать
+			// список заново (див ниже) и подменить/убрать именно эту строку —
+			// тогда click на уже отсутствующем узле молча не долетает, поле
+			// остаётся пустым. mousedown фиксирует выбор ДО этого окна.
+			// preventDefault держит фокус на input — блюр (и его 150мс таймер
+			// отката) для этого взаимодействия вообще не запускается.
+			row.addEventListener('mousedown', function (event) {
+				event.preventDefault();
 				self.choose(item);
 			});
 

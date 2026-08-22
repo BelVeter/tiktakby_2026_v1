@@ -1035,7 +1035,7 @@ function sel_d($value, $pattern)
 
 </script>
 
-<script src="/bb/assets/js/live_picker.js?v=4"></script>
+<script src="/bb/assets/js/live_picker.js?v=5"></script>
 <script>
 (function () {
 	if (!window.LivePicker) {

@@ -785,7 +785,7 @@ echo '
 	</div>
 </div>
 
-<script src="/bb/assets/js/live_picker.js?v=5"></script>
+<script src="/bb/assets/js/live_picker.js?v=6"></script>
 <script>
 // Подразделы отдаём прямо в страницу: их 30, отдельный запрос не нужен.
 window.SUB_RAZDELS = ' . json_encode(array_map(function ($sr) {
