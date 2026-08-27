@@ -19,9 +19,18 @@ if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
     die('Access Denied');
 }
 
+// Скрипт гейтится ключом, показывать ошибки здесь безопаснее, чем ловить
+// молчаливый fatal: без этого первый прогон оборвался без единого слова.
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Db.php');
+// Permission нужен не напрямую, а из User::loadPermissions(): bb/ не использует
+// composer autoload, и без этой строки Tariff::changeWhoId() падает с
+// "Class bb\classes\Permission not found".
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Tariff.php');
 
