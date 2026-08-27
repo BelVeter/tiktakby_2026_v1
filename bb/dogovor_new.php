@@ -11,6 +11,7 @@ error_reporting(E_ALL) & ~E_DEPRECATED;
 
 //require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database.php'); // включаем подключение к базе данных
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/bron.php'); // включаем класс
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/ClientLookup.php'); // включаем класс
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Deal.php'); // включаем класс
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php'); // включаем класс
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php'); // включаем класс
@@ -1510,6 +1511,36 @@ if ($rez = Base::getErrorsString()) {
 	echo $rez;
 }
 
+
+// Кнопка «нов.договор» со страницы броней передаёт id брони. По телефону из неё находим
+// карточку клиента и вписываем её в $_POST ДО разбора в переменные — дальше отрабатывают
+// уже существующие ветки страницы: одна карточка идёт как выбранный клиент, несколько —
+// как обычный поиск по телефону, где оператор выбирает нужного.
+if (!empty($_POST['bron_order_id']) && empty($_POST['client_id']) && empty($_POST['action'])) {
+	$mysqli = Db::getInstance()->getConnection();
+	$_bron_id = (int)$_POST['bron_order_id'];
+	$_bron_res = $mysqli->query("SELECT phone, family FROM rent_orders WHERE order_id='$_bron_id' LIMIT 1");
+	$_bron_row = $_bron_res ? $_bron_res->fetch_assoc() : null;
+
+	if ($_bron_row) {
+		$_rc_key = \bb\classes\ClientLookup::phoneKey($_bron_row['phone']);
+		if ($_rc_key !== null) {
+			$_rc_all = \bb\classes\ClientLookup::forPhones(array($_bron_row['phone']));
+			$_rc_matches = \bb\classes\ClientLookup::rankByName(
+				$_rc_all[$_rc_key] ?? array(),
+				$_bron_row['family']
+			);
+
+			if (count($_rc_matches) === 1) {
+				$_POST['client_id'] = $_rc_matches[0]['client_id'];
+			} elseif (count($_rc_matches) > 1) {
+				// Молча взять первого нельзя: на номере бывают разные люди (см. ClientLookup).
+				$_POST['action'] = 'найти';
+				$_POST['s_ph'] = $_rc_key;
+			}
+		}
+	}
+}
 
 foreach ($_POST as $key => $value) {
 	$$key = get_post($key);

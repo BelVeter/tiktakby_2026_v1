@@ -18,6 +18,8 @@ class Zayavka
     /** @var \mysqli */
     private $conn;
 
+    // $phone_yn / $fio_yn — МЁРТВЫЕ колонки rent_orders (никогда не заполнялись),
+    // держатся только ради явных списков колонок в запросах ниже. Подробности — в bb/classes/bron.php.
     public $order_id, $type, $order_date, $phone, $phone_yn, $family, $name, $otch,
            $fio_yn, $address, $validity, $inv_n, $model_id, $cat_id, $type2, $client_id,
            $info, $info2, $web, $cr_time, $cr_who_id, $ch_time, $ch_who_id, $status,
@@ -193,8 +195,8 @@ class Zayavka
     private function archiveAndRemove(): void
     {
         $user = (int)($_SESSION['user_id'] ?? 0);
-        $cols = "(arch_time, arch_who, order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type, z_status, z_reject_reason, planned_date)";
-        $sel  = time() . ", " . $user . ", order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type, z_status, z_reject_reason, planned_date";
+        $cols = "(arch_time, arch_who, order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, rent_days, date_from, date_to, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type, z_status, z_reject_reason, planned_date)";
+        $sel  = time() . ", " . $user . ", order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, rent_days, date_from, date_to, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type, z_status, z_reject_reason, planned_date";
         $this->conn->begin_transaction();
         try {
             $arch = "INSERT INTO rent_orders_arch $cols SELECT $sel FROM rent_orders WHERE order_id=" . (int)$this->order_id;
@@ -240,6 +242,9 @@ class Zayavka
         $mr = $this->conn->query("SELECT tovar_rent_cat_id FROM tovar_rent WHERE tovar_rent_id=" . $modelId . " LIMIT 1");
         if ($mr && $row = $mr->fetch_assoc()) { $catId = (int)$row['tovar_rent_cat_id']; }
 
+        // rent_days/date_from/date_to тут намеренно не заполняются: у заявки нет товара,
+        // а значит и кнопки «нов.договор», которая этот срок читает. В списки архивации
+        // колонки всё же добавлены, чтобы пара act/arch не разъезжалась.
         $now = time();
         $planned = !empty($d['planned_date']) ? "'" . $this->esc($d['planned_date']) . "'" : 'NULL';
         $sql = "INSERT INTO rent_orders

@@ -112,7 +112,13 @@ class L3Controller extends Controller
         $techInfo .= 'В брони клиент указал: с ' . $dateFrom->format("d.m.Y") . ' по ' . $dateTo->format("d.m.Y") . ' на ' . $req->input('days_num') . ' дня.';
         $info = $techInfo . '<br>' . $req->input('info');
 
-        $br = bron::createBronStrong($tovar->getInvN(), $req->input('fio'), $req->input('phone'), $deliveryYN, $req->input('address'), 1, $info);
+        // Срок уходит и в колонки, а не только в текст выше: из текста его потом
+        // пришлось бы выковыривать регуляркой при оформлении договора.
+        $br = bron::createBronStrong(
+            $tovar->getInvN(), $req->input('fio'), $req->input('phone'), $deliveryYN,
+            $req->input('address'), 1, $info,
+            (int)$req->input('days_num'), $dateFrom->getTimestamp(), $dateTo->getTimestamp()
+        );
         if ($br) {
             \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
         }

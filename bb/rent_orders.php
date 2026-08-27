@@ -25,6 +25,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Deal.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/DohRash.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/WebOrderDeal.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/ClientLookup.php'); //
 
 
 set_time_limit(30);
@@ -118,6 +119,8 @@ echo '
 
 ';
 include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
+// стили и обработчик значка «клиент уже был» — до таблицы, а не внутри неё
+echo \bb\classes\ClientLookup::badgeAssets();
 echo '
 <div class="row zv-row">
     <div class="col alert-danger h2 text-center" id="zv_div"></div>
@@ -1126,7 +1129,17 @@ if ($type2 == 'remont') {
 }
 
 
+// Строки забираем заранее: поиск повторных клиентов — ОДИН запрос на весь список,
+// а не скан clients (51 тыс. строк) на каждую бронь.
+$ord_rows = array();
+$lookup_phones = array();
 while ($ord = $result_or->fetch_assoc()) {
+	$ord_rows[] = $ord;
+	$lookup_phones[] = $ord['phone'];
+}
+$repeat_clients = \bb\classes\ClientLookup::forPhones($lookup_phones);
+
+foreach ($ord_rows as $ord) {
 	$br_line = new \bb\classes\bron();
 	$br_line->br_line($ord);
 	$br_line->web_load();
@@ -1327,7 +1340,10 @@ while ($ord = $result_or->fetch_assoc()) {
 	}
 
 	if ($br_line->isBron()) {
-		echo '<span style="color: #005d9e;">' . Base::phone_print($br_line->phone) . '</span>';
+		$rc_key = \bb\classes\ClientLookup::phoneKey($br_line->phone);
+		$rc_matches = ($rc_key !== null && isset($repeat_clients[$rc_key])) ? $repeat_clients[$rc_key] : array();
+		echo '<span style="color: #005d9e;">' . Base::phone_print($br_line->phone) . '</span>'
+			. \bb\classes\ClientLookup::badgeHtml($rc_matches, $br_line->family, $br_line->phone);
 	}
 	echo '
             <!--Дата действия брони-->
@@ -1398,7 +1414,7 @@ while ($ord = $result_or->fetch_assoc()) {
       </div>
 
 			<div ' . $show1 . '>
-      			<form method="post" action="dogovor_new.php" style="display:inline-block; ' . (($br_line->type2 == 'out' || $br_line->type2 == 'sell') ? ' display:none;' : '') . '"><input type="hidden" name="item_inv_n" value="' . $br_line->inv_n . '" /><input type="submit" style="background-color:#acf398;" id="new_dog_but_' . $br_line->order_id . '" value="' . ($uzhe_vidan == 1 ? 'к договору' : 'нов.договор') . '" /></form>
+      			<form method="post" action="dogovor_new.php" style="display:inline-block; ' . (($br_line->type2 == 'out' || $br_line->type2 == 'sell') ? ' display:none;' : '') . '"><input type="hidden" name="item_inv_n" value="' . $br_line->inv_n . '" /><input type="hidden" name="bron_order_id" value="' . $br_line->order_id . '" /><input type="submit" style="background-color:#acf398;" id="new_dog_but_' . $br_line->order_id . '" value="' . ($uzhe_vidan == 1 ? 'к договору' : 'нов.договор') . '" /></form>
 			</div>
 			<span title="order_id, cl_id">' . (User::getCurrentUser()->id_user == 3 ? $br_line->order_id . ', cl_id=' . $br_line->client_id : '') . '</span>
 

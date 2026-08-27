@@ -337,7 +337,11 @@ class CartController extends Controller
                             $deliveryYN,
                             $address,
                             1,
-                            $fullInfo
+                            $fullInfo,
+                            // срок позиции — в колонки, чтобы «нов.договор» не разбирал вёрстку карточки
+                            $days,
+                            $dateFromObj->getTimestamp(),
+                            $dateToObj->getTimestamp()
                         );
                         if ($br && $br->insert_id) {
                             \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
