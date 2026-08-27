@@ -322,6 +322,7 @@ if ($item_rows == 1) {
 		if (($item['status'] == 'to_rent' || $item['status'] == 'bron' || ($item['status'] == 't_bron' && $item['br_time'] < time()))) {
 			$item_output = '';
 			$br_text = '';
+			$bron_prefill_js = '';
 			$today = date("Y-m-d");
 
 			if ($item['item_place'] != $_SESSION['office']) {
@@ -347,6 +348,21 @@ if ($item_rows == 1) {
 							Инфо: ' . good_print($new_info) . '<br />
 							<input name="bron_cr_id" type="hidden" value="' . $ord['ch_who_id'] . '" />
 							';
+
+				// Срок, который клиент назвал при бронировании: из колонок брони, а у старых
+				// записей — разбором текста info. Раньше оператор перебивал его руками с экрана.
+				$bron_period = \bb\classes\bron::rentPeriodFromRow($ord);
+				if (!empty($bron_period['days'])) {
+					$br_text .= 'Клиент просил срок: <strong>' . (int)$bron_period['days'] . ' дн.</strong>'
+						. ($bron_period['from'] ? ' (с ' . date("d.m.Y", $bron_period['from']) . ')' : '')
+						. '<br />';
+					// Подставляем ПОСЛЕ вставки формы в DOM. daysChange() досчитает дату возврата
+					// и цену, поэтому руками их не трогаем — иначе разъедется с тарифом.
+					$bron_prefill_js = "
+			var __bronDays = document.getElementById('rent_tenor');
+			if (__bronDays) { __bronDays.value = '" . (int)$bron_period['days'] . "'; daysChange(); }
+			";
+				}
 			}
 
 			$item_output .= '<span style="color:red; font-size:18px;">' . $br_text . '</span>
@@ -502,7 +518,7 @@ if ($item_rows == 1) {
 			document.getElementById(\'main_buttons\').style.display="";
 			document.getElementById(\'print_buttons\').style.display="none";
 			document.getElementById(\'deal_area\').style.backgroundColor = \'#AFDC7E\';
-			' . $save_dis . '
+			' . $save_dis . $bron_prefill_js . '
 			';
 
 

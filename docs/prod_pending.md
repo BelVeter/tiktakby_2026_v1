@@ -36,6 +36,31 @@
 
 ## Перед заливкой
 
+**Накатить колонки срока аренды в `rent_orders` и `rent_orders_arch`**
+(ветка `feature/repeat-client-detection`, миграция
+`2026_08_27_120000_add_rent_period_to_rent_orders`). Если штатный `migrate` на проде всё
+ещё не работает — прямым SQL, по три колонки в каждую из двух таблиц:
+
+```sql
+ALTER TABLE rent_orders      ADD COLUMN rent_days SMALLINT UNSIGNED NULL AFTER validity,
+                             ADD COLUMN date_from INT NULL AFTER rent_days,
+                             ADD COLUMN date_to   INT NULL AFTER date_from;
+ALTER TABLE rent_orders_arch ADD COLUMN rent_days SMALLINT UNSIGNED NULL AFTER validity,
+                             ADD COLUMN date_from INT NULL AFTER rent_days,
+                             ADD COLUMN date_to   INT NULL AFTER date_from;
+INSERT INTO migrations (migration, batch)
+VALUES ('2026_08_27_120000_add_rent_period_to_rent_orders', <следующий batch>);
+```
+
+Порядок важен: **колонки должны появиться раньше кода**. `bron::insert()`/`update()` после
+влития перечисляют их явно, и без колонок любое сохранение брони упадёт. Миграция написана
+идемпотентно (`Schema::hasColumn`), поэтому после ручного ALTER её можно прогнать повторно без
+«Duplicate column name».
+
+Заполнять старые строки не нужно: у броней до заливки срок остаётся в тексте `info`, и
+`bron::parseRentPeriodFromInfo()` разбирает его на лету (проверено на 9 145 архивных
+броней — распознаны все).
+
 **Проверить, что штатные миграции на проде работают.** Владелец чинил сломанный
 `php artisan migrate` (ionCube) 12.07.2026, после этого миграций с ALTER/CREATE не было.
 Перед деплоем с новыми таблицами стоит убедиться на пустой миграции, что механизм жив, —

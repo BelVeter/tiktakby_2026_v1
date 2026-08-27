@@ -23,14 +23,25 @@ class bron {
 	public $type; // strong, zayavka
 	public $order_date;
 	public $phone;
-	public $phone_yn;//1 or 0 if there is exicting client
+	// МЁРТВЫЕ КОЛОНКИ rent_orders.phone_yn / fio_yn.
+	// Задумывались как «1/0 — такой клиент уже есть в базе», но ни один путь записи никогда
+	// не выставлял сюда ничего, кроме '' или 0 (проверено по всему коду 27.08.2026).
+	// Признак повторного клиента считается вживую по телефону: данные клиента меняются,
+	// закэшированный в строке брони флаг протух бы. Не читать, не писать, не «оживлять».
+	// Поля класса оставлены только ради явных списков колонок в INSERT/UPDATE ниже.
+	public $phone_yn; // МЁРТВАЯ, см. блок выше
 	public $family;
 	public $name;
 	public $otch;
-	public $fio_yn;//1 or 0 if there is exicting client
+	public $fio_yn; // МЁРТВАЯ, см. блок выше
     public $address;
 
 	public $validity;
+	// Срок аренды, который клиент указал при бронировании (миграция 2026_08_27_120000).
+	// Читать через getRentPeriod() — у старых броней колонки пустые и срок лежит в тексте info.
+	public $rent_days;
+	public $date_from;
+	public $date_to;
 	public $inv_n;
 	public $model_id;
 	public $cat_id;
@@ -167,6 +178,9 @@ class bron {
         $this->address=$ord_line['address'];
 
 		$this->validity=$ord_line['validity'];
+		$this->rent_days=$ord_line['rent_days'] ?? null;
+		$this->date_from=$ord_line['date_from'] ?? null;
+		$this->date_to=$ord_line['date_to'] ?? null;
 		$this->inv_n=$ord_line['inv_n'];
 		$this->model_id=$ord_line['model_id'];
 		$this->cat_id=$ord_line['cat_id'];
@@ -461,7 +475,9 @@ class bron {
    * @param $info
    * @return bool
    */
-  public static function createBronStrong($inv_n, $fio, $phoneNumber, $deliveryYN=false, $deliveryAddress, $web=false, $info){
+  // $rentDays/$dateFrom/$dateTo — срок, названный клиентом на сайте. Новые параметры в конце
+  // и необязательные: старые вызовы с семью аргументами продолжают работать.
+  public static function createBronStrong($inv_n, $fio, $phoneNumber, $deliveryYN=false, $deliveryAddress, $web=false, $info, $rentDays=null, $dateFrom=null, $dateTo=null){
 
     if ($inv_n<1) return false;
 
@@ -505,12 +521,102 @@ class bron {
 
       $br->info = $info;
 
+      $br->rent_days = ($rentDays > 0) ? (int)$rentDays : null;
+      $br->date_from = $dateFrom ? (int)$dateFrom : null;
+      $br->date_to   = $dateTo ? (int)$dateTo : null;
+
       //dd($br);
       $tovar->setStatusAsBron();
       $br->insert();
 
       return $br;
   }
+
+    /**
+     * Число для SQL или литерал NULL.
+     *
+     * Колонки срока nullable, а «не указан» и «указан ноль дней» — разные вещи.
+     * Обычное для этого класса '' записало бы в INT-колонку ноль и соврало бы.
+     */
+    private function nullNum($v): string {
+        if ($v === null || $v === '' || $v === false) {
+            return 'NULL';
+        }
+        return (string)(int)$v;
+    }
+
+    /**
+     * Срок аренды, указанный клиентом: ['days'=>int|null, 'from'=>ts|null, 'to'=>ts|null].
+     *
+     * Сначала структурные колонки (заполняются с 27.08.2026), затем — разбор текста info
+     * для всего, что забронировано раньше. В архиве 9 145 таких броней, и терять их незачем.
+     */
+    public function getRentPeriod(): array {
+        return self::rentPeriodFromRow(array(
+            'rent_days' => $this->rent_days,
+            'date_from' => $this->date_from,
+            'date_to'   => $this->date_to,
+            'info'      => $this->info,
+        ));
+    }
+
+    /**
+     * То же, но для сырого ряда из rent_orders — легаси-страницы читают бронь запросом,
+     * а не через объект, и городить ради срока лишнюю загрузку незачем.
+     */
+    public static function rentPeriodFromRow($row): array {
+        $row = (array)$row;
+        if (isset($row['rent_days']) && (int)$row['rent_days'] > 0) {
+            return array(
+                'days' => (int)$row['rent_days'],
+                'from' => !empty($row['date_from']) ? (int)$row['date_from'] : null,
+                'to'   => !empty($row['date_to']) ? (int)$row['date_to'] : null,
+            );
+        }
+        return self::parseRentPeriodFromInfo($row['info'] ?? '');
+    }
+
+    /**
+     * Достаёт срок из свободного текста брони — для записей до появления колонок.
+     *
+     * Два формата, оба порождены сайтом:
+     *   L3Controller  «В брони клиент указал: с 02.03.2026 по 01.05.2026 на 60 дня.»
+     *   CartController «<span class="bk-days">14 дн.</span>» (дат с годом там нет, только дни)
+     *
+     * Второй span в корзине выглядит как «поз. 123.45» — под шаблон с «дн» он не подходит
+     * и суммой в поле срока не притворится.
+     */
+    public static function parseRentPeriodFromInfo($info): array {
+        $none = array('days' => null, 'from' => null, 'to' => null);
+        $info = (string)$info;
+        if ($info === '') {
+            return $none;
+        }
+
+        // Число дней в шаблоне необязательное: сайт умеет записать «на  дня.» с пустым days_num.
+        // В таких строках даты на месте, поэтому срок добираем из них.
+        if (preg_match('/клиент указал:\s*с\s*(\d{1,2}\.\d{1,2}\.\d{4})\s*по\s*(\d{1,2}\.\d{1,2}\.\d{4})\s*на\s*(\d*)\s*д/iu', $info, $m)) {
+            $from = \DateTime::createFromFormat('d.m.Y H:i:s', $m[1] . ' 00:00:00');
+            $to   = \DateTime::createFromFormat('d.m.Y H:i:s', $m[2] . ' 00:00:00');
+            $fromTs = $from ? $from->getTimestamp() : null;
+            $toTs   = $to ? $to->getTimestamp() : null;
+
+            $days = $m[3] !== '' ? (int)$m[3] : null;
+            if ($days === null && $fromTs !== null && $toTs !== null && $toTs > $fromTs) {
+                $days = (int)round(($toTs - $fromTs) / 86400);
+            }
+
+            // Если клиент правил дни и даты вразнобой, они расходятся (в архиве таких 116 из 9145).
+            // Побеждает явно названное число дней — по нему считается оплата.
+            return array('days' => $days, 'from' => $fromTs, 'to' => $toTs);
+        }
+
+        if (preg_match('/bk-days[^>]*>\s*(\d+)\s*дн/iu', $info, $m)) {
+            return array('days' => (int)$m[1], 'from' => null, 'to' => null);
+        }
+
+        return $none;
+    }
 
     private function esc($v): string {
         return $this->mysqli->real_escape_string((string)$v);
@@ -520,8 +626,8 @@ class bron {
 		//if (substr($this->inv_n, 0, 3)!='702' && substr($this->inv_n, 0, 3)!='761') {//!!! пока что стирка карнавальных костюмов и платьев невозможна в принципе. Потом посмотрим.
 
 			$query = "INSERT INTO rent_orders
-				(`type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
-				VALUES ('{$this->esc($this->type)}', '{$this->esc($this->order_date)}', '{$this->esc($this->phone)}', '{$this->esc($this->phone_yn)}', '{$this->esc($this->family)}', '{$this->esc($this->name)}', '{$this->esc($this->otch)}', '{$this->esc($this->fio_yn)}', '{$this->esc($this->address)}', '{$this->esc($this->validity)}', '{$this->esc($this->inv_n)}', '{$this->esc($this->model_id)}', '{$this->esc($this->cat_id)}', '{$this->esc($this->type2)}', '{$this->esc($this->client_id)}', '{$this->esc($this->info)}', '{$this->esc($this->info2)}', '{$this->esc($this->web)}', '{$this->esc($this->cr_time)}', '{$this->esc($this->cr_who_id)}', '{$this->esc($this->ch_time)}', '{$this->esc($this->ch_who_id)}', '{$this->esc($this->status)}', '{$this->esc($this->appr_id)}', '{$this->esc($this->appr_time)}', '{$this->esc($this->cr_ip)}', '{$this->esc($this->place_status)}', '{$this->esc($this->rem_type)}')";
+				(`type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, rent_days, date_from, date_to, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
+				VALUES ('{$this->esc($this->type)}', '{$this->esc($this->order_date)}', '{$this->esc($this->phone)}', '{$this->esc($this->phone_yn)}', '{$this->esc($this->family)}', '{$this->esc($this->name)}', '{$this->esc($this->otch)}', '{$this->esc($this->fio_yn)}', '{$this->esc($this->address)}', '{$this->esc($this->validity)}', {$this->nullNum($this->rent_days)}, {$this->nullNum($this->date_from)}, {$this->nullNum($this->date_to)}, '{$this->esc($this->inv_n)}', '{$this->esc($this->model_id)}', '{$this->esc($this->cat_id)}', '{$this->esc($this->type2)}', '{$this->esc($this->client_id)}', '{$this->esc($this->info)}', '{$this->esc($this->info2)}', '{$this->esc($this->web)}', '{$this->esc($this->cr_time)}', '{$this->esc($this->cr_who_id)}', '{$this->esc($this->ch_time)}', '{$this->esc($this->ch_who_id)}', '{$this->esc($this->status)}', '{$this->esc($this->appr_id)}', '{$this->esc($this->appr_time)}', '{$this->esc($this->cr_ip)}', '{$this->esc($this->place_status)}', '{$this->esc($this->rem_type)}')";
 			//dd($query);
       $result = $this->mysqli->query($query);
 			if (!$result) {die('Сбой при доступе к базе данных: '.$query.' ('.$this->mysqli->connect_errno.') '.$this->mysqli->connect_error);}
@@ -536,7 +642,7 @@ class bron {
 	// нужна ли она здесь.
 	function update() {//!!! обновить функцию обновления
 
-		$query_upd = "UPDATE rent_orders SET `type`='$this->type', `order_date`='$this->order_date', `phone`='$this->phone', `phone_yn`='$this->phone_yn', `family`='$this->family', `name`='$this->name', `otch`='$this->otch', `fio_yn`='$this->fio_yn', `address`='$this->address', `validity`='$this->validity', `inv_n`='$this->inv_n', `model_id`='$this->model_id', `cat_id`='$this->cat_id', `type2`='$this->type2', `client_id`='$this->client_id', `info`='$this->info', `info2`='$this->info2', `web`='$this->web', `cr_time`='$this->cr_time', `cr_who_id`='$this->cr_who_id', `ch_time`='$this->ch_time', `ch_who_id`='$this->ch_who_id', `status`='$this->status', `appr_id`='$this->appr_id', `appr_time`='$this->appr_time', `cr_ip`='$this->cr_ip', place_status='$this->place_status', rem_type='$this->rem_type' WHERE `order_id`='$this->order_id'";
+		$query_upd = "UPDATE rent_orders SET `type`='$this->type', `order_date`='$this->order_date', `phone`='$this->phone', `phone_yn`='$this->phone_yn', `family`='$this->family', `name`='$this->name', `otch`='$this->otch', `fio_yn`='$this->fio_yn', `address`='$this->address', `validity`='$this->validity', `rent_days`={$this->nullNum($this->rent_days)}, `date_from`={$this->nullNum($this->date_from)}, `date_to`={$this->nullNum($this->date_to)}, `inv_n`='$this->inv_n', `model_id`='$this->model_id', `cat_id`='$this->cat_id', `type2`='$this->type2', `client_id`='$this->client_id', `info`='$this->info', `info2`='$this->info2', `web`='$this->web', `cr_time`='$this->cr_time', `cr_who_id`='$this->cr_who_id', `ch_time`='$this->ch_time', `ch_who_id`='$this->ch_who_id', `status`='$this->status', `appr_id`='$this->appr_id', `appr_time`='$this->appr_time', `cr_ip`='$this->cr_ip', place_status='$this->place_status', rem_type='$this->rem_type' WHERE `order_id`='$this->order_id'";
 		$result_upd = $this->mysqli->query($query_upd);
 		if (!$result_upd) {die('Сбой при доступе к базе данных: '.$query_upd.' ('.$this->mysqli->connect_errno.') '. $this->mysqli->connect_error);}
 
@@ -577,6 +683,9 @@ class bron {
         $br->address=$ord_line['address'];
 
         $br->validity=$ord_line['validity'];
+        $br->rent_days=$ord_line['rent_days'] ?? null;
+        $br->date_from=$ord_line['date_from'] ?? null;
+        $br->date_to=$ord_line['date_to'] ?? null;
         $br->inv_n=$ord_line['inv_n'];
         $br->model_id=$ord_line['model_id'];
         $br->cat_id=$ord_line['cat_id'];
@@ -678,6 +787,9 @@ class bron {
         $this->address=$ord_line['address'];
 
 		$this->validity=$ord_line['validity'];
+		$this->rent_days=$ord_line['rent_days'] ?? null;
+		$this->date_from=$ord_line['date_from'] ?? null;
+		$this->date_to=$ord_line['date_to'] ?? null;
 		$this->inv_n=$ord_line['inv_n'];
 		$this->model_id=$ord_line['model_id'];
 		$this->cat_id=$ord_line['cat_id'];
@@ -811,8 +923,8 @@ class bron {
 
 		//копирование брони в архив   !!!переработать копирование брони в архив
 		$query_arch = "INSERT INTO rent_orders_arch
-			(arch_time, arch_who, order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
-			SELECT '".time()."', '".$user."', order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type FROM rent_orders WHERE order_id='$this->order_id'";
+			(arch_time, arch_who, order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, rent_days, date_from, date_to, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type)
+			SELECT '".time()."', '".$user."', order_id, `type`, order_date, phone, phone_yn, family, `name`, otch, fio_yn, `address`, validity, rent_days, date_from, date_to, inv_n, model_id, cat_id, type2, client_id, info, info2, web, cr_time, cr_who_id, ch_time, ch_who_id, `status`, appr_id, appr_time, cr_ip, place_status, rem_type FROM rent_orders WHERE order_id='$this->order_id'";
 		$result_arch = $this->mysqli->query($query_arch);
 		if (!$result_arch) {die('Сбой при доступе к базе данных: '.$query_arch.' ('.$this->mysqli->connect_errno.') '.$this->mysqli->connect_error);}
 

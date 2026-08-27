@@ -11,6 +11,7 @@ error_reporting(E_ALL);
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Base.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/bron.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Zayavka.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/ClientLookup.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Db.php'); //
@@ -97,6 +98,8 @@ input[data-due="1"] { border: 2px solid #d00; color: #d00; font-weight: bold; }
 ';
 
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
+// стили и обработчик значка «клиент уже был» — до таблицы, а не внутри неё
+echo \bb\classes\ClientLookup::badgeAssets();
 
 echo '
 <br />
@@ -417,7 +420,17 @@ $svg_check = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" vie
 $svg_trash = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
 $svg_phone_off = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>';
 
+// Строки забираем целиком заранее, чтобы поиск повторных клиентов сделать ОДНИМ запросом
+// на весь список. Построчно это был бы скан clients (51 тыс. строк) на каждую заявку.
+$ord_rows = array();
+$lookup_phones = array();
 while ($ord = $result_or->fetch_assoc()) {
+	$ord_rows[] = $ord;
+	$lookup_phones[] = $ord['phone'];
+}
+$repeat_clients = \bb\classes\ClientLookup::forPhones($lookup_phones);
+
+foreach ($ord_rows as $ord) {
 	$br_line = new \bb\classes\bron();
 	$br_line->br_line($ord);
 	$br_line->web_load();
@@ -488,7 +501,11 @@ while ($ord = $result_or->fetch_assoc()) {
 		echo $br_line->getFioFull() . '<br>' . $br_line->getDeliveryAddress() . '<br>';
 	}
 	if ($br_line->phone > 1) {
-		echo Base::phone_print($br_line->phone) . '<br>';
+		$rc_key = \bb\classes\ClientLookup::phoneKey($br_line->phone);
+		$rc_matches = ($rc_key !== null && isset($repeat_clients[$rc_key])) ? $repeat_clients[$rc_key] : array();
+		echo Base::phone_print($br_line->phone)
+			. \bb\classes\ClientLookup::badgeHtml($rc_matches, $br_line->family, $br_line->phone)
+			. '<br>';
 	} else {
 		echo '<span style="color:#b00;font-weight:bold;">⚠ нет телефона — ищите контакт в комментарии</span><br>';
 	}
