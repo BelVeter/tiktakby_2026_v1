@@ -63,10 +63,23 @@ class Tariff
         }
     }
 
+    /**
+     * Автор изменения. Вне сессии админки (одноразовые скрипты, CLI)
+     * getCurrentUser() возвращает false — тогда пишем 0, а не читаем свойство
+     * у bool.
+     *
+     * @return int
+     */
+    private static function changeWhoId() {
+        $user = User::getCurrentUser();
+
+        return $user ? (int) $user->id_user : 0;
+    }
+
     private function saveNew() {
         $mysqli = Db::getInstance()->getConnection();
         $query_new_tarif = "INSERT INTO rent_tarif_act
-            SET model_id='$this->model_id', start_date='".$this->start_date->getTimestamp()."', step='$this->step', kol_vo='$this->kol_vo', kol_vo_min='$this->kol_vo_min', rent_amount='$this->rent_amount', rent_per_step='$this->rent_per_step', sort_num='$this->sort_num', change_date='".time()."', change_who='".User::getCurrentUser()->id_user."'";
+            SET model_id='$this->model_id', start_date='".$this->start_date->getTimestamp()."', step='$this->step', kol_vo='$this->kol_vo', kol_vo_min='$this->kol_vo_min', rent_amount='$this->rent_amount', rent_per_step='$this->rent_per_step', sort_num='$this->sort_num', change_date='".time()."', change_who='".self::changeWhoId()."'";
         if (!$mysqli->query($query_new_tarif)) {die('Сбой при доступе к базе данных: '.$query_new_tarif.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
         $this->tarif_id=$mysqli->insert_id;
 
@@ -90,7 +103,7 @@ class Tariff
 
         $mysqli = Db::getInstance()->getConnection();
         $query_new_tarif = "UPDATE rent_tarif_act
-            SET model_id='$this->model_id', start_date='".$this->start_date->getTimestamp()."', step='$this->step', kol_vo='$this->kol_vo', kol_vo_min='$this->kol_vo_min', rent_amount='$this->rent_amount', rent_per_step='$this->rent_per_step', sort_num='$this->sort_num', change_date='".time()."', change_who='".User::getCurrentUser()->id_user."'
+            SET model_id='$this->model_id', start_date='".$this->start_date->getTimestamp()."', step='$this->step', kol_vo='$this->kol_vo', kol_vo_min='$this->kol_vo_min', rent_amount='$this->rent_amount', rent_per_step='$this->rent_per_step', sort_num='$this->sort_num', change_date='".time()."', change_who='".self::changeWhoId()."'
             WHERE tarif_id='$this->tarif_id'";
         if (!$mysqli->query($query_new_tarif)) {die('Сбой при доступе к базе данных: '.$query_new_tarif.' ('.$mysqli->connect_errno.') '. $mysqli->connect_error);}
 
