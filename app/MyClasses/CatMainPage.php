@@ -294,6 +294,28 @@ class CatMainPage
     }
 
     /**
+     * Self-referencing canonical for paginated listing pages.
+     *
+     * url()->current() (использует дефолт layouts/app.blade.php) всегда отбрасывает
+     * query-строку, поэтому без этого переопределения страницы 2+ ("Показать ещё")
+     * канонизировались на страницу 1 — Ahrefs/Google трактовали их как дубликат и не
+     * засчитывали ссылки на товары, показанные только там, как настоящие внутренние
+     * ссылки (см. orphan-страницы в аудите). Фильтры (gender/rost/date) в canonical
+     * намеренно не включаем — иначе каждая комбинация фильтра стала бы отдельной
+     * канонической страницей.
+     *
+     * @return string
+     */
+    public function getCanonicalUrlBy()
+    {
+        $page = (int) request('page');
+        if ($page > 1) {
+            return url()->current() . '?page=' . $page;
+        }
+        return url()->current();
+    }
+
+    /**
      * @return mixed
      */
     public function getBlock2()
