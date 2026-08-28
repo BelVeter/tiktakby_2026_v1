@@ -427,6 +427,10 @@ class bron {
 					$this->failure=1;
 					$this->alert.='Товар уже выдан!';;
 				}
+				elseif ((int)$i_tov['state']===-1) {
+					$this->failure=1;
+					$this->alert.='Товар помечен как ФЕЙК (не настоящий) — бронирование запрещено, доступна только заявка.';
+				}
 				else {
 					//ставим бронь на товар
 					$query_upd = "UPDATE tovar_rent_items SET `status`='bron' WHERE item_inv_n='$this->inv_n'";
@@ -488,6 +492,7 @@ class bron {
       $tovar = \bb\classes\tovar::getTovarByInvN($inv_n);
 
       if(!$tovar->isForRent()) return false;
+      if((int)$tovar->state===-1) return false;
 
       $br->inv_n = $inv_n;
       $br->model_id = $tovar->model_id;
@@ -1001,6 +1006,10 @@ class bron {
                 if ($i_tov['status']=='rented_out' || $i_tov['status']=='to_deliver' || $i_tov['status']=='bron') {
                     $this->failure=1;
                     $this->alert.='Товар уже выдан!';;
+                }
+                elseif ((int)$i_tov['state']===-1) {
+                    $this->failure=1;
+                    $this->alert.='Товар помечен как ФЕЙК (не настоящий) — бронирование запрещено, доступна только заявка.';
                 }
                 else {
                     //ставим бронь на товар

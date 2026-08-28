@@ -784,6 +784,58 @@ class tovar
 
   }
 
+  /**
+   * Свободные (доступные для брони) физические экземпляры модели вместе с
+   * их state — используется для UI-меток "ФЕЙК" на zv_ch.php/rent_zayavk.php,
+   * где важно не только КОЛИЧЕСТВО свободных штук, но и их состояние.
+   * @param $model_id
+   * @return array [['item_inv_n'=>int,'item_place'=>int,'state'=>int], ...]
+   */
+  public static function getFreeUnitsForModel($model_id)
+  {
+    $mysqli = Db::getInstance()->getConnection();
+    $model_id = (int) $model_id;
+    $query = "SELECT item_inv_n, item_place, `state` FROM tovar_rent_items
+              WHERE model_id='$model_id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<" . time() . "))";
+    $result = $mysqli->query($query);
+    if (!$result) {
+      die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+    }
+    $rez = [];
+    while ($row = $result->fetch_assoc()) {
+      $rez[] = $row;
+    }
+    return $rez;
+  }
+
+  /**
+   * true, если среди свободных экземпляров модели ЕСТЬ хотя бы один, и ВСЕ
+   * они помечены как фейк (state=-1) — т.е. реально доступного для брони
+   * товара у модели сейчас нет, только фейковые "заглушки".
+   * @param array $freeUnits результат getFreeUnitsForModel()
+   * @return bool
+   */
+  public static function allFreeUnitsAreFake(array $freeUnits)
+  {
+    if (!$freeUnits) {
+      return false;
+    }
+    foreach ($freeUnits as $unit) {
+      if ((int) $unit['state'] !== -1) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @return string
+   */
+  public static function fakeBadgeHtml()
+  {
+    return '<span style="background:#c00;color:#fff;font-size:10px;font-weight:bold;padding:1px 4px;border-radius:3px;margin-left:4px;">ФЕЙК</span>';
+  }
+
   public static function getFreeItemsOfficeArrayForModelId($model_id)
   {
     $mysqli = Db::getInstance()->getConnection();
