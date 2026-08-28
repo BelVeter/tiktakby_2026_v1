@@ -119,10 +119,33 @@ class L3Controller extends Controller
             $req->input('address'), 1, $info,
             (int)$req->input('days_num'), $dateFrom->getTimestamp(), $dateTo->getTimestamp()
         );
+
         if ($br) {
             \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
+            $message = 'Бронь на товар принята. Оператор свяжется с Вами в ближайшее время.';
+        } else {
+            // createBronStrong() отказал (например, единственный свободный
+            // экземпляр помечен фейком/state=-1) — не показываем клиенту
+            // ложное "бронь принята", уводим в заявку тем же путём, что и
+            // при полном отсутствии свободных экземпляров ниже.
+            $validityDaysNum = $req->input('days_num');
+
+            $z = Zvonok::addLitZvonok($req->input('fio'), $req->input('phone'), $info, $req->input('model_id'), 'zayavka', $validityDaysNum);
+            if ($z && $z->id) {
+                \App\Helpers\UtmTracker::track('zvonki', $z->id);
+            }
+
+            $validityDateObj = clone $dateTo;
+            $zayavka = bron::createZayavka($req->input('model_id'), $req->input('phone'), $req->input('fio'), '', '', $validityDateObj, $info, 1);
+            if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
+                \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
+            }
+            if (isset($z) && $z->id && $zayavka && $zayavka->insert_id) {
+                (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$z->id);
+            }
+
+            $message = 'Заявка на товар принята. При поступлении товара в указанный срок ожидания, оператор свяжется с вами по телефону.';
         }
-        $message = 'Бронь на товар принята. Оператор свяжется с Вами в ближайшее время.';
       } catch (\Exception $e) {
         $z = Zvonok::addLitZvonok($req->input('fio'), $req->input('phone'), $req->input('info') . '---' . $e->getMessage(), $req->input('model_id'));
         if ($z && $z->id) {

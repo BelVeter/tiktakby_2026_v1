@@ -457,11 +457,18 @@ echo '
 
 while ($zv=$result_zv->fetch_assoc()) {
   $m = \bb\classes\Model::getById($zv['model_id']);
+  $fakeBadge = '';
+  if ($m) {
+    $freeUnits = \bb\classes\tovar::getFreeUnitsForModel($zv['model_id']);
+    if (\bb\classes\tovar::allFreeUnitsAreFake($freeUnits)) {
+      $fakeBadge = \bb\classes\tovar::fakeBadgeHtml();
+    }
+  }
 	echo '
 		<tr '.($zv['status']=='new' ? ($zv['tema']=='примерка' ? 'style="background-color:pink;"' : 'style="background-color:yellow;"') : '').' data-modelid="'.$zv['model_id'].'" data-type1="'.$zv['type1'].'" data-validity-days="'.$zv['validity_days'].'" data-zv-id="'.$zv['zv_id'].'">
 			<td>'.date("d-m-y", $zv['cr_time']).'<br />'.date("H:i", $zv['cr_time']).'</td>
 			<td>'.$zv['tema'].'<br />Имя: <strong>'.$zv['z_name'].'</strong>, Телефон: ('.$zv['operator'].') - '.$zv['phone'].' <br /> Доп. информация: <span class="dop_info">'.$zv['info'].'</span>
-			  <div>'.($m ? $m->getFullName() : '').'</div>
+			  <div>'.($m ? $m->getFullName() : '').$fakeBadge.'</div>
 			</td>
 			<td>'.($zv['status']=='new' ? 'не обработан' : 'обработан '.date("d-m-y", $zv['react_time']).'<br />'.date("H:i", $zv['react_time']).' ').'</td>
 			<td>

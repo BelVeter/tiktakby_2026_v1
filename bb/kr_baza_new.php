@@ -985,7 +985,7 @@ else {
 
 	    echo '	 			</div></div></td>
 			<td style="position:relative;">'.($item_def['state']==3 ? '<img title="стыдно сдавать" style="position:absolute; right: 0px; top: 0px;" src="red_cross.png" />': '').'
-			    '.inv_print($item_def['item_inv_n']).'</td>
+			    '.inv_print($item_def['item_inv_n']).($item_def['state']==-1 ? \bb\classes\tovar::fakeBadgeHtml() : '').'</td>
 			<td style="position: relative;">'.$tarifs.'</td>
 			<td class="krb_from" id="td_from_'.$item_def['item_id'].'">'.$from.'</td>
 			<td class="krb_to" '.$to_stile.'>'.$to.'</td>

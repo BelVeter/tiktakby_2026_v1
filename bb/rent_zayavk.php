@@ -10,6 +10,7 @@ error_reporting(E_ALL);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Base.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/bron.php'); //
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/tovar.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Zayavka.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/ClientLookup.php'); //
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php'); //
@@ -436,21 +437,16 @@ foreach ($ord_rows as $ord) {
 	$br_line->web_load();
 
 	//поиск свободных товаров
-	$query_f = "SELECT item_inv_n, item_place FROM tovar_rent_items WHERE model_id='$br_line->model_id' AND (`status`='to_rent' OR (`status`='t_bron' AND br_time<'" . time() . "'))";
-	$res_f = $mysqli->query($query_f);
-	if (!$res_f) {
-		die('Сбой при доступе к базе данных: ' . $query_f . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
-	}
-	$it_free_num = $res_f->num_rows;
+	$freeUnits = \bb\classes\tovar::getFreeUnitsForModel($br_line->model_id);
+	$it_free_num = count($freeUnits);
 	//echo $it_free_num.'<br />';
 	$free_items = '';
-	if ($it_free_num > 0) {
-
-		while ($it_free = $res_f->fetch_assoc()) {
-			$free_items .= '<option value="' . $it_free['item_inv_n'] . '">' . $it_free['item_inv_n'] . '[' . $it_free['item_place'] . ']</option>';
-			$free_i_of = $it_free['item_place'];
-		}
+	foreach ($freeUnits as $it_free) {
+		$fakeSuffix = ((int) $it_free['state'] === -1) ? ' [ФЕЙК]' : '';
+		$free_items .= '<option value="' . $it_free['item_inv_n'] . '">' . $it_free['item_inv_n'] . '[' . $it_free['item_place'] . ']' . $fakeSuffix . '</option>';
+		$free_i_of = $it_free['item_place'];
 	}
+	$allFreeAreFake = \bb\classes\tovar::allFreeUnitsAreFake($freeUnits);
 
 
 
@@ -462,7 +458,7 @@ foreach ($ord_rows as $ord) {
 	echo '
 	<tr data-start="' . date("Y-m-d", $br_line->order_date) . '" data-finish="' . date("Y-m-d", $br_line->validity) . '" data-plan="' . htmlspecialchars($ord['planned_date'] ?? '') . '"' . ($rowStyle ? ' style="' . $rowStyle . '"' : '') . '>
 		<td style="text-align: center;"><img src="' . $br_line->small_pic . '" style="max-height: 80px; max-width: 80px; width: auto; object-fit: contain;" /></td>
-		<td ' . ($it_free_num > 0 ? 'style="background-color:#acf398;"' : '') . '>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" <br />
+		<td ' . ($it_free_num > 0 ? 'style="background-color:#acf398;"' : '') . '>' . $br_line->cat_dog_name . ' ' . $br_line->producer . ': ' . $br_line->model . '. Цвет: "' . $br_line->br_color . '" ' . ($allFreeAreFake ? \bb\classes\tovar::fakeBadgeHtml() : '') . '<br />
 		' . (User::getCurrentUser()->isAdmin() ? 'br_id:' . $br_line->order_id : '') . '
 			<div id="free_inv_n_' . $br_line->order_id . '" style="display:none;">
 			<select name="inv_n" form="order_' . $br_line->order_id . '">
