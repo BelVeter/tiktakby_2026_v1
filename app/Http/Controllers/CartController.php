@@ -343,45 +343,72 @@ class CartController extends Controller
                             $dateFromObj->getTimestamp(),
                             $dateToObj->getTimestamp()
                         );
-                        if ($br && $br->insert_id) {
-                            \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
-                        }
 
-                        // Заказ с доставкой сразу становится договором и выездами курьера.
-                        // Стоимость доставки и возврата вешаем только на первую позицию заказа,
-                        // иначе курьер увидит её столько раз, сколько товаров в корзине.
-                        if ($isDelivery && $autoDealEnabled && $autoDealClientId > 0) {
-                            try {
-                                $dealId = \bb\classes\WebOrderDeal::createDealWithTrips(
-                                    $autoDealClientId,
-                                    [
-                                        'inv_n' => $tovar->getInvN(),
-                                        'start_ts' => $dateFromObj->getTimestamp(),
-                                        'return_ts' => $dateToObj->getTimestamp(),
-                                        'days' => $days,
-                                        'r_to_pay' => $totalAmount,
-                                        'tarif' => \bb\classes\WebOrderDeal::resolveTariff($tarifModel, $days),
-                                    ],
-                                    $autoDealDeliveryLeft,
-                                    $autoDealPickupLeft,
-                                    $courierInfo
-                                );
-                                if ($dealId > 0) {
-                                    $autoDealDeliveryLeft = 0.0;
-                                    $autoDealPickupLeft = 0.0;
-                                }
-                            } catch (\Throwable $e) {
-                                // Заказ клиента важнее автоматики: бронь уже создана, её не рушим
-                                \Illuminate\Support\Facades\Log::error('Автодоговор по заказу с сайта не создан: ' . $e->getMessage());
+                        if ($br) {
+                            if ($br->insert_id) {
+                                \App\Helpers\UtmTracker::track('rent_orders', $br->insert_id);
                             }
-                        }
 
-                        $results[] = [
-                            'modelId' => $modelId,
-                            'name' => $item['name'] ?? '',
-                            'status' => 'booked',
-                            'amount' => $totalAmount,
-                        ];
+                            // Заказ с доставкой сразу становится договором и выездами курьера.
+                            // Стоимость доставки и возврата вешаем только на первую позицию заказа,
+                            // иначе курьер увидит её столько раз, сколько товаров в корзине.
+                            if ($isDelivery && $autoDealEnabled && $autoDealClientId > 0) {
+                                try {
+                                    $dealId = \bb\classes\WebOrderDeal::createDealWithTrips(
+                                        $autoDealClientId,
+                                        [
+                                            'inv_n' => $tovar->getInvN(),
+                                            'start_ts' => $dateFromObj->getTimestamp(),
+                                            'return_ts' => $dateToObj->getTimestamp(),
+                                            'days' => $days,
+                                            'r_to_pay' => $totalAmount,
+                                            'tarif' => \bb\classes\WebOrderDeal::resolveTariff($tarifModel, $days),
+                                        ],
+                                        $autoDealDeliveryLeft,
+                                        $autoDealPickupLeft,
+                                        $courierInfo
+                                    );
+                                    if ($dealId > 0) {
+                                        $autoDealDeliveryLeft = 0.0;
+                                        $autoDealPickupLeft = 0.0;
+                                    }
+                                } catch (\Throwable $e) {
+                                    // Заказ клиента важнее автоматики: бронь уже создана, её не рушим
+                                    \Illuminate\Support\Facades\Log::error('Автодоговор по заказу с сайта не создан: ' . $e->getMessage());
+                                }
+                            }
+
+                            $results[] = [
+                                'modelId' => $modelId,
+                                'name' => $item['name'] ?? '',
+                                'status' => 'booked',
+                                'amount' => $totalAmount,
+                            ];
+                        } else {
+                            // createBronStrong() отказал (например, единственный свободный
+                            // экземпляр помечен фейком/state=-1) — не показываем клиенту
+                            // ложное "забронировано", уводим в заявку тем же путём, что и
+                            // при полном отсутствии свободных экземпляров ниже.
+                            $z = Zvonok::addLitZvonok($fio, $phone, $fullInfo, $modelId, 'zayavka', $days);
+                            if ($z && $z->id) {
+                                \App\Helpers\UtmTracker::track('zvonki', $z->id);
+                            }
+
+                            $validityDateObj = clone $dateToObj;
+                            $zayavka = bron::createZayavka($modelId, $phone, $fio, '', '', $validityDateObj, $fullInfo, 1);
+                            if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
+                                \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
+                            }
+                            if (isset($z) && $z->id && $zayavka && $zayavka->insert_id) {
+                                (new \bb\classes\Zayavka())->linkAfterCreate((int)$zayavka->insert_id, (int)$z->id);
+                            }
+
+                            $results[] = [
+                                'modelId' => $modelId,
+                                'name' => $item['name'] ?? '',
+                                'status' => 'waitlist',
+                            ];
+                        }
                     } else {
                         $allSuccess = false;
                         $results[] = [
