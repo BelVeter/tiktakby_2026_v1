@@ -605,6 +605,10 @@ class MainPage
   {
     $mysqli = Db::getInstance()->getConnection();
 
+    $lang = $mysqli->real_escape_string($lang);
+    $levelCode = $mysqli->real_escape_string($levelCode);
+    $urlKey = $mysqli->real_escape_string($urlKey);
+
     $query = "SELECT * FROM pages WHERE level_code='$levelCode' AND url_key='$urlKey' AND lang='$lang'";
     $result = $mysqli->query($query);
     // Фикс: при $result === false (ошибка соединения) num_rows недоступен — возвращаем false

@@ -46,4 +46,23 @@ class SearchSqlInjectionTest extends TestCase
         $this->assertStringNotContainsString('SELECT', $response->getContent());
         $this->assertStringNotContainsString('Сбой при вставке', $response->getContent());
     }
+
+    /**
+     * {lang} on the static-page routes (/about, /conditions, /delivery, ...) has no
+     * ->where() constraint, unlike the home route. It used to reach
+     * MainPage::getPage() unescaped (only htmlspecialchars(), which under PHP 7.4
+     * defaults leaves a bare apostrophe untouched), breaking the query with a 500
+     * and printing it into the response. Confirmed exploited in production logs by
+     * Bingbot requesting /krasivye_plat'ya_dlia_photosessii/conditions repeatedly.
+     */
+    public function test_lang_segment_with_single_quote_does_not_leak_sql(): void
+    {
+        foreach (['about', 'conditions', 'delivery', 'payment', 'contacts', 'policy'] as $page) {
+            $response = $this->get('/' . urlencode("krasivye_plat'ya_dlia_photosessii") . '/' . $page);
+
+            $this->assertNotEquals(500, $response->status(), "route /{lang}/{$page} crashed");
+            $this->assertStringNotContainsString('SELECT', $response->getContent());
+            $this->assertStringNotContainsString('SQLSTATE', $response->getContent());
+        }
+    }
 }

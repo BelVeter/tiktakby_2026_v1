@@ -88,6 +88,7 @@ class CatMenuItem
      */
     public static function getItemByUrlName($url_name){
         $mysqli=Db::getInstance()->getConnection();
+        $url_name = $mysqli->real_escape_string($url_name);
         $query="SELECT * FROM menu_items WHERE url_name='$url_name'";
         $result = $mysqli->query($query);
         if (!$result) {die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);}
