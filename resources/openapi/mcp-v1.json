@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "TikTak.by MCP Analytics API",
-        "version": "2.4.0",
+        "version": "2.5.0",
         "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
     },
     "servers": [
@@ -722,13 +722,14 @@
                             "k1",
                             "k2",
                             "bank",
-                            "card"
+                            "card",
+                            "safe"
                         ],
-                        "description": "WHERE the money sits: k1/k2 = physical cash tills, card = card terminal, bank = bank account. Paired with channel — see the channel × kassa rule in FinanceEntryInput."
+                        "description": "WHERE the money sits: k1/k2 = physical cash tills, card = card terminal, bank = bank account, safe = office safe. Paired with channel — see the channel × kassa rule in FinanceEntryInput."
                     },
                     "channel": {
                         "type": "string",
-                        "description": "WHERE the transaction happened: an office number (as a string, e.g. \"2\"), \"cur\" (courier), or \"bank\". Must pair validly with kassa (see FinanceEntryInput.channel description).",
+                        "description": "WHERE the transaction happened: an office number (as a string, e.g. \"2\"), \"cur\" (courier), \"bank\", or \"safe\" (office safe). Must pair validly with kassa (see FinanceEntryInput.channel description).",
                         "example": "2"
                     },
                     "info": {
@@ -820,13 +821,14 @@
                             "k1",
                             "k2",
                             "bank",
-                            "card"
+                            "card",
+                            "safe"
                         ],
-                        "description": "WHERE the money sits after this transaction. Fixed whitelist: k1/k2 (physical cash tills), card (card terminal), bank (bank account). Must form a valid pair with channel: kassa=\"bank\" is only valid together with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\" (courier). A mismatched pair (e.g. channel=\"bank\" with kassa=\"k2\") is rejected — money cannot be simultaneously in the bank account and a physical till."
+                        "description": "WHERE the money sits after this transaction. Fixed whitelist: k1/k2 (physical cash tills), card (card terminal), bank (bank account), safe (office safe). Must form a valid pair with channel: kassa=\"bank\" is only valid together with channel=\"bank\"; kassa=\"safe\" is only valid together with channel=\"safe\" — the office safe is a channel of its own, cash that sits in the safe rather than in a till; bb/doh-rash.php moves money in and out of it only by a transfer between kassas. kassa in {k1, k2, card} requires channel to be a live office number or \"cur\" (courier). A mismatched pair (e.g. channel=\"bank\" with kassa=\"k2\") is rejected — money cannot be simultaneously in the bank account and a physical till."
                     },
                     "channel": {
                         "type": "string",
-                        "description": "WHERE the transaction happened: an office number as a string (existence-gated against the offices table — a closed-but-existing office is still a valid channel, it need not be currently active), \"cur\" (courier), or \"bank\". See kassa's description for the channel × kassa pairing rule this must satisfy.",
+                        "description": "WHERE the transaction happened: an office number as a string (existence-gated against the offices table — a closed-but-existing office is still a valid channel, it need not be currently active), \"cur\" (courier), \"bank\", or \"safe\" (office safe). See kassa's description for the channel × kassa pairing rule this must satisfy.",
                         "example": "2"
                     },
                     "info": {
@@ -4766,7 +4768,7 @@
             "post": {
                 "operationId": "tiktak_finance_entries_create",
                 "summary": "Batch-create ledger entries.",
-                "description": "Accepts 1-200 entries per request. Each item is validated and written independently — one invalid item never blocks the others, so the overall response is HTTP 200 with a per-item status; only whole-request shape problems (empty array, more than 200 items) are HTTP 422. Only type1 rash/doh may be created — shift_plus/shift_minus rows are out of scope. Server always sets created_by/created_at (api_system logpass user, current time); any client-supplied value for these is silently ignored. Creates are never journalled to doh_rash_history — a new row is already self-describing via its own created_by/created_at. Per-item validation enforces the channel × kassa pairing (kassa=\"bank\" only with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\") and requires dr_name_id, referencing an existing logpass row, when type2 is \"zpl\" or \"avans\". link_to must be 0 on every item — see FinanceEntryInput.link_to.",
+                "description": "Accepts 1-200 entries per request. Each item is validated and written independently — one invalid item never blocks the others, so the overall response is HTTP 200 with a per-item status; only whole-request shape problems (empty array, more than 200 items) are HTTP 422. Only type1 rash/doh may be created — shift_plus/shift_minus rows are out of scope. Server always sets created_by/created_at (api_system logpass user, current time); any client-supplied value for these is silently ignored. Creates are never journalled to doh_rash_history — a new row is already self-describing via its own created_by/created_at. Per-item validation enforces the channel × kassa pairing (kassa=\"bank\" only with channel=\"bank\"; kassa=\"safe\" only with channel=\"safe\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\") and requires dr_name_id, referencing an existing logpass row, when type2 is \"zpl\" or \"avans\". link_to must be 0 on every item — see FinanceEntryInput.link_to.",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -4834,7 +4836,7 @@
             "patch": {
                 "operationId": "tiktak_finance_entries_update",
                 "summary": "Partially update a ledger entry.",
-                "description": "Validation runs against the MERGED row (existing columns with the submitted patch fields applied on top), not just the submitted body — a field you don't touch can still fail if it no longer pairs with a field you did patch (e.g. patching only kassa on a row whose existing channel doesn't pair with the new kassa), or simply because the STORED value was already invalid under this API's stricter write rules. Two rules apply to that merged row specifically: channel and kassa must form a valid pair (kassa=\"bank\" only with channel=\"bank\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\"), and dr_name_id — referencing an existing logpass row — is required when type2 is \"zpl\" or \"avans\". Two merged-row failures are commonly inherited rather than caused by the caller, and their messages say so: `info` (about 20% of existing rash/doh rows have an empty info — legacy data predating this API; supply info with your patch to fix the row) and `link_to` (a legacy row carrying a non-zero link_to cannot be patched until you send link_to: 0 — see FinanceEntryInput.link_to for why non-zero is refused at all). The patch is read from the JSON request BODY only: query-string parameters are never treated as patch fields, and a body containing no patchable field at all (empty, or only unknown keys) is a 422 rather than a no-op that rewrites the row with its own values. Refuses (422) when the EXISTING row's type1 is outside {rash, doh} — a shift_plus/shift_minus row can never be retyped or edited through this API. A successful update is journalled to doh_rash_history with a full before/after row snapshot, best-effort: a journal-write failure is logged (with the full payload) but never rolls back the doh_rash write that already succeeded, so a 200 means the ledger row changed and is not by itself a guarantee that a history row exists for it.",
+                "description": "Validation runs against the MERGED row (existing columns with the submitted patch fields applied on top), not just the submitted body — a field you don't touch can still fail if it no longer pairs with a field you did patch (e.g. patching only kassa on a row whose existing channel doesn't pair with the new kassa), or simply because the STORED value was already invalid under this API's stricter write rules. Two rules apply to that merged row specifically: channel and kassa must form a valid pair (kassa=\"bank\" only with channel=\"bank\"; kassa=\"safe\" only with channel=\"safe\"; kassa in {k1, k2, card} requires channel to be a live office number or \"cur\"), and dr_name_id — referencing an existing logpass row — is required when type2 is \"zpl\" or \"avans\". Two merged-row failures are commonly inherited rather than caused by the caller, and their messages say so: `info` (about 20% of existing rash/doh rows have an empty info — legacy data predating this API; supply info with your patch to fix the row) and `link_to` (a legacy row carrying a non-zero link_to cannot be patched until you send link_to: 0 — see FinanceEntryInput.link_to for why non-zero is refused at all). The patch is read from the JSON request BODY only: query-string parameters are never treated as patch fields, and a body containing no patchable field at all (empty, or only unknown keys) is a 422 rather than a no-op that rewrites the row with its own values. Refuses (422) when the EXISTING row's type1 is outside {rash, doh} — a shift_plus/shift_minus row can never be retyped or edited through this API. A successful update is journalled to doh_rash_history with a full before/after row snapshot, best-effort: a journal-write failure is logged (with the full payload) but never rolls back the doh_rash write that already succeeded, so a 200 means the ledger row changed and is not by itself a guarantee that a history row exists for it.",
                 "parameters": [
                     {
                         "name": "id",
@@ -4883,7 +4885,8 @@
                                             "k1",
                                             "k2",
                                             "bank",
-                                            "card"
+                                            "card",
+                                            "safe"
                                         ],
                                         "description": "Where the money sits. Must pair validly with the (possibly patched) channel — see FinanceEntryInput.kassa."
                                     },

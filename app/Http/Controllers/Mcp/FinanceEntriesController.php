@@ -60,6 +60,20 @@ class FinanceEntriesController extends BaseController
     private const EDITABLE_TYPE1 = ['rash', 'doh'];
 
     /**
+     * WHERE the money sits. Fixed whitelist — every value here must also be in
+     * the `kassa` enum of resources/openapi/mcp-v1.json, or a client generating
+     * stubs from the published spec cannot send a value this API accepts.
+     * SpecRuntimeParityTest::test_kassa_whitelist_matches_spec() guards that.
+     */
+    public const KASSA_WHITELIST = ['k1', 'k2', 'bank', 'card', 'safe'];
+
+    /**
+     * Channels that are not office numbers. An office channel is validated
+     * live against the offices table instead — see officeExists().
+     */
+    public const CHANNEL_NON_OFFICE = ['bank', 'cur', 'safe'];
+
+    /**
      * GET /finance/entries
      *
      * Filters: from, to (on acc_date), type1, type2, kassa, channel,
@@ -545,15 +559,15 @@ class FinanceEntriesController extends BaseController
         $kassa = array_key_exists('kassa', $data) && is_scalar($data['kassa']) ? (string) $data['kassa'] : null;
         if (!array_key_exists('kassa', $data) || $data['kassa'] === null || $data['kassa'] === '') {
             $errors['kassa'] = 'kassa is required.';
-        } elseif (!in_array($kassa, ['k1', 'k2', 'bank', 'card', 'safe'], true)) {
-            $errors['kassa'] = 'kassa must be one of: k1, k2, bank, card, safe.';
+        } elseif (!in_array($kassa, self::KASSA_WHITELIST, true)) {
+            $errors['kassa'] = 'kassa must be one of: ' . implode(', ', self::KASSA_WHITELIST) . '.';
         }
 
         // ── channel (office number, resolved live, OR 'cur' OR 'bank') ──
         $channel = array_key_exists('channel', $data) && is_scalar($data['channel']) ? (string) $data['channel'] : null;
         if (!array_key_exists('channel', $data) || $data['channel'] === null || $data['channel'] === '') {
             $errors['channel'] = 'channel is required.';
-        } elseif (!in_array($channel, ['bank', 'cur', 'safe'], true) && !$this->officeExists($channel)) {
+        } elseif (!in_array($channel, self::CHANNEL_NON_OFFICE, true) && !$this->officeExists($channel)) {
             $errors['channel'] = 'channel must be an existing office number, "cur", "safe", or "bank".';
         }
 

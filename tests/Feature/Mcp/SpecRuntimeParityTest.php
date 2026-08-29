@@ -186,10 +186,52 @@ class SpecRuntimeParityTest extends McpTestCase
     public function test_spec_version_matches(): void
     {
         $this->assertSame(
-            '2.4.0',
+            '2.5.0',
             $this->spec['info']['version'],
             'bumping spec without updating this assertion is a footgun — update both together'
         );
+    }
+
+    /**
+     * Same class of bug as the response-field parity above, but on the REQUEST
+     * side: the runtime accepted kassa='safe' from the day bb/doh-rash.php grew
+     * a safe channel, while the published spec still enumerated four values —
+     * so a client generating stubs from it could not send a value the API takes.
+     *
+     * Direction here is the mirror of the response check: spec ⊇ runtime. Every
+     * value the validator accepts must be documented at every site the spec
+     * enumerates kassa (row schema, write input, patch input).
+     */
+    public function test_kassa_whitelist_matches_spec(): void
+    {
+        $runtime = \App\Http\Controllers\Mcp\FinanceEntriesController::KASSA_WHITELIST;
+
+        $enums = [];
+        $walk = function ($node) use (&$walk, &$enums) {
+            if (!is_array($node)) {
+                return;
+            }
+            foreach ($node as $key => $value) {
+                if ($key === 'kassa' && isset($value['enum']) && is_array($value['enum'])) {
+                    $enums[] = $value['enum'];
+                }
+                $walk($value);
+            }
+        };
+        $walk($this->spec);
+
+        $this->assertNotEmpty($enums, 'spec must enumerate kassa somewhere');
+
+        foreach ($enums as $i => $enum) {
+            sort($enum);
+            $expected = $runtime;
+            sort($expected);
+            $this->assertSame(
+                $expected,
+                $enum,
+                "kassa enum #{$i} in the spec drifted from FinanceEntriesController::KASSA_WHITELIST"
+            );
+        }
     }
 
     /**
