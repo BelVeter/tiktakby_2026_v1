@@ -225,11 +225,18 @@ class InventoryController extends BaseController
             $allModelIds = array_unique(array_merge(array_keys($unitsAtFrom), array_keys($unitsAtTo)));
 
             // Rented seconds per model. razdel filter goes via itemsInRazdelSubquery()
-            // join (avoids M:N inflation of SUM(rented_seconds)). Param order:
-            // join params (razdel), then SELECT params (now), then WHERE params.
+            // join (avoids M:N inflation of SUM(rented_seconds)). Actual bind order
+            // (see array_merge below): SELECT params, then JOIN params (razdel), then
+            // WHERE params.
             $joinParams  = [];
             $selectParams = [$now, $to, $from];                       // IF + LEAST + GREATEST
-            $whereParams  = [$now, $to, $from, $to];                  // start_date < ?, return_date > ?, etc.
+            // Must have exactly as many values as `?` in $where below (start_date < ?,
+            // return_date > ?, start_date < ?) — under emulated prepares PDO silently
+            // drops trailing extra bindings instead of erroring, which previously left
+            // an errant leading $now here shifting every WHERE placeholder by one and
+            // made /inventory/utilization undercount deals_in_period/rented_days by
+            // ~8x (only long-open deals with return_date=0 happened to still match).
+            $whereParams  = [$to, $from, $to];                        // start_date < ?, return_date > ?, start_date < ?
             $joins  = "
                 JOIN {$itSub} ti ON ti.item_inv_n = da.item_inv_n
                 LEFT JOIN rent_model_web rmw ON rmw.model_id = ti.model_id AND rmw.lang = 'ru'
