@@ -117,35 +117,40 @@ class OperationsController extends BaseController
 
         $whereSql = implode(' AND ', $where);
 
+        $roDigits = $this->phoneDigitsSql('ro.phone');
+        $zDigits  = $this->phoneDigitsSql('z.phone');
+        $kbDigits = $this->phoneDigitsSql('kb.phone1');
+        $kzDigits = $this->phoneDigitsSql('kz.phone');
+
         $sql = "
             SELECT
                 COALESCE(
                     (SELECT u.utm_source
                      FROM rent_orders ro
                      JOIN tiktak_utms u ON u.entity_type = 'rent_orders' AND u.entity_id = ro.order_id
-                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT(REGEXP_REPLACE(ro.phone, '[^0-9]', ''), 7) AND c.phone_1 != '')
-                         OR (RIGHT(c.phone_2, 7) = RIGHT(REGEXP_REPLACE(ro.phone, '[^0-9]', ''), 7) AND c.phone_2 != ''))
+                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT({$roDigits}, 7) AND c.phone_1 != '')
+                         OR (RIGHT(c.phone_2, 7) = RIGHT({$roDigits}, 7) AND c.phone_2 != ''))
                      AND ro.phone != ''
                      ORDER BY u.created_at ASC LIMIT 1),
                     (SELECT u.utm_source
                      FROM zvonki z
                      JOIN tiktak_utms u ON u.entity_type = 'zvonki' AND u.entity_id = z.zv_id
-                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT(REGEXP_REPLACE(z.phone, '[^0-9]', ''), 7) AND c.phone_1 != '')
-                         OR (RIGHT(c.phone_2, 7) = RIGHT(REGEXP_REPLACE(z.phone, '[^0-9]', ''), 7) AND c.phone_2 != ''))
+                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT({$zDigits}, 7) AND c.phone_1 != '')
+                         OR (RIGHT(c.phone_2, 7) = RIGHT({$zDigits}, 7) AND c.phone_2 != ''))
                      AND z.phone != ''
                      ORDER BY u.created_at ASC LIMIT 1),
                     (SELECT u.utm_source
                      FROM karn_brons kb
                      JOIN tiktak_utms u ON u.entity_type = 'karn_brons' AND u.entity_id = kb.kb_id
-                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT(REGEXP_REPLACE(kb.phone1, '[^0-9]', ''), 7) AND c.phone_1 != '')
-                         OR (RIGHT(c.phone_2, 7) = RIGHT(REGEXP_REPLACE(kb.phone1, '[^0-9]', ''), 7) AND c.phone_2 != ''))
+                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT({$kbDigits}, 7) AND c.phone_1 != '')
+                         OR (RIGHT(c.phone_2, 7) = RIGHT({$kbDigits}, 7) AND c.phone_2 != ''))
                      AND kb.phone1 != ''
                      ORDER BY u.created_at ASC LIMIT 1),
                     (SELECT u.utm_source
                      FROM kb_zayavki kz
                      JOIN tiktak_utms u ON u.entity_type = 'kb_zayavki' AND u.entity_id = kz.id
-                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT(REGEXP_REPLACE(kz.phone, '[^0-9]', ''), 7) AND c.phone_1 != '')
-                         OR (RIGHT(c.phone_2, 7) = RIGHT(REGEXP_REPLACE(kz.phone, '[^0-9]', ''), 7) AND c.phone_2 != ''))
+                     WHERE ((RIGHT(c.phone_1, 7) = RIGHT({$kzDigits}, 7) AND c.phone_1 != '')
+                         OR (RIGHT(c.phone_2, 7) = RIGHT({$kzDigits}, 7) AND c.phone_2 != ''))
                      AND kz.phone != ''
                      ORDER BY u.created_at ASC LIMIT 1),
                     'direct'

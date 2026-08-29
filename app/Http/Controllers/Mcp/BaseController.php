@@ -213,6 +213,26 @@ abstract class BaseController extends Controller
     }
 
     /**
+     * SQL expression stripping non-digit characters from a phone column, for
+     * matching by trailing digits (RIGHT(..., 7)) regardless of formatting
+     * (+375 29 123-45-67 vs 375291234567 vs (29)123-45-67).
+     *
+     * REGEXP_REPLACE (the natural way to write this) only exists on MySQL 8+;
+     * production runs MySQL 5.7 (CLAUDE.md says MariaDB 10.6 — that's stale,
+     * verified via SELECT VERSION() 2026-08-29), so it fails there with
+     * "FUNCTION ... REGEXP_REPLACE does not exist" on every call. Nested
+     * REPLACE() covers the separators seen in real phone data (space, -, (),
+     * +) plus two manual-entry typos found in prod (— em dash, ± instead of
+     * +). A handful of rows are garbage (names, sentences typed into the
+     * phone field) and won't normalize to a real number either way — same as
+     * before, they just don't match, they don't break the query.
+     */
+    protected function phoneDigitsSql(string $column): string
+    {
+        return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE({$column}, ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), '—', ''), '±', '')";
+    }
+
+    /**
      * IDs of carnival categories (tovar_rent_cat.cat_type = 1). Cached 24h.
      * Returns a sorted array of integers, possibly empty.
      */
