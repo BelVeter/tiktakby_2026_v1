@@ -836,6 +836,52 @@ class tovar
     return '<span style="background:#c00;color:#fff;font-size:10px;font-weight:bold;padding:1px 4px;border-radius:3px;margin-left:4px;">ФЕЙК</span>';
   }
 
+  /**
+   * Тумблер пометки ФЕЙК (state=-1) из списка kr_baza_new.php. Пометка —
+   * в одно действие. Снятие пометки требует явно указать реальное состояние
+   * товара: прежнее состояние (было ли оно "Новый"/"Хорошее"/др. до того как
+   * товар пометили фейком) нигде не хранится, и восстановить его автоматически
+   * нельзя.
+   * @param int $itemId
+   * @param int|null $restoreState нужен только при снятии пометки: 0/1/2/4
+   * @return array {status:'ok', state:int, is_fake:bool} | {status:'error', message:string}
+   */
+  public static function toggleFake($itemId, $restoreState = null)
+  {
+    $mysqli = Db::getInstance()->getConnection();
+    $itemId = (int) $itemId;
+
+    $item = $mysqli->query("SELECT `state`, `status` FROM tovar_rent_items WHERE item_id=$itemId")->fetch_assoc();
+    if (!$item) {
+      return ['status' => 'error', 'message' => 'Товар не найден.'];
+    }
+
+    if (in_array($item['status'], ['rented_out', 'to_deliver'], true)) {
+      return ['status' => 'error', 'message' => 'Товар выдан клиенту/курьеру — пометку менять нельзя.'];
+    }
+
+    $isFake = ((int) $item['state'] === -1);
+
+    if ($isFake) {
+      $allowedStates = [0, 1, 2, 4];
+      if (!in_array($restoreState, $allowedStates, true)) {
+        return ['status' => 'error', 'message' => 'Укажите состояние товара.'];
+      }
+      $newState = $restoreState;
+    } else {
+      $newState = -1;
+    }
+
+    $mysqli->query("UPDATE tovar_rent_items SET `state`=$newState WHERE item_id=$itemId");
+
+    return [
+      'status'  => 'ok',
+      'state'   => $newState,
+      'is_fake' => ($newState === -1),
+      'badge_html' => ($newState === -1) ? self::fakeBadgeHtml() : '',
+    ];
+  }
+
   public static function getFreeItemsOfficeArrayForModelId($model_id)
   {
     $mysqli = Db::getInstance()->getConnection();
