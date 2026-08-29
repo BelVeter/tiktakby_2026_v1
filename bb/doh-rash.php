@@ -575,20 +575,50 @@ arsort($byItem);
 // Выручка за период. Методика зафиксирована в app/Http/Controllers/Mcp/CLAUDE.md:
 // SUM(r_paid + delivery_paid) по UNION(rent_sub_deals_act, rent_sub_deals_arch)
 // с фильтром по acc_date — дате, когда деньги реально пришли.
-$totalSales = 0.0;
-foreach (array('rent_sub_deals_act', 'rent_sub_deals_arch') as $tbl) {
-	$q = "SELECT SUM(r_paid) AS rent, SUM(delivery_paid) AS delivery
-			FROM $tbl
-			WHERE acc_date BETWEEN '" . $from_date . "' AND '" . $to_date . "'";
-	$res = $mysqli->query($q);
-	if (!$res) {
-		die('Сбой при доступе к базе данных: ' . $q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+//
+// Плитки обязаны описывать один и тот же срез. Расходы выше приходят уже
+// отфильтрованными ($srch), поэтому при выборе кассы выручку фильтруем по ней же:
+// r_paid — по r_payment_type, delivery_paid — по своему del_payment_type.
+// Без фильтра запрос остаётся ровно таким, каким был, — это зафиксированная методика.
+$kassaCode = channel_effective_code($kassa_s);
+$chAll = channels_all();
+$kassaFilterName = isset($chAll[$kassaCode]) ? $chAll[$kassaCode]['text'] : '';
+
+$salesTypes = kassa_sales_payment_types($kassaCode);
+
+$totalSales = null;   // null — выручку на выбранную кассу разложить нечем
+if ($salesTypes !== null) {
+	if ($salesTypes) {
+		$in = "'" . implode("','", $salesTypes) . "'";
+		$sumRent  = "SUM(CASE WHEN r_payment_type IN ($in) THEN r_paid ELSE 0 END)";
+		$sumDeliv = "SUM(CASE WHEN del_payment_type IN ($in) THEN delivery_paid ELSE 0 END)";
+	} else {
+		$sumRent  = 'SUM(r_paid)';
+		$sumDeliv = 'SUM(delivery_paid)';
 	}
-	$r = $res->fetch_assoc();
-	$totalSales += (float)$r['rent'] + (float)$r['delivery'];
+
+	$totalSales = 0.0;
+	foreach (array('rent_sub_deals_act', 'rent_sub_deals_arch') as $tbl) {
+		$q = "SELECT $sumRent AS rent, $sumDeliv AS delivery
+				FROM $tbl
+				WHERE acc_date BETWEEN '" . $from_date . "' AND '" . $to_date . "'";
+		$res = $mysqli->query($q);
+		if (!$res) {
+			die('Сбой при доступе к базе данных: ' . $q . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+		}
+		$r = $res->fetch_assoc();
+		$totalSales += (float)$r['rent'] + (float)$r['delivery'];
+	}
 }
 
-$saldo = $totalSales - $totalRash;
+// Сальдо — это все пришедшие деньги минус все ушедшие, поэтому прочие доходы
+// из doh_rash (продажа товара и пр.) входят в него наравне с выручкой по сделкам.
+// Считаем его только когда расходы не сужены до части статей: иначе это уже не
+// «доходы минус расходы», а «доходы минус кусок расходов».
+$saldoMeaningful = $totalSales !== null
+	&& $type1_s == 'all' && $type2_s == 'all' && $zp_sel_s == 'all';
+
+$saldo = $saldoMeaningful ? $totalSales + $totalDohDr - $totalRash : null;
 
 // палитра точек для статей в блоке распределения
 $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93a7',
@@ -704,18 +734,29 @@ $dotColors = array('#4a7dfc', '#22a06b', '#2bb8c4', '#f0b429', '#ef4444', '#8b93
 		<div class="rx-kpi rx-kpi--rash">
 			<div class="rx-kpi-lbl">Общие расходы</div>
 			<div class="rx-kpi-val"><?php echo number_format($totalRash, 2, ',', ' '); ?><small>BYN</small></div>
-			<div class="rx-kpi-hint">без переводов между каналами</div>
+			<div class="rx-kpi-hint">без переводов между кассами<?php
+				echo $kassaFilterName !== '' ? ' · ' . $kassaFilterName : ''; ?></div>
 		</div>
 		<div class="rx-kpi rx-kpi--doh">
 			<div class="rx-kpi-lbl">Доходы за период</div>
-			<div class="rx-kpi-val"><?php echo number_format($totalSales, 2, ',', ' '); ?><small>BYN</small></div>
-			<div class="rx-kpi-hint">оплаты по сделкам за период<?php
-				echo $totalDohDr > 0 ? ' · прочие доходы: ' . number_format($totalDohDr, 2, ',', ' ') . ' BYN' : ''; ?></div>
+			<div class="rx-kpi-val"><?php echo $totalSales === null
+				? '—'
+				: number_format($totalSales, 2, ',', ' ') . '<small>BYN</small>'; ?></div>
+			<div class="rx-kpi-hint"><?php if ($totalSales === null): ?>
+				на эту кассу выручка не раскладывается
+			<?php else: ?>
+				оплаты по сделкам<?php echo $kassaFilterName !== '' ? ' · ' . $kassaFilterName : ''; ?><?php
+					echo $totalDohDr > 0 ? ' · прочие доходы: ' . number_format($totalDohDr, 2, ',', ' ') . ' BYN' : ''; ?>
+			<?php endif; ?></div>
 		</div>
 		<div class="rx-kpi rx-kpi--saldo">
 			<div class="rx-kpi-lbl">Сальдо</div>
-			<div class="rx-kpi-val <?php echo $saldo < 0 ? 'neg' : 'pos'; ?>"><?php echo number_format($saldo, 2, ',', ' '); ?><small>BYN</small></div>
-			<div class="rx-kpi-hint">доходы минус расходы</div>
+			<div class="rx-kpi-val <?php echo $saldo !== null && $saldo < 0 ? 'neg' : 'pos'; ?>"><?php echo $saldo === null
+				? '—'
+				: number_format($saldo, 2, ',', ' ') . '<small>BYN</small>'; ?></div>
+			<div class="rx-kpi-hint"><?php echo $saldo === null
+				? 'считается без фильтра по статье и сотруднику'
+				: 'доходы минус расходы'; ?></div>
 		</div>
 	</div>
 
@@ -1294,12 +1335,15 @@ function channel_to_office_kassa($code)
 }
 
 /**
- * Код канала → условие WHERE для выборки.
+ * Код кассы из фильтра → код, по которому реально можно смотреть.
+ *
+ * Одно место, где живёт правило «мусор из POST и закрытая касса без прав → all»:
+ * им пользуются и фильтр операций, и выручка, иначе они разойдутся.
  *
  * @param string $code
  * @return string
  */
-function channel_sql_filter($code)
+function channel_effective_code($code)
 {
 	$all = channels_all();
 
@@ -1307,8 +1351,22 @@ function channel_sql_filter($code)
 	// прав → безопасный минимум, а не «покажи только его»
 	if ($code !== 'all'
 		&& (!isset($all[$code]) || ($all[$code]['restricted'] && !channels_user_can_see_all()))) {
-		$code = 'all';
+		return 'all';
 	}
+
+	return $code;
+}
+
+/**
+ * Код кассы → условие WHERE для выборки.
+ *
+ * @param string $code
+ * @return string
+ */
+function channel_sql_filter($code)
+{
+	$all = channels_all();
+	$code = channel_effective_code($code);
 
 	if ($code === 'all') {
 		if (channels_user_can_see_all()) return '';
@@ -1439,6 +1497,31 @@ function channel_print($channel, $kassa)
 	}
 
 	return of_print($channel) . kassa_print($kassa);
+}
+
+/**
+ * Касса из фильтра → типы оплаты в rent_sub_deals, из которых складывается её выручка.
+ *
+ * Соответствие не выдумано здесь: ровно им сверяют кассы в bb/kassas_check.php —
+ * к1 = наличные с чеком, к2 = наличные без чека, банк = банк.
+ *
+ * У «Курьера» и «Сейфа» своей выручки нет: курьерская наличность попадает в к1
+ * (см. channels_all()), а сейф пополняется только переводом из кассы. Разложить
+ * на них выручку нечем, поэтому возвращаем null — вызывающий код покажет прочерк,
+ * а не чужое число.
+ *
+ * @param string $code код кассы, уже пропущенный через channel_effective_code()
+ * @return array|null пустой массив — вся выручка периода; null — не раскладывается
+ */
+function kassa_sales_payment_types($code)
+{
+	switch ($code) {
+		case 'all':  return array();
+		case 'k1':   return array('nal_cheque');
+		case 'k2':   return array('nal_no_cheque');
+		case 'bank': return array('bank');
+		default:     return null;
+	}
 }
 
 /**
