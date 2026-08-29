@@ -155,6 +155,19 @@ if(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && !empty($_SERVER['HTTP_X_REQUESTED
             $res['message'] = 'Заявка создана';
             echo json_encode($res);
             break;
+
+          case 'toggle_fake':
+            if (!($_SESSION['level']>=5 || \bb\models\User::getCurrentUser()->getId()==26)) {
+                echo json_encode(['status' => 'error', 'message' => 'Недостаточно прав.']);
+                break;
+            }
+
+            $item_id = (int) Base::GetPost('item_id');
+            $restoreStateRaw = Base::GetPost('restore_state');
+            $restoreState = ($restoreStateRaw === '' || $restoreStateRaw === null) ? null : (int) $restoreStateRaw;
+
+            echo json_encode(\bb\classes\tovar::toggleFake($item_id, $restoreState));
+            break;
         }
 
     }
@@ -405,12 +418,72 @@ function move_off (item_id, pl1, pl2, action) {
 }
 
 
-function menu_show (item_id, inv_n) {
+function menu_show (el, item_id, inv_n) {
 	//alert ('zapusk');
 
-	document.getElementById('hist_'+item_id).innerHTML='<ul class="i_menu"> <li><a href="#" onclick="hist_show(\'tov_hist\', \''+item_id+'\', \''+inv_n+'\'); return false;">История</a></li>  <?php echo '<li><a href="#" onclick="document.getElementById(\\\'web_info_\'+item_id+\'\\\').submit(); return false;">WEB info</a></li> <li><a href="#" onclick="document.getElementById(\\\'tovar_lr_\'+item_id+\'\\\').submit(); return false;">в последний прокат</a></li>'; echo ($_SESSION['level']>=5 || \bb\models\User::getCurrentUser()->getId()==26) ? ' <li><a href="#" onclick="document.getElementById(\\\'tovar_tarif_\'+item_id+\'\\\').submit(); return false;">Тарифы</a></li>   <li><a href="#" onclick="document.getElementById(\\\'tovar_edit_\'+item_id+\'\\\').submit(); return false;">Редактировать товар</a></li>   <li><a href="#" onclick="document.getElementById(\\\'model_edit_\'+item_id+\'\\\').submit(); return false;">Редактировать модель</a></li>   <li><a href="#" onclick="document.getElementById(\\\'fav_tovar_\'+item_id+\'\\\').submit(); return false;">В популярные товары</a></li>    <li><a href="#" onclick="document.getElementById(\\\'tovar_del_\'+item_id+\'\\\').submit(); return false;">Удаление</a></li>' : ''; ?> </ul>  	<input type="button" value="х" onclick="document.getElementById(\'hist_'+item_id+'\').innerHTML=\'\'; return false;" style="position:absolute; top:5px; left:160px; z-index:3;"/>';
+	var isPrivileged = <?php echo ($_SESSION['level']>=5 || \bb\models\User::getCurrentUser()->getId()==26) ? 'true' : 'false'; ?>;
+	var state = parseInt(el.getAttribute('data-state'), 10);
+	var status = el.getAttribute('data-status');
+	var isFake = (state === -1);
+	var isOut = (status === 'rented_out' || status === 'to_deliver');
+	var fakeItem = '';
+	if (isPrivileged) {
+		if (isOut) {
+			fakeItem = '<li style="color:#999; cursor:default;" title="Товар выдан клиенту/курьеру — пометку менять нельзя">' + (isFake ? 'Снять пометку ФЕЙК' : 'Пометить ФЕЙК') + '</li>';
+		} else if (isFake) {
+			fakeItem = '<li><a href="#" onclick="fakeUnmarkStart(\''+item_id+'\'); return false;">Снять пометку ФЕЙК</a></li>';
+		} else {
+			fakeItem = '<li><a href="#" onclick="fakeMark(\''+item_id+'\'); return false;">Пометить ФЕЙК</a></li>';
+		}
+	}
+
+	document.getElementById('hist_'+item_id).innerHTML='<ul class="i_menu"> <li><a href="#" onclick="hist_show(\'tov_hist\', \''+item_id+'\', \''+inv_n+'\'); return false;">История</a></li>  <?php echo '<li><a href="#" onclick="document.getElementById(\\\'web_info_\'+item_id+\'\\\').submit(); return false;">WEB info</a></li> <li><a href="#" onclick="document.getElementById(\\\'tovar_lr_\'+item_id+\'\\\').submit(); return false;">в последний прокат</a></li>'; echo ($_SESSION['level']>=5 || \bb\models\User::getCurrentUser()->getId()==26) ? ' <li><a href="#" onclick="document.getElementById(\\\'tovar_tarif_\'+item_id+\'\\\').submit(); return false;">Тарифы</a></li>   <li><a href="#" onclick="document.getElementById(\\\'tovar_edit_\'+item_id+\'\\\').submit(); return false;">Редактировать товар</a></li>   <li><a href="#" onclick="document.getElementById(\\\'model_edit_\'+item_id+\'\\\').submit(); return false;">Редактировать модель</a></li>   <li><a href="#" onclick="document.getElementById(\\\'fav_tovar_\'+item_id+\'\\\').submit(); return false;">В популярные товары</a></li>    <li><a href="#" onclick="document.getElementById(\\\'tovar_del_\'+item_id+\'\\\').submit(); return false;">Удаление</a></li>' : ''; ?> ' + fakeItem + '</ul>  	<input type="button" value="х" onclick="document.getElementById(\'hist_'+item_id+'\').innerHTML=\'\'; return false;" style="position:absolute; top:5px; left:160px; z-index:3;"/>';
 
 }//end of menu_show
+
+function fakeMark(item_id) {
+	$("#fake_restore_state_"+item_id).val('');
+	fakeToggleSend(item_id);
+}
+
+function fakeUnmarkStart(item_id) {
+	document.getElementById('hist_'+item_id).innerHTML =
+		'<div class="i_menu" style="padding:6px; background:#fff; border:1px solid #999; width:200px;">' +
+		'<div style="margin-bottom:4px;">Вы уверены, что хотите сделать фейковый товар обычным?</div>' +
+		'<select id="fake_unmark_state_'+item_id+'" style="margin-bottom:6px; width:100%;">' +
+		'<option value="1">Хорошее состояние</option>' +
+		'<option value="0">Новый</option>' +
+		'<option value="2">Нормальное состояние</option>' +
+		'<option value="4">Стыдное состояние</option>' +
+		'</select><br>' +
+		'<input type="button" value="Подтвердить" onclick="fakeUnmarkConfirm(\''+item_id+'\'); return false;">' +
+		' <input type="button" value="Отмена" onclick="document.getElementById(\'hist_'+item_id+'\').innerHTML=\'\'; return false;">' +
+		'</div>';
+}
+
+function fakeUnmarkConfirm(item_id) {
+	var state = $("#fake_unmark_state_"+item_id).val();
+	$("#fake_restore_state_"+item_id).val(state);
+	fakeToggleSend(item_id);
+}
+
+function fakeToggleSend(item_id) {
+	var $form = $("#fake_toggle_"+item_id);
+	$.ajax({
+		type: $form.attr('method'),
+		url: "/bb/kr_baza_new.php",
+		data: $form.serialize(),
+	}).done(function (data) {
+		var rez = JSON.parse(data);
+		document.getElementById('hist_'+item_id).innerHTML = '';
+		if (rez.status === 'ok') {
+			document.getElementById('fake_badge_'+item_id).innerHTML = rez.badge_html || '';
+			document.getElementById('model_link_'+item_id).setAttribute('data-state', rez.state);
+		} else {
+			alert(rez.message);
+		}
+	});
+}
 
 
 function hist_show (action, model_id, inv_n) {
@@ -932,7 +1005,7 @@ else {
 					<img class="img_size" src="'.($model_web['l2_pic'] ?? 'no-model-web').'" id="pic_'.$item_def['item_id'].'" alt="" onclick="pic_size('.$item_def['item_id'].')" />
 					</div>
 				 <div style="position:relative;">'.($item_def['seller']=='elizavetka.by' ? '<img style="position:absolute; top:0; right:0;" src="/bb/el.png"/>' : '').'</div>
-	    		 <div id="hist_'.$item_def['item_id'].'" style="display:inline-block; position:relative;"></div><a href="#" onclick="menu_show(\''.$item_def['item_id'].'\', \''.$item_def['item_inv_n'].'\'); return false;">'.$model_name.' </a> <i>('.$item_def['model_id'].')</i>'.' <div id="hist_'.$item_def['item_id'].'" style="display:inline-block; position:relative;"></div><br />'.($_SESSION['level']>='5' ? number_format($item_def['buy_price'], 0, ',', ' ').'/'.number_format($item_def['agr_price'], 0, ',', ' ').'---'.date("d.m.Y", $item_def['buy_date']) : '').'</td>
+	    		 <div id="hist_'.$item_def['item_id'].'" style="display:inline-block; position:relative;"></div><a id="model_link_'.$item_def['item_id'].'" href="#" data-state="'.$item_def['state'].'" data-status="'.$item_def['status'].'" onclick="menu_show(this, \''.$item_def['item_id'].'\', \''.$item_def['item_inv_n'].'\'); return false;">'.$model_name.' </a> <i>('.$item_def['model_id'].')</i>'.' <div id="hist_'.$item_def['item_id'].'" style="display:inline-block; position:relative;"></div><br />'.($_SESSION['level']>='5' ? number_format($item_def['buy_price'], 0, ',', ' ').'/'.number_format($item_def['agr_price'], 0, ',', ' ').'---'.date("d.m.Y", $item_def['buy_date']) : '').'</td>
 			<td class="krb_color">'.(($model_def['color']=='0'|| $model_def['color']=='') ? '-' : $model_def['color']).($model_def['color']=='multicolor' ? ': '.$item_def['item_color'] : '').' ('.$item_def['item_size'].' / '.$item_def['item_rost1'].'-'.$item_def['item_rost2'].'см.)<br /> ['.$item_def['real_item_size'].']</td>
 			<td><div id="place_value_'.$item_def['item_id'].'" style="display:inline-block; position:relative;">';
 
@@ -985,7 +1058,7 @@ else {
 
 	    echo '	 			</div></div></td>
 			<td style="position:relative;">'.($item_def['state']==3 ? '<img title="стыдно сдавать" style="position:absolute; right: 0px; top: 0px;" src="red_cross.png" />': '').'
-			    '.inv_print($item_def['item_inv_n']).($item_def['state']==-1 ? \bb\classes\tovar::fakeBadgeHtml() : '').'</td>
+			    '.inv_print($item_def['item_inv_n']).'<span id="fake_badge_'.$item_def['item_id'].'">'.($item_def['state']==-1 ? \bb\classes\tovar::fakeBadgeHtml() : '').'</span></td>
 			<td style="position: relative;">'.$tarifs.'</td>
 			<td class="krb_from" id="td_from_'.$item_def['item_id'].'">'.$from.'</td>
 			<td class="krb_to" '.$to_stile.'>'.$to.'</td>
@@ -1028,6 +1101,12 @@ else {
 					<input type="hidden" name="model_id" value="'.$item_def['model_id'].'">
 					<input type="hidden" name="item_id" value="'.$item_def['item_id'].'">
 					<input type="hidden" name="item_inv_n2" value="'.$item_def['item_inv_n'].'" />
+				</form>
+
+				<form method="post" id="fake_toggle_'.$item_def['item_id'].'" style="display:none;">
+					<input type="hidden" name="action" value="toggle_fake">
+					<input type="hidden" name="item_id" value="'.$item_def['item_id'].'">
+					<input type="hidden" name="restore_state" id="fake_restore_state_'.$item_def['item_id'].'" value="">
 				</form>
 							</td>
 
