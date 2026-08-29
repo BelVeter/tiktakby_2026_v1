@@ -85,8 +85,11 @@ abstract class BaseController extends Controller
     protected function dataFreshness(): ?string
     {
         return Cache::remember('mcp.data_freshness', 300, function () {
+            // acc_date can be a forward-scheduled accounting date (e.g. a planned
+            // installment), so it can legitimately exceed NOW() — cap the result so
+            // "freshness" never reports a future timestamp to API consumers.
             $row = DB::selectOne("
-                SELECT GREATEST(
+                SELECT LEAST(UNIX_TIMESTAMP(), GREATEST(
                     COALESCE((SELECT MAX(cr_time)  FROM rent_deals_act),  0),
                     COALESCE((SELECT MAX(cr_time)  FROM rent_deals_arch), 0),
                     COALESCE((SELECT MAX(acc_date) FROM rent_sub_deals_act),  0),
@@ -95,7 +98,7 @@ abstract class BaseController extends Controller
                     COALESCE((SELECT MAX(cr_time)  FROM karn_brons),      0),
                     COALESCE((SELECT MAX(cr_time)  FROM clients),         0),
                     COALESCE((SELECT MAX(cr_time)  FROM rent_orders_arch), 0)
-                ) AS ts
+                )) AS ts
             ");
             $ts = (int) ($row->ts ?? 0);
             return $ts > 0 ? gmdate('Y-m-d\TH:i:s\Z', $ts) : null;

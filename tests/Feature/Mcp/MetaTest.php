@@ -124,6 +124,21 @@ class MetaTest extends McpTestCase
         }
     }
 
+    /**
+     * The envelope-level `meta.data_freshness` (BaseController::dataFreshness,
+     * distinct from /meta/data-freshness above) is capped at NOW() — acc_date
+     * can be a forward-scheduled accounting date, so without the cap it can
+     * report a freshness timestamp weeks in the future.
+     */
+    public function test_envelope_data_freshness_never_in_the_future(): void
+    {
+        $r = $this->mcp('meta/categories');
+        $iso = $r->json('meta.data_freshness');
+        if ($iso !== null) {
+            $this->assertLessThanOrEqual(time() + 5, \Carbon\Carbon::parse($iso)->timestamp, 'meta.data_freshness must not be in the future');
+        }
+    }
+
     public function test_meta_endpoints_require_token(): void
     {
         foreach (['meta/categories', 'meta/locations', 'meta/expense-items', 'meta/income-items', 'meta/data-freshness'] as $p) {

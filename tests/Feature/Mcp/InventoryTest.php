@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Mcp;
 
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+
 class InventoryTest extends McpTestCase
 {
     // ─── /inventory/free-tree ─────────────────────────────────────────────
@@ -76,6 +79,55 @@ class InventoryTest extends McpTestCase
     public function test_utilization_unknown_category_returns_empty(): void
     {
         $this->assertSame([], $this->mcp('inventory/utilization', ['from' => '2024-01-01', 'to' => '2024-12-31', 'category' => 'tools'])->json('data'));
+    }
+
+    /**
+     * Regression guard for a param-binding bug: the WHERE clause bound values
+     * previously carried one extra leading element, which under PDO's emulated
+     * prepares silently shifted every placeholder instead of erroring and made
+     * deals_in_period/rented_days undercount by ~8x (see InventoryController::utilization).
+     * Ground truth here is computed independently of the controller's helper methods.
+     */
+    public function test_utilization_deals_in_period_matches_ground_truth_sql(): void
+    {
+        $from   = '2024-01-01';
+        $to     = '2024-12-31';
+        $fromTs = Carbon::parse($from)->startOfDay()->timestamp;
+        $toTs   = Carbon::parse($to)->endOfDay()->timestamp;
+        $nowTs  = time();
+
+        $truth = DB::selectOne("
+            SELECT ti.model_id,
+                   COUNT(DISTINCT da.deal_id) AS deals,
+                   ROUND(SUM(GREATEST(0,
+                       LEAST(IF(da.return_date > 0, da.return_date, ?), ?) - GREATEST(da.start_date, ?)
+                   )) / 86400, 2) AS days
+            FROM (
+                SELECT deal_id, item_inv_n, start_date, return_date FROM rent_deals_act
+                UNION ALL
+                SELECT deal_id, item_inv_n, start_date, return_date FROM rent_deals_arch
+            ) da
+            JOIN (
+                SELECT item_inv_n, model_id FROM tovar_rent_items
+                UNION ALL
+                SELECT item_inv_n, model_id FROM tovar_rent_items_arch
+            ) ti ON ti.item_inv_n = da.item_inv_n
+            WHERE ti.model_id IS NOT NULL
+              AND da.start_date < ?
+              AND (da.return_date > ? OR (da.return_date = 0 AND da.start_date < ?))
+            GROUP BY ti.model_id
+            ORDER BY deals DESC
+            LIMIT 1
+        ", [$nowTs, $toTs, $fromTs, $toTs, $fromTs, $toTs]);
+
+        $this->assertNotNull($truth, 'expected at least one model with deals in the test dataset');
+
+        $rows = $this->mcp('inventory/utilization', ['from' => $from, 'to' => $to])->json('data');
+        $row  = collect($rows)->firstWhere('model_id', (int) $truth->model_id);
+
+        $this->assertNotNull($row, "model {$truth->model_id} missing from utilization response");
+        $this->assertSame((int) $truth->deals, $row['deals_in_period'], 'deals_in_period must match the period-overlap ground truth');
+        $this->assertEqualsWithDelta((float) $truth->days, $row['rented_days'], 0.5, 'rented_days must match the period-overlap ground truth');
     }
 
     // ─── /inventory/turnover ──────────────────────────────────────────────
