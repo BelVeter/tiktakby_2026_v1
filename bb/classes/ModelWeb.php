@@ -1237,6 +1237,13 @@ class ModelWeb
    * @param $text
    * @return array
    */
+  /**
+   * @deprecated Заменён на App\MyClasses\Search\ProductSearch: natural language
+   *   mode OR-ил слова («цыганский костюм» отдавал 306 моделей, все от слова
+   *   «костюм»), не знал морфологии («коляски» → 0) и подчинялся правилу 50%.
+   *   Метод оставлен на один цикл, пока не подтверждено, что на него не
+   *   ссылается ничего в bb/. После этого удалить.
+   */
   public static function getModelIdsFullTextSearch($text)
   {
     //SELECT * FROM rent_model_web WHERE MATCH(`title`, keywords, main_descr) AGAINST('автокресло')
