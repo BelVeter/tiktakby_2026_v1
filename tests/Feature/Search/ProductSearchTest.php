@@ -82,6 +82,97 @@ class ProductSearchTest extends TestCase
         $this->assertLessThan($broad, $narrow->getTotal());
     }
 
+    /**
+     * Категория «Эргорюкзаки, слинги, туристические рюкзаки» — 16 моделей,
+     * и ни одна не названа «эргорюкзак» или «слинг»: внутри «Эргономичный
+     * рюкзак» ×7, «Нагрудная сумка» ×4, «Хипсит» ×2. До этой задачи оба
+     * запроса давали ровно 1 результат.
+     *
+     * Такая же история с «Радио- видеоняни» (4 модели, все названы
+     * «Радионяня»), «Шезлонги детские» и «Кроватки, колыбели, коконы».
+     *
+     * @dataProvider categoryOnlyQueries
+     */
+    public function test_query_matching_category_name_finds_its_models(string $query, int $atLeast): void
+    {
+        $result = $this->search($query);
+
+        $this->assertGreaterThanOrEqual(
+            $atLeast,
+            $result->getTotal(),
+            "запрос «{$query}» вернул {$result->getTotal()} моделей"
+        );
+    }
+
+    public function categoryOnlyQueries(): array
+    {
+        return [
+            'эргорюкзак → вся категория'         => ['эргорюкзак', 15],
+            'слинг → вся категория'              => ['слинг', 15],
+            'видеоняня → Радио- видеоняни'       => ['видеоняня', 4],
+            'шезлонг → вся категория'            => ['шезлонг', 8],
+            'кокон → Кроватки, колыбели, коконы' => ['кокон', 9],
+        ];
+    }
+
+    /**
+     * Совпадение по товару всегда важнее совпадения по категории: тот, кто
+     * ввёл «слинг», первым должен увидеть «Слинг-рюкзак Babybjorn», а не
+     * произвольную модель из той же категории.
+     */
+    public function test_exact_model_matches_rank_above_category_matches(): void
+    {
+        $ids = $this->search('слинг')->getModelIds();
+
+        $direct = DB::table('rent_model_web')
+            ->where('status', 'show')
+            ->where('l2_name', 'like', '%слинг%')
+            ->pluck('model_id')
+            ->map(function ($id) { return (int) $id; })
+            ->all();
+
+        $this->assertNotEmpty($direct);
+        $this->assertContains($ids[0], $direct, 'первым идёт не прямое совпадение по товару');
+    }
+
+    /**
+     * Проверяем сам механизм, а не ярлык тира: «Нагрудная сумка Babybjorn»
+     * лежит в категории «Эргорюкзаки, слинги, туристические рюкзаки», но слова
+     * «эргорюкзак» в её собственных полях нет — попасть в выдачу она может
+     * только через название категории.
+     *
+     * Тир при этом будет 'exact', а не 'category': в категории есть и прямые
+     * совпадения, они идут первыми. Отдельный тир 'category' — страховка для
+     * случая, когда по товарам не нашлось вообще ничего.
+     */
+    public function test_category_pass_pulls_in_models_that_do_not_match_by_name(): void
+    {
+        $ids = $this->search('эргорюкзак')->getModelIds();
+
+        $chestCarrier = DB::table('rent_model_web')
+            ->where('status', 'show')
+            ->where('l2_name', 'like', 'Нагрудная сумка%')
+            ->value('model_id');
+
+        $this->assertNotNull($chestCarrier, 'в каталоге нет «Нагрудной сумки» — обновить фикстуру');
+        $this->assertContains((int) $chestCarrier, $ids);
+        $this->assertStringNotContainsStringIgnoringCase(
+            'эргорюкзак',
+            (string) DB::table('rent_model_web')->where('model_id', $chestCarrier)->value('l2_name'),
+            'модель стала находиться по названию — тест больше не проверяет категорийный проход'
+        );
+    }
+
+    /**
+     * Категорийный проход не должен ломать сужение: «коляска babyzen» обязана
+     * остаться тремя моделями, а не подтянуть всю категорию колясок. Поэтому
+     * от названия категории требуются ВСЕ основы запроса, как и от товара.
+     */
+    public function test_category_pass_does_not_break_narrowing(): void
+    {
+        $this->assertSame(3, $this->search('коляска babyzen')->getTotal());
+    }
+
     public function test_empty_query_returns_nothing_without_crashing(): void
     {
         $result = $this->search('   ');

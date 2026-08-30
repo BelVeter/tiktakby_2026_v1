@@ -35,8 +35,19 @@ class ProductSearch
         }
 
         $exact = $this->fulltext($tokens['stems'], true);
+        $byCategory = $this->byCategoryName($tokens['stems']);
+
+        // Прямое совпадение по товару всегда выше совпадения по категории:
+        // на «слинг» сначала «Слинг-рюкзак Babybjorn», потом остальные переноски.
         if ($exact !== []) {
-            return new SearchResult($exact, SearchResult::TIER_EXACT);
+            return new SearchResult(
+                $this->mergePreservingOrder($exact, $byCategory),
+                SearchResult::TIER_EXACT
+            );
+        }
+
+        if ($byCategory !== []) {
+            return new SearchResult($byCategory, SearchResult::TIER_CATEGORY);
         }
 
         // Одно слово уже искалось как обязательное — OR-проход дал бы то же самое.
@@ -48,6 +59,79 @@ class ProductSearch
         }
 
         return SearchResult::empty();
+    }
+
+    /**
+     * Модели категорий, чьё название содержит ВСЕ основы запроса.
+     *
+     * Зачем: владелец ведёт таксономию («Эргорюкзаки, слинги, туристические
+     * рюкзаки» — 16 моделей), а поиск её не видел, потому что MATCH идёт только
+     * по колонкам самой модели. Внутри этой категории нет ни одного товара со
+     * словом «эргорюкзак» в названии — там «Эргономичный рюкзак» и «Нагрудная
+     * сумка». Отсюда 1 результат вместо 19.
+     *
+     * Почему LIKE, а не ещё один FULLTEXT: категорий всего ~120, полный скан
+     * стоит копейки, а в их названиях полно слов короче ft_min_word_len
+     * («дуги», «мойка»), которые FULLTEXT просто не увидел бы.
+     *
+     * Почему ВСЕ основы, а не любая: иначе «коляска babyzen» перестала бы
+     * сужаться — одна основа «коляск» подтянула бы всю категорию колясок.
+     * Требование всех слов держит ту же семантику, что и основной проход.
+     *
+     * @param string[] $stems
+     * @return int[]
+     */
+    private function byCategoryName(array $stems): array
+    {
+        $conditions = [];
+        $bindings = [];
+        foreach ($stems as $stem) {
+            $conditions[] = 'c.rent_cat_name LIKE ?';
+            $bindings[] = '%' . $this->escapeLike($stem) . '%';
+        }
+
+        $rows = DB::select(
+            'SELECT DISTINCT w.model_id
+             FROM tovar_rent_cat c
+             INNER JOIN tovar_rent tr ON tr.tovar_rent_cat_id = c.tovar_rent_cat_id
+             INNER JOIN rent_model_web w ON w.model_id = tr.tovar_rent_id
+             WHERE (' . implode(' AND ', $conditions) . ')
+               AND w.status = ?
+               AND EXISTS (SELECT 1 FROM tovar_rent_items t WHERE t.model_id = w.model_id)
+             ORDER BY w.model_id DESC',
+            array_merge($bindings, ['show'])
+        );
+
+        return array_map(static function ($row) {
+            return (int) $row->model_id;
+        }, $rows);
+    }
+
+    /**
+     * Склейка с сохранением порядка первого списка и без дублей.
+     *
+     * @param int[] $primary
+     * @param int[] $secondary
+     * @return int[]
+     */
+    private function mergePreservingOrder(array $primary, array $secondary): array
+    {
+        $seen = array_flip($primary);
+        $merged = $primary;
+        foreach ($secondary as $id) {
+            if (!isset($seen[$id])) {
+                $merged[] = $id;
+                $seen[$id] = true;
+            }
+        }
+
+        return $merged;
+    }
+
+    /** Экранирует спецсимволы LIKE, чтобы «100%» в запросе не стал wildcard-ом. */
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $value);
     }
 
     /**
