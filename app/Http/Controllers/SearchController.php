@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\MyClasses\CatMainPage;
+use App\MyClasses\Search\ProductSearch;
 use App\MyClasses\L2ModelWeb;
 use bb\classes\Model;
 use bb\classes\ModelWeb;
@@ -44,7 +45,8 @@ class SearchController extends Controller
         $p->setH1Title('Результаты поиска по запросу: "'.$text.'"');
         $p->addBreadCrumbItem('поиск', '');
 
-        $modelIdArray = ModelWeb::getModelIdsFullTextSearch($text);
+        $searchResult = (new ProductSearch())->find($text);
+        $modelIdArray = $searchResult->getModelIds();
         $page = max(1, (int) $req->input('page', 1));
         $total = $this->buildPageModels($p, $modelIdArray, $page);
 
@@ -58,6 +60,9 @@ class SearchController extends Controller
             'currentPage' => $page,
             'totalPages' => (int) ceil($total / self::LISTING_LIMIT),
             'paginationBase' => '/ru/search?search=' . urlencode($text),
+            'searchQuery' => $text,
+            'searchTier' => $searchResult->getTier(),
+            'totalFound' => $total,
         ]);
     }
 
