@@ -20,10 +20,12 @@ use Illuminate\Support\Facades\DB;
 class ProductSearch
 {
     /**
-     * Должно совпадать со списком колонок FULLTEXT-индекса, иначе MySQL ответит
-     * "Can't find FULLTEXT index matching the column list".
+     * Должно ПОБУКВЕННО совпадать со списком колонок индекса ft_search, иначе
+     * MySQL ответит "Can't find FULLTEXT index matching the column list".
+     *
+     * @see database/migrations/2026_08_31_100100_add_keywords_to_model_web_fulltext.php
      */
-    private const MATCH_FIELDS = 'w.title, w.l2_name, w.item_name_main';
+    private const MATCH_FIELDS = 'w.title, w.l2_name, w.item_name_main, w.keywords';
 
     public function find(string $query): SearchResult
     {

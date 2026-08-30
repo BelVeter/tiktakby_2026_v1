@@ -114,6 +114,56 @@ class ProductSearchTest extends TestCase
         $this->assertSame(0, $withoutItems);
     }
 
+    /**
+     * keywords — единственное поле, которым владелец может вручную «дотянуть»
+     * товар до запроса, не переименовывая сам товар. Заполнено у 797 моделей
+     * из 848 и до этой задачи в поиске не участвовало.
+     */
+    public function test_keywords_field_is_searchable(): void
+    {
+        $row = DB::table('rent_model_web as w')
+            ->where('w.status', 'show')
+            ->whereExists(function ($q) {
+                $q->select(DB::raw(1))->from('tovar_rent_items as t')
+                  ->whereColumn('t.model_id', 'w.model_id');
+            })
+            ->select('w.web_id', 'w.model_id', 'w.keywords')
+            ->first();
+
+        $this->assertNotNull($row);
+
+        // rent_model_web — MyISAM, транзакций нет: DatabaseTransactions этот
+        // update не откатит, поэтому возвращаем значение руками.
+        try {
+            DB::table('rent_model_web')->where('web_id', $row->web_id)
+                ->update(['keywords' => 'зюзюблик']);
+
+            $this->assertContains((int) $row->model_id, $this->search('зюзюблик')->getModelIds());
+        } finally {
+            DB::table('rent_model_web')->where('web_id', $row->web_id)
+                ->update(['keywords' => $row->keywords]);
+        }
+    }
+
+    /**
+     * Отдельный тест на существование индекса: в BOOLEAN MODE MySQL умеет
+     * искать и БЕЗ FULLTEXT-индекса, полным сканом. Без этой проверки
+     * пропавший индекс не уронил бы ни один функциональный тест — поиск
+     * продолжил бы работать, просто медленно и молча.
+     */
+    public function test_fulltext_index_covers_all_searched_columns(): void
+    {
+        $columns = DB::table('information_schema.STATISTICS')
+            ->where('TABLE_SCHEMA', DB::raw('DATABASE()'))
+            ->where('TABLE_NAME', 'rent_model_web')
+            ->where('INDEX_NAME', 'ft_search')
+            ->orderBy('SEQ_IN_INDEX')
+            ->pluck('COLUMN_NAME')
+            ->all();
+
+        $this->assertSame(['title', 'l2_name', 'item_name_main', 'keywords'], $columns);
+    }
+
     public function test_result_ids_are_unique(): void
     {
         $ids = $this->search('коляска')->getModelIds();
