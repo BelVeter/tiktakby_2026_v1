@@ -41,6 +41,24 @@ class CustomersTest extends McpTestCase
         $this->assertGreaterThan(0, $q1['new_active_clients']);
     }
 
+    public function test_timeline_returning_clients_independent_of_request_from(): void
+    {
+        // Regression: returning/new_active used to be classified against the
+        // request's global `from` instead of each bucket's own start, so the
+        // same calendar month reported different returning_clients depending
+        // on how far back `from` was. It must now be stable.
+        $narrow = collect($this->mcp('customers/timeline', ['from' => '2024-06-01', 'to' => '2024-06-30', 'granularity' => 'month'])->json('data'))
+            ->firstWhere('period', '2024-06');
+        $wide = collect($this->mcp('customers/timeline', ['from' => '2014-01-01', 'to' => '2024-12-31', 'granularity' => 'month'])->json('data'))
+            ->firstWhere('period', '2024-06');
+
+        $this->assertNotNull($narrow);
+        $this->assertNotNull($wide);
+        $this->assertSame($narrow['returning_clients'], $wide['returning_clients']);
+        $this->assertSame($narrow['new_active_clients'], $wide['new_active_clients']);
+        $this->assertSame($narrow['active_clients'], $wide['active_clients']);
+    }
+
     // ─── /customers/cohorts ───────────────────────────────────────────────
 
     public function test_cohorts_envelope_and_structure(): void

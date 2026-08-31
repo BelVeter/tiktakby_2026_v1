@@ -165,4 +165,39 @@ class RangeRequest extends FormRequest
     {
         return str_replace('{col}', $column, $this->granularityFormat());
     }
+
+    /**
+     * MySQL expression for the UNIX timestamp of the start of the bucket
+     * (matching the requested granularity) that {col}'s own value falls into.
+     * Evaluated per-row, so it lets a query classify each row against ITS OWN
+     * period boundary instead of a single scalar bound like the request's
+     * `from` — needed when a query GROUPs BY granularityFormatFor() but also
+     * needs to compare a second date column per bucket (e.g. "was this client
+     * registered before this bucket started").
+     */
+    public function granularityPeriodStartFor(string $column): string
+    {
+        $date = "FROM_UNIXTIME({$column})";
+
+        switch ($this->input('granularity')) {
+            case 'day':
+                $expr = "DATE({$date})";
+                break;
+            case 'week':
+                $expr = "DATE_SUB(DATE({$date}), INTERVAL WEEKDAY({$date}) DAY)";
+                break;
+            case 'quarter':
+                $expr = "MAKEDATE(YEAR({$date}), 1) + INTERVAL (QUARTER({$date}) - 1) QUARTER";
+                break;
+            case 'year':
+                $expr = "MAKEDATE(YEAR({$date}), 1)";
+                break;
+            case 'month':
+            default:
+                $expr = "DATE_FORMAT({$date}, '%Y-%m-01')";
+                break;
+        }
+
+        return "UNIX_TIMESTAMP({$expr})";
+    }
 }

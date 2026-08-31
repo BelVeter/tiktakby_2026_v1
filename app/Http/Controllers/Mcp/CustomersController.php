@@ -113,8 +113,9 @@ class CustomersController extends BaseController
             $carnIds = $this->carnivalCatIds();
             $carnPh  = $carnIds ? implode(',', array_fill(0, count($carnIds), '?')) : null;
 
-            $newPeriod    = $request->granularityFormatFor('cr_time');
-            $activePeriod = $request->granularityFormatFor('da.cr_time');
+            $newPeriod         = $request->granularityFormatFor('cr_time');
+            $activePeriod      = $request->granularityFormatFor('da.cr_time');
+            $activePeriodStart = $request->granularityPeriodStartFor('da.cr_time');
 
             $newRows = DB::select("
                 SELECT {$newPeriod} AS period, COUNT(*) AS cnt
@@ -133,12 +134,15 @@ class CustomersController extends BaseController
             }
             $activeWhereSql = implode(' AND ', $activeWhere);
 
-            // Order of placeholders matches array_merge below.
+            // returning/new_active compare c.cr_time against the START OF EACH BUCKET
+            // ({$activePeriodStart}, derived from da.cr_time per row), not the
+            // request's global $from — otherwise a client who registered before the
+            // bucket but after $from gets misclassified as "new" in that bucket.
             $sql = "
                 SELECT {$activePeriod} AS period,
                        COUNT(DISTINCT da.client_id) AS active_cnt,
-                       COUNT(DISTINCT CASE WHEN c.cr_time < ?  THEN da.client_id END) AS returning_cnt,
-                       COUNT(DISTINCT CASE WHEN c.cr_time >= ? THEN da.client_id END) AS new_active_cnt
+                       COUNT(DISTINCT CASE WHEN c.cr_time < {$activePeriodStart}  THEN da.client_id END) AS returning_cnt,
+                       COUNT(DISTINCT CASE WHEN c.cr_time >= {$activePeriodStart} THEN da.client_id END) AS new_active_cnt
                 FROM {$daSub} da
                 LEFT JOIN clients c ON c.client_id = da.client_id
                 {$activeJoins}
@@ -147,7 +151,7 @@ class CustomersController extends BaseController
             ";
             $activeRows = DB::select(
                 $sql,
-                array_merge([$from, $from, $from, $to], $activeParams)
+                array_merge([$from, $to], $activeParams)
             );
 
             $byPeriod = [];
