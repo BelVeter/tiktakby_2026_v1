@@ -1273,10 +1273,15 @@
                 return;
             }
 
-            // Render cart items
-            loadingEl.style.display = 'none';
-            contentEl.style.display = 'block';
-            renderCart(items);
+            // item.tariffs — снимок тарифа на момент добавления в корзину (см. data-tariffs
+            // в l2/l3 add-to-cart). Он лежит в localStorage сколько угодно, а тариф в БД за
+            // это время мог измениться — подтягиваем актуальные тарифы перед рендером и
+            // обновляем ими корзину в localStorage.
+            refreshCartTariffs(items, function () {
+                loadingEl.style.display = 'none';
+                contentEl.style.display = 'block';
+                renderCart(items);
+            });
 
             // Delivery radio toggle
             var deliveryRadios = document.querySelectorAll('[name="cart_delivery"]');
@@ -1309,6 +1314,45 @@
                 renderDesktopTable(items);
                 renderMobileCards(items);
                 updateTotal(items);
+            }
+
+            // Тянет свежие тарифы из БД (/cart/tariffs) для всех товаров корзины,
+            // обновляет item.tariffs и пересохраняет корзину в localStorage.
+            // Сеть недоступна/ошибка — рендерим с последними закэшированными тарифами:
+            // это лучше, чем ничего не показать, а чекаут всё равно пересчитает сумму на сервере.
+            function refreshCartTariffs(items, callback) {
+                var ids = items.map(function (item) { return item.modelId; });
+
+                var csrfToken = document.querySelector('meta[name="csrf-token"]');
+                var token = csrfToken ? csrfToken.getAttribute('content') : '';
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/cart/tariffs', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('X-CSRF-TOKEN', token);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.tariffs) {
+                                items.forEach(function (item) {
+                                    var fresh = data.tariffs[item.modelId];
+                                    if (fresh && fresh.tariffs && fresh.tariffs.length > 0) {
+                                        item.tariffs = fresh.tariffs;
+                                    }
+                                });
+                                TiktakCart.saveItems(items);
+                            }
+                        } catch (e) { /* оставляем закэшированные тарифы */ }
+                    }
+                    callback();
+                };
+
+                xhr.onerror = function () { callback(); };
+
+                xhr.send(JSON.stringify({ ids: ids }));
             }
 
             function renderDesktopTable(items) {
