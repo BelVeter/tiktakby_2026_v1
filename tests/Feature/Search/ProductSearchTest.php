@@ -255,6 +255,23 @@ class ProductSearchTest extends TestCase
         $this->assertSame(['title', 'l2_name', 'item_name_main', 'keywords'], $columns);
     }
 
+    /**
+     * При ревью keywords по всему каталогу 8% записей упирались ровно в
+     * старый лимит 256 символов и обрывались посреди слова. Колонку
+     * расширили до 512 — этот тест фиксирует новую границу.
+     */
+    public function test_keywords_column_is_wide_enough(): void
+    {
+        $row = DB::table('information_schema.COLUMNS')
+            ->where('TABLE_SCHEMA', DB::raw('DATABASE()'))
+            ->where('TABLE_NAME', 'rent_model_web')
+            ->where('COLUMN_NAME', 'keywords')
+            ->first();
+
+        $this->assertSame(512, (int) $row->CHARACTER_MAXIMUM_LENGTH);
+        $this->assertSame('utf8mb4', $row->CHARACTER_SET_NAME);
+    }
+
     public function test_result_ids_are_unique(): void
     {
         $ids = $this->search('коляска')->getModelIds();
