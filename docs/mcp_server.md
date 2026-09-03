@@ -186,6 +186,8 @@ Categories enum: `all|children|costumes|medical|cleaning|sports|tools` —
 |        | `PATCH /redirects/{id}` | Partial update — only provided fields are modified. At least one field required. `comment` max 255 chars. |
 |        | `DELETE /redirects/{id}` | Delete redirect by id. |
 |        | `POST /redirects/bulk` | Bulk upsert up to 200 redirects. Body: `{"redirects": [...]}`. `comment` max 255 chars. Uses `INSERT … ON DUPLICATE KEY UPDATE` on `source_url`. All writes immediately clear `redirects_exact_map` + `redirects_regex_list` cache keys used by `CheckRedirects` middleware. |
+| Staff  | `GET /staff/page-visits/by-user` | Per-employee `bb/` admin panel usage: visit count, distinct pages, last visit. Filters: `from`, `to`, `page`. Backed by `bb_page_visits`, written by `bb/classes/PageVisitTracker.php` on every non-technical `bb/` page request. |
+|        | `GET /staff/page-visits/by-page` | Per `bb/` page usage, sorted ascending by visits — pages nobody opens surface first (`visits: 0`). Filters: `from`, `to`, `user_id`. |
 
 ## Ledger entry model (`/finance/entries*`)
 

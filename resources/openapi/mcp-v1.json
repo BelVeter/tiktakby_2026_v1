@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "TikTak.by MCP Analytics API",
-        "version": "2.5.0",
+        "version": "2.6.0",
         "description": "Read-only analytics API powering the local MCP server (tiktak-mcp). All endpoints return a `{query, data, meta}` envelope. All amounts are in BYN.\n\n## Methodology (locked 2026-05-14)\n\nNumbers reproduce the legacy admin reports /bb/reports.php, /bb/sales_breakdown.php, /bb/dohrash2.php, /bb/cat_analysis.php:\n\n- **Revenue** = SUM(r_paid + delivery_paid) over UNION(rent_sub_deals_act, rent_sub_deals_arch), filtered by `acc_date` (accounting date — when the payment landed). Not by parent deal's `cr_time`.\n- **Deal/return counts** read UNION(rent_deals_act, rent_deals_arch). The `_act` table holds ~430 currently-open deals; querying only `_arch` would miss them.\n- **Office attribution** uses sub_deal.place + delivery_yn (per-payment), not deal.first_rent_place (per-deal). A deal opened at office 1 but extended at office 2 contributes to BOTH.\n- **Carnival** items are detected via tovar_rent_cat.cat_type=1. Numeric endpoints accept `include_carnival` (default true). When include_carnival=true /finance/pnl still splits revenue into revenue_carnival_byn / revenue_non_carnival_byn.\n- **Inventory** at date X counts both tovar_rent_items (buy_date <= X) and tovar_rent_items_arch (buy_date <= X AND arch_time >= X) — matches tovar::getTovNumberForCatsForDate.\n- **/inventory/utilization** denominator uses average of unit counts at period start and end.\n\n## Notes on amount serialization\n\nAmount fields suffixed `_byn` are returned either as JSON numbers or as decimal strings, depending on the endpoint:\n- Endpoints that compute the amount in PHP (e.g. /finance/pnl rolls up expense buckets and casts to float) return numbers.\n- Endpoints that pass MariaDB ROUND(..., 2) results straight through (DECIMAL columns) return JSON strings such as `\"424231.72\"`. Always parse `_byn` fields as numeric.\n\nAccess: Bearer token (MCP_API_TOKEN), GeoIP-restricted to BY/RU, rate-limited to 60 req/min."
     },
     "servers": [
@@ -2811,6 +2811,51 @@
                         "type": "string"
                     }
                 }
+            },
+            "StaffPageVisitsByUserRow": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "user_name": {
+                        "type": "string"
+                    },
+                    "visits": {
+                        "type": "integer"
+                    },
+                    "distinct_pages": {
+                        "type": "integer"
+                    },
+                    "last_visit_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "StaffPageVisitsByPageRow": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "string"
+                    },
+                    "visits": {
+                        "type": "integer"
+                    },
+                    "distinct_users": {
+                        "type": "integer"
+                    },
+                    "last_visit_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
             }
         },
         "responses": {
@@ -4436,6 +4481,56 @@
                                     "type": "string"
                                 }
                             }
+                        }
+                    }
+                }
+            },
+            "StaffPageVisitsByUserEnvelope": {
+                "description": "Staff page-visits by-user envelope.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Envelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/StaffPageVisitsByUserRow"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "StaffPageVisitsByPageEnvelope": {
+                "description": "Staff page-visits by-page envelope.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Envelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/StaffPageVisitsByPageRow"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -7686,6 +7781,60 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationError"
+                    }
+                }
+            }
+        },
+        "/staff/page-visits/by-user": {
+            "get": {
+                "operationId": "tiktak_staff_page_visits_by_user",
+                "summary": "Per-employee bb/ admin panel usage: visit count, distinct pages, last visit. Backed by bb_page_visits, written by bb/classes/PageVisitTracker.php on every non-technical bb/ page request.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/from"
+                    },
+                    {
+                        "$ref": "#/components/parameters/to"
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Exact bb/ page filename (e.g. 'deals.php') — narrow to who visited that one page."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/StaffPageVisitsByUserEnvelope"
+                    }
+                }
+            }
+        },
+        "/staff/page-visits/by-page": {
+            "get": {
+                "operationId": "tiktak_staff_page_visits_by_page",
+                "summary": "Per bb/ admin page usage: visit count, distinct employees, last visit. Includes every real page from the catalog with visits=0 when nobody opened it in the period — surfaces unused/dead admin pages. Sorted ascending by visits.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/from"
+                    },
+                    {
+                        "$ref": "#/components/parameters/to"
+                    },
+                    {
+                        "in": "query",
+                        "name": "user_id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Restrict to one employee's visits (logpass.logpass_id)."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/StaffPageVisitsByPageEnvelope"
                     }
                 }
             }

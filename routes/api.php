@@ -20,6 +20,7 @@ use App\Http\Controllers\Mcp\PagesProductController;
 use App\Http\Controllers\Mcp\PricingController;
 use App\Http\Controllers\Mcp\RedirectsController;
 use App\Http\Controllers\Mcp\SmsController;
+use App\Http\Controllers\Mcp\StaffController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -168,4 +169,8 @@ Route::prefix('mcp/v1')
         Route::post('redirects',          [RedirectsController::class, 'store'])->name('redirects.store');
         Route::patch('redirects/{id}',    [RedirectsController::class, 'update'])->name('redirects.update')->where('id', '[0-9]+');
         Route::delete('redirects/{id}',   [RedirectsController::class, 'destroy'])->name('redirects.destroy')->where('id', '[0-9]+');
+
+        // Staff CRM usage tracking (2026-09-03)
+        Route::get('staff/page-visits/by-user', [StaffController::class, 'byUser'])->name('staff.page-visits.by-user');
+        Route::get('staff/page-visits/by-page', [StaffController::class, 'byPage'])->name('staff.page-visits.by-page');
     });
