@@ -1,7 +1,11 @@
 php_flag display_errors Off
-php_value auto_prepend_file /var/www/html/bb/classes/PageVisitTracker.php
-# Прод (cPanel/hoster.by): раскомментировать строку с реальным абсолютным
-# путём (узнать через `pwd` в SSH-сессии на проде — обычно
-# /home/<cpanel-логин>/public_html/bb/classes/PageVisitTracker.php) и
-# закомментировать строку выше с Docker-путём. См. docs/prod_pending.md.
-#php_value auto_prepend_file /home/CPANEL_USER/public_html/bb/classes/PageVisitTracker.php
+php_value auto_prepend_file /var/www/h149208/data/www/tiktak.by/bb/classes/PageVisitTracker.php
+# Прод-путь подтверждён через SSH (ispmanager, vh164.hoster.by, аккаунт h149208)
+# 03.09.2026 — совпадает с site_root в ~/.secrets/tiktak-ssh-hosting.json.
+# Деплоится автоматически через Deploy.php (git reset --hard), без ручной
+# правки на проде. ⚠️ Относительный путь тут не работает — PHP резолвит его
+# относительно каталога самого запрошенного скрипта, а не bb/.htaccess:
+# bb/bron/rent_orders.php (подкаталог) 500-ит с относительным путём (проверено
+# 03.09.2026), поэтому только абсолютный. Для локальной разработки в Docker —
+# закомментировать строку выше и раскомментировать строку ниже.
+#php_value auto_prepend_file /var/www/html/bb/classes/PageVisitTracker.php
