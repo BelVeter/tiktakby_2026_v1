@@ -79,7 +79,19 @@ Laravel-миграция (миграции на проде снова рабоч
 выносится в один класс `bb\classes\PageVisitCatalog`:
 
 - `isTechnical(string $filename): bool` — начинается на `ajax_`, оканчивается на
-  `_api.php` или `_badge.php`.
+  `_api.php`/`_badge.php`, либо входит в жёсткий список `LIBRARY_FILES` — 18
+  топ-уровневых `bb/*.php` файлов, которые физически являются классами
+  (`namespace bb; class X {...}`) и никогда не открываются по URL: `Base.php`,
+  `base_lowercase.php`, `client.php`, `Db.php`, `DealRow.php`, `Delivery.php`,
+  `DeliveryPage.php`, `DohRash.php`, `KarnavalBron.php`, `Kassa.php`, `KBron.php`,
+  `KBronForm.php`, `Office.php`, `Payment.php`, `Schedule.php`, `Signature.php`,
+  `tovar.php`, `User.php`. Список выверен вручную 03.09.2026 (не автоматическим
+  сканированием — «объявляет `class` и нигде не вызывает `session_start()` на верхнем
+  уровне файла» ловит почти все, но `Base.php` вызывает `session_start()` внутри одного
+  из своих статических методов-хелперов, а несколько реальных страниц с легаси-паттерном
+  «страница + inline-класс в одном файле» — `dogovor.php`, `dogovor_new.php`, `kch.php`,
+  `akt_print.php` и др. — объявляют класс, но сами являются страницами; оба случая
+  проверены вручную и закреплены регрессионным тестом в `PageVisitCatalogTest`).
 - `listTrackablePages(): array` — `glob(bb/*.php)`, basename, минус `isTechnical()`.
 
 Файл лежит в `bb/classes/`, поэтому доступен двумя способами без дублирования кода:
