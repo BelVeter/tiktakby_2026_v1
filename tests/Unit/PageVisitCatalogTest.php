@@ -29,6 +29,7 @@ class PageVisitCatalogTest extends TestCase
         $this->assertTrue(PageVisitCatalog::isTechnical('Db.php'));
         $this->assertTrue(PageVisitCatalog::isTechnical('tovar.php'));
         $this->assertTrue(PageVisitCatalog::isTechnical('client.php'));
+        $this->assertTrue(PageVisitCatalog::isTechnical('Base.php'));
     }
 
     public function test_real_page_is_not_technical(): void
@@ -36,6 +37,20 @@ class PageVisitCatalogTest extends TestCase
         $this->assertFalse(PageVisitCatalog::isTechnical('deals.php'));
         $this->assertFalse(PageVisitCatalog::isTechnical('tovar_new.php'));
         $this->assertFalse(PageVisitCatalog::isTechnical('kr_baza_new.php'));
+    }
+
+    /**
+     * dogovor.php, dogovor_new.php, kch.php, akt_print.php etc. all declare an
+     * inline helper class/function *inside* a real page (legacy pattern), so a
+     * naive "declares a class" check alone would wrongly exclude them — only
+     * genuinely bare namespace+class library files belong in the exclusion.
+     */
+    public function test_real_page_with_inline_class_is_not_technical(): void
+    {
+        $this->assertFalse(PageVisitCatalog::isTechnical('dogovor.php'));
+        $this->assertFalse(PageVisitCatalog::isTechnical('dogovor_new.php'));
+        $this->assertFalse(PageVisitCatalog::isTechnical('kch.php'));
+        $this->assertFalse(PageVisitCatalog::isTechnical('akt_print.php'));
     }
 
     public function test_list_trackable_pages_excludes_technical_and_library_files(): void

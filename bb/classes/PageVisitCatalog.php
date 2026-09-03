@@ -24,6 +24,7 @@ class PageVisitCatalog
      */
     private const LIBRARY_FILES = [
         'base_lowercase.php',
+        'Base.php',
         'client.php',
         'Db.php',
         'DealRow.php',
