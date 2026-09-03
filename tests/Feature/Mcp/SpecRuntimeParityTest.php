@@ -101,6 +101,10 @@ class SpecRuntimeParityTest extends McpTestCase
             'pricing/history'              => ['pricing/history',              ['limit' => 5],                                                                'array_row', null],
             'pricing/snapshot'             => ['pricing/snapshot',             ['as_of' => '2026-01-01'],                                                     'array_row', null],
             'operations/deals-by-model'    => ['operations/deals-by-model',    $range + ['granularity' => 'month'],                                           'array_row', null],
+
+            // Staff (CRM usage tracking, 2026-09-03)
+            'staff/page-visits/by-user'    => ['staff/page-visits/by-user',    [],                                                                            'array_row', null],
+            'staff/page-visits/by-page'    => ['staff/page-visits/by-page',    [],                                                                            'array_row', null],
         ];
     }
 
@@ -186,7 +190,7 @@ class SpecRuntimeParityTest extends McpTestCase
     public function test_spec_version_matches(): void
     {
         $this->assertSame(
-            '2.5.0',
+            '2.6.0',
             $this->spec['info']['version'],
             'bumping spec without updating this assertion is a footgun — update both together'
         );
