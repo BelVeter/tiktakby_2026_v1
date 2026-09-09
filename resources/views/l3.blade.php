@@ -5,6 +5,7 @@
 
 @section('page-title', $p->getPageTitle())
 @section('meta-description', $p->getMetaDescription())
+@section('og-image', 'https://tiktak.by' . $p->getPicsForSlider()[0]->getSrc())
 
 @section('style')
   <link rel="stylesheet" href="/public/css/pages/l2.css?v=4">
