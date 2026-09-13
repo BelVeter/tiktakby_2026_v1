@@ -97,6 +97,21 @@
   <meta name="robots" content="{{ $robots }}">
   @endisset
   <link rel="canonical" href="{{ $final_canonical }}">
+
+  @php
+      $ogImageDefault = 'https://tiktak.by/public/img/prokat-detskih-koliasok-minsk.jpg';
+  @endphp
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TikTak.by">
+  <meta property="og:title" content="@yield('page-title')">
+  <meta property="og:description" content="@yield('meta-description')">
+  <meta property="og:url" content="{{ $final_canonical }}">
+  <meta property="og:image" content="@yield('og-image', $ogImageDefault)">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="@yield('page-title')">
+  <meta name="twitter:description" content="@yield('meta-description')">
+  <meta name="twitter:image" content="@yield('og-image', $ogImageDefault)">
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
