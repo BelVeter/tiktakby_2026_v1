@@ -40,6 +40,4 @@ echo json_encode(array(
     'moved_to_tomorrow' => DeliverySchedule::isMovedToTomorrow(true),
     'delivery_text' => DeliverySchedule::text(),
     'hint' => DeliverySchedule::switchHint(),
-    'yandex_text' => DeliverySchedule::yandexStatus(),
-    'yandex_on' => DeliverySchedule::isYandexAvailableNow(),
 ), JSON_UNESCAPED_UNICODE);

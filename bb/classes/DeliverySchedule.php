@@ -165,18 +165,6 @@ class DeliverySchedule
     // --------------------------------------------- подписи для страницы курьера
 
     /**
-     * Вторая строка так, как её видит сотрудник в админке.
-     *
-     * @return string
-     */
-    public static function yandexStatus()
-    {
-        return self::isYandexAvailableNow()
-            ? self::yandexText()
-            : 'Яндекс-доставка скрыта — салон закрыт';
-    }
-
-    /**
      * Подпись под переключателем на странице курьера.
      *
      * Живёт здесь, а не в шаблоне, потому что её показывают оба места:
@@ -193,8 +181,7 @@ class DeliverySchedule
         $change = self::lastChangeToday();
 
         if (self::isMovedToTomorrow()) {
-            return ($change ? 'Переключено' . $change . '. ' : '')
-                . 'Снимется само завтра утром';
+            return $change ? 'Переключено' . $change : '';
         }
 
         // сегодня уже трогали, но вернули обратно — это тоже стоит показать
