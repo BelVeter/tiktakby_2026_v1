@@ -164,10 +164,6 @@ echo '
 			card.className = 'delivery-switch' + (answer.moved_to_tomorrow ? ' is-moved' : '');
 			document.getElementById('delivery_switch_state').innerHTML = 'Доставка: ' + answer.delivery_text;
 			document.getElementById('delivery_switch_hint').innerHTML = answer.hint;
-
-			var yandex = document.getElementById('delivery_switch_yandex');
-			yandex.innerHTML = answer.yandex_text;
-			yandex.className = 'delivery-switch__yandex' + (answer.yandex_on ? '' : ' is-off');
 		}
 	}// end of toggle_delivery_day
 
@@ -531,7 +527,7 @@ echo '
 ';
 include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
 echo '
-<link rel="stylesheet" href="/bb/bb_courier.css?v=5">
+<link rel="stylesheet" href="/bb/bb_courier.css?v=6">
 <div class="courier-container">
 
 
@@ -1010,8 +1006,6 @@ if (isset($sort_order)) {
 $delivery_moved = DeliverySchedule::isMovedToTomorrow();
 $delivery_text = DeliverySchedule::text();
 $delivery_hint = DeliverySchedule::switchHint();
-$delivery_yandex = DeliverySchedule::yandexStatus();
-$delivery_yandex_on = DeliverySchedule::isYandexAvailableNow();
 $delivery_courier_day = DeliverySchedule::isCourierWorkingDay();
 
 echo '
@@ -1026,7 +1020,6 @@ echo '
 				<span class="delivery-switch__title">В карточках товара на сайте:
 					<b id="delivery_switch_state">Доставка: ' . $delivery_text . '</b>
 				</span>
-				<span class="delivery-switch__yandex' . ($delivery_yandex_on ? '' : ' is-off') . '" id="delivery_switch_yandex">' . $delivery_yandex . '</span>
 				<span class="delivery-switch__hint" id="delivery_switch_hint">' . $delivery_hint . '</span>
 			</div>
 			<label class="delivery-switch__control">
