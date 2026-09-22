@@ -248,3 +248,151 @@ body {
     gap: 10px;
     align-items: center;
 }
+/* Переключатель «Доставка: сегодня / завтра» в карточках товара на сайте */
+.delivery-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-left: 4px solid var(--primary-accent);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    padding: 12px 18px;
+    margin-bottom: 14px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.delivery-switch.is-moved {
+    background: var(--warning-soft);
+    border-left-color: #fb8c00;
+}
+
+.delivery-switch.is-saving {
+    opacity: 0.6;
+}
+
+.delivery-switch__icon {
+    flex: none;
+    color: var(--primary-accent);
+}
+
+.delivery-switch.is-moved .delivery-switch__icon {
+    color: #fb8c00;
+}
+
+.delivery-switch__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-right: auto;
+}
+
+.delivery-switch__title {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.delivery-switch__title b {
+    color: var(--text-main);
+    font-size: 15px;
+}
+
+.delivery-switch__yandex {
+    font-size: 13px;
+    font-weight: 600;
+    color: #b45309;
+}
+
+.delivery-switch__yandex.is-off {
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.delivery-switch__hint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Сам тумблер */
+.delivery-switch__control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    flex: none;
+}
+
+.delivery-switch__label {
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.delivery-switch__control input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.delivery-switch__slider {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    border-radius: 13px;
+    background: #cfd4d9;
+    transition: background-color 0.2s;
+    flex: none;
+}
+
+.delivery-switch__slider::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.delivery-switch__control input:checked+.delivery-switch__slider {
+    background: #fb8c00;
+}
+
+.delivery-switch__control input:checked+.delivery-switch__slider::before {
+    transform: translateX(20px);
+}
+
+.delivery-switch__control input:focus+.delivery-switch__slider {
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.25);
+}
+
+.delivery-switch__control input:disabled+.delivery-switch__slider {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+/* в выходные курьер не ездит — тумблер отключён вместе с подписью */
+.delivery-switch__control:focus-within .delivery-switch__slider {
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.25);
+}
+
+@media (max-width: 640px) {
+    .delivery-switch {
+        flex-wrap: wrap;
+    }
+
+    .delivery-switch__text {
+        margin-right: 0;
+        width: calc(100% - 34px);
+    }
+
+    .delivery-switch__control {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

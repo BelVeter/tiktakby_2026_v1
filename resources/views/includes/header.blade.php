@@ -846,9 +846,12 @@
                                 </div>
                                 <div class="om-info-card">
                                     <div class="om-label">🕐 Часы работы</div>
+                                    {{-- Часы — из bb\classes\SalonHours: тот же источник,
+                                         что у микроразметки и у строки «Яндекс-доставка сегодня»
+                                         в карточке товара. Правим там, меняется везде. --}}
                                     <div class="om-val">
-                                        пн–пт: 10:00–19:00<br>
-                                        сб, вс: 10:00–15:00
+                                        {{ \bb\classes\SalonHours::weekdayLine() }}<br>
+                                        {{ \bb\classes\SalonHours::weekendLine() }}
                                     </div>
                                 </div>
                             </div>
