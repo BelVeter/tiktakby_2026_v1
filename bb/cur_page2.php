@@ -2,6 +2,7 @@
 
 use bb\Base;
 use bb\classes\CurKassaLine;
+use bb\classes\DeliverySchedule;
 use bb\classes\SpeedTrack;
 use bb\Db;
 use bb\DealRow;
@@ -49,6 +50,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Collateral.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Deal.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/SpeedTrack.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/CurKassaLine.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/DeliverySchedule.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/classes/Permission.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php');
 
@@ -125,6 +127,49 @@ echo '
 			}
 		}
 	}// end of choose_item
+
+
+	// Переключатель «Доставка: сегодня/завтра» в карточках товара на сайте.
+	// Флаг привязан к дате и снимается сам в полночь — см. bb/classes/DeliverySchedule.php
+	function toggle_delivery_day(checkbox) {
+
+		var card = document.getElementById('delivery_switch_card');
+		var on = checkbox.checked;
+
+		checkbox.disabled = true;
+		card.className = 'delivery-switch is-saving' + (on ? ' is-moved' : '');
+
+		var xmlhttp = getXmlHttp();
+		xmlhttp.open("POST", '/bb/cur_delivery_day.php', true);
+		xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		xmlhttp.send('moved_to_tomorrow=' + (on ? '1' : '0'));
+
+		xmlhttp.onreadystatechange = function () {
+			if (xmlhttp.readyState != 4) { return; }
+
+			checkbox.disabled = false;
+
+			var answer = null;
+			try { answer = JSON.parse(xmlhttp.responseText); } catch (e) { answer = null; }
+
+			if (xmlhttp.status != 200 || !answer || !answer.ok) {
+				// откатываем переключатель — на сайте ничего не поменялось
+				checkbox.checked = !on;
+				card.className = 'delivery-switch' + (checkbox.checked ? ' is-moved' : '');
+				alert(answer && answer.error ? answer.error : 'Не удалось сохранить — сообщите Диме.');
+				return;
+			}
+
+			checkbox.checked = answer.moved_to_tomorrow;
+			card.className = 'delivery-switch' + (answer.moved_to_tomorrow ? ' is-moved' : '');
+			document.getElementById('delivery_switch_state').innerHTML = 'Доставка: ' + answer.delivery_text;
+			document.getElementById('delivery_switch_hint').innerHTML = answer.hint;
+
+			var yandex = document.getElementById('delivery_switch_yandex');
+			yandex.innerHTML = answer.yandex_text;
+			yandex.className = 'delivery-switch__yandex' + (answer.yandex_on ? '' : ' is-off');
+		}
+	}// end of toggle_delivery_day
 
 
 	function past_due_recalc(sub_id) {
@@ -486,7 +531,7 @@ echo '
 ';
 include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
 echo '
-<link rel="stylesheet" href="/bb/bb_courier.css?v=3">
+<link rel="stylesheet" href="/bb/bb_courier.css?v=5">
 <div class="courier-container">
 
 
@@ -959,6 +1004,41 @@ if (isset($sort_order)) {
 }
 
 
+
+
+//------- переключатель «Доставка: сегодня/завтра» в карточках товара на сайте
+$delivery_moved = DeliverySchedule::isMovedToTomorrow();
+$delivery_text = DeliverySchedule::text();
+$delivery_hint = DeliverySchedule::switchHint();
+$delivery_yandex = DeliverySchedule::yandexStatus();
+$delivery_yandex_on = DeliverySchedule::isYandexAvailableNow();
+$delivery_courier_day = DeliverySchedule::isCourierWorkingDay();
+
+echo '
+		<div class="delivery-switch' . ($delivery_moved ? ' is-moved' : '') . '" id="delivery_switch_card">
+			<svg class="delivery-switch__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<rect x="1" y="3" width="15" height="13"></rect>
+				<polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+				<circle cx="5.5" cy="18.5" r="2.5"></circle>
+				<circle cx="18.5" cy="18.5" r="2.5"></circle>
+			</svg>
+			<div class="delivery-switch__text">
+				<span class="delivery-switch__title">В карточках товара на сайте:
+					<b id="delivery_switch_state">Доставка: ' . $delivery_text . '</b>
+				</span>
+				<span class="delivery-switch__yandex' . ($delivery_yandex_on ? '' : ' is-off') . '" id="delivery_switch_yandex">' . $delivery_yandex . '</span>
+				<span class="delivery-switch__hint" id="delivery_switch_hint">' . $delivery_hint . '</span>
+			</div>
+			<label class="delivery-switch__control">
+				<span class="delivery-switch__label">Курьер уже уехал</span>
+				<input type="checkbox" id="delivery_switch_input" onchange="toggle_delivery_day(this);"'
+    . ($delivery_moved ? ' checked="checked"' : '')
+    . ($delivery_courier_day ? '' : ' disabled="disabled"') . ' />
+				<span class="delivery-switch__slider"></span>
+			</label>
+		</div>
+			    ';
+//------- конец переключателя
 
 echo '
 		<div class="courier-filters">

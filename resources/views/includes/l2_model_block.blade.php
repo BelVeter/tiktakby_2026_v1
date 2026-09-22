@@ -158,10 +158,7 @@
         {{-- Line 3: Delivery & Details (Merged) --}}
         <div class="meta-row meta-row-delivery">
           @php
-            $now = \Carbon\Carbon::now('Europe/Minsk');
-            $isWeekend = $now->isWeekend();
-            $cutoff = $isWeekend ? 13 : 17;
-            $deliveryText = $now->hour < $cutoff ? 'сегодня' : 'завтра';
+            $deliveryText = \bb\classes\DeliverySchedule::text();
           @endphp
           <div class="delivery-info">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F82D7"
@@ -174,6 +171,17 @@
           </div>
           <a href="https://tiktak.by/ru/delivery" class="meta-delivery-link">Подробнее...</a>
         </div>
+
+        {{-- Line 4: срочная Яндекс-доставка — только пока салон открыт --}}
+        @if(\bb\classes\DeliverySchedule::isYandexAvailableNow())
+          <div class="meta-row meta-row-yandex">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="yandex-icon">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>{{ \bb\classes\DeliverySchedule::yandexText() }}</span>
+          </div>
+        @endif
 
       @else
         <div class="meta-row meta-row-header">

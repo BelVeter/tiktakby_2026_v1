@@ -392,6 +392,29 @@
       }
     }
 
+    // Line 4: срочная Яндекс-доставка. Показывается только в часы работы салона —
+    // условие в l2_model_block.blade.php, часы в bb/classes/SalonHours.php
+    &.meta-row-yandex {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #b45309;
+
+      @media screen and (max-width: 767px) {
+        font-size: 15px;
+      }
+
+      .yandex-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        fill: #fbbf24;
+      }
+    }
+
     // Line 3 alternative: Request message (when not available)
     &.meta-row-request {
       .meta-request-text {

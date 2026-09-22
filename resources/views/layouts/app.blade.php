@@ -135,20 +135,7 @@
       "longitude": 27.5680041
     },
     "telephone": "+375447454040",
-    "openingHoursSpecification": [
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
-        "opens": "10:00",
-        "closes": "19:00"
-      },
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Saturday","Sunday"],
-        "opens": "10:00",
-        "closes": "15:00"
-      }
-    ],
+    "openingHoursSpecification": {!! json_encode(\bb\classes\SalonHours::schemaSpecification(), JSON_UNESCAPED_SLASHES) !!},
     "priceRange": "$$",
     "currenciesAccepted": "BYN",
     "areaServed": {
