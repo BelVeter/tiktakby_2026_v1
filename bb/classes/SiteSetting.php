@@ -26,9 +26,22 @@ class SiteSetting
      */
     public static function get($key)
     {
+        $row = self::getRow($key);
+
+        return $row ? $row['setting_value'] : null;
+    }
+
+    /**
+     * Значение вместе с журналом: кто и когда менял.
+     *
+     * @param string $key
+     * @return array|null ['setting_value', 'updated_at', 'updated_by'] или null
+     */
+    public static function getRow($key)
+    {
         $mysqli = Db::getInstance()->getConnection();
 
-        $query = "SELECT setting_value FROM `site_settings`
+        $query = "SELECT setting_value, updated_at, updated_by FROM `site_settings`
                   WHERE setting_key='" . $mysqli->real_escape_string($key) . "' LIMIT 1";
 
         try {
@@ -42,7 +55,7 @@ class SiteSetting
 
         $row = $result->fetch_assoc();
 
-        return $row ? $row['setting_value'] : null;
+        return $row ?: null;
     }
 
     /**

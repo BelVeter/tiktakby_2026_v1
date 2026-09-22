@@ -46,6 +46,9 @@ class DeliverySchedule
     /** @var bool|null Ответ БД на время одного запроса — карточек на странице десятки. */
     private static $movedToTomorrow = null;
 
+    /** @var array|false|null Журнал последнего переключения; false — записи нет. */
+    private static $lastChange = null;
+
     // ----------------------------------------------------------------- курьер
 
     /**
@@ -187,8 +190,16 @@ class DeliverySchedule
             return 'В выходные свой курьер не ездит — переключатель ничего не меняет';
         }
 
+        $change = self::lastChangeToday();
+
         if (self::isMovedToTomorrow()) {
-            return 'Снимется само завтра утром';
+            return ($change ? 'Переключено' . $change . '. ' : '')
+                . 'Снимется само завтра утром';
+        }
+
+        // сегодня уже трогали, но вернули обратно — это тоже стоит показать
+        if ($change) {
+            return 'Возвращено к расписанию' . $change;
         }
 
         if (self::isBeforeCutoff()) {
@@ -196,6 +207,36 @@ class DeliverySchedule
         }
 
         return 'Уже после ' . self::cutoffTime() . ' — дальше по расписанию';
+    }
+
+    /**
+     * Кто и когда трогал переключатель сегодня: ' — Иванова И.И., 12:35'.
+     *
+     * Вчерашние правки не показываем: флаг всё равно привязан к дате,
+     * и старое имя в подписи только путало бы.
+     *
+     * @return string пустая строка, если сегодня никто не трогал
+     */
+    private static function lastChangeToday()
+    {
+        if (self::$lastChange === null) {
+            $row = SiteSetting::getRow(SiteSetting::KEY_DELIVERY_NEXT_DAY);
+            self::$lastChange = $row ?: false;
+        }
+
+        if (!self::$lastChange || empty(self::$lastChange['updated_at'])) {
+            return '';
+        }
+
+        $at = strtotime(self::$lastChange['updated_at']);
+
+        if ($at === false || date('Y-m-d', $at) !== SalonHours::now()->format('Y-m-d')) {
+            return '';
+        }
+
+        $who = trim((string) self::$lastChange['updated_by']);
+
+        return ($who === '' ? '' : ' — ' . $who . ',') . ' в ' . date('H:i', $at);
     }
 
     // ------------------------------------------------- ручной перенос выезда
@@ -226,6 +267,7 @@ class DeliverySchedule
 
         if ($saved) {
             self::$movedToTomorrow = (bool) $on;
+            self::$lastChange = null; // журнал перечитать — подпись покажет свежую запись
         }
 
         return $saved;
