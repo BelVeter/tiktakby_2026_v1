@@ -24,9 +24,39 @@ class ProducerTest extends TestCase
 
     private function purgeSandbox(): void
     {
+        // Все имена песочницы начинаются с SANDBOX_NAME (маркер ZZZ). Шаблон
+        // без маркера цеплял бы и настоящие записи — см. тест ниже.
         Db::getInstance()->getConnection()->query(
-            "DELETE FROM producers WHERE name LIKE 'Тестовый Производитель%'"
+            "DELETE FROM producers WHERE name LIKE '" . self::SANDBOX_NAME . "%'"
         );
+    }
+
+    /**
+     * Чистка песочницы не должна задевать настоящие записи. Колонка producers.name
+     * в utf8mb4_unicode_ci, то есть LIKE регистронезависим: шаблон
+     * «Тестовый Производитель%» стирал реального «Тестового производителя Димы»
+     * (им пользуется модель) — а ProducersSeedTest в полном прогоне красным
+     * показывал, что «чего-то не хватает».
+     */
+    public function test_sandbox_cleanup_leaves_look_alike_real_producers_alone(): void
+    {
+        $lookAlike = 'Тестовый производитель — не песочница';
+        $db = Db::getInstance()->getConnection();
+
+        $real = new Producer();
+        $real->setName($lookAlike);
+        $real->save();
+
+        try {
+            $this->purgeSandbox();
+
+            $this->assertNotFalse(
+                Producer::getByName($lookAlike),
+                'purgeSandbox() удалил запись, которая только похожа на песочницу.'
+            );
+        } finally {
+            $db->query("DELETE FROM producers WHERE name = '" . $db->real_escape_string($lookAlike) . "'");
+        }
     }
 
     public function test_save_inserts_then_update_reuses_id(): void

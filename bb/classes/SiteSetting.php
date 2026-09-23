@@ -9,8 +9,9 @@ use bb\Db;
 /**
  * Key-value настройки сайта (таблица `site_settings`).
  *
- * Читается и из легаси-админки (этот класс), и из Laravel
- * (см. app/MyClasses/DeliverySchedule.php).
+ * Пишется из легаси-админки (bb/cur_delivery_day.php), читается там же и
+ * в Laravel-шаблонах — через bb\classes\DeliverySchedule
+ * (resources/views/includes/l2_model_block.blade.php).
  *
  * Все обращения защищены: если таблицы ещё нет (миграция не доехала
  * до прода), get() вернёт null, а set() — false, вместо фатала.

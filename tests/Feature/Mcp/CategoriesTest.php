@@ -33,7 +33,11 @@ class CategoriesTest extends McpTestCase
     public function test_seasonality_children_summer_peak(): void
     {
         $rows = $this->mcp('categories/seasonality', ['category' => 'children', 'years' => 5])->json('data');
-        $peak = collect($rows)->sortByDesc('seasonality_index')->first();
+        // Rank by deals PER YEAR, not by the raw seasonality_index. The window slides from
+        // today and the database may end mid-year (a local dump ending in June): July and
+        // August then cover 4 years instead of 5, their summed deals are understated and
+        // October "wins". The per-year average divides by years_covered, so it doesn't care.
+        $peak = collect($rows)->sortByDesc('avg_deals_per_year')->first();
         // Children peak is in summer (June or July) — outdoor toys, dachas.
         $this->assertContains($peak['month_num'], [6, 7], 'children peak in June or July');
     }

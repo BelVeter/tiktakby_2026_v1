@@ -12,7 +12,7 @@
 **CRITICAL**: Dual architecture:
 1. **Laravel app** (`app/`, `routes/`, `resources/`) - Public website
 2. **Legacy admin panel** (`bb/`) - Standalone PHP admin interface
-3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 63 endpoints (analytics, AI-agent calls, SEO content management, SMS, redirects CRUD) under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
+3. **MCP Analytics API** (`routes/api.php`, `app/Http/Controllers/Mcp/*`) - 74 endpoints (analytics, AI-agent calls, SEO content management, SMS, redirects CRUD) under `/api/mcp/v1/`. Token + geo auth, `{query, data, meta}` envelope, OpenAPI spec at `/api/mcp/v1/openapi.json`.
 
 **MCP API methodology (locked 2026-05-14)** — revenue/office/carnival query contracts and legacy-parity rules live in [app/Http/Controllers/Mcp/CLAUDE.md](app/Http/Controllers/Mcp/CLAUDE.md) (loads automatically when working in that directory).
 ⚠️ DO NOT sum `/finance/revenue` + `/carnival/revenue` — `/finance/revenue` already includes carnival items as rentals. Double-count risk.
@@ -173,7 +173,7 @@ For deeper details, see `AGENTS.md`:
 
 **Project Notes & Backlog**:
 - [docs/prod_pending.md](docs/prod_pending.md) — **что сделать на проде до заливки.** Работа идёт локально, прод не трогаем; сюда складываются прод-действия (порядок влития веток, бэкапы, сверка данных, проверки после деплоя). Читать и выдавать владельцу, когда он просит залить ветку и дать ссылку на PR.
-- [docs/db_notes.md](docs/db_notes.md) — DB gotchas + архитектура заявок/звонков. **Читать перед правками `rent_orders`/`rent_orders_arch`/`zvonki`/заявок.** Главная ловушка: позиционные `INSERT ... VALUES` ломаются при добавлении колонок — всегда проверять перед `ALTER TABLE ADD COLUMN`. Там же (п.7) — известный баг: `php artisan migrate` сломан на проде для любой новой миграции (ionCube Loader), обходной путь через прямой SQL.
+- [docs/db_notes.md](docs/db_notes.md) — DB gotchas + архитектура заявок/звонков. **Читать перед правками `rent_orders`/`rent_orders_arch`/`zvonki`/заявок.** Главная ловушка: позиционные `INSERT ... VALUES` ломаются при добавлении колонок — всегда проверять перед `ALTER TABLE ADD COLUMN`. Там же (п.7) — про `php artisan migrate`: на проде работает (починен 12.07.2026), но вывод `Deploy.php` «Nothing to migrate» ненадёжен — после деплоя с миграцией схему проверять явно.
 - [docs/backlog.md](docs/backlog.md) — техдолг и отложенные задачи (вкл. чистку найденного легаси).
 - [docs/geo_address_fix.md](docs/geo_address_fix.md) — методика разбора нераспознанных адресов клиентов (`clients_geo.geo_status=2`) для тепловой карты `bb/geo_heatmap.php`: словарь минских сокращений улиц, AI-нормализация + проверка через Google Geocoding API, когда включать Яндекс-фоллбек, когда эскалировать на человека.
 
