@@ -151,14 +151,14 @@
   </script>
   @yield('json-ld')
 
-  <link rel="icon" href="/tiktak.ico" type="image/x-icon">
-  <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="32x32">
-  <link rel="icon" sizes="192x192" href="/public/images/favicon-192.png">
-  {{--
-  <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="16x16">--}}
-  {{--
-  <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="64x64">--}}
-  <link rel="apple-touch-icon" sizes="32x32" href="/public/favicon-32x32.png">
+  {{-- Набор иконок (знак-цветок, без надписи — в 16–32 px текст нечитаем).
+       Google: сторона кратна 48 (48 внутри .ico, 192); Яндекс: 16/32/120 px, favicon.ico в корне; iOS: 180.
+       Файлы отслеживаются через исключения в .gitignore (там игнорируются *.png и *.ico). --}}
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="32x32" href="/public/images/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="120x120" href="/public/images/favicon-120.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/public/images/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/public/images/apple-touch-icon.png">
 
   <link rel="alternate" hreflang="ru" href="{{ $final_canonical }}" />
   <link rel="alternate" hreflang="x-default" href="{{ $final_canonical }}" />

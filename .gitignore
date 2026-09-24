@@ -62,6 +62,11 @@ docker-compose.override.yml
 public/public
 !/public/svg/*.svg
 
+# Иконки сайта (ссылки в layouts/app.blade.php) — должны отслеживаться, иначе на прод не попадут
+!/favicon.ico
+!/public/images/favicon-*.png
+!/public/images/apple-touch-icon.png
+
 # Uppercase extensions
 *.JPG
 *.JPEG
