@@ -61,17 +61,19 @@ class RedirectController extends Controller
     private function resolveRedirectUrl(string $slug): ?string
     {
         // 1. Товар (L3): rent_model_web.page_addr
+        // Родителей ищем по той же одноцепочечной схеме, что и canonical/sitemap
+        // (категория → main_sub_razdel_id → sub_razdel.main_razdel_id), а не через M:N
+        // subrazdel_category: у 18 из 111 категорий там нет записи, и живые товары
+        // из них давали 404 вместо 301, а часть адресов вела на неканонический дубль.
         $model = DB::selectOne("
             SELECT CONCAT('/ru/', r.url_razdel_name, '/', sr.url_sub_razdel_name, '/', tc.cat_url_key, '/', rmw.page_addr) AS url
             FROM rent_model_web rmw
             JOIN tovar_rent tr ON tr.tovar_rent_id = rmw.model_id
             JOIN tovar_rent_cat tc ON tc.tovar_rent_cat_id = tr.tovar_rent_cat_id
-            JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tc.tovar_rent_cat_id
-            JOIN sub_razdel sr ON sr.id_sub_razdel = sc.id_sub_razdel
-            JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
-            JOIN razdel r ON r.id_razdel = rs.id_razdel
+            JOIN sub_razdel sr ON sr.id_sub_razdel = tc.main_sub_razdel_id
+            JOIN razdel r ON r.id_razdel = sr.main_razdel_id
             WHERE rmw.lang = 'ru' AND rmw.status = 'show' AND rmw.page_addr = ?
-            ORDER BY r.razdel_order_num, sr.order_num_sub_razd
+            ORDER BY r.razdel_order_num, sr.order_num_sub_razd, rmw.model_id
             LIMIT 1
         ", [$slug]);
         if ($model) return $model->url;
@@ -80,10 +82,8 @@ class RedirectController extends Controller
         $cat = DB::selectOne("
             SELECT CONCAT('/ru/', r.url_razdel_name, '/', sr.url_sub_razdel_name, '/', tc.cat_url_key) AS url
             FROM tovar_rent_cat tc
-            JOIN subrazdel_category sc ON sc.tovar_rent_cat_id = tc.tovar_rent_cat_id
-            JOIN sub_razdel sr ON sr.id_sub_razdel = sc.id_sub_razdel
-            JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
-            JOIN razdel r ON r.id_razdel = rs.id_razdel
+            JOIN sub_razdel sr ON sr.id_sub_razdel = tc.main_sub_razdel_id
+            JOIN razdel r ON r.id_razdel = sr.main_razdel_id
             WHERE tc.cat_url_key = ?
             ORDER BY r.razdel_order_num, sr.order_num_sub_razd
             LIMIT 1
