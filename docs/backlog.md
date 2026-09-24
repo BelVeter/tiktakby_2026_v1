@@ -72,6 +72,9 @@
   судьбу 10 опубликованных моделей (перенос в карнавальные категории, если вещи физически есть, либо
   списание единиц и архивация через `ModelArchive`) и что делать с ~50 историческими моделями и тремя
   учётными позициями.
+- [ ] **Фолбэк `RedirectController::notFound` и скрытые категории.** Адрес с мусорным префиксом и слагом скрытой
+  модели даёт два 301 подряд (сначала на канонический `/tyu/<slug>`, затем на `/ru/karnavalnye-kostyumy`).
+  Можно отдавать итоговый адрес за один шаг (`Category::hiddenCatRedirectTarget`).
 - [ ] **Категории вне `subrazdel_category`** (в меню не видны): помимо `tyu` живые товары есть у
   `tolshchinomery` (2) и `aksessuary-dla-samokatov` (1) — выяснить, намеренно ли они скрыты из меню.
 
@@ -83,5 +86,4 @@
 
 ## В работе
 
-- Фолбэк редиректов `RedirectController::resolveRedirectUrl` (301 с «мусорных» префиксов) — переход на каноническую цепочку `main_sub_razdel_id` → `sub_razdel.main_razdel_id`, ветка `fix/redirect-fallback-canonical-chain`, ждёт PR.
 - Редизайн заявок — ветка `feature/zayavki-redesign`, спека [docs/superpowers/specs/2026-06-05-zayavki-redesign-design.md](superpowers/specs/2026-06-05-zayavki-redesign-design.md).

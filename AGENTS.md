@@ -29,7 +29,7 @@
 | `AboutController` | Static pages (about, conditions, delivery, contacts, policy) |
 | `SearchController` | Search, filtering by manufacturer and age (hidden technical categories are excluded) |
 | `ZvonokController` | Callback requests, bookings, subscriptions |
-| `RedirectController` | All redirect routes (created for `route:cache` compatibility) and the `Route::fallback` handler `notFound`, which resolves a bogus-prefix URL by its last segment (model → category → subsection → section) and answers 301, otherwise 404 |
+| `RedirectController` | All redirect routes (created for `route:cache` compatibility) and the `Route::fallback` handler `notFound`, which resolves a bogus-prefix URL by its last segment (model → category → subsection → section) and answers 301, otherwise 404; model/category parents are resolved through the canonical single-parent chain (category → `main_sub_razdel_id` → `sub_razdel.main_razdel_id`), not through the M:N `subrazdel_category` |
 | `FavoritesController` | Favorites functionality (added by Kristina) |
 | `CartController` | Shopping cart: display cart page, tariff retrieval, availability check, checkout with booking creation |
 | `Feed2GisController` | Generation of 2GIS XML feed (`/api/feed/2gis`); hidden technical categories do not affect a section's price/photo |
