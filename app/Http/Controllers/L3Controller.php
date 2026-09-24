@@ -32,6 +32,12 @@ class L3Controller extends Controller
       return $this->showCategoryWithNotice($lang, $razdel, $subrazdel, $category);
     }
 
+    // Карточка скрытой служебной категории открывается по слагу при любом префиксе адреса,
+    // поэтому проверяем реальную категорию модели, а не путь.
+    if ($hiddenTarget = Category::hiddenCatRedirectTarget($p->getCatId())) {
+      return redirect($hiddenTarget, 301);
+    }
+
     if ($razd = Razdel::getByUrlName($razdel, $lang)) {
       $p->addBreadCrumbs($razd->getNameRazdelText(), $razd->getUrlForPage($lang));
       if ($subRazd = SubRazdel::getByUrlName($subrazdel, $lang)) {
@@ -54,6 +60,9 @@ class L3Controller extends Controller
     $p = L3Page::getPageByUrlName($model, $lang, $r1, $r2);
 
     if ($p !== null) {
+      if ($hiddenTarget = Category::hiddenCatRedirectTarget($p->getCatId())) {
+        return redirect($hiddenTarget, 301);
+      }
       if (!tovar::getByModelId($p->getModelId())) {
         $this->logNotFoundUrl();
         return response()->view('l3_not_found', ['p' => $p], 404);

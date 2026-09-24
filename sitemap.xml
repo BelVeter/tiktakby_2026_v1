@@ -447,11 +447,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/uhod-za-licom</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -2673,56 +2668,6 @@
   </url>
   <url>
     <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/photo_epilyaciya/BeautiflyLuminare_Rejuva_Skin_Visage</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/costume_dlya_malchika_sobaka</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/costume_masha_i_medved</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/karnavalnyi_costume_petushok</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/karnavalnyi_kostum_dakonchik_dazi</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/kolobok_kostum_novogodnii</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/kostjum_porosjonka_na_novogodnij_utrennik</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/kostum_dlya_devochki_tsarevna_lyagushka</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/novogodniy_kostume_cherny_plasch</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/novogodnyi_costume_korol</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://tiktak.by/ru/medical-prokat/electroterapiya-prokat/tyu/sukenka-belarus</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use bb\classes\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
@@ -294,6 +295,8 @@ class Feed2GisController extends Controller
     private function queryServiceData(array $filter, string $pricePer = 'week'): array
     {
         [$joinSql, $whereSql, $bindings] = $this->buildFilterClauses($filter);
+        // Служебные категории («К УДАЛЕНИЮ») не должны влиять на цену и фото секции.
+        $whereSql .= ' AND tr.tovar_rent_cat_id NOT IN (' . Category::hiddenCatIdsSql() . ')';
 
         $tariffRows = DB::select("
             SELECT

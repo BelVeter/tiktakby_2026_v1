@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use bb\classes\Category;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -15,7 +16,30 @@ class GenerateSitemap extends Command
 
     public function handle(): int
     {
+        $urls = $this->collectUrls();
+
+        if ($this->option('verify')) {
+            $urls = $this->filterReachable($urls);
+        }
+
+        $xml = $this->buildXml($urls);
+        $paths = [base_path('sitemap.xml'), public_path('sitemap.xml')];
+        foreach ($paths as $path) {
+            file_put_contents($path, $xml);
+        }
+
+        $this->info('Sitemap generated: ' . count($urls) . ' URLs → ' . implode(', ', $paths));
+        return 0;
+    }
+
+    /**
+     * URL всех страниц каталога для sitemap (без проверки доступности).
+     * Скрытые служебные категории (Category::HIDDEN_CATEGORY_REDIRECTS) не включаются.
+     */
+    public function collectUrls(): array
+    {
         $urls = [];
+        $hidden = Category::hiddenCatIdsSql();
 
         $urls[] = ['loc' => self::BASE_URL . '/ru', 'changefreq' => 'weekly', 'priority' => '1.0'];
 
@@ -41,6 +65,7 @@ class GenerateSitemap extends Command
                 JOIN tovar_rent_items ti ON ti.model_id = tr2.tovar_rent_id
                 WHERE rs2.id_razdel = r.id_razdel
                   AND rmw2.status = 'show' AND rmw2.lang = 'ru'
+                  AND c2.tovar_rent_cat_id NOT IN ($hidden)
               )
             ORDER BY razdel_order_num, id_razdel
         ");
@@ -67,6 +92,7 @@ class GenerateSitemap extends Command
                 JOIN tovar_rent_items ti ON ti.model_id = tr2.tovar_rent_id
                 WHERE c2.main_sub_razdel_id = sr.id_sub_razdel
                   AND rmw2.status = 'show' AND rmw2.lang = 'ru'
+                  AND c2.tovar_rent_cat_id NOT IN ($hidden)
               )
             ORDER BY r.url_razdel_name, sr.url_sub_razdel_name
         ");
@@ -87,6 +113,7 @@ class GenerateSitemap extends Command
             JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
             JOIN razdel r ON r.id_razdel = rs.id_razdel
             WHERE c.cat_url_key != '' AND sr.url_sub_razdel_name != '' AND r.url_razdel_name != ''
+              AND c.tovar_rent_cat_id NOT IN ($hidden)
               AND EXISTS (
                 SELECT 1 FROM tovar_rent tr2
                 JOIN rent_model_web rmw2 ON rmw2.model_id = tr2.tovar_rent_id
@@ -115,6 +142,7 @@ class GenerateSitemap extends Command
             JOIN razdel r ON r.id_razdel = rs.id_razdel
             WHERE rmw.lang = 'ru' AND rmw.page_addr != '' AND rmw.status = 'show'
                 AND sr.url_sub_razdel_name != '' AND r.url_razdel_name != '' AND c.cat_url_key != ''
+                AND c.tovar_rent_cat_id NOT IN ($hidden)
                 AND EXISTS (SELECT 1 FROM tovar_rent_items ti WHERE ti.model_id = rmw.model_id)
             ORDER BY r.url_razdel_name, sr.url_sub_razdel_name, c.cat_url_key, rmw.page_addr
         ");
@@ -127,18 +155,7 @@ class GenerateSitemap extends Command
             ];
         }
 
-        if ($this->option('verify')) {
-            $urls = $this->filterReachable($urls);
-        }
-
-        $xml = $this->buildXml($urls);
-        $paths = [base_path('sitemap.xml'), public_path('sitemap.xml')];
-        foreach ($paths as $path) {
-            file_put_contents($path, $xml);
-        }
-
-        $this->info('Sitemap generated: ' . count($urls) . ' URLs → ' . implode(', ', $paths));
-        return 0;
+        return $urls;
     }
 
     // HTTP-коды, по которым URL ТОЧНО лишний в sitemap:

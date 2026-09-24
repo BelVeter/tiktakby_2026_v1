@@ -14,18 +14,39 @@ use phpDocumentor\Reflection\Types\True_;
 class Category
 {
     /**
-     * Служебные категории-«свалки» (например, «К УДАЛЕНИЮ», id 175): товары из них
-     * не должны попадать в рекомендации, внутренний поиск и фильтры сайта.
-     * Чтобы скрыть ещё одну такую категорию, добавьте её id сюда.
+     * Служебные категории-«свалки» (например, «К УДАЛЕНИЮ», id 175): их товары не должны
+     * попадать в рекомендации, внутренний поиск, фильтры, sitemap и 2ГИС-фид, а страницы
+     * самой категории и её карточек не открываются — отвечают 301 на указанный адрес.
+     * Чтобы скрыть ещё одну такую категорию, добавьте `id => адрес редиректа` сюда.
      */
-    const HIDDEN_CAT_IDS = [175];
+    const HIDDEN_CATEGORY_REDIRECTS = [
+        175 => '/ru/karnavalnye-kostyumy',
+    ];
+
+    /**
+     * @return int[]
+     */
+    public static function hiddenCatIds(): array
+    {
+        return array_keys(self::HIDDEN_CATEGORY_REDIRECTS);
+    }
 
     /**
      * id скрытых категорий через запятую для подстановки в SQL (только целые числа).
      */
     public static function hiddenCatIdsSql(): string
     {
-        return implode(',', array_map('intval', self::HIDDEN_CAT_IDS));
+        return implode(',', array_map('intval', self::hiddenCatIds()));
+    }
+
+    /**
+     * Адрес редиректа для скрытой категории; null, если категория не скрыта.
+     *
+     * @param int|string|null $catId
+     */
+    public static function hiddenCatRedirectTarget($catId): ?string
+    {
+        return self::HIDDEN_CATEGORY_REDIRECTS[(int) $catId] ?? null;
     }
 
     public $id;
