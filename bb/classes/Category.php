@@ -13,6 +13,21 @@ use phpDocumentor\Reflection\Types\True_;
 
 class Category
 {
+    /**
+     * Служебные категории-«свалки» (например, «К УДАЛЕНИЮ», id 175): товары из них
+     * не должны попадать в рекомендации, внутренний поиск и фильтры сайта.
+     * Чтобы скрыть ещё одну такую категорию, добавьте её id сюда.
+     */
+    const HIDDEN_CAT_IDS = [175];
+
+    /**
+     * id скрытых категорий через запятую для подстановки в SQL (только целые числа).
+     */
+    public static function hiddenCatIdsSql(): string
+    {
+        return implode(',', array_map('intval', self::HIDDEN_CAT_IDS));
+    }
+
     public $id;
     private $main_sub_razdel_id;
     public $name;

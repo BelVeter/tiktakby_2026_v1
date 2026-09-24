@@ -162,7 +162,8 @@ class Model
     $query = "SELECT DISTINCT(tovar_rent.tovar_rent_id) as model_id
                     FROM `tovar_rent`
                     LEFT JOIN tovar_rent_items ON tovar_rent.tovar_rent_id = tovar_rent_items.model_id
-                    WHERE ((tovar_rent.age_from <= '$from' AND tovar_rent.age_to>'$from') OR (tovar_rent.age_from <= '$to' AND tovar_rent.age_to>'$to')) AND tovar_rent_items.model_id>0";
+                    WHERE ((tovar_rent.age_from <= '$from' AND tovar_rent.age_to>'$from') OR (tovar_rent.age_from <= '$to' AND tovar_rent.age_to>'$to')) AND tovar_rent_items.model_id>0
+                    AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ")";
     $result = $mysqli->query($query);
     if (!$result) {
       printf("Mysqli Errormessage: %s\n", $mysqli->error);
@@ -194,11 +195,13 @@ class Model
       $query = "SELECT DISTINCT(tovar_rent.tovar_rent_id) as model_id
                     FROM `tovar_rent`
                     LEFT JOIN tovar_rent_items ON tovar_rent.tovar_rent_id = tovar_rent_items.model_id
-                    WHERE tovar_rent.producer='$producer' AND tovar_rent_items.model_id>0";
+                    WHERE tovar_rent.producer='$producer' AND tovar_rent_items.model_id>0
+                    AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ")";
     } else {
       $query = "SELECT tovar_rent.tovar_rent_id as model_id
                     FROM `tovar_rent`
-                    WHERE tovar_rent.producer='$producer'";
+                    WHERE tovar_rent.producer='$producer'
+                    AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ")";
     }
 
     //echo $query;
@@ -515,6 +518,7 @@ class Model
                       AND razdel.url_razdel_name='$razdelUrlCode' 
                       AND tovar_rent.tovar_rent_id != '{$model->model_id}'
                       AND tovar_rent_items.status = 'to_rent'
+                      AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ")
                       $srch
 
                     GROUP BY tovar_rent.tovar_rent_id
