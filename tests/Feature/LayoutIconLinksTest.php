@@ -8,11 +8,10 @@ use Tests\TestCase;
  * Иконки в <head> должны указывать на реально существующие файлы, которые
  * попадут на прод через git.
  *
- * Ловушка: .gitignore игнорирует *.png и *.ico, поэтому иконка, добавленная
- * обычным `git add`, локально есть, а на проде — нет (так /tiktak.ico и
- * /public/favicon-32x32.png месяцами отдавали 404 на каждой странице).
- * git check-ignore возвращает 0 только для файлов, которые игнорируются И не
- * отслеживаются, то есть именно для такой потери.
+ * Ловушка: .gitignore игнорирует *.png и *.ico (для иконок сделаны исключения),
+ * поэтому иконка, положенная в неподходящее место, локально есть, а на проде —
+ * нет (так /tiktak.ico и /public/favicon-32x32.png месяцами отдавали 404 на каждой
+ * странице). Проверяем, что файл существует И отслеживается git.
  */
 class LayoutIconLinksTest extends TestCase
 {
@@ -41,12 +40,12 @@ class LayoutIconLinksTest extends TestCase
             $rel = ltrim($href, '/');
             $this->assertFileExists($root . '/' . $rel, "Иконка $href не существует.");
 
-            $ignored = $this->isIgnoredAndUntracked($root, $rel);
-            if ($ignored === null) {
+            $tracked = $this->isTracked($root, $rel);
+            if ($tracked === null) {
                 $gitUsable = false;
                 continue;
             }
-            $this->assertFalse($ignored, "Иконка $href игнорируется .gitignore и не отслеживается — на прод не попадёт (нужен git add -f).");
+            $this->assertTrue($tracked, "Иконка $href не отслеживается git — на прод не попадёт (git add; для нестандартного пути нужно исключение в .gitignore).");
         }
 
         if (!$gitUsable) {
@@ -55,23 +54,23 @@ class LayoutIconLinksTest extends TestCase
     }
 
     /**
-     * true — файл игнорируется и не отслеживается; false — нормально; null — git не сработал.
+     * true — файл отслеживается git; false — нет; null — git не сработал.
      * HOME подменяется на временный каталог с safe.directory=*, иначе git в docker-контейнере
      * отказывается работать с репозиторием, смонтированным под другим владельцем.
      */
-    private function isIgnoredAndUntracked(string $root, string $rel): ?bool
+    private function isTracked(string $root, string $rel): ?bool
     {
         $home = sys_get_temp_dir() . '/git-home-' . getmypid();
         @mkdir($home);
         file_put_contents($home . '/.gitconfig', "[safe]\n\tdirectory = *\n");
 
         $cmd = 'cd ' . escapeshellarg($root) . ' && HOME=' . escapeshellarg($home)
-            . ' git check-ignore -q -- ' . escapeshellarg($rel) . ' 2>/dev/null';
+            . ' git ls-files --error-unmatch -- ' . escapeshellarg($rel) . ' 2>/dev/null';
         exec($cmd, $out, $code);
 
         @unlink($home . '/.gitconfig');
         @rmdir($home);
 
-        return $code > 1 ? null : $code === 0;
+        return $code === 0 ? true : ($code === 1 ? false : null);
     }
 }
