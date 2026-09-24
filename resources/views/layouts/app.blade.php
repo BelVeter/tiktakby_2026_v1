@@ -151,14 +151,10 @@
   </script>
   @yield('json-ld')
 
-  <link rel="icon" href="/tiktak.ico" type="image/x-icon">
-  <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="32x32">
-  <link rel="icon" sizes="192x192" href="/public/images/favicon-192.png">
-  {{--
-  <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="16x16">--}}
-  {{--
-  <link rel="icon" type="image/png" href="/public/favicon-32x32.png" sizes="64x64">--}}
-  <link rel="apple-touch-icon" sizes="32x32" href="/public/favicon-32x32.png">
+  {{-- Единственный реальный файл иконки в репозитории. /tiktak.ico и /public/favicon-32x32.png
+       отдавали 404 (файлов нет, а .gitignore игнорирует *.ico и *.png — новые иконки нужно добавлять через git add -f). --}}
+  <link rel="icon" type="image/png" sizes="192x192" href="/public/images/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/public/images/favicon-192.png">
 
   <link rel="alternate" hreflang="ru" href="{{ $final_canonical }}" />
   <link rel="alternate" hreflang="x-default" href="{{ $final_canonical }}" />
