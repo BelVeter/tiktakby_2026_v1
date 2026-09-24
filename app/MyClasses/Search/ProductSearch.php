@@ -2,6 +2,7 @@
 
 namespace App\MyClasses\Search;
 
+use bb\classes\Category;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -98,6 +99,7 @@ class ProductSearch
              WHERE (' . implode(' AND ', $conditions) . ')
                AND w.status = ?
                AND EXISTS (SELECT 1 FROM tovar_rent_items t WHERE t.model_id = w.model_id)
+               AND c.tovar_rent_cat_id NOT IN (' . Category::hiddenCatIdsSql() . ')
              ORDER BY w.model_id DESC',
             array_merge($bindings, ['show'])
         );
@@ -157,6 +159,9 @@ class ProductSearch
              WHERE MATCH(' . self::MATCH_FIELDS . ') AGAINST(? IN BOOLEAN MODE)
                AND w.status = ?
                AND EXISTS (SELECT 1 FROM tovar_rent_items t WHERE t.model_id = w.model_id)
+               AND NOT EXISTS (SELECT 1 FROM tovar_rent hidden_tr
+                               WHERE hidden_tr.tovar_rent_id = w.model_id
+                                 AND hidden_tr.tovar_rent_cat_id IN (' . Category::hiddenCatIdsSql() . '))
              ORDER BY relevance DESC, w.model_id DESC',
             [$expression, $expression, 'show']
         );

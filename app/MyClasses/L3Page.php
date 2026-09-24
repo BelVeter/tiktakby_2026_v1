@@ -246,6 +246,11 @@ class L3Page
     return $this->modelWeb->getModelId();
   }
 
+  public function getCatId()
+  {
+    return $this->modelWeb->getCatId();
+  }
+
   /**
    * @return Tariff[]
    */

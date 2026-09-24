@@ -80,6 +80,12 @@ class CatController extends Controller{
       }
 
 
+      // Служебная категория («К УДАЛЕНИЮ») не открывается — редирект на заданный адрес.
+      $requestedCat = Category::getByUrlName($cateforyName, $lang);
+      if ($requestedCat && ($hiddenTarget = Category::hiddenCatRedirectTarget($requestedCat->getId()))) {
+        return redirect($hiddenTarget, 301);
+      }
+
       $showPageNumber = $req->input('page');
       if (!$showPageNumber) $showPageNumber=1;
 
