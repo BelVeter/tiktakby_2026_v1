@@ -130,6 +130,7 @@ not found`.
 Full controller/middleware/table inventory lives in `AGENTS.md` — this section covers only what isn't derivable by reading the code.
 
 - ⚠️ **L3 resolves the model by `rent_model_web.page_addr` + `lang` ONLY** (`L3Controller` → `L3Page::getPageByUrlName()` → `ModelWeb::getByUrlNameLangSafe()`). The `{razdel}/{subrazdel}/{category}` segments feed only the breadcrumbs and the recommendations-slider cache key, so **any** prefix returns 200 (`/ru/chush/chush2/chush3/<real-slug>` → 200; 404 only when the model slug itself is unknown). Consequence: moving a model between categories never 404s the old URL — only `<link rel="canonical">` changes, and it is always built from the model's real category.
+- **Hidden technical categories** — `bb\classes\Category::HIDDEN_CATEGORY_REDIRECTS` (`id => redirect URL`, now `175 => /ru/karnavalnye-kostyumy`, category «К УДАЛЕНИЮ»). Its models are excluded from recommendations, internal search, age/producer filters, `sitemap:generate` and the 2GIS feed price/photo, and both the category page and its product pages answer 301 (checked by the model's real category, because L3 opens by slug under any URL prefix). Products are NOT deleted. Details: [docs/db_notes.md](docs/db_notes.md) п. 20–22. `rent_model_web.status='not_show'` does NOT close a direct URL.
 - **MCP Analytics API** (`GET /api/mcp/v1/*`) — full endpoint catalog in [docs/mcp_server.md](docs/mcp_server.md) and `resources/openapi/mcp-v1.json`. `/finance/pnl` injects a `meta.warnings` entry referring to `D-OPEN-FY2025` whenever the requested period overlaps 2025-01 or later — DO NOT remove this without coordinating with the analytics workspace at `/home/dmitry/Documents/прокат/`
 
 ## Deployment Process
@@ -152,6 +153,8 @@ Full controller/middleware/table inventory lives in `AGENTS.md` — this section
 | **Database migrations fail locally** | Ensure DB credentials in `.env` match Docker/Laragon setup; run `php artisan migrate:fresh --seed` |
 | **MCP API returns 403** | Check: Bearer token in `Authorization` header, client IP in BY/RU, GeoLite2 database at `storage/app/geoip/GeoLite2-Country.mmdb` |
 | **Can't connect to Docker database** | Use `db` as host inside container, `localhost:33060` from your machine; phpmyadmin at `http://localhost:8088` |
+| **Icon/image works locally but 404 on prod** | `.gitignore` ignores `*.png`, `*.ico`, `*.svg` etc. Add an explicit `!`-exception (as done for favicons: `/favicon.ico`, `/public/images/favicon-*.png`, `apple-touch-icon.png`) or `git add -f`; `tests/Feature/LayoutIconLinksTest.php` guards the `<head>` icons |
+| **`sitemap.xml` shows stale/404 URLs right after a deploy** | Both `sitemap.xml` files are tracked in git and `Deploy.php` runs `git reset --hard`; the fresh file appears only after the 02:00 `sitemap:generate`. Check statuses after 02:00 |
 
 ## Configuration
 
@@ -175,6 +178,7 @@ For deeper details, see `AGENTS.md`:
 - [docs/prod_pending.md](docs/prod_pending.md) — **что сделать на проде до заливки.** Работа идёт локально, прод не трогаем; сюда складываются прод-действия (порядок влития веток, бэкапы, сверка данных, проверки после деплоя). Читать и выдавать владельцу, когда он просит залить ветку и дать ссылку на PR.
 - [docs/db_notes.md](docs/db_notes.md) — DB gotchas + архитектура заявок/звонков. **Читать перед правками `rent_orders`/`rent_orders_arch`/`zvonki`/заявок.** Главная ловушка: позиционные `INSERT ... VALUES` ломаются при добавлении колонок — всегда проверять перед `ALTER TABLE ADD COLUMN`. Там же (п.7) — про `php artisan migrate`: на проде работает (починен 12.07.2026), но вывод `Deploy.php` «Nothing to migrate» ненадёжен — после деплоя с миграцией схему проверять явно.
 - [docs/backlog.md](docs/backlog.md) — техдолг и отложенные задачи (вкл. чистку найденного легаси).
+- [docs/seo_404_audit_2026-09-24.md](docs/seo_404_audit_2026-09-24.md) — SEO-аудит 404 (сентябрь 2026): что подтвердилось, что исправлено (иконки, фолбэк редиректов, скрытая категория «К УДАЛЕНИЮ»), список удалённых редиректов для отката.
 - [docs/geo_address_fix.md](docs/geo_address_fix.md) — методика разбора нераспознанных адресов клиентов (`clients_geo.geo_status=2`) для тепловой карты `bb/geo_heatmap.php`: словарь минских сокращений улиц, AI-нормализация + проверка через Google Geocoding API, когда включать Яндекс-фоллбек, когда эскалировать на человека.
 
 **Working preference (owner):** владелец писал базу сам ~10 лет (самоучка), есть легаси. При каждом удобном случае предлагать **мелкие безопасные (low-risk) правки** кода, который и так трогаем; массовый рефакторинг легаси — только по явному запросу.
