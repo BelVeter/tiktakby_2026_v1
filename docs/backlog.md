@@ -55,6 +55,11 @@
   `/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk` (301 из `routes/web.php`) исключена, алиас
   `/ru/medical-prokat/bioptron` остаётся; сегменты адреса кодируются (`%20`, `%26`). `--verify` «на копии» не
   годится: `BASE_URL` зашит на прод.
+- [ ] **Внутренние ссылки на редиректящую категорию Биоптрона (Б13).** На `/ru/medical-prokat` и на странице подраздела
+  `bioptron-prokat-minsk` ссылка категории ведёт на `/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk`
+  (301 → `/ru/medical-prokat/bioptron`), на главной — сразу на алиас. Один лишний шаг для пользователей и роботов;
+  исправить там, где строится ссылка категории (подставлять алиас, как это уже сделано для canonical в
+  `MainPage::getCanonicalUrlBy()`).
 - [ ] **Slug с пробелом и `&` (модели 1465 `pelenalnyj_stolik _s_vannochkoj_cam_cambio` и 558
   `laugh_&_learn_smart_stages_home`).** В sitemap они теперь закодированы, но `<link rel="canonical">` страниц
   содержит их в сыром виде. Правильно переименовать `rent_model_web.page_addr` и поставить 301 со старых
