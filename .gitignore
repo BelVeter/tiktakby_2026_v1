@@ -66,6 +66,8 @@ public/public
 !/favicon.ico
 !/public/images/favicon-*.png
 !/public/images/apple-touch-icon.png
+# Значок «Важно!» из описаний карточек весов (ссылка /public/images/vazhno.png)
+!/public/images/vazhno.png
 
 # Uppercase extensions
 *.JPG
