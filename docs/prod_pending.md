@@ -14,14 +14,7 @@
 Прежняя очередь (ветки 1–4) выкачена 23.09.2026, ветки по SEO-аудиту 404 (PR #322, фолбэк редиректов,
 PR #324, #325, #326) — 24–25.09.2026, см. журнал. Сейчас в очереди:
 
-**`fix/sitemap-generator-canonical` — генератор sitemap (п. 4 аудита).** Адрес подраздела/категории/модели строится
-по канонической цепочке (`sub_razdel.main_razdel_id`) вместо M:N: на проде из sitemap уходит ≈51 дубль
-`/ru/prokat-sports/begovely_velosipedy_samokaty/…` (1 подраздел, 7 категорий, 43 модели); исключена категория
-Биоптрона (301), а ссылки меню, списка категорий, хлебных крошек и `/ru/prokat/prokat-bioptron-minsk` ведут сразу на алиас
-`/ru/medical-prokat/bioptron` (`Category::URL_ALIASES`); slug с пробелом и `&` кодируются (`%20`, `%26`). Миграций нет,
-данные не меняются. Деплой сам
-sitemap **не пересоздаёт** (деплой его не трогает), поэтому либо ждём ночной генерации в 02:00, либо сразу после
-деплоя — ручной `php artisan sitemap:generate` (см. «После заливки»).
+Пусто: ветки по SEO-аудиту 404 выкачены, открытые пункты — в `docs/seo_404_audit_2026-09-24.md`, раздел «План работ».
 
 > ⚠️ **PR мерджатся squash'ем.** После влития каждой ветки следующую нужно пересоздать от
 > свежего `origin/main` (`git fetch origin && git checkout -b <новая> origin/main` +
@@ -38,23 +31,7 @@ sitemap **не пересоздаёт** (деплой его не трогает
 
 ## После заливки
 
-**Ветка `fix/sitemap-generator-canonical`** — после деплоя (запись двух файлов, доли секунды, только БД):
-
-```bash
-cd /var/www/h149208/data/www/tiktak.by && php artisan sitemap:generate      # ждём ~888 адресов (было 940)
-# проверка (только чтение): 200, адресов ~888, нет дублей под prokat-sports, нет категории Биоптрона
-curl -s -o /dev/null -w "%{http_code}\n" https://tiktak.by/sitemap.xml
-curl -s https://tiktak.by/sitemap.xml | grep -c '<loc>'
-curl -s https://tiktak.by/sitemap.xml | grep -c 'prokat-sports/begovely_velosipedy_samokaty'     # ждём 0
-curl -s https://tiktak.by/sitemap.xml | grep -c 'prokat-bioptron-minsk</loc>'                    # ждём 0
-curl -s https://tiktak.by/sitemap.xml | grep -E 'pelenalnyj_stolik|laugh_'                        # %20 и %26, без пробела и &
-# ссылки Биоптрона в меню ведут сразу на алиас (без промежуточного 301) — ждём 0 и >0
-curl -s https://tiktak.by/ru/medical-prokat | grep -c 'href="/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk"'
-curl -s https://tiktak.by/ru/medical-prokat | grep -c 'href="/ru/medical-prokat/bioptron"'
-curl -sI https://tiktak.by/ru/prokat/prokat-bioptron-minsk | grep -i -E '^(HTTP|location)'         # 301 сразу на /ru/medical-prokat/bioptron
-```
-
-Затем обход всех адресов (ожидание: все 200): `xargs -P 6 curl -s -o /dev/null -w '%{http_code} %{url_effective}\n'`.
+Пусто.
 
 ---
 
@@ -124,6 +101,14 @@ curl -sI https://tiktak.by/ru/prokat/prokat-bioptron-minsk | grep -i -E '^(HTTP|
 ## Журнал
 
 Сюда переносятся выполненные пункты — одной строкой, с датой.
+
+- **25.09.2026** — PR #328 (генератор sitemap по канонической цепочке + ссылки Биоптрона на алиас) выкачен (HEAD `673a2f4`).
+  Деплой файл sitemap не тронул (время 15:43 прежнее — п. 5 работает); сразу пересоздан вручную по SSH
+  (`php artisan sitemap:generate`, с согласия владельца): 888 адресов (было 940: −51 дубль под `prokat-sports`, −1 категория
+  Биоптрона), slug с пробелом и `&` закодированы (`%20`, `%26`), `/tyu` нет. Обход всех 888 адресов: 888×200. Меню
+  `/ru/medical-prokat`, страница подраздела и хлебные крошки карточек Биоптрона ссылаются на `/ru/medical-prokat/bioptron`, а не на
+  адрес с 301; `/ru/prokat/prokat-bioptron-minsk` → один 301 на алиас. После выкатки в Laravel-логе 0 ошибок, 0 из 3053
+  запросов с 5xx.
 
 - **25.09.2026** — PR #327 (`sitemap.xml` вне git) выкачен (HEAD `aa2ef67`). Как и предполагалось, деплой удалил оба
   файла, `/sitemap.xml` отдавал 404; сразу пересоздан вручную по SSH (`php artisan sitemap:generate`, с согласия
