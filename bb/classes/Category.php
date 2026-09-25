@@ -24,6 +24,15 @@ class Category
     ];
 
     /**
+     * Категории, у которых рабочий адрес — алиас, а «настоящий» адрес отвечает 301 (routes/web.php).
+     * `getUrlForPage()` отдаёт алиас, поэтому меню, хлебные крошки и редирект `/ru/prokat/{cat}` ведут сразу
+     * на него; в sitemap настоящий адрес не попадает (GenerateSitemap). Формат: настоящий адрес => алиас.
+     */
+    const URL_ALIASES = [
+        '/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk' => '/ru/medical-prokat/bioptron',
+    ];
+
+    /**
      * @return int[]
      */
     public static function hiddenCatIds(): array
@@ -800,7 +809,8 @@ class Category
         else $r=false;
 
         if ($sr && $r) {
-            return '/'.$lang.'/'.$r->getUrlRazdelName().'/'.$sr->getUrlSubRazdelName().'/'.$this->getCatUrlKey();
+            $url = '/'.$lang.'/'.$r->getUrlRazdelName().'/'.$sr->getUrlSubRazdelName().'/'.$this->getCatUrlKey();
+            return self::URL_ALIASES[$url] ?? $url;
         }
         else {
             return '/'.$lang.'/';

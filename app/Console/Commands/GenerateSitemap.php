@@ -33,17 +33,9 @@ class GenerateSitemap extends Command
     }
 
     /**
-     * Категории, которые приложение перенаправляет (301) на другой адрес: их в sitemap быть не должно.
-     * Сюда не попадают адреса-алиасы, которые сами являются конечной страницей.
-     */
-    private const REDIRECTED_PATHS = [
-        // Route::redirect в routes/web.php → /ru/medical-prokat/bioptron (он есть в sitemap ниже)
-        '/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk',
-    ];
-
-    /**
      * URL всех страниц каталога для sitemap (без проверки доступности).
-     * Скрытые служебные категории (Category::HIDDEN_CATEGORY_REDIRECTS) не включаются.
+     * Скрытые служебные категории (Category::HIDDEN_CATEGORY_REDIRECTS) не включаются, как и адреса категорий,
+     * которые отвечают 301 на алиас (ключи Category::URL_ALIASES; сам алиас добавлен в список ниже).
      * Адрес подраздела, категории и модели строится по канонической цепочке
      * (`sub_razdel.main_razdel_id`), а не по M:N `razdel_subrazdel`: иначе подраздел, привязанный
      * к двум разделам, попадает в sitemap дважды, а вторая копия ссылается canonical на первую.
@@ -164,7 +156,7 @@ class GenerateSitemap extends Command
             ];
         }
 
-        $redirected = array_map(fn ($path) => self::BASE_URL . $path, self::REDIRECTED_PATHS);
+        $redirected = array_map(fn ($path) => self::BASE_URL . $path, array_keys(Category::URL_ALIASES));
 
         return array_values(array_filter($urls, fn ($u) => !in_array($u['loc'], $redirected, true)));
     }

@@ -17,7 +17,9 @@ PR #324, #325, #326) — 24–25.09.2026, см. журнал. Сейчас в о
 **`fix/sitemap-generator-canonical` — генератор sitemap (п. 4 аудита).** Адрес подраздела/категории/модели строится
 по канонической цепочке (`sub_razdel.main_razdel_id`) вместо M:N: на проде из sitemap уходит ≈51 дубль
 `/ru/prokat-sports/begovely_velosipedy_samokaty/…` (1 подраздел, 7 категорий, 43 модели); исключена категория
-Биоптрона (301); slug с пробелом и `&` кодируются (`%20`, `%26`). Миграций нет, данные не меняются. Деплой сам
+Биоптрона (301), а ссылки меню, списка категорий, хлебных крошек и `/ru/prokat/prokat-bioptron-minsk` ведут сразу на алиас
+`/ru/medical-prokat/bioptron` (`Category::URL_ALIASES`); slug с пробелом и `&` кодируются (`%20`, `%26`). Миграций нет,
+данные не меняются. Деплой сам
 sitemap **не пересоздаёт** (деплой его не трогает), поэтому либо ждём ночной генерации в 02:00, либо сразу после
 деплоя — ручной `php artisan sitemap:generate` (см. «После заливки»).
 
@@ -46,6 +48,10 @@ curl -s https://tiktak.by/sitemap.xml | grep -c '<loc>'
 curl -s https://tiktak.by/sitemap.xml | grep -c 'prokat-sports/begovely_velosipedy_samokaty'     # ждём 0
 curl -s https://tiktak.by/sitemap.xml | grep -c 'prokat-bioptron-minsk</loc>'                    # ждём 0
 curl -s https://tiktak.by/sitemap.xml | grep -E 'pelenalnyj_stolik|laugh_'                        # %20 и %26, без пробела и &
+# ссылки Биоптрона в меню ведут сразу на алиас (без промежуточного 301) — ждём 0 и >0
+curl -s https://tiktak.by/ru/medical-prokat | grep -c 'href="/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk"'
+curl -s https://tiktak.by/ru/medical-prokat | grep -c 'href="/ru/medical-prokat/bioptron"'
+curl -sI https://tiktak.by/ru/prokat/prokat-bioptron-minsk | grep -i -E '^(HTTP|location)'         # 301 сразу на /ru/medical-prokat/bioptron
 ```
 
 Затем обход всех адресов (ожидание: все 200): `xargs -P 6 curl -s -o /dev/null -w '%{http_code} %{url_effective}\n'`.
