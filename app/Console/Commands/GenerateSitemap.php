@@ -33,8 +33,20 @@ class GenerateSitemap extends Command
     }
 
     /**
+     * Категории, которые приложение перенаправляет (301) на другой адрес: их в sitemap быть не должно.
+     * Сюда не попадают адреса-алиасы, которые сами являются конечной страницей.
+     */
+    private const REDIRECTED_PATHS = [
+        // Route::redirect в routes/web.php → /ru/medical-prokat/bioptron (он есть в sitemap ниже)
+        '/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk',
+    ];
+
+    /**
      * URL всех страниц каталога для sitemap (без проверки доступности).
      * Скрытые служебные категории (Category::HIDDEN_CATEGORY_REDIRECTS) не включаются.
+     * Адрес подраздела, категории и модели строится по канонической цепочке
+     * (`sub_razdel.main_razdel_id`), а не по M:N `razdel_subrazdel`: иначе подраздел, привязанный
+     * к двум разделам, попадает в sitemap дважды, а вторая копия ссылается canonical на первую.
      */
     public function collectUrls(): array
     {
@@ -72,7 +84,7 @@ class GenerateSitemap extends Command
 
         foreach ($razdels as $r) {
             $urls[] = [
-                'loc'        => self::BASE_URL . '/ru/' . $r->url_razdel_name,
+                'loc'        => $this->pageUrl($r->url_razdel_name),
                 'lastmod'    => $this->formatDate($r->razdel_change_time),
                 'changefreq' => 'weekly',
                 'priority'   => '0.9',
@@ -82,8 +94,7 @@ class GenerateSitemap extends Command
         $subrazddels = DB::select("
             SELECT r.url_razdel_name, sr.url_sub_razdel_name, sr.sub_razdel_change_time
             FROM sub_razdel sr
-            JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
-            JOIN razdel r ON r.id_razdel = rs.id_razdel
+            JOIN razdel r ON r.id_razdel = sr.main_razdel_id
             WHERE sr.url_sub_razdel_name != '' AND r.url_razdel_name != ''
               AND EXISTS (
                 SELECT 1 FROM tovar_rent_cat c2
@@ -99,7 +110,7 @@ class GenerateSitemap extends Command
 
         foreach ($subrazddels as $sr) {
             $urls[] = [
-                'loc'        => self::BASE_URL . '/ru/' . $sr->url_razdel_name . '/' . $sr->url_sub_razdel_name,
+                'loc'        => $this->pageUrl($sr->url_razdel_name, $sr->url_sub_razdel_name),
                 'lastmod'    => $this->formatDate($sr->sub_razdel_change_time),
                 'changefreq' => 'weekly',
                 'priority'   => '0.8',
@@ -110,8 +121,7 @@ class GenerateSitemap extends Command
             SELECT r.url_razdel_name, sr.url_sub_razdel_name, c.cat_url_key
             FROM tovar_rent_cat c
             JOIN sub_razdel sr ON sr.id_sub_razdel = c.main_sub_razdel_id
-            JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
-            JOIN razdel r ON r.id_razdel = rs.id_razdel
+            JOIN razdel r ON r.id_razdel = sr.main_razdel_id
             WHERE c.cat_url_key != '' AND sr.url_sub_razdel_name != '' AND r.url_razdel_name != ''
               AND c.tovar_rent_cat_id NOT IN ($hidden)
               AND EXISTS (
@@ -126,7 +136,7 @@ class GenerateSitemap extends Command
 
         foreach ($categories as $cat) {
             $urls[] = [
-                'loc'        => self::BASE_URL . '/ru/' . $cat->url_razdel_name . '/' . $cat->url_sub_razdel_name . '/' . $cat->cat_url_key,
+                'loc'        => $this->pageUrl($cat->url_razdel_name, $cat->url_sub_razdel_name, $cat->cat_url_key),
                 'changefreq' => 'weekly',
                 'priority'   => '0.7',
             ];
@@ -138,8 +148,7 @@ class GenerateSitemap extends Command
             JOIN tovar_rent tr ON tr.tovar_rent_id = rmw.model_id
             JOIN tovar_rent_cat c ON c.tovar_rent_cat_id = tr.tovar_rent_cat_id
             JOIN sub_razdel sr ON sr.id_sub_razdel = c.main_sub_razdel_id
-            JOIN razdel_subrazdel rs ON rs.id_sub_razdel = sr.id_sub_razdel
-            JOIN razdel r ON r.id_razdel = rs.id_razdel
+            JOIN razdel r ON r.id_razdel = sr.main_razdel_id
             WHERE rmw.lang = 'ru' AND rmw.page_addr != '' AND rmw.status = 'show'
                 AND sr.url_sub_razdel_name != '' AND r.url_razdel_name != '' AND c.cat_url_key != ''
                 AND c.tovar_rent_cat_id NOT IN ($hidden)
@@ -149,13 +158,25 @@ class GenerateSitemap extends Command
 
         foreach ($models as $m) {
             $urls[] = [
-                'loc'        => self::BASE_URL . '/ru/' . $m->url_razdel_name . '/' . $m->url_sub_razdel_name . '/' . $m->cat_url_key . '/' . $m->page_addr,
+                'loc'        => $this->pageUrl($m->url_razdel_name, $m->url_sub_razdel_name, $m->cat_url_key, $m->page_addr),
                 'changefreq' => 'monthly',
                 'priority'   => '0.6',
             ];
         }
 
-        return $urls;
+        $redirected = array_map(fn ($path) => self::BASE_URL . $path, self::REDIRECTED_PATHS);
+
+        return array_values(array_filter($urls, fn ($u) => !in_array($u['loc'], $redirected, true)));
+    }
+
+    /**
+     * Адрес страницы каталога: сегменты кодируются по отдельности, поэтому slug с пробелом или `&`
+     * (например, `pelenalnyj_stolik _s_vannochkoj_cam_cambio`) даёт валидный <loc>.
+     * Обычные slug (латиница, цифры, `-`, `_`, `.`) не меняются.
+     */
+    private function pageUrl(string ...$segments): string
+    {
+        return self::BASE_URL . '/ru/' . implode('/', array_map('rawurlencode', $segments));
     }
 
     // HTTP-коды, по которым URL ТОЧНО лишний в sitemap:

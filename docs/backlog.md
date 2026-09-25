@@ -43,17 +43,28 @@
 Проверка промпта другого ИИ-агента по логам и БД прода. Выводы, факты и список сделанного —
 [seo_404_audit_2026-09-24.md](seo_404_audit_2026-09-24.md). Выгрузка аудита (876 URL) остаётся у агента SEO-проекта.
 
-- [x] **`sitemap.xml` лежал в git, а `Deploy.php` делает `git reset --hard`** — исправлено веткой
-  `fix/sitemap-out-of-git`. Каждый деплой откатывал свежий файл к закоммиченной версии до генерации в 02:00
+- [x] **`sitemap.xml` лежал в git, а `Deploy.php` делает `git reset --hard`** — исправлено (PR #327,
+  выкачено 25.09). Каждый деплой откатывал свежий файл к закоммиченной версии до генерации в 02:00
   (23.09 в 23:51 вернулась версия от 11.08: 70 из 1021 адреса не отдавали 200; 25.09 в 10:10 снова).
   Теперь оба файла в `.gitignore` и вне git (тест `SitemapNotTrackedTest`). `Deploy.php` не менялся (решение
-  владельца): выкатка этой ветки один раз удалит файлы с сервера, поэтому сразу после неё нужен ручной
-  `php artisan sitemap:generate` (см. `prod_pending.md`).
-- [ ] **Генератор sitemap выводит невалидные и редиректящие адреса.** Категория
-  `/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk` отвечает 301 (редирект в
-  `routes/web.php`, а не в таблице `redirects`); `page_addr` со пробелом
-  (`pelenalnyj_stolik _s_vannochkoj_cam_cambio`) и с `&amp;` (`laugh_&amp;_learn_smart_stages_home`) дают
-  битый `<loc>`. `--verify` «на копии» не годится: `BASE_URL` зашит на прод.
+  владельца); сам деплой один раз удалил файлы с сервера, они пересозданы вручную `php artisan sitemap:generate`.
+- [x] **Генератор sitemap выводил дубли, редиректящую категорию и невалидный адрес** — исправлено веткой
+  `fix/sitemap-generator-canonical` (тест `SitemapGeneratorTest`): адрес строится по канонической цепочке
+  `sub_razdel.main_razdel_id`, а не по M:N `razdel_subrazdel` (на проде уходит ≈51 дубль подраздела
+  `begovely_velosipedy_samokaty` под `prokat-sports`: 1 подраздел, 7 категорий, 43 модели); категория
+  `/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk` (301 из `routes/web.php`) исключена, алиас
+  `/ru/medical-prokat/bioptron` остаётся; сегменты адреса кодируются (`%20`, `%26`). `--verify` «на копии» не
+  годится: `BASE_URL` зашит на прод.
+- [ ] **Slug с пробелом и `&` (модели 1465 `pelenalnyj_stolik _s_vannochkoj_cam_cambio` и 558
+  `laugh_&_learn_smart_stages_home`).** В sitemap они теперь закодированы, но `<link rel="canonical">` страниц
+  содержит их в сыром виде. Правильно переименовать `rent_model_web.page_addr` и поставить 301 со старых
+  адресов (запись в БД — с согласия владельца; API `page_addr` не меняет; проверить, что `CheckRedirects` ловит
+  адрес с пробелом).
+- [ ] **Разовый 500 на карточке после деплоя (Б11).** 25.09 15:44:40 при обходе sitemap в 6 потоков:
+  `file_put_contents(storage/framework/cache/data/…)`: No such file or directory в
+  `Cache::remember('rec_view_ids_…')` (`app/MyClasses/L3Page.php:333`) — гонка файлового кэша после
+  `cache:clear` при деплое. Повтор — 200, в текущем логе единственная такая ошибка. Если повторится:
+  прогрев кэша после деплоя или другой драйвер кэша для рекомендаций.
 - [ ] **Модель без единиц отдаёт 404 (`l3_not_found`) — нужна политика.** 404 держится, пока не заведена
   единица (слинг 939 — 30 дней, весы 1326 — 88). Решить: оставить 404 или отдавать 200 с «нет в наличии» и
   `OutOfStock` (текст «больше не доступен» при 200 Google сочтёт soft-404). Затрагивает 53 из 470
