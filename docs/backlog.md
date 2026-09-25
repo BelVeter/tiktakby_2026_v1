@@ -48,15 +48,14 @@
   (23.09 в 23:51 вернулась версия от 11.08: 70 из 1021 адреса не отдавали 200; 25.09 в 10:10 снова).
   Теперь оба файла в `.gitignore` и вне git (тест `SitemapNotTrackedTest`). `Deploy.php` не менялся (решение
   владельца); сам деплой один раз удалил файлы с сервера, они пересозданы вручную `php artisan sitemap:generate`.
-- [x] **Генератор sitemap выводил дубли, редиректящую категорию и невалидный адрес** — исправлено веткой
-  `fix/sitemap-generator-canonical` (тест `SitemapGeneratorTest`): адрес строится по канонической цепочке
+- [x] **Генератор sitemap выводил дубли, редиректящую категорию и невалидный адрес** — исправлено (PR #328, выкачено
+  25.09; тест `SitemapGeneratorTest`): адрес строится по канонической цепочке
   `sub_razdel.main_razdel_id`, а не по M:N `razdel_subrazdel` (на проде уходит ≈51 дубль подраздела
   `begovely_velosipedy_samokaty` под `prokat-sports`: 1 подраздел, 7 категорий, 43 модели); категория
   `/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk` (301 из `routes/web.php`) исключена, алиас
   `/ru/medical-prokat/bioptron` остаётся; сегменты адреса кодируются (`%20`, `%26`). `--verify` «на копии» не
   годится: `BASE_URL` зашит на прод.
-- [x] **Внутренние ссылки на редиректящую категорию Биоптрона (Б13)** — исправлено веткой
-  `fix/sitemap-generator-canonical`. Меню, список категорий, хлебные крошки карточек и редирект `/ru/prokat/{cat}`
+- [x] **Внутренние ссылки на редиректящую категорию Биоптрона (Б13)** — исправлено (PR #328, выкачено 25.09). Меню, список категорий, хлебные крошки карточек и редирект `/ru/prokat/{cat}`
   вели на `/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk` (301 → `/ru/medical-prokat/bioptron`),
   на главной — сразу на алиас. Теперь `Category::getUrlForPage()` отдаёт алиас из `Category::URL_ALIASES`
   (тест `CategoryUrlAliasTest`).
