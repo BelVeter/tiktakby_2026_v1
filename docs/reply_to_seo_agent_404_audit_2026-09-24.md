@@ -64,9 +64,12 @@ PR, MCP API сайта и (по прямому разрешению владел
 
 - **Политика для моделей без единиц** (404 как сейчас или 200 «нет в наличии»): продуктовое решение владельца,
   затрагивает 53 из 470 «мёртвых» URL и повторяющиеся 404 при распродаже.
-- **Sitemap:** исключить категорию Биоптрона (301) и слаги с пробелом/`&amp;` (`pelenalnyj_stolik _s_vannochkoj_cam_cambio`,
-  `laugh_&amp;_learn_smart_stages_home`); убрать `sitemap.xml` из git и генерировать его в `Deploy.php`
-  (правка деплоя требует согласия владельца).
+- **Sitemap:** исключить категорию Биоптрона (301) и слаг с пробелом (`pelenalnyj_stolik _s_vannochkoj_cam_cambio`;
+  `&` в `laugh_&_learn_smart_stages_home` в XML записывается как `&amp;` и валиден — но `<link rel="canonical">`
+  этих двух страниц содержит пробел/`&` в сыром виде, поэтому корректнее переименовать слаги); убрать дубли по M:N
+  (≈51 адрес подраздела `begovely_velosipedy_samokaty` под чужим разделом `prokat-sports`). «Убрать `sitemap.xml`
+  из git» — в работе (ветка `fix/sitemap-out-of-git`); генерация в `Deploy.php` не добавляется по решению владельца:
+  файл создаёт ночная генерация (02:00), первую выкатку добираем ручным запуском команды.
 - **Таблица «URL → 301/404» для 470 мёртвых** и аудит целей всех 765 редиректов — после решения по задаче 1.
 - **Битые декоративные картинки** (раздел 5) — нужно решение: восстановить файлы из бэкапа старого хостинга
   или убрать теги `<img>` из описаний.
@@ -109,7 +112,7 @@ H=https://tiktak.by
 # скрытая категория и карточки (любой префикс) → 301 на /ru/karnavalnye-kostyumy
 curl -sI $H/ru/medical-prokat/electroterapiya-prokat/tyu | head -3
 curl -sI $H/ru/prokat-detskih-tovarov/x/y/kolobok_kostum_novogodnii | head -3
-# sitemap без скрытой категории (сверять только после 02:00, не сразу после деплоя) — ждём 0
+# sitemap без скрытой категории — ждём 0 (до выкатки fix/sitemap-out-of-git сверять только после 02:00)
 curl -s $H/sitemap.xml | grep -c 'electroterapiya-prokat/tyu'
 # фолбэк по каноническому адресу (вместо 404)
 curl -sI "$H/index.html/prokat-detskih-tovarov/begovely_velosipedy_samokaty/aksessuary-dla-samokatov/sidenie_dlia_samokata_micro" | head -3
@@ -127,7 +130,7 @@ curl -sI $H/ru/prokat-detskih-tovarov/kolyaski-detskie/zzzz-nonexistent | head -
   на рабочей машине не существует. Строки логов **дублируются** (два формата), считайте запросы с поправкой.
 - «Мигание» по редким хитам ботов не диагностируется: смотрите состояние БД (`tovar_rent_items`,
   `tovar_rent_items_arch`, даты `arch_time`) и таймлайн статусов по логам.
-- Флаг `in_sitemap` зависит от момента снятия: сразу после деплоя отдаётся закоммиченная версия файла.
+- Флаг `in_sitemap` зависит от момента снятия: до выкатки `fix/sitemap-out-of-git` сразу после деплоя отдавалась закоммиченная версия файла (после неё файл деплоем не откатывается).
 - Прежде чем предлагать правку «в шаблонах», проверяйте, не лежит ли текст в БД (`pages`, `rent_model_web`);
   правки контента — через MCP API (`/pages/product/bulk`, `/redirects`), но не для `pages` главной.
 - Не считайте `stripped_target_status = 301` признаком живой цели: многие 301 — это записи `redirects`,

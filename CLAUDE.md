@@ -154,7 +154,7 @@ Full controller/middleware/table inventory lives in `AGENTS.md` — this section
 | **MCP API returns 403** | Check: Bearer token in `Authorization` header, client IP in BY/RU, GeoLite2 database at `storage/app/geoip/GeoLite2-Country.mmdb` |
 | **Can't connect to Docker database** | Use `db` as host inside container, `localhost:33060` from your machine; phpmyadmin at `http://localhost:8088` |
 | **Icon/image works locally but 404 on prod** | `.gitignore` ignores `*.png`, `*.ico`, `*.svg` etc. Add an explicit `!`-exception (as done for favicons: `/favicon.ico`, `/public/images/favicon-*.png`, `apple-touch-icon.png`) or `git add -f`; `tests/Feature/LayoutIconLinksTest.php` guards the `<head>` icons |
-| **`sitemap.xml` shows stale/404 URLs right after a deploy** | Both `sitemap.xml` files are tracked in git and `Deploy.php` runs `git reset --hard`; the fresh file appears only after the 02:00 `sitemap:generate`. Check statuses after 02:00 |
+| **`/sitemap.xml` is missing or stale** | Both `sitemap.xml` files are generated and gitignored (not tracked, so a deploy never reverts them; `SitemapNotTrackedTest`). Regenerate with `php artisan sitemap:generate` (also runs daily at 02:00). Do not `git add -f` them back |
 
 ## Configuration
 

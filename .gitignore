@@ -110,3 +110,8 @@ Deploy.php
 *.sql
 
 .venv/
+
+# sitemap.xml пересоздаётся командой sitemap:generate (расписание 02:00). Если держать его в git,
+# деплой (git reset --hard) откатывает свежий файл к закоммиченной версии.
+/sitemap.xml
+/public/sitemap.xml
