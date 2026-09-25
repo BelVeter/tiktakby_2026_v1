@@ -14,9 +14,11 @@
 Прежняя очередь (ветки 1–4) выкачена 23.09.2026, ветки по SEO-аудиту 404 (PR #322, фолбэк редиректов,
 PR #324) — 24.09.2026, см. журнал. Сейчас в очереди:
 
-**`feat/vazhno-icon` — значок «Важно!»** (`public/images/vazhno.png`, красный круг с «!», 96×96). Описания шести
-карточек весов уже указывают на `/public/images/vazhno.png` (правка через API сделана 25.09), поэтому до
-выкатки значок отдаёт 404 — заливать без задержки. Действий на проде до заливки нет.
+**`feat/vazhno-icon` — значок «Важно!»** (`public/images/vazhno.png`, красный круг с «!», 96×96). Файл **уже
+лежит на проде**: загружен вручную 25.09.2026 по прямому поручению владельца (SFTP, только этот файл, SHA-256
+`2b75a7443b0fd78d0d7cedbbd13edb5ba1e0e430c22c5f94ba7362bc2f406a97`), описания шести карточек весов на него
+ссылаются. Ветка нужна, чтобы файл и исключение в `.gitignore` были в git. Действий на проде не требуется: при
+деплое `git reset --hard` заменит загруженный файл идентичным отслеживаемым.
 
 > ⚠️ **PR мерджатся squash'ем.** После влития каждой ветки следующую нужно пересоздать от
 > свежего `origin/main` (`git fetch origin && git checkout -b <новая> origin/main` +
@@ -33,12 +35,10 @@ PR #324) — 24.09.2026, см. журнал. Сейчас в очереди:
 
 ## После заливки
 
-**Ветка `feat/vazhno-icon`** — проверить (только чтение):
+**Ветка `feat/vazhno-icon`** — проверить, что файл на месте (только чтение):
 
 ```bash
-curl -sI https://tiktak.by/public/images/vazhno.png | head -3        # ждём 200 image/png
-# на карточке весов значок должен быть виден (например, id 1326)
-curl -s https://tiktak.by/ru/prokat-detskih-tovarov/vesy-baby_monitors/scales/vesy_dlia_novorozhdennyh_agselbybs_901 | grep -o '<img class="floatLeft"[^>]*>'
+curl -sI https://tiktak.by/public/images/vazhno.png | head -3        # ждём 200 image/png, 4613 байт
 ```
 
 ---
@@ -115,7 +115,7 @@ curl -s https://tiktak.by/ru/prokat-detskih-tovarov/vesy-baby_monitors/scales/ve
   `/public/images/vazhno.png` с размерами и `float:left`), редирект id 701 (битая цель → `/ru/prokat-detskih-tovarov/toys-for-rent`);
   прямым UPDATE в БД — `pages` id 1 (главная, две ссылки) и id 22 (категория колясок, четыре ссылки: Peg Perego и
   Chicco → фильтр `/ru/producer?producer=…`, Maclaren и Quinny без живых моделей — ссылка снята). Проверено:
-  `.htm` на главной и карточках нет, цели отвечают 200. Значения «до» — `storage/app/backups/seo-content-2026-09-25/`
+  `.htm` на главной и карточках нет, цели отвечают 200. Значок «Важно!» загружен на прод вручную по поручению владельца (SFTP, SHA-256 совпал, 200 `image/png`, виден на 5 из 6 карточек; у шестой сейчас нет единиц). Значения «до» — `storage/app/backups/seo-content-2026-09-25/`
   (вне git), для карточек также `/pages/history`. Подробности — [reply_to_seo_agent_404_audit_2026-09-24.md](reply_to_seo_agent_404_audit_2026-09-24.md).
 
 - **24.09.2026** — выкачены и проверены на проде (HEAD `916a91f`, деплой 18:21–18:23): фолбэк редиректов по
