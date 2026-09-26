@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use bb\classes\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -88,7 +89,7 @@ class RedirectController extends Controller
             ORDER BY r.razdel_order_num, sr.order_num_sub_razd
             LIMIT 1
         ", [$slug]);
-        if ($cat) return $cat->url;
+        if ($cat) return Category::URL_ALIASES[$cat->url] ?? $cat->url;
 
         // 3. Подраздел: sub_razdel.url_sub_razdel_name
         $sub = DB::selectOne("
