@@ -1234,12 +1234,19 @@ class MainPage
    */
   public function isRealPage()
   {
-    if ($this->getId() > 0)
-      return true;
-    else if ($this->_razdel)
-      return true;
-    else
-      return false;
+    // Страница каталога настоящая, только если по имени нашлись все сущности цепочки. Строка в `pages`
+    // (getId() > 0) или один найденный раздел этого не доказывают: иначе выдуманный подраздел или
+    // категория под настоящим разделом отдавали 200 «Раздел не найден.» (soft-404).
+    switch ($this->level_code) {
+      case 'category':
+        return (bool) ($this->_razdel && $this->_subRazdel && $this->_category);
+      case 'subrazdel':
+        return (bool) ($this->_razdel && $this->_subRazdel);
+      case 'razdel':
+        return (bool) $this->_razdel;
+    }
+
+    return $this->getId() > 0 || (bool) $this->_razdel;
   }
   /**
    * Builds the ItemList Schema.org JSON-LD string for category listings (L2).

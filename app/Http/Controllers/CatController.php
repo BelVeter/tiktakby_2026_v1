@@ -66,7 +66,8 @@ class CatController extends Controller{
 
         $p=MainPage::getWebPageBySubRazdelAndRazdel($lang, $razdelName, $subRazdelName, $showPageNumber, $filter);
 
-        if(!$p || !$p->isRealPage()) return response()->view('not_found', [], 404);
+        // Цепочка раздел/подраздел не сошлась: 301 на канонический адрес по последнему сегменту либо 404.
+        if(!$p || !$p->isRealPage()) return app(RedirectController::class)->notFound($req);
 
         return view('catpage', ['p' => $p]);
     }
@@ -94,7 +95,8 @@ class CatController extends Controller{
         $p=MainPage::getWebPageByCategoryAndSubRazdelAndRazdel($lang, $razdelName, $subRazdelName, $cateforyName, $showPageNumber, $filter);
         //dd($p);
 
-        if(!$p || !$p->isRealPage()) return response()->view('not_found', [], 404);
+        // Цепочка раздел/подраздел/категория не сошлась: 301 на канонический адрес по последнему сегменту либо 404.
+        if(!$p || !$p->isRealPage()) return app(RedirectController::class)->notFound($req);
 
         return view('catpage', ['p' => $p]);
     }
