@@ -59,6 +59,13 @@
   вели на `/ru/medical-prokat/bioptron-prokat-minsk/prokat-bioptron-minsk` (301 → `/ru/medical-prokat/bioptron`),
   на главной — сразу на алиас. Теперь `Category::getUrlForPage()` отдаёт алиас из `Category::URL_ALIASES`
   (тест `CategoryUrlAliasTest`).
+- [x] **Кривой URL код можно было ввести (Б14)** — исправлено веткой `fix/model-slug-validation` (тест
+  `ModelWebPageUrlCodeTest`): проверка на сервере (`ModelWeb::isValidPageUrlCode`, guard в `save/update/updateUrlKey`, AJAX
+  `form_check`, начало действия `save`) и мгновенное удаление недопустимых символов в поле (`data-controll="slug"`). Подробности —
+  `db_notes.md` п. 25.
+- [ ] **Тот же `keyup`-фильтр без проверки на сервере у URL-ключей категории, подраздела и раздела** (`bb/assets/js/cat.js`,
+  `sub_razdel.js`, `razdel.js`); сейчас в базе нестандартных ключей нет. И мёртвая форма `bb/model_web_old.php` (нигде не подключена)
+  пишет `page_addr` без проверок — кандидат на удаление.
 - [ ] **Slug с пробелом и `&` (модели 1465 `pelenalnyj_stolik _s_vannochkoj_cam_cambio` и 558
   `laugh_&_learn_smart_stages_home`).** В sitemap они теперь закодированы, но `<link rel="canonical">` страниц
   содержит их в сыром виде. Правильно переименовать `rent_model_web.page_addr` и поставить 301 со старых
