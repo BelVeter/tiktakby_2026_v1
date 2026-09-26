@@ -53,7 +53,12 @@ function formCheck(e) {
 
 function processFormValidationResults(rez){
   let readyToSend = true;
-  if (rez.hasUrlDublicates) {
+  if (rez.urlCodeInvalid) {
+    readyToSend=false;
+    urlCode.classList.add('is-invalid');
+    urlCodeFeedback.innerHTML='В URL коде допустимы только латинские буквы, цифры и символы - _ . Уберите остальные.';
+  }
+  else if (rez.hasUrlDublicates) {
     readyToSend=false;
     urlCode.classList.add('is-invalid');
     urlCodeFeedback.innerHTML='Адрес должен быть уникальным. Текущий адрес дублирует модель №'+rez.hasUrlDublicates;
@@ -89,6 +94,25 @@ function fileChosen(e){
   parentDiv.children[0].append(img);
   input.classList.remove('d-none');
   span.classList.remove('d-none');
+}
+
+//URL код страницы: недопустимые символы удаляются сразу при вводе, вставке и автозаполнении
+const SLUG_FORBIDDEN = /[^A-Za-z0-9._-]/g;
+
+document.querySelectorAll('[data-controll="slug"]').forEach((el) => {
+  el.addEventListener('input', cleanSlug);
+});
+
+function cleanSlug(e){
+  const el = e.target;
+  const cleaned = el.value.replace(SLUG_FORBIDDEN, '');
+  if (cleaned === el.value) return;
+
+  // курсор остаётся на своём месте: сдвигаем на число удалённых символов слева от него
+  const caret = el.selectionStart;
+  const removedBeforeCaret = el.value.slice(0, caret).replace(/[A-Za-z0-9._-]/g, '').length;
+  el.value = cleaned;
+  el.setSelectionRange(caret - removedBeforeCaret, caret - removedBeforeCaret);
 }
 
 //form check

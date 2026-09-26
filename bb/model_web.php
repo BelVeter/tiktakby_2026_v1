@@ -36,6 +36,7 @@ if (isset($_POST['form_check'])) {
 
   $result->status = 'ok';
   $result->hasUrlDublicates = $hasUrlDublicates;
+  $result->urlCodeInvalid = !\bb\classes\ModelWeb::isValidPageUrlCode($urlCode);
 
   header("Content-Type: application/json; charset=UTF-8");
   echo json_encode($result);
@@ -97,6 +98,16 @@ if (isset($_POST['form_check'])) {
         $mw->setKeywords(str_replace(['"', "'"], '', $_POST['keywords']));
         $mw->setFaqJson($_POST['faq_json'] ?? '');
         $mw->setStatus($_POST['status']);
+
+        // Проверяем до загрузки картинок: каталог для них называется по URL коду. Браузер убирает лишние символы
+        // при вводе, но POST мимо скрипта (или вставка при отключённом JS) должен упереться сюда.
+        if (!\bb\classes\ModelWeb::isValidPageUrlCode($mw->getPageUrlCode())) {
+          echo '<div class="alert alert-danger">URL код <b>' . htmlspecialchars($mw->getPageUrlCode())
+            . '</b> недопустим: разрешены только латинские буквы, цифры и символы «-», «_», «.». '
+            . 'Страница НЕ сохранена — исправьте URL код.</div>';
+          unset($mw);
+          break;
+        }
 
 
         if (isset($_FILES['m_pic_big']) && $_FILES['m_pic_big']['name'] != '') {
@@ -375,8 +386,9 @@ if (isset($_POST['form_check'])) {
               <sup>i</sup></label>
           </div>
           <div class="col">
-            <input class="form-control" name="url_code" id="url_code" type="text" data-controll="url"
-              aria-describedby="url_code_feedback" value="<?= $mw->getPageUrlCode() ?>">
+            <input class="form-control" name="url_code" id="url_code" type="text" data-controll="slug"
+              aria-describedby="url_code_feedback" value="<?= htmlspecialchars($mw->getPageUrlCode()) ?>">
+            <small class="form-text text-muted">Латиница, цифры, «-», «_», «.»; остальные символы удаляются сразу при вводе.</small>
             <div class="invalid-feedback" id="url_code_feedback"></div>
           </div>
         </div>
@@ -585,7 +597,7 @@ if (isset($_POST['form_check'])) {
       tinycomments_author: 'Author name',
     });
   </script>
-  <script src="/bb/assets/js/model_web_new.js?v=4"></script>
+  <script src="/bb/assets/js/model_web_new.js?v=5"></script>
   <script>
     (function() {
       function createFaqItem(question, answer) {

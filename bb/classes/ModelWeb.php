@@ -12,6 +12,29 @@ require_once __DIR__ . '/Producer.php';
 
 class ModelWeb
 {
+  /**
+   * URL код страницы (`page_addr`) идёт в адрес карточки, в canonical и в имя каталога с картинками, поэтому
+   * допустимы только символы, которые не нужно кодировать: латиница, цифры, `-`, `_`, `.` (и хотя бы одна
+   * буква или цифра). Пробел, `&`, кириллица и т. п. давали битые адреса (модели 558 и 1465). Браузер режет
+   * лишнее при вводе, но это только удобство — здесь последний рубеж.
+   */
+  const PAGE_URL_CODE_PATTERN = '/^(?=.*[A-Za-z0-9])[A-Za-z0-9._-]+$/D';
+
+  /**
+   * @param mixed $code
+   */
+  public static function isValidPageUrlCode($code): bool
+  {
+    return is_string($code) && preg_match(self::PAGE_URL_CODE_PATTERN, $code) === 1;
+  }
+
+  private function assertValidPageUrlCode(): void
+  {
+    if (!self::isValidPageUrlCode($this->page_addr)) {
+      throw new \InvalidArgumentException('Недопустимый URL код страницы: разрешены латинские буквы, цифры и символы - _ .');
+    }
+  }
+
   private $web_id;
   private $lang;
   public $model_id;
@@ -728,6 +751,7 @@ class ModelWeb
    */
   public function save()
   {
+    $this->assertValidPageUrlCode();
     $mysqli = Db::getInstance()->getConnection();
 
     if ($this->getWebId() < 1) {
@@ -771,6 +795,7 @@ class ModelWeb
    */
   public function update()
   {
+    $this->assertValidPageUrlCode();
     if ($this->getWebId() < 1)
       throw new \Error('Update: id not set');
 
@@ -979,6 +1004,7 @@ class ModelWeb
    */
   public function updateUrlKey()
   {
+    $this->assertValidPageUrlCode();
     $mysqli = Db::getInstance()->getConnection();
 
     $q = "UPDATE rent_model_web SET page_addr='$this->page_addr' WHERE web_id = '$this->web_id'";
