@@ -253,3 +253,29 @@ if (isset($_COOKIE['tt_is_logged_in'])) {
 
 This cookie serves as the bridge between the two systems for "is logged in" checks on the frontend. for deep security, backend scripts in `/bb/` must still use `\bb\Base::loginCheck()`.
 
+### Staff permissions in `/bb/`
+
+Access to individual admin features is granted per employee through the `permissions` (catalog, `int_code`) and
+`user_permissions` (`user_id`, `permission_id` → `permissions.int_code`) tables. Owners (ids 2, 3, 5) pass every check
+automatically. Permissions are read from the DB on each request, so a new grant needs no re-login. There is no UI for
+granting them yet — use SQL or a migration (template: `database/migrations/2026_10_07_120000_seed_staff_item_permissions.php`).
+
+| Code | Constant (`bb\classes\Permission`) | Grants |
+|------|------------------------------------|--------|
+| 1 | — | Page/menu editing (`razdel_manage.php`, `page_management.php`, ...) |
+| 2 | — | Bulk operations page |
+| 3 | — | "New item / All items" links on the admin home page |
+| 4 | — | Delete expenses (defined but not checked in code yet) |
+| 5 | — | Edit URL key (section etc.) |
+| 6 | reserved | "Bank" and "Safe" channels in expenses (planned, see `docs/backlog.md`) |
+| 7 | `TARIFFS` | `rent_tarifs.php`, the "Тарифы" menu item and home tile |
+| 8 | `DISPOSAL` | Item write-off form `tovar_del.php` and the "Удаление" menu item |
+| 9 | `CATALOG` | `tovar_new.php`, `tovar_new_mod.php`, edit item/model, "popular", FAKE toggle, QR tile |
+
+Rules for `bb/` code:
+-   **Never hardcode employee ids** (the old `getId()==26` is gone; `StaffItemPermissionsTest` guards it). Check a permission instead.
+-   Menus/tiles: `\bb\models\User::currentHasPermission(\bb\classes\Permission::X)`. It is fail-closed (no session or user → `false`).
+-   Pages: call `\bb\models\User::requireCurrentPermission(\bb\classes\Permission::X, 'what is closed')` right after `loginCheck()` —
+    hiding a link is not access control. `User.php` itself `require_once`s `Permission.php`, so any page that loads `User.php` can use the constants.
+-   Destructive actions (hard-deleting an item, archiving a model) stay on `can_destroy()` in `tovar_del.php`: levels 5/7 only.
+

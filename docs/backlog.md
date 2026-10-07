@@ -137,9 +137,11 @@
 **План:**
 1. Миграция в `database/migrations/`: строка `permissions(int_code=6, description='Банк и Сейф в расходах')` и
    `user_permissions(user_id=22, permission_id=6)`; идемпотентная, образец —
-   `2026_08_09_120000_seed_api_system_logpass_user.php`.
-2. В `doh-rash.php` `channels_user_can_see_all()` → `User::getCurrentUser()->hasPermission(6)`, при `false` из
-   `getCurrentUser()` — доступа нет (fail-closed); `channels_privileged_users()` удалить.
+   `2026_10_07_120000_seed_staff_item_permissions.php` (права 7–9 на товары, 07.10.2026; **код 6 остаётся за
+   «Банком и Сейфом»**, коды 7, 8, 9 заняты — константы в `bb\classes\Permission`).
+2. В `doh-rash.php` `channels_user_can_see_all()` → `User::currentHasPermission(6)` (хелпер уже есть в `User`,
+   fail-closed: нет сессии/пользователя — доступа нет; добавить константу `Permission::BANK_SAFE = 6`);
+   `channels_privileged_users()` удалить.
 3. Света (9) в список прав не переносится: аккаунт неактивен; при включении выдать право явно.
 4. После деплоя строку в `user_permissions` проверять явно — вывод `Deploy.php` «Nothing to migrate» ненадёжен
    ([db_notes п. 7](db_notes.md)). Запасной вариант, если миграция не отработала: `INSERT INTO user_permissions
@@ -150,6 +152,18 @@
 Попутно: право 4 «Возможность удалять расходы» заведено в `permissions`, но нигде не проверяется — в `doh-rash.php`
 удаление гейтится жёстким `$in_del = array(2, 3, 5, 22)`. Его можно перевести на `hasPermission(4)` тем же заходом
 (тогда строки в `user_permissions` для 22 нужно создать и под код 4).
+
+## Права на товары (07.10.2026) — что осталось за скобками
+
+Тарифы, выбытие и каталог переведены на права 7–9 (спека `docs/superpowers/specs/2026-10-07-staff-item-permissions-design.md`).
+Не сделано:
+- [ ] **Интерфейса выдачи прав нет** — `user_permissions` правится только SQL'ем. Блок чекбоксов «Права» в карточке
+  сотрудника `bb/b_user.php` (виден только владельцам) — небольшая правка; без неё каждая выдача права = ручной `INSERT`.
+- [ ] **`bb/qrs.php` и `bb/favorite_tovars_management.php` открыты любому `level 0` по прямому URL** — права скрывают только
+  плитку/ссылку. Закрыть можно тем же `User::requireCurrentPermission(Permission::CATALOG, ...)`.
+- [ ] **Старые копии списка товаров** `bb/kr_baza_new2.php`, `bb/kr_baza_new3.php` (в `kr_baza_new3.php` остался зашитый
+  `getId()==26`, гард-тест его исключает) и `bb/tovar_rent_all*.php` (на `mysql_*`, не работают на PHP 7) — удалить как мёртвый легаси.
+- [ ] Когда Юля (26) уйдёт в декрет — `logpass.active=0`; права уйдут вместе с ней, из кода id 26 уже убран.
 
 ## Технические улучшения (отложено)
 
