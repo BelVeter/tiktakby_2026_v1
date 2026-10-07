@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 //require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/database_new.php'); // включаем подключение к базе данных
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Base.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/Db.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bb/models/User.php');
 
 //------- proverka paroley
 
@@ -30,6 +31,9 @@ if ($_SESSION['svoi'] != 8941 || !(in_array($_SESSION['level'], $in_level))) {
 }
 
 //-----------proverka paroley
+
+// Страница закрыта правом «Каталог»: раньше её не открывали лишь потому, что ссылку не показывали.
+\bb\models\User::requireCurrentPermission(\bb\classes\Permission::CATALOG, 'добавление и правка товаров и моделей');
 
 
 echo '
