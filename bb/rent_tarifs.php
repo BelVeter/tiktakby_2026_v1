@@ -24,7 +24,7 @@ echo '
 $in_level= array(3,5,7);
 
 isset($_SESSION['svoi']) ? $_SESSION['svoi']=$_SESSION['svoi'] : $_SESSION['svoi']=0;
-if ($_SESSION['svoi']!=8941 || !(in_array($_SESSION['level'], $in_level) || \bb\models\User::getCurrentUser()->getId()==26)) {
+if ($_SESSION['svoi']!=8941 || !(in_array($_SESSION['level'], $in_level) || \bb\models\User::currentHasPermission(\bb\classes\Permission::TARIFFS))) {
 	die('
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 	<html xmlns="http://www.w3.org/1999/xhtml">

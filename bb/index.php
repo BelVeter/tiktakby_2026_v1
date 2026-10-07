@@ -321,7 +321,9 @@ $role = UserRole::getCurrentRole();
 -->
 <?php
 
-if (($_SESSION['level'] > 4 || $_SESSION['level'] == 3) && !$role->isCurier()) {
+$owner_tiles = ($_SESSION['level'] > 4 || $_SESSION['level'] == 3) && !$role->isCurier();
+
+if ($owner_tiles) {
 
     echo '
  <div class="container-menu">
@@ -349,24 +351,40 @@ if (($_SESSION['level'] > 4 || $_SESSION['level'] == 3) && !$role->isCurier()) {
 ';
 }
 
-if (User::getCurrentUser()->getId() == 26) {
+if (!$owner_tiles) {
+    // Сотрудник с правами на товары (раньше — только id 26): плитки по отдельным правам.
+    $staff_tiles = '';
+    $tile_new_item = User::currentHasPermission(\bb\classes\Permission::CATALOG);
+    $tile_tariffs  = User::currentHasPermission(\bb\classes\Permission::TARIFFS);
 
-    echo '
- <div class="container-menu">
+    if ($tile_new_item) {
+        $staff_tiles .= '
         <a class="menu-link" href="/bb/tovar_new.php">
             <img src="/bb/assets/images/png/menu-newtovar.png">
             <span>Внести товар</span>
-        </a>
+        </a>';
+    }
+    if ($tile_tariffs) {
+        $staff_tiles .= '
         <a class="menu-link" href="/bb/rent_tarifs.php">
             <img src="/bb/assets/images/png/menu-tarifs.png">
             <span>Тарифы</span>
-        </a>
+        </a>';
+    }
+    if ($tile_new_item) {
+        $staff_tiles .= '
         <a class="menu-link" href="/bb/qrs.php">
             <img src="/bb/assets/images/png/menu-qr.png">
             <span>QR-коды</span>
-        </a>
+        </a>';
+    }
+
+    if ($staff_tiles !== '') {
+        echo '
+ <div class="container-menu">' . $staff_tiles . '
     </div>
 ';
+    }
 }
 
 echo '
