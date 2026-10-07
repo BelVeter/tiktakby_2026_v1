@@ -60,7 +60,6 @@ Create `tests/Feature/Bb/StaffItemPermissionsTest.php`:
 namespace Tests\Feature\Bb;
 
 use bb\classes\Permission;
-use bb\Db;
 use bb\models\User;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -84,19 +83,19 @@ class StaffItemPermissionsTest extends TestCase
     {
         parent::setUp();
         User::$_users = [];
-        unset($_SESSION['user_id']);
+        $_SESSION = [];
     }
 
     protected function tearDown(): void
     {
-        unset($_SESSION['user_id']);
+        $_SESSION = [];
         User::$_users = [];
         parent::tearDown();
     }
 
     private function conn(): \mysqli
     {
-        return Db::getInstance()->getConnection();
+        return \bb\Db::getInstance()->getConnection();
     }
 
     /** Временный сотрудник level 0 без прав; возвращает его logpass_id. */
@@ -131,7 +130,7 @@ class StaffItemPermissionsTest extends TestCase
 
     public function test_staff_passes_only_with_the_granted_permission(): void
     {
-        Db::startTransaction();
+        \bb\Db::startTransaction();
         try {
             $id = $this->createTempStaff();
             $_SESSION['user_id'] = $id;
@@ -144,7 +143,7 @@ class StaffItemPermissionsTest extends TestCase
             $this->assertTrue(User::currentHasPermission(1), 'выданное право действует');
             $this->assertFalse(User::currentHasPermission(2), 'чужое право не действует');
         } finally {
-            Db::rollBackTransaction();
+            \bb\Db::rollBackTransaction();
         }
     }
 

@@ -14,6 +14,9 @@ use bb\classes\UserRole;
 use bb\Db;
 use phpDocumentor\Reflection\Types\True_;
 
+// bb/ без composer autoload: User обращается к Permission, поэтому тянет его сам.
+require_once __DIR__ . '/../classes/Permission.php';
+
 class User
 {
 
@@ -577,6 +580,39 @@ class User
       if (in_array($taskId, $this->permissions)) return true;
 
       return false;
+    }
+
+    /**
+     * Есть ли у ТЕКУЩЕГО (из сессии) сотрудника право. Fail-closed: нет сессии,
+     * пользователя или ошибка чтения прав — отказ. Владельцы (2, 3, 5) проходят
+     * через hasPermission().
+     *
+     * @param int $code Permission::TARIFFS и т.п.
+     * @return bool
+     */
+    public static function currentHasPermission($code){
+      if (empty($_SESSION['user_id'])) return false;
+      try {
+        $user = self::getCurrentUser();
+        return $user instanceof self && $user->hasPermission($code);
+      }
+      catch (\Throwable $e){
+        return false;
+      }
+    }
+
+    /**
+     * Закрывает страницу правом: без него — короткий отказ вместо страницы.
+     *
+     * @param int $code Permission::CATALOG и т.п.
+     * @param string $what что именно закрыто (для текста отказа)
+     */
+    public static function requireCurrentPermission($code, $what){
+      if (self::currentHasPermission($code)) return;
+
+      die('<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />'
+        . '<title>Нет доступа</title></head><body>Недостаточно прав: ' . $what . '.<br /><br />'
+        . '<a href="/bb/index.php">На главную</a></body></html>');
     }
 
     public function getShortName() {
