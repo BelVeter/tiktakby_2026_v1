@@ -6,6 +6,14 @@ use bb\Db;
 
 class Permission
 {
+  /** Тарифы товаров: bb/rent_tarifs.php, пункт меню «Тарифы», плитка на главной. */
+  const TARIFFS = 7;
+  /** Выбытие товара: форма bb/tovar_del.php, пункт меню «Удаление». */
+  const DISPOSAL = 8;
+  /** Каталог: новый товар/модель, правка, «В популярные», ФЕЙК, QR-коды. */
+  const CATALOG = 9;
+  // Код 6 зарезервирован под «Банк и Сейф в расходах» (docs/backlog.md).
+
   private $id;
   private $int_code;
 

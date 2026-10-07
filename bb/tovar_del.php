@@ -41,7 +41,7 @@ function one_arch () {
 
 //------- proverka paroley
 
-// Страница нужна всем сотрудникам: через неё оформляется выбытие товара.
+// Выбытие товара доступно сотрудникам с правом «Выбытие товара» (Permission::DISPOSAL).
 // Разрушающие действия отдельно ограничены can_destroy() ниже.
 //
 // Прежняя проверка `$_SESSION['level']>4` не работала: в PHP `!` связывается
@@ -49,6 +49,9 @@ function one_arch () {
 // уровне. Условие схлопывалось до «залогинен ли вообще», и удалить модель со
 // всеми юнитами мог любой сотрудник (docs/db_notes.md, п.13).
 \bb\Base::loginCheck();
+
+require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/models/User.php');
+\bb\models\User::requireCurrentPermission(\bb\classes\Permission::DISPOSAL, 'выбытие товара');
 
 require_once ($_SERVER['DOCUMENT_ROOT'].'/bb/classes/ModelArchive.php');
 

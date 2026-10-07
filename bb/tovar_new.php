@@ -43,6 +43,9 @@ if ($_SESSION['svoi'] != 8941 || !(in_array($_SESSION['level'], $in_level))) {
 
 //-----------proverka paroley
 
+// Страница закрыта правом «Каталог»: раньше её не открывали лишь потому, что ссылку не показывали.
+\bb\models\User::requireCurrentPermission(\bb\classes\Permission::CATALOG, 'добавление и правка товаров и моделей');
+
 
 echo '
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

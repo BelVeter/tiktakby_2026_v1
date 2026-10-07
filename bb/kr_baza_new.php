@@ -55,6 +55,11 @@ if ($_SESSION['svoi']!=8941 || !(in_array($_SESSION['level'], $in_level))) {
 
 //-----------proverka paroley
 
+// Права на работу с товарами (раньше — `level>=5 || id==26`). Владельцы проходят автоматически.
+$can_tariffs  = \bb\models\User::currentHasPermission(\bb\classes\Permission::TARIFFS);
+$can_disposal = \bb\models\User::currentHasPermission(\bb\classes\Permission::DISPOSAL);
+$can_catalog  = \bb\models\User::currentHasPermission(\bb\classes\Permission::CATALOG);
+
 //Проверка входящей информации
 //echo "Poluzhenniye filom danniye: <br> ---------------------- <br><br>";
 //foreach ($_POST as $key => $value) {
@@ -157,7 +162,7 @@ if(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && !empty($_SERVER['HTTP_X_REQUESTED
             break;
 
           case 'toggle_fake':
-            if (!($_SESSION['level']>=5 || \bb\models\User::getCurrentUser()->getId()==26)) {
+            if (!$can_catalog) {
                 echo json_encode(['status' => 'error', 'message' => 'Недостаточно прав.']);
                 break;
             }
@@ -421,7 +426,7 @@ function move_off (item_id, pl1, pl2, action) {
 function menu_show (el, item_id, inv_n) {
 	//alert ('zapusk');
 
-	var isPrivileged = <?php echo ($_SESSION['level']>=5 || \bb\models\User::getCurrentUser()->getId()==26) ? 'true' : 'false'; ?>;
+	var isPrivileged = <?php echo $can_catalog ? 'true' : 'false'; ?>;
 	var state = parseInt(el.getAttribute('data-state'), 10);
 	var status = el.getAttribute('data-status');
 	var isFake = (state === -1);
@@ -437,7 +442,7 @@ function menu_show (el, item_id, inv_n) {
 		}
 	}
 
-	document.getElementById('hist_'+item_id).innerHTML='<ul class="i_menu"> <li><a href="#" onclick="hist_show(\'tov_hist\', \''+item_id+'\', \''+inv_n+'\'); return false;">История</a></li>  <?php echo '<li><a href="#" onclick="document.getElementById(\\\'web_info_\'+item_id+\'\\\').submit(); return false;">WEB info</a></li> <li><a href="#" onclick="document.getElementById(\\\'tovar_lr_\'+item_id+\'\\\').submit(); return false;">в последний прокат</a></li>'; echo ($_SESSION['level']>=5 || \bb\models\User::getCurrentUser()->getId()==26) ? ' <li><a href="#" onclick="document.getElementById(\\\'tovar_tarif_\'+item_id+\'\\\').submit(); return false;">Тарифы</a></li>   <li><a href="#" onclick="document.getElementById(\\\'tovar_edit_\'+item_id+\'\\\').submit(); return false;">Редактировать товар</a></li>   <li><a href="#" onclick="document.getElementById(\\\'model_edit_\'+item_id+\'\\\').submit(); return false;">Редактировать модель</a></li>   <li><a href="#" onclick="document.getElementById(\\\'fav_tovar_\'+item_id+\'\\\').submit(); return false;">В популярные товары</a></li>    <li><a href="#" onclick="document.getElementById(\\\'tovar_del_\'+item_id+\'\\\').submit(); return false;">Удаление</a></li>' : ''; ?> ' + fakeItem + '</ul>  	<input type="button" value="х" onclick="document.getElementById(\'hist_'+item_id+'\').innerHTML=\'\'; return false;" style="position:absolute; top:5px; left:160px; z-index:3;"/>';
+	document.getElementById('hist_'+item_id).innerHTML='<ul class="i_menu"> <li><a href="#" onclick="hist_show(\'tov_hist\', \''+item_id+'\', \''+inv_n+'\'); return false;">История</a></li>  <?php echo '<li><a href="#" onclick="document.getElementById(\\\'web_info_\'+item_id+\'\\\').submit(); return false;">WEB info</a></li> <li><a href="#" onclick="document.getElementById(\\\'tovar_lr_\'+item_id+\'\\\').submit(); return false;">в последний прокат</a></li>'; echo $can_tariffs ? ' <li><a href="#" onclick="document.getElementById(\\\'tovar_tarif_\'+item_id+\'\\\').submit(); return false;">Тарифы</a></li>' : ''; echo $can_catalog ? '   <li><a href="#" onclick="document.getElementById(\\\'tovar_edit_\'+item_id+\'\\\').submit(); return false;">Редактировать товар</a></li>   <li><a href="#" onclick="document.getElementById(\\\'model_edit_\'+item_id+\'\\\').submit(); return false;">Редактировать модель</a></li>   <li><a href="#" onclick="document.getElementById(\\\'fav_tovar_\'+item_id+\'\\\').submit(); return false;">В популярные товары</a></li>' : ''; echo $can_disposal ? '    <li><a href="#" onclick="document.getElementById(\\\'tovar_del_\'+item_id+\'\\\').submit(); return false;">Удаление</a></li>' : ''; ?> ' + fakeItem + '</ul>  	<input type="button" value="х" onclick="document.getElementById(\'hist_'+item_id+'\').innerHTML=\'\'; return false;" style="position:absolute; top:5px; left:160px; z-index:3;"/>';
 
 }//end of menu_show
 
