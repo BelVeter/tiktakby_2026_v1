@@ -1,4 +1,6 @@
 <?php
+// Только CLI: из браузера скрипт недоступен (аудит 10.10.2026).
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 /**
  * Auto-merge high confidence duplicate clients
  * Usage:
@@ -14,8 +16,13 @@ foreach (($argv ?? []) as $arg) {
 }
 
 // ── DB connection ─────────────────────────────────────────────────────────────
-$host = getenv('DB_HOST') ?: 'db';
-$mysqli = new mysqli($host, 'tiktakby_tiktak', 'Vai7evahch', 'tiktakby_tiktak');
+// Доступ к БД — из .env проекта (раньше пароль был вписан прямо сюда).
+$db = [];
+foreach (file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+    if (preg_match('/^(DB_[A-Z]+)=(.*)$/', trim($line), $m)) $db[$m[1]] = trim($m[2], " \"'");
+}
+$host = getenv('DB_HOST') ?: ($db['DB_HOST'] ?? 'db');
+$mysqli = new mysqli($host, $db['DB_USERNAME'] ?? '', $db['DB_PASSWORD'] ?? '', $db['DB_DATABASE'] ?? '');
 if ($mysqli->connect_error) die("DB error: " . $mysqli->connect_error . "\n");
 $mysqli->set_charset('utf8mb4');
 

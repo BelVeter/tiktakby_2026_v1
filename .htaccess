@@ -17,6 +17,18 @@
 
     RewriteEngine On
 
+    # Служебные файлы и каталоги проекта — 404. Корень сайта = корень проекта, и без этих
+    # правил Apache отдавал любому .env, логи, дампы, доки (аудит 10.10.2026,
+    # docs/security_audit_2026-10-10.md). Стоят ДО правила для bb/, чтобы действовать и там.
+    # ⚠️ .zip/.rar и картинки nginx на проде отдаёт сам, мимо .htaccess — такие файлы
+    # с чувствительным содержимым в репозиторий не класть вообще.
+    RewriteRule ^\.well-known/ - [L]
+    RewriteRule (^|/)\. - [R=404,L]
+    RewriteRule ^(app|bootstrap|config|database|docker|docs|resources|routes|storage|tests|vendor|node_modules)(/|$) - [R=404,L]
+    RewriteRule ^bb/logs/ - [R=404,L]
+    RewriteRule \.(env|bak|old|orig|save|swp|sql|log|md|sh|py|lock|ya?ml|ini|dist|csv|cache)$ - [R=404,NC,L]
+    RewriteRule (^|/)(error_log|artisan|phpunit\.xml|composer\.json|package(-lock)?\.json|webpack\.mix\.js|server\.php|log_auto\.txt)$ - [R=404,NC,L]
+
     RewriteRule ^bb(/|$) - [L]
 
     # Serve static image files directly — never route to Laravel

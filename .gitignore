@@ -115,3 +115,13 @@ Deploy.php
 # деплой (git reset --hard) откатывает свежий файл к закоммиченной версии.
 /sitemap.xml
 /public/sitemap.xml
+
+# Служебные файлы, которые попадали в git и отдавались с прода по прямой ссылке (аудит 10.10.2026).
+# Веб-доступ к ним закрыт ещё и в .htaccess; ServiceFilesNotTrackedTest не даёт вернуть их в git.
+.env.*
+!.env.example
+error_log
+/bb/log_auto.txt
+/bb/logs/
+.DS_Store
+*.bak
