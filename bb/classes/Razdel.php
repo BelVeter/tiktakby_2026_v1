@@ -321,9 +321,13 @@ class Razdel
 
         $mysqli = Db::getInstance()->getConnection();
 
-        $query="SELECT * FROM razdel WHERE url_razdel_name='$urlName'";
+        // {razdel} приходит прямо из адреса — без экранирования кавычка ломала запрос (аудит 10.10.2026).
+        $query="SELECT * FROM razdel WHERE url_razdel_name='" . $mysqli->real_escape_string($urlName) . "'";
         $result = $mysqli->query($query);
-        if (!$result) {die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);}
+        if (!$result) {
+            error_log('Razdel::getByUrlName: ' . $mysqli->error . ' — ' . $query);
+            die('Сбой при доступе к базе данных.');
+        }
 
         if ($result->num_rows<1) return false;
         else return self::createFromDbArray($result->fetch_assoc(), $lang);
