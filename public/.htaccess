@@ -5,6 +5,12 @@
 
     RewriteEngine On
 
+    # Служебные файлы — 404 (см. корневой .htaccess). Правила корня сюда не наследуются:
+    # у public/ свой RewriteEngine On.
+    RewriteRule (^|/)\. - [R=404,L]
+    RewriteRule \.(env|bak|old|orig|save|swp|sql|log|md|sh|py|lock|ya?ml|ini|dist|csv|cache)$ - [R=404,NC,L]
+    RewriteRule (^|/)error_log$ - [R=404,L]
+
     # Redirect www to non-www
     RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
     RewriteRule ^(.*)$ https://%1/$1 [R=301,L]

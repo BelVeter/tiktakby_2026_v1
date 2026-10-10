@@ -1,3 +1,0 @@
-[21-Feb-2026 23:18:49 Europe/Minsk] PHP Warning:  file_put_contents(/to_delete/recover_log.txt): failed to open stream: No such file or directory in /home/tiktakby/public_html/recover_missing_images.php on line 206
-[21-Feb-2026 23:30:50 Europe/Minsk] PHP Warning:  mkdir(): Permission denied in /home/tiktakby/public_html/recover_missing_images.php on line 32
-[21-Feb-2026 23:30:51 Europe/Minsk] PHP Warning:  file_put_contents(/to_delete/recover_log.txt): failed to open stream: No such file or directory in /home/tiktakby/public_html/recover_missing_images.php on line 218

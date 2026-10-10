@@ -14,6 +14,12 @@
 Прежняя очередь (ветки 1–4) выкачена 23.09.2026, ветки по SEO-аудиту 404 (PR #322, фолбэк редиректов,
 PR #324, #325, #326) — 24–25.09.2026, см. журнал. Сейчас в очереди:
 
+**🔴 `fix/block-service-files` — СРОЧНО, вне очереди.** С прода по прямой ссылке скачивались `/.env` (все секреты),
+логи, дампы, `docs/` и т.п. (`docs/security_audit_2026-10-10.md`). Правила 404 в `.htaccess` + чистка мусора из git.
+Миграций нет, ни от чего не зависит.
+
+**🔴 `fix/public-sql-injection` — SQL-инъекции в адресах каталога и фильтре роста.** Миграций нет, ни от чего не зависит.
+
 **`fix/model-slug-validation` — проверка URL кода модели (Б14 аудита).** Серверная проверка `ModelWeb::isValidPageUrlCode()`
 (`A-Za-z0-9._-`, хотя бы одна буква/цифра) в `save/update/updateUrlKey`, в AJAX `form_check` и в начале действия `save` админки
 `bb/model_web.php`; в поле «URL код страницы» недопустимые символы удаляются сразу при вводе и вставке (`model_web_new.js?v=5`).
@@ -40,6 +46,25 @@ PR #324, #325, #326) — 24–25.09.2026, см. журнал. Сейчас в о
 ---
 
 ## После заливки
+
+**Ветка `fix/block-service-files`:**
+1. Проверить снаружи — все должны отдавать **404**: `/.env`, `/.env.bak`, `/.env.example`, `/storage/logs/laravel.log`,
+   `/bb/error_log`, `/AGENTS.md`, `/docs/db_notes.md`, `/artisan`, `/includes/20120204_212539.zip`, `/check_canonical.php`;
+   и **200**: `/ru`, `/robots.txt`, `/llms.txt`, `/favicon.ico`, `/google524a38840591e81d.html`, вход в `/bb/`.
+2. **Сменить все секреты из `.env` — они были публичными:** пароль пользователя БД (в ispmanager, затем `DB_PASSWORD`
+   в `.env` и `bb/Db.php` на проде), `MCP_API_TOKEN` (и у всех его потребителей: аналитика, агенты), пароль почты
+   `MAIL_PASSWORD`, пароль RocketSMS, ключ `GOOGLE_MAPS_API_KEY` (перевыпустить и ограничить по HTTP-referrer),
+   `APP_KEY` (`php artisan key:generate` — сбросит сессии посетителей; `encrypt()`/`Crypt` в коде не используются, данные в БД
+   не пострадают).
+3. В access-логах сервера поискать запросы `GET /.env`, `/.env.bak`, `/storage/logs/laravel.log` с чужих IP — понять,
+   скачивали ли файл.
+4. На проде могут лежать неотслеживаемые копии (git clean отключён): проверить по SSH
+   `find ~/www/tiktak.by -maxdepth 3 \( -name '*.sql' -o -name '*.bak' -o -name '*.zip' -o -name '*.tar*' -o -name '*.rar' \)`
+   — `.zip`/`.rar` nginx отдаёт мимо `.htaccess`.
+
+**Ветка `fix/public-sql-injection`:** открыть `/ru/prokat-uborka/mojshchik-okon/hobot-388-ultrasonic%27` и
+`/ru/karnavalnye-kostyumy?rost=1%27` — должна быть страница 404 / обычный список без текста SQL; обычные страницы
+каталога, товара и фильтр роста работают.
 
 **Ветка `feature/staff-item-permissions`** — вывод `Deploy.php` «Nothing to migrate» ненадёжен (db_notes п. 7), поэтому **явно**:
 1. `SELECT int_code, description FROM permissions WHERE int_code IN (7,8,9);` — три строки;
