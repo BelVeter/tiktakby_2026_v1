@@ -65,4 +65,43 @@ class SearchSqlInjectionTest extends TestCase
             $this->assertStringNotContainsString('SQLSTATE', $response->getContent());
         }
     }
+
+    /**
+     * Сегменты адреса каталога {razdel}/{subrazdel}/{category} шли без экранирования
+     * в Razdel/SubRazdel/Category::getByUrlName, а die() печатал запрос посетителю.
+     * Сегменты читаются и на страницах товаров (хлебные крошки), поэтому проверяются
+     * оба вида адресов. Найдено аудитом 10.10.2026 (docs/security_audit_2026-10-10.md).
+     */
+    public function test_catalog_segments_with_single_quote_do_not_leak_sql(): void
+    {
+        $q = urlencode("x' OR '1'='1");
+        $urls = [
+            "/ru/$q",
+            "/ru/karnavalnye-kostyumy/$q",
+            "/ru/karnavalnye-kostyumy/karnavalnye-kostyumy-boys/$q",
+            "/ru/$q/karnavalnye-kostyumy-boys/halloween-prokat/x",
+            "/ru/karnavalnye-kostyumy/$q/halloween-prokat/x",
+            "/ru/karnavalnye-kostyumy/karnavalnye-kostyumy-boys/$q/x",
+        ];
+
+        foreach ($urls as $url) {
+            $response = $this->get($url);
+
+            $this->assertNotEquals(500, $response->status(), "$url crashed");
+            $this->assertStringNotContainsString('Сбой при доступе', $response->getContent(), $url);
+            $this->assertStringNotContainsString('SELECT', $response->getContent(), $url);
+        }
+    }
+
+    /**
+     * ?rost= фильтра карнавальных костюмов: "116'" проходил проверку > 0 и попадал в запрос.
+     */
+    public function test_carnival_rost_filter_with_single_quote_does_not_leak_sql(): void
+    {
+        $response = $this->get('/ru/karnavalnye-kostyumy?rost=' . urlencode("116' OR '1'='1"));
+
+        $this->assertNotEquals(500, $response->status());
+        $this->assertStringNotContainsString('SQL syntax', $response->getContent());
+        $this->assertStringNotContainsString('SELECT', $response->getContent());
+    }
 }

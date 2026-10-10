@@ -578,10 +578,12 @@ class Category
 
         $mysqli = Db::getInstance()->getConnection();
 
-        $query = "SELECT * FROM tovar_rent_cat WHERE cat_url_key='$name'";
+        // {category} приходит прямо из адреса — без экранирования кавычка ломала запрос (аудит 10.10.2026).
+        $query = "SELECT * FROM tovar_rent_cat WHERE cat_url_key='" . $mysqli->real_escape_string($name) . "'";
         $result = $mysqli->query($query);
         if (!$result) {
-            die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+            error_log('Category::getByUrlName: ' . $mysqli->error . ' — ' . $query);
+            die('Сбой при доступе к базе данных.');
         }
         if ($result->num_rows<1) return false;
 

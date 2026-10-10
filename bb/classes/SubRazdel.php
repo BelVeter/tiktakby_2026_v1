@@ -427,10 +427,12 @@ class SubRazdel
         else {
             $mysqli=Db::getInstance()->getConnection();
 
-            $query = "SELECT * FROM sub_razdel WHERE url_sub_razdel_name='$urlName'";
+            // {subrazdel} приходит прямо из адреса — без экранирования кавычка ломала запрос (аудит 10.10.2026).
+            $query = "SELECT * FROM sub_razdel WHERE url_sub_razdel_name='" . $mysqli->real_escape_string($urlName) . "'";
             $result = $mysqli->query($query);
             if (!$result) {
-                die('Сбой при доступе к базе данных: ' . $query . ' (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
+                error_log('SubRazdel::getByUrlName: ' . $mysqli->error . ' — ' . $query);
+                die('Сбой при доступе к базе данных.');
             }
             if ($result->num_rows>0) {
                 $rez = self::createFromDbArray($result->fetch_assoc(), $lang);

@@ -456,7 +456,7 @@ class Model
 
     }
     if ($filter && isset($filter['rost']) && $filter['rost'] > 0) {
-      $rost = $filter['rost'];
+      $rost = intval($filter['rost']); // "116'" проходил проверку > 0 и попадал в запрос (аудит 10.10.2026)
       $rostVariance = 3;
 
       $filterAddOnQuery .= " AND (tovar_rent_items.item_rost1-3)<='$rost' AND (tovar_rent_items.item_rost2+3)>='$rost'";
@@ -686,7 +686,7 @@ class Model
 
     }
     if ($filter && isset($filter['rost']) && $filter['rost'] > 0) {
-      $rost = $filter['rost'];
+      $rost = intval($filter['rost']);
       $rostVariance = 3;
 
       $filterAddOnQuery .= " AND (tovar_rent_items.item_rost1-3)<='$rost' AND (tovar_rent_items.item_rost2+3)>='$rost'";
