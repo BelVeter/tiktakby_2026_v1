@@ -14,11 +14,10 @@
 Прежняя очередь (ветки 1–4) выкачена 23.09.2026, ветки по SEO-аудиту 404 (PR #322, фолбэк редиректов,
 PR #324, #325, #326) — 24–25.09.2026, см. журнал. Сейчас в очереди:
 
-**🔴 `fix/block-service-files` — СРОЧНО, вне очереди.** С прода по прямой ссылке скачивались `/.env` (все секреты),
-логи, дампы, `docs/` и т.п. (`docs/security_audit_2026-10-10.md`). Правила 404 в `.htaccess` + чистка мусора из git.
-Миграций нет, ни от чего не зависит.
-
-**🔴 `fix/public-sql-injection` — SQL-инъекции в адресах каталога и фильтре роста.** Миграций нет, ни от чего не зависит.
+**`fix/geocode-request-denied` — геокодирование не портит адреса при отказе Google.** При `REQUEST_DENIED` (у проекта
+Google Cloud нет биллинга) `GeocodeClients` ставил `geo_status=2` каждому адресу — с 31.07.2026 так ушли ~17,5 тыс. нормальных
+адресов. Теперь прогон прерывается без записи; бесплатная квота в quota-filler 40 000 → 10 000. Миграций нет. После выкатки —
+сброс статусов (ниже, «После заливки»).
 
 **`fix/model-slug-validation` — проверка URL кода модели (Б14 аудита).** Серверная проверка `ModelWeb::isValidPageUrlCode()`
 (`A-Za-z0-9._-`, хотя бы одна буква/цифра) в `save/update/updateUrlKey`, в AJAX `form_check` и в начале действия `save` админки
@@ -47,24 +46,23 @@ PR #324, #325, #326) — 24–25.09.2026, см. журнал. Сейчас в о
 
 ## После заливки
 
-**Ветка `fix/block-service-files`:**
-1. Проверить снаружи — все должны отдавать **404**: `/.env`, `/.env.bak`, `/.env.example`, `/storage/logs/laravel.log`,
-   `/bb/error_log`, `/AGENTS.md`, `/docs/db_notes.md`, `/artisan`, `/includes/20120204_212539.zip`, `/check_canonical.php`;
-   и **200**: `/ru`, `/robots.txt`, `/llms.txt`, `/favicon.ico`, `/google524a38840591e81d.html`, вход в `/bb/`.
-2. **Сменить все секреты из `.env` — они были публичными:** пароль пользователя БД (в ispmanager, затем `DB_PASSWORD`
-   в `.env` и `bb/Db.php` на проде), `MCP_API_TOKEN` (и у всех его потребителей: аналитика, агенты), пароль почты
-   `MAIL_PASSWORD`, пароль RocketSMS, ключ `GOOGLE_MAPS_API_KEY` (перевыпустить и ограничить по HTTP-referrer),
-   `APP_KEY` (`php artisan key:generate` — сбросит сессии посетителей; `encrypt()`/`Crypt` в коде не используются, данные в БД
-   не пострадают).
-3. В access-логах сервера поискать запросы `GET /.env`, `/.env.bak`, `/storage/logs/laravel.log` с чужих IP — понять,
-   скачивали ли файл.
-4. На проде могут лежать неотслеживаемые копии (git clean отключён): проверить по SSH
-   `find ~/www/tiktak.by -maxdepth 3 \( -name '*.sql' -o -name '*.bak' -o -name '*.zip' -o -name '*.tar*' -o -name '*.rar' \)`
-   — `.zip`/`.rar` nginx отдаёт мимо `.htaccess`.
+**Ветка `fix/geocode-request-denied`** — вернуть в очередь адреса, ошибочно помеченные «нераспознанными» (согласовано
+владельцем 10.10.2026). Последний успешный ответ Google — 31.07.2026 14:30:02, первая ошибка — 15:00:03; к 10.10 таких строк 17 544
+(3 с `corrected_address` — правка сохраняется). Сначала бэкап, потом сброс:
+```sql
+CREATE TABLE clients_geo_bak_20261010 AS SELECT * FROM clients_geo WHERE geo_status=2 AND geo_updated_at > '2026-07-31 14:30:02';
+UPDATE clients_geo SET geo_status=0 WHERE geo_status=2 AND geo_updated_at > '2026-07-31 14:30:02';
+```
+Без биллинга Google их не распознает — они просто ждут в очереди (статус 0 = «ещё не геокодирован»); прогон теперь прерывается
+на первом `REQUEST_DENIED`, не тратя запросы. Откат: `UPDATE clients_geo g JOIN clients_geo_bak_20261010 b USING (client_id)
+SET g.geo_status=2, g.geo_updated_at=b.geo_updated_at WHERE g.geo_status=0;`.
 
-**Ветка `fix/public-sql-injection`:** открыть `/ru/prokat-uborka/mojshchik-okon/hobot-388-ultrasonic%27` и
-`/ru/karnavalnye-kostyumy?rost=1%27` — должна быть страница 404 / обычный список без текста SQL; обычные страницы
-каталога, товара и фильтр роста работают.
+**Открыто после аудита 10.10.2026** (`docs/security_audit_2026-10-10.md`; `/.env` реально скачивали — см. журнал):
+1. Сменить пароль RocketSMS (`ROCKETSMS_PASSWORD`) и проверить в кабинете чужие отправки.
+2. Сменить пароль пользователя БД (снаружи БД недоступна — не срочно): ispmanager → `DB_PASSWORD` в `.env` и `bb/Db.php` на проде.
+3. Удалить `storage/logs/laravel-2026-08-31.log.gz` — `.gz` nginx отдаёт мимо `.htaccess` (на 10.10 ещё доступен по ссылке).
+4. Проверить по SSH неотслеживаемые архивы/дампы:
+   `find ~/www/tiktak.by -maxdepth 3 \( -name '*.sql' -o -name '*.bak' -o -name '*.zip' -o -name '*.tar*' -o -name '*.rar' \)`.
 
 **Ветка `feature/staff-item-permissions`** — вывод `Deploy.php` «Nothing to migrate» ненадёжен (db_notes п. 7), поэтому **явно**:
 1. `SELECT int_code, description FROM permissions WHERE int_code IN (7,8,9);` — три строки;
@@ -154,6 +152,11 @@ PR #324, #325, #326) — 24–25.09.2026, см. журнал. Сейчас в о
 
 Сюда переносятся выполненные пункты — одной строкой, с датой.
 
+- **10.10.2026** — PR #336 (служебные файлы → 404) и #337 (SQL-инъекции в адресах каталога и `?rost=`) выкачены, проверено
+  снаружи. По access-логам (хранятся ~10 дней) `/.env` с 30.09 по 10.10 скачали 10+ сканеров, `laravel.log` — тоже; чужих файлов
+  на сервере нет, `mcp_api_log` — только IP владельца. Сменены `MCP_API_TOKEN` (сервер, `~/.bashrc`, `~/.bashrc.env` для
+  `tiktak-calls`, `~/.claude/settings.json`) и ключ Google Maps (перевыпущен в консоли, старый удалён). `APP_KEY` не меняли
+  (сессии в файлах), пароль почты бесполезен (`MAIL_HOST=mailhog`).
 - **26.09.2026** — PR #331 (Б1: soft-404 на выдуманные адреса каталога) выкачен (HEAD `9330085`). Проверено на проде:
   `/ru/<раздел>/<подраздел>/zzzz-nonexistent`, `/ru/<раздел>/zzzz-nonexistent`, осиротевшая страница
   `…/kolyaski-detskie/detskie-kolyaski` → 404 (раньше 200 «Раздел не найден.»); мусорный раздел или подраздел при настоящей

@@ -124,8 +124,9 @@ class GeocodeClients extends Command
             return;
         }
 
-        // 40,000 requests per month is the free tier.
-        $totalQuota = 40000;
+        // Бесплатно 10 000 запросов Geocoding в месяц (Google с 03.2025; раньше было ~40 000 за счёт кредита $200).
+        // При 40 000 прогон 31.07.2026 сделал ~31 тыс. запросов за день.
+        $totalQuota = 10000;
 
         // How many requests made this month?
         $usedQuota = DB::table('clients_geo')
@@ -248,18 +249,17 @@ class GeocodeClients extends Command
                     if ($isGoogleSuccess && $lat && $lng) {
                         $this->updateStatus($client->client_id, 1, $lat, $lng);
                         $success++;
-                    } elseif ($data['status'] === 'ZERO_RESULTS' || $data['status'] === 'INVALID_REQUEST' || !$isGoogleSuccess) {
-                        // The address is genuinely unresolvable by both engines
+                    } elseif (in_array($data['status'], ['OK', 'ZERO_RESULTS', 'INVALID_REQUEST'], true)) {
+                        // Google ответил по существу (не нашёл / только частичное совпадение) — адрес действительно не распознан
                         $this->updateStatus($client->client_id, 2);
                         $failed++;
                     } else {
-                        // It's an API error like OVER_QUERY_LIMIT, REQUEST_DENIED, etc.
-                        // We shouldn't mark the address as permanently failed. Just log and stop/skip.
-                        $this->error("API Error for client {$client->client_id}: " . $data['status']);
-                        if (in_array($data['status'], ['OVER_QUERY_LIMIT', 'OVER_DAILY_LIMIT'])) {
-                            $this->error("Quota exceeded. Aborting.");
-                            break; // Stop processing entirely
-                        }
+                        // REQUEST_DENIED (нет биллинга, плохой ключ), UNKNOWN_ERROR и т.п. — это сбой API, а не плохой адрес.
+                        // Раньше сюда не доходило: условие выше ловило любой !$isGoogleSuccess, и с 31.07.2026
+                        // ~17,5 тыс. нормальных адресов ушли в geo_status=2. Остальные запросы упадут так же — прерываем.
+                        $this->error("API Error for client {$client->client_id}: " . $data['status']
+                            . (isset($data['error_message']) ? ' — ' . $data['error_message'] : '') . '. Aborting.');
+                        break;
                     }
                 } else {
                     $this->error("HTTP Request failed for client {$client->client_id}");
