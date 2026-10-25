@@ -26,28 +26,28 @@ Route::redirect('/ru/prokat-detskih-tovarovkarnavalnye-kostyumy/{any}', '/ru/kar
 Route::post(
     '/zvonok/bron',
     'App\Http\Controllers\ZvonokController@bron'
-);
+)->middleware('client.input');
 Route::post(
     '/zvonok/kb',
     'App\Http\Controllers\ZvonokController@KBronActions'
-);
+)->middleware('client.input');
 
 Route::post(
     '/zvonok',
     'App\Http\Controllers\ZvonokController@addCall'
-)->name('zvonokSave');
+)->middleware('client.input')->name('zvonokSave');
 
 Route::post(
     '/subscribe',
     'App\Http\Controllers\ZvonokController@addSubscription'
-);
+)->middleware('client.input');
 
 Route::get('/favorites', 'App\Http\Controllers\FavoritesController@index');
 Route::post('/favorites/cards', 'App\Http\Controllers\FavoritesController@getCards');
 
 // --- Корзина ---
 Route::get('/cart', 'App\Http\Controllers\CartController@index');
-Route::post('/cart/checkout', 'App\Http\Controllers\CartController@checkout');
+Route::post('/cart/checkout', 'App\Http\Controllers\CartController@checkout')->middleware('client.input');
 Route::post('/cart/tariffs', 'App\Http\Controllers\CartController@getTariffs');
 Route::post('/cart/check-availability', 'App\Http\Controllers\CartController@checkAvailability');
 
@@ -166,7 +166,7 @@ Route::get(
 Route::post(
     '/{lang}/{razdel}/{subrazdel}/{category}/{model}',
     'App\Http\Controllers\L3Controller@l3Order2'
-)->where('lang', 'ru');
+)->where('lang', 'ru')->middleware('client.input');
 
 Route::get(
     '/{lang}/{razdel}/{subrazdel}/{category}/{model}',

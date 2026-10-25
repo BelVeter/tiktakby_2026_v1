@@ -494,7 +494,7 @@ foreach ($ord_rows as $ord) {
 		            </div>
 		        <div style="float:left; width: 700px;">';
 	if ($br_line->getFioFull()) {
-		echo $br_line->getFioFull() . '<br>' . $br_line->getDeliveryAddress() . '<br>';
+		echo htmlspecialchars((string) $br_line->getFioFull(), ENT_QUOTES, 'UTF-8') . '<br>' . htmlspecialchars((string) $br_line->getDeliveryAddress(), ENT_QUOTES, 'UTF-8') . '<br>';
 	}
 	if ($br_line->phone > 1) {
 		$rc_key = \bb\classes\ClientLookup::phoneKey($br_line->phone);

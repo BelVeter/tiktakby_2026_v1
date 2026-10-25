@@ -65,6 +65,8 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        // Формы сайта: гасит HTML в тексте посетителя (см. SanitizeClientInput)
+        'client.input' => \App\Http\Middleware\SanitizeClientInput::class,
         // MCP API
         'mcp.json'  => \App\Http\Middleware\McpForceJsonMiddleware::class,
         'mcp.token' => \App\Http\Middleware\McpTokenMiddleware::class,
