@@ -17,8 +17,8 @@ class Schedule
         '3'=>[10,19],
         '4'=>[10,19],
         '5'=>[10,19],
-        '6'=>[10,16],
-        '0'=>[10,16],//воскресенье
+        '6'=>[10,15],
+        '0'=>[10,15],//воскресенье. Должно совпадать с часами в футере (includes/footer.blade.php)
     );
 
     public static function isWorkingDay (\DateTime $date, $office='', $le='') {
