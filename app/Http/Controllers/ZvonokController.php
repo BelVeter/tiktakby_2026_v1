@@ -22,11 +22,16 @@ class ZvonokController extends Controller
   public function addCall(Request $req)
   {
     $modelId = intval($req->input('model_id', 0));
+    $needDate = $this->parseNeedDate($req->input('need_date'));
+    $info = (string)$req->input('info');
+    if ($needDate) {
+      $info = 'Нужен с: ' . $needDate->format('d.m.Y') . ($info !== '' ? '. ' . $info : '');
+    }
 
     $z = Zvonok::addLitZvonok(
       $req->input('fio'),
       $req->input('phone'),
-      $req->input('info'),
+      $info,
       $modelId > 0 ? $modelId : null,
       $modelId > 0 ? 'zayavka' : null
     );
@@ -40,6 +45,10 @@ class ZvonokController extends Controller
       try {
         $validityDate = new \DateTime();
         $validityDate->modify('+14 days'); // default 2-week waiting period
+        // заявка не должна истечь раньше, чем товар понадобится клиенту
+        if ($needDate && (clone $needDate)->modify('+3 days') > $validityDate) {
+          $validityDate = (clone $needDate)->modify('+3 days');
+        }
         $zayavka = bron::createZayavka(
           $modelId,
           $req->input('phone'),
@@ -47,8 +56,9 @@ class ZvonokController extends Controller
           '',
           '',
           $validityDate,
-          $req->input('info'),
-          1
+          $info,
+          1,
+          $needDate ? $needDate->format('Y-m-d') : null
         );
         if ($zayavka && $zayavka->insert_id && !$zayavka->is_duplicate) {
             \App\Helpers\UtmTracker::track('rent_orders', $zayavka->insert_id);
@@ -65,6 +75,19 @@ class ZvonokController extends Controller
     $referer = $req->header('referer') ?: '/';
     $separator = parse_url($referer, PHP_URL_QUERY) ? '&' : '?';
     return Redirect::to($referer . $separator . 'ck=zvonok');
+  }
+
+  /**
+   * «С какой даты нужен товар» из формы заявки: только реальная дата Y-m-d
+   * от сегодня до года вперёд, иначе null (поле необязательное).
+   */
+  private function parseNeedDate($raw): ?\DateTime
+  {
+    $d = \DateTime::createFromFormat('!Y-m-d', (string)$raw);
+    if (!$d || $d->format('Y-m-d') !== $raw) return null;
+    $today = new \DateTime('today');
+    if ($d < $today || $d > (clone $today)->modify('+1 year')) return null;
+    return $d;
   }
 
   public function addSubscription(Request $req)
