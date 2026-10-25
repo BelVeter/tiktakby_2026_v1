@@ -367,9 +367,10 @@ class bron {
    * @param $validityDate
    * @param $info
    * @param $webYN
+   * @param string|null $plannedDate Y-m-d — с какой даты нужен товар (rent_orders.planned_date)
    * @return bron
    */
-  public static function createZayavka($model_id, $phone, $family, $name, $otch, \DateTime $validityDate, $info, $webYN){
+  public static function createZayavka($model_id, $phone, $family, $name, $otch, \DateTime $validityDate, $info, $webYN, $plannedDate = null){
     $za = new \bb\classes\Zayavka();
     $res = $za->create([
       'model_id'  => $model_id,
@@ -378,6 +379,7 @@ class bron {
       'info'      => $info,
       'web'       => $webYN,
       'validity'  => $validityDate->getTimestamp(),
+      'planned_date' => $plannedDate,
     ], 'crm');
 
     $z = new self();
