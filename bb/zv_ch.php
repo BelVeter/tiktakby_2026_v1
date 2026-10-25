@@ -467,7 +467,7 @@ while ($zv=$result_zv->fetch_assoc()) {
 	echo '
 		<tr '.($zv['status']=='new' ? ($zv['tema']=='примерка' ? 'style="background-color:pink;"' : 'style="background-color:yellow;"') : '').' data-modelid="'.$zv['model_id'].'" data-type1="'.$zv['type1'].'" data-validity-days="'.$zv['validity_days'].'" data-zv-id="'.$zv['zv_id'].'">
 			<td>'.date("d-m-y", $zv['cr_time']).'<br />'.date("H:i", $zv['cr_time']).'</td>
-			<td>'.$zv['tema'].'<br />Имя: <strong>'.$zv['z_name'].'</strong>, Телефон: ('.$zv['operator'].') - '.$zv['phone'].' <br /> Доп. информация: <span class="dop_info">'.$zv['info'].'</span>
+			<td>'.$zv['tema'].'<br />Имя: <strong>'.htmlspecialchars($zv['z_name'], ENT_QUOTES, 'UTF-8').'</strong>, Телефон: ('.$zv['operator'].') - '.htmlspecialchars($zv['phone'], ENT_QUOTES, 'UTF-8').' <br /> Доп. информация: <span class="dop_info">'.$zv['info'].'</span>
 			  <div>'.($m ? $m->getFullName() : '').$fakeBadge.'</div>
 			</td>
 			<td>'.($zv['status']=='new' ? 'не обработан' : 'обработан '.date("d-m-y", $zv['react_time']).'<br />'.date("H:i", $zv['react_time']).' ').'</td>

@@ -1310,7 +1310,7 @@ foreach ($ord_rows as $ord) {
 					<option value="tex" ' . sel_d('tex', $br_line->rem_type) . '>текстиль</option>
 					<option value="oth" ' . sel_d('oth', $br_line->rem_type) . '>иное</option>
 				</select>
-				<p style="margin: 0;' . ($br_line->type2 == 'deliv' ? '' : 'display:none;') . '" id="address_' . $br_line->order_id . '">Адрес доставки: <input type="text" form="order_' . $br_line->order_id . '" name="address" value="' . $br_line->address . '" style="width: 300px; font-size: 16px;"></p>
+				<p style="margin: 0;' . ($br_line->type2 == 'deliv' ? '' : 'display:none;') . '" id="address_' . $br_line->order_id . '">Адрес доставки: <input type="text" form="order_' . $br_line->order_id . '" name="address" value="' . htmlspecialchars((string) $br_line->address, ENT_QUOTES, 'UTF-8') . '" style="width: 300px; font-size: 16px;"></p>
 		</div>
 
 		<input type="button" id="cans_t_but_' . $br_line->order_id . '" style="background-image:url(/bb/cans.png); width:33px; height:33px; float:right; display:none;" value="" onclick="cans_t(\'' . $br_line->order_id . '\');" />
