@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\MyClasses\KBForm;
+use bb\classes\SalonHours;
 use bb\KBron;
 use bb\Schedule;
 use DateTime;
@@ -12,9 +13,10 @@ use PHPUnit\Framework\TestCase;
  * Часы работы офиса, по которым считаются брони карнавальных костюмов —
  * и на сайте (выпадающий список «время» в форме брони), и в админке.
  *
- * Должны совпадать с тем, что сайт обещает клиенту в футере:
- * «10.00 - 19.00, сб, вс: 10.00 - 15.00». Второе число в Schedule::$schedule —
- * час закрытия, он сам ещё доступен для выдачи/возврата.
+ * Должны совпадать с bb\classes\SalonHours — единственным источником часов салона
+ * (попап «Наш салон проката», LocalBusiness, футер «сб, вс: 10.00 - 15.00»).
+ * Второе число в Schedule::$schedule — час закрытия, он сам ещё доступен для
+ * выдачи/возврата.
  *
  * Неделя фиксированная: 2026-09-21 — понедельник.
  */
@@ -36,6 +38,16 @@ class ScheduleTest extends TestCase
             $this->assertSame(10, Schedule::getOpenHour($day), $d);
             $this->assertSame(15, Schedule::getCloseHour($day), $d);
             $this->assertFalse(Schedule::isWorkingTime(new DateTime($d . ' 16:00')), $d);
+        }
+    }
+
+    public function test_every_day_matches_salon_hours(): void
+    {
+        for ($i = 0; $i < 7; $i++) {
+            $day = new DateTime('2026-09-21 +' . $i . ' days');
+            $d = $day->format('D');
+            $this->assertSame((int) substr(SalonHours::openTime($day), 0, 2), Schedule::getOpenHour($day), $d);
+            $this->assertSame((int) substr(SalonHours::closeTime($day), 0, 2), Schedule::getCloseHour($day), $d);
         }
     }
 
