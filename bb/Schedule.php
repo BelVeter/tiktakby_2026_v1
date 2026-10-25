@@ -18,7 +18,7 @@ class Schedule
         '4'=>[10,19],
         '5'=>[10,19],
         '6'=>[10,15],
-        '0'=>[10,15],//воскресенье. Должно совпадать с часами в футере (includes/footer.blade.php)
+        '0'=>[10,15],//воскресенье. Копия часов из bb/classes/SalonHours.php (там единственный источник) — сверяет tests/Unit/ScheduleTest.php
     );
 
     public static function isWorkingDay (\DateTime $date, $office='', $le='') {

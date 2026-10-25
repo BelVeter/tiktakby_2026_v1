@@ -167,6 +167,7 @@
 
 ## Технические улучшения (отложено)
 
+- [ ] **Часы салона записаны в трёх местах:** `bb\classes\SalonHours` (попап, LocalBusiness, Яндекс-доставка), `bb\Schedule::$schedule` (брони костюмов, сайт и админка) и строка в `includes/footer.blade.php`. Расхождение Schedule ↔ SalonHours ловит `tests/Unit/ScheduleTest.php` (так и нашли сб/вс до 16:00, 25.10.2026), футер не проверяется ничем. Мелкая правка: футер выводить из `SalonHours`, а `Schedule::getOpenHour()/getCloseHour()` брать из `SalonHours` (нужен `require_once` — `Schedule` грузится легаси-страницами `bb/` без composer).
 - [ ] Перевести **остальные** позиционные `INSERT ... VALUES` по проекту на явные колонки (шире, чем редизайн заявок) — устранить gotcha №1 в db_notes.
 - [ ] Заявки: напоминания/дайджест по `planned_date` (после редизайна, мелкой доработкой).
 - [ ] Аналитика: исключить `z_status='spam'` из отчётов по спросу (`reports.php`, MCP) — опционально.
