@@ -60,6 +60,14 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
         ],
 
+        // Отчёты Content-Security-Policy со страниц bb/ (CspReportController)
+        'csp' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/csp.log'),
+            'level' => 'debug',
+            'days' => 30,
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
