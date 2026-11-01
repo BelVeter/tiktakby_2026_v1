@@ -92,3 +92,10 @@
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
   transition: background-color 0.3s, transform 0.2s;
 }
+
+/* Длинные ссылки и «слова» без пробелов в комментарии клиента переносим,
+   а не растягиваем таблицу звонков шире экрана. */
+.dop_info {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
