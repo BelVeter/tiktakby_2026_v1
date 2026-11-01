@@ -4,6 +4,10 @@
 // (не техническую) страницу в bb_page_visits. Никогда не должен ронять
 // страницу, которую открывает сотрудник — ошибки логирования проглатываются.
 
+// Заголовки безопасности и флаги cookie сессии — до session_start() (см. AdminSecurity).
+require_once __DIR__ . '/AdminSecurity.php';
+\bb\classes\AdminSecurity::apply();
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

@@ -62,6 +62,8 @@ Route::get('/test/', 'App\Http\Controllers\RedirectController@testPage');
 
 // --- Трекинг событий (clicks) ---
 Route::post('/track-event', 'App\Http\Controllers\TrackingController@trackEvent');
+// Отчёты браузера о нарушениях CSP со страниц bb/ (bb\classes\AdminSecurity) → storage/logs/csp-*.log
+Route::post('/csp-report', 'App\Http\Controllers\CspReportController@store')->middleware(['client.input', 'throttle:60,1']);
 
 
 // --- Статические страницы ---
