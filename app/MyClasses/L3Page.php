@@ -658,6 +658,18 @@ class L3Page
   ];
 
   /**
+   * Product JSON-LD is only valid for Google when it has a non-empty name and at least one image.
+   *
+   * @param string $name
+   * @param array  $images
+   * @return bool
+   */
+  public static function isProductSchemaComplete($name, array $images)
+  {
+      return trim((string)$name) !== '' && count($images) > 0;
+  }
+
+  /**
    * Builds the Product Schema.org JSON-LD string for the product page (L3).
    *
    * @return string
@@ -701,6 +713,13 @@ class L3Page
           }
       }
 
+      // Google treats Product without name / image as a critical error (Search Console
+      // «Описания товара» / «Данные о товарах продавца») — better no Product schema at all.
+      $l3SchemaName = html_entity_decode(strip_tags((string)$this->getL3MainName()), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+      if (!self::isProductSchemaComplete($l3SchemaName, $l3Images)) {
+          return '';
+      }
+
       // Description: prefer main_descr (943/980 products), fall back to meta_description
       $l3RawDesc = $this->getDescription(); // = modelWeb->main_descr (HTML)
       if (!$l3RawDesc) {
@@ -726,7 +745,7 @@ class L3Page
           '@type'    => 'Product',
           '@id'      => $l3Url,
           'url'      => $l3Url,
-          'name'     => html_entity_decode(strip_tags($this->getL3MainName()), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+          'name'     => $l3SchemaName,
       ];
 
       if ($l3Description) {
