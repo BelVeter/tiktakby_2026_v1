@@ -1,22 +1,33 @@
 //
 
+// woff2 — те же шрифты без потери символов, в 2–3 раза легче (111→37, 53→26 КБ);
+// .ttf/.otf оставлены запасным вариантом. font-display: swap — текст виден сразу системным
+// шрифтом, а не ждёт загрузки. См. docs/home_speed_plan_2026-11.md, этап 2.
 @font-face {
     font-family: "Let's Be Glyphs CYR";
-    src: url("/public/fonts/LetsBeGlyphsCYR-Regular.ttf");
+    src: url("/public/fonts/LetsBeGlyphsCYR-Regular.woff2") format("woff2"),
+         url("/public/fonts/LetsBeGlyphsCYR-Regular.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
 }
 
 @font-face {
     font-family: "Gilroy";
-    src: url("/public/fonts/Gilroy-Light.otf");
+    src: url("/public/fonts/Gilroy-Light.woff2") format("woff2"),
+         url("/public/fonts/Gilroy-Light.otf") format("opentype");
     font-style: normal;
     font-weight: 300;
+    font-display: swap;
 }
 
 @font-face {
     font-family: "Gilroy";
-    src: url("/public/fonts/Gilroy-ExtraBold.otf");
+    src: url("/public/fonts/Gilroy-ExtraBold.woff2") format("woff2"),
+         url("/public/fonts/Gilroy-ExtraBold.otf") format("opentype");
     font-style: normal;
     font-weight: 800;
+    font-display: swap;
 }
 
 
