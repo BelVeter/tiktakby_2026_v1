@@ -19,6 +19,12 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
+    # Статика (картинки, css, js, шрифты) — никогда не в Laravel, как в корневом .htaccess.
+    # Без этого отсутствующая картинка под /public/ запускала PHP + MySQL и отдавала HTML-страницу
+    # 404 на 212 КБ (8 битых фото главной = +1.7 МБ на каждый первый заход, ноябрь 2026).
+    # Проверено: ни один из 757 редиректов в таблице `redirects` не ведёт с адреса статики.
+    RewriteRule \.(avif|webp|jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$ - [L]
+
     # Redirect Trailing Slashes If Not A Folder...
     # Emit absolute https:// URL so the 301 can't downgrade to http behind a TLS proxy.
     RewriteCond %{REQUEST_FILENAME} !-d

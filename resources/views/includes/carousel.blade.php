@@ -1,5 +1,9 @@
 @php /** @var \App\MyClasses\MainPage $p */ @endphp
 <div class="slider-wrapper" style="position: relative;">
+    {{-- Скорость (docs/home_speed_plan_2026-11.md, п. 1.2): fetchpriority="high" — ТОЛЬКО у первого
+         видимого слайда, у остальных loading="lazy". Иначе браузер качает невидимые слайды раньше
+         первого баннера (на слабом 4G первый баннер приезжал на 13-й секунде). Порядок слайдов
+         поменяли — перенесите атрибуты. Проверяется тестом CarouselLoadingPriorityTest. --}}
     <div class="img-slider">
         {{-- Временно скрыт вместе со страницей /ru/premium-start
         <a class="slide" href="https://tiktak.by/ru/premium-start">
@@ -18,43 +22,43 @@
 
         <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/begovely_velosipedy_samokaty">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/begovel-mob.webp">
-                <img src="/public/slider/begovel-desk.webp" alt="Беговелы, велосипеды, самокаты">
+                <source media="(max-width: 576px)" srcset="/public/slider/begovel-mob.webp" width="800" height="600">
+                <img src="/public/slider/begovel-desk.webp" alt="Беговелы, велосипеды, самокаты" width="1200" height="400" fetchpriority="high">
             </picture>
         </a>
 
         <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/toys-for-rent">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/igrushki-mob.webp">
-                <img src="/public/slider/igrushki-desk.webp" alt="Игрушки напрокат">
+                <source media="(max-width: 576px)" srcset="/public/slider/igrushki-mob.webp" width="800" height="600">
+                <img src="/public/slider/igrushki-desk.webp" alt="Игрушки напрокат" width="1200" height="400" loading="lazy" decoding="async">
             </picture>
         </a>
 
         <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/detskaya-komnata/kolybel-kacheli">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/mamaroo-mob.webp">
-                <img src="/public/slider/mamaroo-desk.webp" alt="Колыбель-качели 4moms mamaRoo">
+                <source media="(max-width: 576px)" srcset="/public/slider/mamaroo-mob.webp" width="800" height="600">
+                <img src="/public/slider/mamaroo-desk.webp" alt="Колыбель-качели 4moms mamaRoo" width="1200" height="400" loading="lazy" decoding="async">
             </picture>
         </a>
 
         <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/kolyaski-detskie">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/koliaski-mob.webp">
-                <img src="/public/slider/koliaski-desk.webp" alt="Прокат детских колясок">
+                <source media="(max-width: 576px)" srcset="/public/slider/koliaski-mob.webp" width="800" height="600">
+                <img src="/public/slider/koliaski-desk.webp" alt="Прокат детских колясок" width="1200" height="400" loading="lazy" decoding="async">
             </picture>
         </a>
 
         <a class="slide" href="https://tiktak.by/ru/medical-prokat/bioptron">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/bioptron-mob.webp">
-                <img src="/public/slider/bioptron-desk.webp" alt="Bioptron" fetchpriority="high">
+                <source media="(max-width: 576px)" srcset="/public/slider/bioptron-mob.webp" width="800" height="600">
+                <img src="/public/slider/bioptron-desk.webp" alt="Bioptron" width="1200" height="400" loading="lazy" decoding="async">
             </picture>
         </a>
 
         <a class="slide" href="https://tiktak.by/ru/prokat-detskih-tovarov/detskaya-komnata/kolybeli">
             <picture>
-                <source media="(max-width: 576px)" srcset="/public/slider/kolybeli-mob.webp">
-                <img src="/public/slider/kolybeli-desk.webp" alt="Колыбели" fetchpriority="high">
+                <source media="(max-width: 576px)" srcset="/public/slider/kolybeli-mob.webp" width="800" height="600">
+                <img src="/public/slider/kolybeli-desk.webp" alt="Колыбели" width="1200" height="400" loading="lazy" decoding="async">
             </picture>
         </a>
 

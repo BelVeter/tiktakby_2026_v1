@@ -36,7 +36,7 @@
                         <p>автокресла, коляски, кроватки, шезлонги, качельки, весы, видеоняни, развивающие коврики и др.</p>
                     </div>
                     <div class="circle"><img class="img" style="width: 79px; bottom: 8px"
-                            src="/public/png/detskie_tovary.png" alt="Прокат детских товаров"></div>
+                            src="/public/img/home/cat-detskie-tovary.webp" alt="Прокат детских товаров"></div>
                 </a>
                 <a href="/ru/prokat-sports" class="main-categories__cat-block pic-left" style="background-color: #3277BD;"
                     title="Прокат оборудования для спорта и отдыха">
@@ -45,7 +45,7 @@
                         <p>беговые дорожки, вело-тренажеры, велосипеды, самокаты и др. </p>
                     </div>
                     <div class="circle"><img class="img" style="width: 79px; bottom: 5px; left: -3px;"
-                            src="/public/png/cat_sport.png" alt="Прокат спортивного оборудования"></div>
+                            src="/public/img/home/cat-sport.webp" alt="Прокат спортивного оборудования"></div>
                 </a>
             </div>
             <div class="row row2">
@@ -57,7 +57,7 @@
                             фраки для мальчиков</p>
                     </div>
                     <div class="circle"><img class="img" style="width: 106px; bottom: 11px; left: -5px;"
-                            src="/public/png/prokat-karnavalnyh-kostumov.png" alt="Прокат карнавальных костюмов Минск">
+                            src="/public/img/home/cat-karnaval.webp" alt="Прокат карнавальных костюмов Минск">
                     </div>
                 </a>
                 <a href="/ru/prokat-detskih-tovarov/begovely_velosipedy_samokaty"
@@ -68,7 +68,7 @@
                         <p>беговелы, велосипеды, самокаты, машинки-каталки, самокаты, защитная экипировка</p>
                     </div>
                     <div class="circle"><img class="img" style="width: 130px; bottom: 0px; left: -15px;"
-                            src="/public/png/prokat-velosipedov-minsk.png"
+                            src="/public/img/home/cat-velosipedy.webp"
                             alt="Прокат беговелов, велосипедов, самокатов, роликов Минск"></div>
                 </a>
 
@@ -81,7 +81,7 @@
                         <p>роботы-мойщики окон, моющие пылесосы, пароочистители и др.</p>
                     </div>
                     <div class="circle"><img class="img" style="width: 93px; bottom: 5px; left: -8px;"
-                            src="/public/png/tehnika_dla_uborki.png" alt="Прокат оборудования для уборки"></div>
+                            src="/public/img/home/cat-uborka.webp" alt="Прокат оборудования для уборки"></div>
                 </a>
                 <a href="/ru/medical-prokat" class="main-categories__cat-block pic-left" style="background-color: #E83328;"
                     title="Прокат медицинского оборудования">
@@ -89,7 +89,7 @@
                         <h3>КРАСОТА И ЗДОРОВЬЕ</h3>
                         <p>ингаляторы, биоптроны, приборы по уходу за лицом и телом и др.</p>
                     </div>
-                    <div class="circle"><img class="img" style="width: 75px;" src="/public/png/health.png"></div>
+                    <div class="circle"><img class="img" style="width: 75px;" src="/public/img/home/cat-health.webp"></div>
                 </a>
             </div>
 
@@ -147,15 +147,15 @@
                     <div class="top-card-container">
                         @foreach($p->getFavoriteTovars() as $ft)
                             <div class="top-card">
-                                <img class="img-fluid rounded-circle" src="{{$ft->getPicUrl()}}" alt="{{$ft->getPicAlt()}}">
+                                <img class="img-fluid rounded-circle" src="{{$ft->getPicUrl()}}" alt="{{$ft->getPicAlt()}}" loading="lazy" decoding="async">
                                 <h5 class="top-card-title">{!! $ft->getNameText() !!}</h5>
                                 <p class="top-card-text">{!! $ft->getDescription() !!}</p>
                                 <div class="top-card-btn-div"><a href="{{$ft->getUrlL3Page()}}" class="">Подробнее</a></div>
                             </div>
                         @endforeach
                     </div>
-                    <button class="top-card-arrow left"><img src="/public/svg/arrow_left_slider.svg?v=1"></button>
-                    <button class="top-card-arrow right"><img src="/public/svg/arrow_right_slider.svg?v=1"></button>
+                    <button class="top-card-arrow left"><img src="/public/svg/arrow_left_slider.svg?v=1" alt="" loading="lazy" decoding="async"></button>
+                    <button class="top-card-arrow right"><img src="/public/svg/arrow_right_slider.svg?v=1" alt="" loading="lazy" decoding="async"></button>
                 </div>
             </div>
         </div>
@@ -205,7 +205,7 @@
                 <div class="description">Узнайте, что говорят о нашем сервисе другие родители</div>
                 <div class="review-slider-container">
                     <div class="review-item current">
-                        <img src="/public/jpg/review1.jpg" alt="photo">
+                        <img src="/public/img/home/review-alesya.webp" alt="Алеся" width="170" height="170" loading="lazy" decoding="async">
                         <div class="message-box">
                             <p class="message-text">«Пользуемся услугами проката ТикТак с самого рождения нашего сынишки. Он
                                 быстро растёт и я не вижу смысла покупать дорогие вещи, нужные всего на пару месяцев, если
@@ -221,7 +221,7 @@
                         </div>
                     </div>
                     <div class="review-item">
-                        <img src="/public/jpg/review2.jpg" alt="photo">
+                        <img src="/public/img/home/review-kirill.webp" alt="Кирилл" width="170" height="170" loading="lazy" decoding="async">
                         <div class="message-box">
                             <p class="message-text">«Сервис проката Тик Так - просто находлка для нашей семьи. Брали всё: от
                                 весов для новорожденных до колясок и игрушек. Отличный выбор, грамотно подобранный
@@ -238,7 +238,7 @@
                         </div>
                     </div>
                     <div class="review-item">
-                        <img src="/public/jpg/review1.jpg" alt="photo">
+                        <img src="/public/img/home/review-kristina.webp" alt="Кристина" width="170" height="170" loading="lazy" decoding="async">
                         <div class="message-box">
                             <p class="message-text">«Хочу выразить благодарность сотрудникам проката ТикТак. Оперативно
                                 ответили на запрос, подробно проконсультировали, помогли подобрать коляску для путешествия в
@@ -278,7 +278,7 @@
                 @foreach($p->getProducers() as $producer)
                     <a href="/ru/producer?producer={{$producer->getNameUrlEncoded()}}" class="producer-card">
                         <span>{{$producer->getName()}}</span>
-                        <img src="{{$producer->getUrl()}}" alt="rent of {{$producer->getName()}} items">
+                        <img src="{{$producer->getUrl()}}" alt="rent of {{$producer->getName()}} items" loading="lazy" decoding="async">
                     </a>
                 @endforeach
             @endif
@@ -308,20 +308,24 @@
                 target="_blank" class="insta_button">ПОДПИШИТЕСЬ</a>
             <a href="https://www.instagram.com/prokat_tiktak.by?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
                 target="_blank" class="insta_a_pic">
-                <img class="insta-photo"
-                    src="/public/rent/images/kolybeli/chicco_stulchik_babyhug_4in1/chicco-baby-hug-air-2.jpg">
-                <img class="insta-photo"
-                    src="/public/rent/images/prokat-platiev/prokat_pure_soul_classic/dress-pure-soul-classic.jpg">
-                <img class="insta-photo" src="/public/rent/images/shezlongi/babybjorn_babysitter_balance/babybjorn-1.jpg">
-                <img class="insta-photo"
-                    src="/public/rent/images/hobot-388-ultrasonic/hobot-388-ultrasonic/hobot-388-ultrasonic-1.jpg">
-                <img class="insta-photo"
-                    src="https://tiktak.by/public/rent/images/autokresla-lulki/simple_parenting_doona/doona-1.jpg">
-                <img class="insta-photo" src="/public/jpg/insta-photo.jpg">
+                {{-- Миниатюры 300×300 в git (public/img/home/). Раньше здесь были пути к удалённым фото
+                     товаров → 6 × 404 по 212 КБ на каждый первый заход (ноябрь 2026). --}}
+                <img class="insta-photo" src="/public/img/home/insta-chicco-baby-hug.webp"
+                    alt="Стульчик-колыбель Chicco Baby Hug" width="150" height="150" loading="lazy" decoding="async">
+                <img class="insta-photo" src="/public/img/home/insta-dress-pure-soul.webp"
+                    alt="Платье Pure Soul Classic" width="150" height="150" loading="lazy" decoding="async">
+                <img class="insta-photo" src="/public/img/home/insta-babybjorn-balance.webp"
+                    alt="Шезлонг BabyBjörn Balance" width="150" height="150" loading="lazy" decoding="async">
+                <img class="insta-photo" src="/public/img/home/insta-hobot-388.webp"
+                    alt="Робот-мойщик окон Hobot 388" width="150" height="150" loading="lazy" decoding="async">
+                <img class="insta-photo" src="/public/img/home/insta-doona.webp"
+                    alt="Автокресло-коляска Doona" width="150" height="150" loading="lazy" decoding="async">
+                <img class="insta-photo" src="/public/img/home/insta-toy.webp"
+                    alt="Развивающая игрушка" width="150" height="150" loading="lazy" decoding="async">
             </a>
 
-            <img class="insta-back" src="/public/png/insta-back.png">
-            <img class="insta-back2" src="/public/png/insta-back2.png">
+            <img class="insta-back" src="/public/png/insta-back.png" alt="" loading="lazy" decoding="async">
+            <img class="insta-back2" src="/public/png/insta-back2.png" alt="" loading="lazy" decoding="async">
         </div>
     </section>
 
