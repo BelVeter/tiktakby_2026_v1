@@ -6,16 +6,16 @@
 @endphp
 <footer class="footer">
     <div class="container-app footer-container">
-        <img class="footer-back-img" src="/public/png/footer-back.png">
+        <img class="footer-back-img" src="/public/png/footer-back.png" alt="" loading="lazy" decoding="async">
         <div class="row footer-row-1 justify-content-center">
             <div class="col-12 col-sm-6 col-md-4 col footer-logo-col text-center text-md-start">
                 <a href="/{{$header->getLang()}}"><img class="footer-logo-img" src="/public/svg/logo-footer.svg"
-                        alt="Tiktak.by logo"></a>
+                        alt="Tiktak.by logo" loading="lazy" decoding="async"></a>
             </div>
             <div
                 class="col-12 col-sm-6 col-md-4 footer-map-coll d-flex align-items-center justify-content-center justify-content-md-start mt-3 mt-md-0">
                 <a href="#" class="footer-map"><img
-                        src="/public/svg/footer-map.svg"></img>{{$header->translate('Минск')}}</a>
+                        src="/public/svg/footer-map.svg" alt="" loading="lazy" decoding="async">{{$header->translate('Минск')}}</a>
             </div>
             <form
                 class="col-12 col-sm-6 col-md-4 subscribe-form justify-content-center justify-content-md-start mt-3 mt-md-0"
@@ -88,7 +88,7 @@
             <div class="col-12 col-sm-6 col-md-4 d-flex flex-row justify-content-between">
                 <span>{{$header->translate('Разработка сайта')}}</span>
                 <div class="webit-loggo-container">
-                    <img class="webit-loggo-img" src="/public/svg/webitconnection-logo.svg">
+                    <img class="webit-loggo-img" src="/public/img/site/webitconnection-logo.webp" alt="Web IT" width="50" height="50" loading="lazy" decoding="async">
                     <div class="webit-loggo-text">
                         <span class="logo-text1">Web IT</span>
                         <span class="logo-text2">connection</span>

@@ -30,6 +30,9 @@
 .img-slider .slide img {
     z-index: 1;
     width: 100%;
+    // У <img>/<source> есть width/height (резерв места, без сдвига вёрстки) — без height:auto
+    // атрибут height="600" стал бы реальной высотой слайда.
+    height: auto;
     display: block;
     object-fit: cover;
 }

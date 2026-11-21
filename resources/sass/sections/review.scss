@@ -3,13 +3,17 @@
 }
 
 .review-section .container-app{
-    background-image: url("/public/svg/toys_back.svg");
+    // WebP 2× вместо «псевдо-SVG» с PNG внутри (196 КБ → 27 КБ), см. docs/home_speed_plan_2026-11.md п. 1.5b.
+    // background-size = натуральный размер прежнего SVG, иначе фон вырастет вдвое.
+    background-image: url("/public/img/site/toys_back.webp");
+    background-size: 1036px 468px;
     background-repeat: no-repeat;
     background-position: center center;
     position: relative;
 
     @media screen and (max-width: 440px) {
-        background-image: url("/public/svg/toys_back_mobile.svg");
+        background-image: url("/public/img/site/toys_back_mobile.webp");
+        background-size: 343px 239px;
         background-position: 30px 100px;
     }
 }
@@ -211,7 +215,8 @@
     display: inline-block;
     height: 16px;
     width: 16px;
-    background-image: url("/public/svg/star-review.svg");
+    background-image: url("/public/img/site/star-review.webp");
+    background-size: 17px 16px;
     background-position: center center;
     background-repeat: no-repeat;
 }

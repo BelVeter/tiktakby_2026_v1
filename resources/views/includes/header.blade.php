@@ -63,7 +63,7 @@
             <div class="top-bar-right">
                 <div class="top-address">
                     <a href="#" data-bs-toggle="modal" data-bs-target="#officesModal">
-                        <img src="/public/svg/geo_logo.svg" alt="geo-logo">
+                        <img src="/public/img/site/geo_logo.webp" alt="geo-logo" width="15" height="20">
                         <span>Минск, Литературная 22</span>
                         <img src="/public/svg/arrow_down.svg" alt="arrow" class="arrow-down">
                     </a>
@@ -374,7 +374,7 @@
                         style="background: #fff; max-height: 80vh; overflow-y: auto; margin: 0; padding: 0; list-style: none; display: block; position: absolute; top: 0 !important; left: 0 !important; width: 100%; border-radius: 0 0 16px 16px; clip-path: inset(0 0 0 0 round 0 0 16px 16px);">
                         @foreach($topMenu->getRazdels() as $r)
                             <li class="nav-item-mobile expand" data-razdelid="{{$r->getIdRazdel()}}"><img class="icon"
-                                    src="{{$r->getUrlIcon2Razdel()}}"><span
+                                    src="{{$r->getUrlIcon2Razdel()}}" loading="lazy" decoding="async"><span
                                     class="razdel-text">{{$r->getNameRazdelText()}}</span><img class="arrow"
                                     src="/public/svg/v_arrow_left.svg"></li>
                         @endforeach
@@ -390,7 +390,7 @@
                                     @foreach($r->getSubRazdels() as $sr)
                                         <li class="nav-item-mobile link" data-subrazdelid="{{$sr->getIdSubRazdel()}}"><a
                                                 href="{{$sr->getUrlForPage(request()->lang)}}"><img class="icon"
-                                                    src="{{$sr->getUrlSubRazdelIcon()}}"><span
+                                                    src="{{$sr->getUrlSubRazdelIcon()}}" loading="lazy" decoding="async"><span
                                                     class="razdel-text">{{$sr->getNameSubRazdelText()}}</span><img class="arrow"
                                                     src="/public/svg/v_arrow_left.svg"></a></li>
                                         {{-- <li class="nav-item-mobile expand" data-subrazdelid="{{$sr->getIdSubRazdel()}}"><img
@@ -546,7 +546,7 @@
                 <form method="post" action="/zvonok" class="back-coll">
                     @csrf
                     <input type="hidden" name="action" value="back-coll">
-                    <img class="close-cross" src="/public/png/close_cross.png">
+                    <img class="close-cross" src="/public/png/close_cross.png" loading="lazy" decoding="async">
                     <p>{{$header->translate('Для заказа обратного звонка заполните, пожалуйста, форму')}}</p>
                     <div class="input-wrapper"><input data-targetinput="" class="call-input1" type="text" name="fio"
                             placeholder="{{$header->translate('Ваше имя')}}"></div>
@@ -1008,7 +1008,7 @@
                     @if(is_object($r))
                         <li data-id="{{$r->getIdRazdel()}}" class="top-nav-item">
                             <a class="item-a" href="{{$r->getUrlForPage(request()->lang)}}">
-                                <img class="item-img" src="{{$r->getUrlIconRazdel()}}">
+                                <img class="item-img" src="{{$r->getUrlIconRazdel()}}" loading="lazy" decoding="async">
                                 <span>{{$r->getNameRazdelText()}}</span>
                             </a>
                             <!-- SubRazdels-->
@@ -1020,7 +1020,7 @@
                                                 <ul class="top-cat-list">
                                                     <li><a class="list-header-img-li"
                                                             href="{{$sr->getUrlForPage(request()->lang, $r->getUrlRazdelName())}}"><img
-                                                                src="{{$sr->getUrlSubRazdelIcon()}}"></a></li>
+                                                                src="{{$sr->getUrlSubRazdelIcon()}}" loading="lazy" decoding="async"></a></li>
                                                     <li class="list-header"><a
                                                             href="{{$sr->getUrlForPage(request()->lang, $r->getUrlRazdelName())}}">{{$sr->getNameSubRazdelText()}}</a>
                                                     </li>
