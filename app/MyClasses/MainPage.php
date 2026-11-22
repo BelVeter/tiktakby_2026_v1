@@ -344,6 +344,38 @@ class MainPage
   }
 
   /**
+   * Картинка для превью ссылки в мессенджерах и соцсетях (og:image) на листинге: шапка категории,
+   * иначе фото первого товара; null — оставить картинку сайта по умолчанию.
+   *
+   * Раньше листинги брали картинку по умолчанию (коляска Cybex), и ссылка на «Костюм пирата» в Viber
+   * показывала коляску (ноябрь 2026). Берём только существующий файл — битая картинка в превью хуже.
+   */
+  public function getOgImageUrl(): ?string
+  {
+    $candidates = [$this->getH1PicUrl()];
+    if ($this->getModelsNum() > 0) {
+      $candidates[] = $this->l2ModelsWeb[0]->getPicUrl();
+    }
+
+    foreach ($candidates as $url) {
+      if (!is_string($url) || $url === '') {
+        continue;
+      }
+      if (preg_match('#^https?://#i', $url)) {
+        return $url;
+      }
+      // В базе встречаются и «сырые» имена (кириллица, пробелы), и уже закодированные (%20…):
+      // проверяем файл по раскодированному пути, в URL отдаём каждый сегмент закодированным.
+      $path = '/' . ltrim(rawurldecode(strtok($url, '?#')), '/');
+      if (is_file(base_path(ltrim($path, '/')))) {
+        return 'https://tiktak.by' . implode('/', array_map('rawurlencode', explode('/', $path)));
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * @return mixed
    */
   public function getLang()
