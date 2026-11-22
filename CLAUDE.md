@@ -4,7 +4,7 @@
 
 **TikTak.by** - Children's goods rental service (Minsk, Belarus)
 - **Framework**: Laravel 8.75+, PHP 7.4+ with hybrid legacy PHP architecture
-- **Database**: MariaDB 10.6 (73+ tables)
+- **Database**: MySQL 5.7.44 on prod (legacy tables MyISAM — `ADD INDEX` locks writes), MariaDB 10.6 locally (73+ tables)
 - **Frontend**: Laravel Mix (Sass + JS), Bootstrap
 - **Hosting**: cPanel (Hoster.by), path: `~/public_html/`
 - **Git**: GitHub repo `BelVeter/tiktakby_2026_v1`, branch protection on `main`
