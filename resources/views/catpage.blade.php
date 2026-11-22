@@ -4,6 +4,9 @@
 
 @section('page-title', $p->getTitle())
 @section('meta-description', $p->getMetaDescription())
+@if($p->getOgImageUrl())
+  @section('og-image', $p->getOgImageUrl())
+@endif
 @section('style')
   <link rel="stylesheet" href="/public/css/pages/l2.css?v=4">
 @endsection
