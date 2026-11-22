@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\MyClasses\Carnival\DemandRanking;
 use App\MyClasses\Carnival\ListingOrder;
 use App\MyClasses\MainPage;
+use bb\classes\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -81,6 +82,35 @@ class CarnivalListingRankingTest extends TestCase
         }
     }
 
+    public function test_no_subsection_puts_a_model_without_demand_above_a_hit(): void
+    {
+        // Ревью 22.11.2026: в подразделах с 2–3 категориями или одним полом баланс и разнообразие вытаскивали
+        // модели с 0 прокатов на 3–8-е места («Мажоретка» — 3-я в «Воинах», «Помидор» выше «Волка Прохора»).
+        $subs = DB::select('SELECT s.url_sub_razdel_name AS url FROM razdel r
+            JOIN razdel_subrazdel rs ON rs.id_razdel = r.id_razdel
+            JOIN sub_razdel s ON s.id_sub_razdel = rs.id_sub_razdel
+            WHERE r.url_razdel_name = ?', [self::RAZDEL]);
+        if (!$subs) {
+            $this->markTestSkipped('В dev-БД нет подразделов карнавала.');
+        }
+        $map = DemandRanking::map();
+
+        foreach ($subs as $s) {
+            $seenZero = null;
+            foreach (DemandRanking::sortListing(Model::getModelIdsArrayByRazdelAndSubRazdelNames(self::RAZDEL, $s->url, false), false, $map) as $row) {
+                $m = $map[(int) $row[0]] ?? null;
+                if (!$m || $m['acc']) {
+                    continue;   // аксессуары — отдельным блоком после всех костюмов
+                }
+                if ($m['score'] <= 0) {
+                    $seenZero = $seenZero ?? (int) $row[0];
+                    continue;
+                }
+                $this->assertNull($seenZero, "{$s->url}: модель {$row[0]} со спросом ниже модели $seenZero без спроса");
+            }
+        }
+    }
+
     public function test_ranking_map_is_cached_for_the_day(): void
     {
         Cache::flush();
@@ -93,5 +123,25 @@ class CarnivalListingRankingTest extends TestCase
         DB::disableQueryLog();
 
         $this->assertSame([], $queries, 'тяжёлый запрос по архиву сделок — раз в сутки, не на каждое открытие');
+    }
+
+    public function test_next_day_rebuilds_the_map_under_the_same_key(): void
+    {
+        Cache::flush();
+        $today = new \DateTimeImmutable('today');
+        DemandRanking::map($today);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        DemandRanking::map($today->modify('+1 day'));
+        $rebuilt = count(DB::getQueryLog()) > 0;
+        DB::disableQueryLog();
+
+        $this->assertTrue($rebuilt, 'на следующий день карта пересчитывается (окно сдвигается)');
+        $this->assertSame(
+            $today->modify('+1 day')->format('Y-m-d'),
+            Cache::get('carnival_demand_ranking_v2')['day'],
+            'один ключ перезаписывается, а не копия карты на каждый день'
+        );
     }
 }

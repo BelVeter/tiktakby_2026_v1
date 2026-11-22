@@ -88,6 +88,22 @@ class CarnivalListingOrderTest extends TestCase
         $this->assertCount(1, array_intersect($first4, [1, 2, 3]), 'мушкетёры не идут кучей в первых четырёх');
     }
 
+    public function test_balance_and_diversity_never_lift_a_model_without_demand_above_a_hit(): void
+    {
+        // Подраздел «Воины, разбойники» на копии прода (22.11.2026): ради баланса полов и разнообразия
+        // категорий на 3-е место вставала модель с 0 прокатов за 2 года — выше мушкетёров и гусаров.
+        $items = [
+            $this->item(1, 15, 'm', 155), $this->item(2, 7, 'm', 155), $this->item(3, 5.5, 'm', 168),
+            $this->item(4, 4, 'm', 156), $this->item(5, 0, 'f', 168), $this->item(6, 0, 'u', 147),
+        ];
+
+        $order = ListingOrder::order($items, true);
+
+        $this->assertEqualsCanonicalizing([1, 2, 3, 4], array_slice($order, 0, 4), 'сначала все модели со спросом');
+        $this->assertEqualsCanonicalizing([5, 6], array_slice($order, 4), 'модели без спроса — после них');
+        $this->assertSame(1, $order[0]);
+    }
+
     public function test_single_category_single_gender_page_keeps_demand_order(): void
     {
         // Страница категории «Снегурочки»: только девочки одной категории — ограничения ослабляются.

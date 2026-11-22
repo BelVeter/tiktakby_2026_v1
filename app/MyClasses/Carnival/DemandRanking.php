@@ -27,12 +27,17 @@ class DemandRanking
 {
   public const WINDOW_DAYS = 45;
   public const YEARS_BACK = 2;
-  private const CACHE_KEY = 'carnival_demand_ranking_v1_';
+  private const CACHE_KEY = 'carnival_demand_ranking_v2';
 
   /** Начало названия модели, по которому она — аксессуар, а не полноценный костюм. */
   private const ACCESSORY_NAME = '/^(?:(?:карнавальный\s+)?(?:аксессуар|акссесуар|аксесуар|асессуар)'
+    . '|набор\s+(?:карнавальных\s+)?(?:аксессуаров|акссесуаров|аксесуаров)'
     . '|(?:маска|шляпа|шляпка|корона|кокошник|колпак|валенки|парик|скипетр|меч|шпага|крылья|шарф|ободок'
-    . '|диадема|перчатки|борода|посох|жезл|ковбойская\s+шляпа)(?=$|[\s\-,.:;"«»\/()]))/u';
+    . '|диадема|перчатки|борода|посох|жезл|ковбойская\s+шляпа|рука|пилотка|платок|рюкзак)(?=$|[\s\-,.:;"«»\/()]))/u';
+
+  /** «"Малефисента" головной убор»: описание сразу после названия в кавычках (ведущая кавычка уже обрезана). */
+  private const ACCESSORY_DESCRIPTOR = '/^[^"«»]+["»]\s*(?:головной\s+убор|украшение\s+на\s+голову'
+    . '|аксессуар|акссесуар|аксесуар)/u';
 
   /**
    * Переупорядочить строки [model_id, free_num, sort_n] карнавального листинга.
@@ -93,10 +98,19 @@ class DemandRanking
   public static function map(?DateTimeImmutable $today = null): array
   {
     $today = $today ?? new DateTimeImmutable('today');
+    $day = $today->format('Y-m-d');
 
-    return Cache::remember(self::CACHE_KEY . $today->format('Y-m-d'), $today->modify('+1 day +1 hour'), function () use ($today) {
-      return self::build($today);
-    });
+    // Один ключ с датой внутри, а не ключ на каждый день: файловый кэш удаляет просроченное только
+    // при чтении, и ключи прошлых дней (~185 КБ) копились бы до очередного optimize:clear.
+    $cached = Cache::get(self::CACHE_KEY);
+    if (is_array($cached) && ($cached['day'] ?? null) === $day && is_array($cached['map'] ?? null)) {
+      return $cached['map'];
+    }
+
+    $map = self::build($today);
+    Cache::put(self::CACHE_KEY, ['day' => $day, 'map' => $map], $today->modify('+1 day +1 hour'));
+
+    return $map;
   }
 
   /**
@@ -161,7 +175,9 @@ class DemandRanking
     // Обрезка кавычек/пробелов — посимвольно (/u): trim() режет байты, а «» и NBSP в UTF-8 двухбайтовые.
     $name = preg_replace('/^[\s\x{00A0}"\'«»]+|[\s\x{00A0}"\'«»]+$/u', '', html_entity_decode($l2Name, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
-    return (bool) preg_match(self::ACCESSORY_NAME, mb_strtolower((string) $name));
+    $name = mb_strtolower((string) $name);
+
+    return (bool) preg_match(self::ACCESSORY_NAME, $name) || (bool) preg_match(self::ACCESSORY_DESCRIPTOR, $name);
   }
 
   /**
