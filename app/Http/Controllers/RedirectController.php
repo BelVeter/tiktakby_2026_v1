@@ -14,9 +14,16 @@ class RedirectController extends Controller
 {
     // --- Корневые редиректы на /ru ---
 
-    public function rootToRu()
+    /**
+     * Запасной вариант: на проде `/` → `/ru` делает корневой .htaccess, не доходя до PHP.
+     * Query string сохраняем как есть (сырой, без нормализации Symfony): в нём gclid и utm_*
+     * из рекламы — без них GA4 / Google Ads / Метрика теряют источник визита.
+     */
+    public function rootToRu(Request $request)
     {
-        return redirect('/ru', 301);
+        $query = (string) $request->server('QUERY_STRING');
+
+        return redirect('/ru' . ($query !== '' ? '?' . $query : ''), 301);
     }
 
     // --- Карнавальные костюмы ---

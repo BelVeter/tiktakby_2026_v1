@@ -38,6 +38,11 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
+    # Root / -> /ru without PHP (was RedirectController::rootToRu, +0.2 s TTFB and Set-Cookie).
+    # No "?" in the substitution and no QSD: mod_rewrite appends the original query string,
+    # so gclid / utm_* from ads survive (the PHP redirect used to drop them until 22.11.2026).
+    RewriteRule ^$ https://%{HTTP:Host}/ru [R=301,L]
+
     # Canonical homepage is /ru (no trailing slash). Serve /ru directly to Laravel;
     # /ru/ falls through to the trailing-slash redirect below (301 -> /ru).
     # NOTE: requires the physical ~/public_html/ru directory to be absent, otherwise
