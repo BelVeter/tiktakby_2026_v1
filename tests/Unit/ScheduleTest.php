@@ -73,4 +73,55 @@ class ScheduleTest extends TestCase
             ['2026-09-27', 10, 15],
         ], $rows);
     }
+
+    /**
+     * Свободное окно, где час конца меньше часа начала (типично — после чужой брони
+     * с 16:00 до выходного 15:00). Раньше цикл шёл по дням со временем начала окна,
+     * 25.11 16:00 > 25.11 15:00 — и последний день не попадал в .schedule, хотя
+     * KBForm::getToDaysArray() предлагал его как дату возврата. На сайте timeChange()
+     * не находил .schedule[data-date] и падал, список «время» оставался пустым.
+     */
+    public function test_last_day_of_window_is_included_when_end_hour_is_before_start_hour(): void
+    {
+        // 2026-11-20 — пятница
+        $rows = Schedule::getDateOpenCloseHoursArrayForPreiod(new DateTime('2026-11-20 16:00'), new DateTime('2026-11-22 15:00'));
+
+        $this->assertSame([
+            ['2026-11-20', 10, 19],
+            ['2026-11-21', 10, 15],
+            ['2026-11-22', 10, 15],
+        ], $rows);
+    }
+
+    public function test_multi_day_window_covers_every_calendar_day(): void
+    {
+        $rows = Schedule::getDateOpenCloseHoursArrayForPreiod(new DateTime('2026-11-20 15:00'), new DateTime('2026-11-25 10:00'));
+
+        $this->assertSame(
+            ['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23', '2026-11-24', '2026-11-25'],
+            array_column($rows, 0)
+        );
+    }
+
+    /**
+     * Перевёрнутый интервал внутри одного дня — по-прежнему ошибка, а не «один день»:
+     * проверка $from > $to идёт до обнуления времени.
+     */
+    public function test_inverted_window_within_one_day_returns_false(): void
+    {
+        $this->assertFalse(
+            Schedule::getDateOpenCloseHoursArrayForPreiod(new DateTime('2026-11-20 15:00'), new DateTime('2026-11-20 10:00'))
+        );
+    }
+
+    public function test_source_dates_are_not_modified(): void
+    {
+        $from = new DateTime('2026-11-20 16:00');
+        $to = new DateTime('2026-11-22 15:00');
+
+        Schedule::getDateOpenCloseHoursArrayForPreiod($from, $to);
+
+        $this->assertSame('2026-11-20 16:00', $from->format('Y-m-d H:i'));
+        $this->assertSame('2026-11-22 15:00', $to->format('Y-m-d H:i'));
+    }
 }

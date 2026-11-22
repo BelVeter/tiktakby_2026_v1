@@ -888,12 +888,22 @@ function timeChange(timeSelect){
   let period = dateSelect.closest('.free-period');
   let dateHtml = dateSelect.value;
 
-  let scheduleInput = period.querySelector('.schedule[data-date="'+dateHtml+'"]')
-  let periodFrom = new Date(period.dataset.from);
-  let periodTo = new Date(period.dataset.to);
-  let selectedDateFrom = new Date(dateHtml);
+  let scheduleInput = period.querySelector('.schedule[data-date="'+dateHtml+'"]');
+  // Нет часов работы на выбранный день — не падаем, просто пустой список времени.
+  // (Причина прошлых падений — выпадавший последний день окна — исправлена в bb/Schedule.php.)
+  if (!scheduleInput) {
+    clearTime(timeSelect);
+    return;
+  }
+
+  // data-from/data-to приходят как "YYYY-MM-DD HH:00": Safari/iOS на пробеле даёт Invalid Date,
+  // и часы не обрезались по границам окна. С "T" — ISO, местное время во всех браузерах.
+  let periodFrom = new Date(period.dataset.from.replace(' ', 'T'));
+  let periodTo = new Date(period.dataset.to.replace(' ', 'T'));
+  // Дата без времени разбирается как UTC — берём местную полночь явно.
+  let selectedDateFrom = new Date(dateHtml + 'T00:00');
     selectedDateFrom.setHours(scheduleInput.dataset.openhour);
-  let selectedDateTo = new Date(dateHtml);
+  let selectedDateTo = new Date(dateHtml + 'T00:00');
     selectedDateTo.setHours(scheduleInput.dataset.closehour);
 
   if (selectedDateFrom < periodFrom) selectedDateFrom = periodFrom;
