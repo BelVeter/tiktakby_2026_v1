@@ -82,6 +82,10 @@ class CarnivalDemandRankingTest extends TestCase
             'Ковбойская шляпа',
             'Аксессуар "Скипетр" ',
             'Шляпа мушкетера красная',
+            // «л» в UTF-8 — D0 BB, «»» — C2 BB: побайтовый trim() откусывал хвост буквы и ломал строку
+            'Маска Кот Базил',
+            'Корона «Ангел»',
+            "\u{00A0}Колпак Звездочёт",
         ] as $name) {
             $this->assertTrue(DemandRanking::isAccessory($name, 'Карнавальный костюм'), $name);
         }

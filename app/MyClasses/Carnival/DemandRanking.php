@@ -158,9 +158,10 @@ class DemandRanking
     if (mb_strtolower(trim($dogName)) === 'аксессуар') {
       return true;
     }
-    $name = mb_strtolower(trim(html_entity_decode($l2Name, ENT_QUOTES | ENT_HTML5, 'UTF-8'), " \t\n\r\0\x0B\"'«»"));
+    // Обрезка кавычек/пробелов — посимвольно (/u): trim() режет байты, а «» и NBSP в UTF-8 двухбайтовые.
+    $name = preg_replace('/^[\s\x{00A0}"\'«»]+|[\s\x{00A0}"\'«»]+$/u', '', html_entity_decode($l2Name, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
-    return (bool) preg_match(self::ACCESSORY_NAME, $name);
+    return (bool) preg_match(self::ACCESSORY_NAME, mb_strtolower((string) $name));
   }
 
   /**
