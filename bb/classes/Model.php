@@ -471,7 +471,7 @@ class Model
                     LEFT JOIN rent_model_web ON tovar_rent.tovar_rent_id = rent_model_web.model_id
                     LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id = tovar_rent.tovar_rent_id
                     WHERE razdel.url_razdel_name = '$urlName' AND tovar_rent.tovar_rent_id>0 AND tovar_rent_items.item_id>0
-                      AND rent_model_web.web_id>0 $filterAddOnQuery
+                      AND rent_model_web.web_id>0 AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ") $filterAddOnQuery
                     GROUP BY tovar_rent.tovar_rent_id
                     ORDER BY `free_num` DESC
                     ";
@@ -606,7 +606,7 @@ class Model
                     LEFT JOIN rent_model_web ON tovar_rent.tovar_rent_id = rent_model_web.model_id
                     LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id = tovar_rent.tovar_rent_id
                     WHERE razdel.url_razdel_name = '$razdelUrl' AND sub_razdel.url_sub_razdel_name = '$subRazdelUrl' AND tovar_rent.tovar_rent_id>0 AND tovar_rent_items.item_id>0
-                        AND rent_model_web.web_id>0 $filterAddOnQuery
+                        AND rent_model_web.web_id>0 AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ") $filterAddOnQuery
                     GROUP BY tovar_rent.tovar_rent_id
                     ORDER BY `free_num` DESC
                 ";
@@ -625,13 +625,15 @@ class Model
     //model_ids for dop categories
     $subRazdel = SubRazdel::getByUrlName($subRazdelUrl);
 
+    // Скрытые категории («К УДАЛЕНИЮ») исключены и из доплистинга multi_web: до 22.11.2026 их модели были видны
+    // в подразделах, а карточка вела на 301 в корень каталога (tests/Feature/HiddenCategoryTest.php).
     $query = "SELECT multi_web.model_id, SUM(IF(tovar_rent_items.status IN('to_rent', 't_bron'), 1, 0)) AS free_num, MAX(rent_model_web.sort_n) as sort_n
                     FROM multi_web
                     LEFT JOIN tovar_rent_cat ON tovar_rent_cat.tovar_rent_cat_id=multi_web.add_cat_id
                     LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id = multi_web.model_id
                     LEFT JOIN rent_model_web ON multi_web.model_id = rent_model_web.model_id
                     LEFT JOIN tovar_rent ON tovar_rent.tovar_rent_id = tovar_rent_items.model_id
-                    WHERE tovar_rent_cat.main_sub_razdel_id=" . $subRazdel->getIdSubRazdel() . " AND tovar_rent_items.item_id>0 $filterAddOnQuery
+                    WHERE tovar_rent_cat.main_sub_razdel_id=" . $subRazdel->getIdSubRazdel() . " AND tovar_rent_items.item_id>0 AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ") $filterAddOnQuery
                     GROUP BY multi_web.model_id
                     ORDER BY `free_num` DESC";
     $result = $mysqli->query($query);
@@ -697,7 +699,7 @@ class Model
                     FROM tovar_rent
                     LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id = tovar_rent.tovar_rent_id
                     LEFT JOIN rent_model_web ON tovar_rent.tovar_rent_id = rent_model_web.model_id
-                    WHERE tovar_rent.tovar_rent_cat_id='$cat_id' AND tovar_rent_items.item_id>0 $filterAddOnQuery
+                    WHERE tovar_rent.tovar_rent_cat_id='$cat_id' AND tovar_rent_items.item_id>0 AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ") $filterAddOnQuery
                     GROUP BY tovar_rent.tovar_rent_id
 
                     ";
@@ -721,12 +723,13 @@ class Model
       }
     }
 
+    // Скрытые категории исключены и из доплистинга multi_web (см. getModelIdsArrayByRazdelAndSubRazdelNames).
     $queryDop = "SELECT multi_web.model_id, SUM(IF(tovar_rent_items.status IN('to_rent', 't_bron'), 1, 0)) AS free_num, MAX(rent_model_web.sort_n) as sort_n
                     FROM multi_web
                     LEFT JOIN tovar_rent_items ON tovar_rent_items.model_id = multi_web.model_id
                     LEFT JOIN rent_model_web ON multi_web.model_id = rent_model_web.model_id
                     LEFT JOIN tovar_rent ON tovar_rent.tovar_rent_id = tovar_rent_items.model_id
-                    WHERE add_cat_id='$cat_id' AND tovar_rent_items.item_id>0 $filterAddOnQuery
+                    WHERE add_cat_id='$cat_id' AND tovar_rent_items.item_id>0 AND tovar_rent.tovar_rent_cat_id NOT IN (" . Category::hiddenCatIdsSql() . ") $filterAddOnQuery
                     GROUP BY multi_web.model_id
                     ";
 
