@@ -35,7 +35,7 @@
             <div class="row l2-cards-container">
                 @if($p->getModelsNum()>0)
                     @foreach($p->getModels() as $m)
-                        @include('includes.l2_model_block', ['l2' => $m])
+                        @include('includes.l2_model_block', ['l2' => $m, 'lazy' => $loop->index >= 4])
                     @endforeach
 
                 @else

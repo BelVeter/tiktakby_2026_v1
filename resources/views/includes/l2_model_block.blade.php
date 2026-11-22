@@ -43,7 +43,7 @@
     </div>
 
     <a href="{{$l2->getL3Url(request()->lang)}}" class="l2-card_img-container">
-      <img src="{{ $l2->getPicUrl() }}" class="l2-card_img" alt="{{$l2->getPicAltText()}}">
+      <img src="{{ $l2->getPicUrl() }}" class="l2-card_img" alt="{{$l2->getPicAltText()}}" @if(!empty($lazy)) loading="lazy" decoding="async" @endif>
     </a>
 
     <!-- New Pricing Section Layout -->

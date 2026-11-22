@@ -128,11 +128,13 @@
             @endif
             <div class="l2-cards-container">
               @if($p->getModelsNum() > 0)
+                {{-- Картинки первых 4 карточек — сразу, остальных — loading="lazy" (иначе телефон с первой
+                     секунды качает все ~24 картинки и они отнимают канал у CSS). docs/home_speed_plan_2026-11.md, этап 4 --}}
                 @foreach($p->getModels() as $m)
                   @if($m->isKarnaval())
-                    @include('includes.l2karn_model_block', ['l2' => $m])
+                    @include('includes.l2karn_model_block', ['l2' => $m, 'lazy' => $loop->index >= 4])
                   @else
-                    @include('includes.l2_model_block', ['l2' => $m])
+                    @include('includes.l2_model_block', ['l2' => $m, 'lazy' => $loop->index >= 4])
                   @endif
                 @endforeach
 
