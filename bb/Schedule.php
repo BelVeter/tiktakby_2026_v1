@@ -47,7 +47,12 @@ class Schedule
       $rez = [];
       $from = clone $fromSource;
       $to = clone $toSource;
-      if ($from>$to) return false;
+      if ($from>$to) return false; // до обнуления времени: перевёрнутый интервал внутри дня — тоже ошибка
+
+      // Идём по календарным дням: иначе при часе конца меньше часа начала
+      // (16:00 → 15:00) последний день окна выпадал (tests/Unit/ScheduleTest.php)
+      $from->setTime(0, 0, 0);
+      $to->setTime(0, 0, 0);
 
       while ($from<=$to){
         $rez[]=[$from->format("Y-m-d"),self::getOpenHour($from), self::getCloseHour($from)];

@@ -9,7 +9,7 @@
 
 
 @section('content')
-  <script type="module" src="/public/js/l3.js?v=15"></script>
+  <script type="module" src="/public/js/l3.js?v=16"></script>
 
   <section class="main-gradient">
     <div class="container-app">
