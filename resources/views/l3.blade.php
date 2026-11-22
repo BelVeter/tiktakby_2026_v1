@@ -57,13 +57,13 @@
                 <div class="l3__slider__small_pics_container {{$p->getPicsSliderNum() == 1 ? 'oneslide' : ''}}">
                   @foreach($p->getPicsForSlider() as $index => $pic)
                     <a class="l3__slider__small_pic_a {{($index == 0 ? 'active' : '')}}" data-slide_num="{{$index}}"
-                      href="#slider{{$index}}"><img src="{{$pic->getSrc()}}" alt="{{$pic->getAlt()}}"></a>
+                      href="#slider{{$index}}"><img src="{{$pic->getSrc()}}" alt="{{$pic->getAlt()}}" @if($index > 0) loading="lazy" decoding="async" @endif></a>
                   @endforeach
                 </div>
                 <div class="l3__slider__big_pic_container {{$p->getPicsSliderNum() == 1 ? 'oneslide' : ''}}">
                   @foreach($p->getPicsForSlider() as $index => $pic)
                     <img class="l3__slider__big_pic {{$p->getPicsSliderNum() == 1 ? 'oneslide' : ''}}" id="slider{{$index}}"
-                      src="{{$pic->getSrc()}}" alt="{{$pic->getAlt()}}">
+                      src="{{$pic->getSrc()}}" alt="{{$pic->getAlt()}}" @if($index == 0) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
                   @endforeach
                 </div>
               </div>
@@ -107,7 +107,7 @@
                         <i class="fas fa-heart"></i>
                       </div>
                       <a href="{{$mw->getL3Url()}}" style="display: block; text-decoration: none; color: inherit;">
-                        <img class="main-img" src="{{$mw->getPicUrl()}}" alt="{{$mw->getPicAltText()}}">
+                        <img class="main-img" src="{{$mw->getPicUrl()}}" alt="{{$mw->getPicAltText()}}" loading="lazy" decoding="async">
                         <h4>{!! $mw->getName() !!}</h4>
                         <button>{{$p->translate('Подробнее')}}</button>
                       </a>

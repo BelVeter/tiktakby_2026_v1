@@ -7,7 +7,7 @@
     <i class="fas fa-heart"></i>
   </div>
   <a href="{{$l2->getL3Url(request()->lang)}}" class="l2karn-card_img-a-container">
-    <img src="{{ $l2->getPicUrl(request()->lang) }}" class="l2karn-card_img" alt="{{$l2->getPicAltText()}}">
+    <img src="{{ $l2->getPicUrl(request()->lang) }}" class="l2karn-card_img" alt="{{$l2->getPicAltText()}}" @if(!empty($lazy)) loading="lazy" decoding="async" @endif>
     <div class="l2karn-card_line-2">
       <span>{!! $l2->getNameNoBr(29) !!}</span>
       <input type="hidden" data-mid="{{$l2->getModelId()}}" data-mwid="{{$l2->getModelWeb()->getWebId()}}">
