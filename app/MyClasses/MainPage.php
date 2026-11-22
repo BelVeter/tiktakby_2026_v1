@@ -2,6 +2,7 @@
 
 namespace App\MyClasses;
 
+use App\MyClasses\Carnival\DemandRanking;
 use bb\Base;
 use bb\classes\Category;
 use bb\classes\Model;
@@ -689,11 +690,9 @@ class MainPage
 
       $p->setTotalModelsNum(count($modelIdArray));
 
-      //sort
+      //sort: карнавал — по спросу (ручной sort_n не используется), см. Carnival\DemandRanking
       if ($p->isKarnaval()) {
-        usort($modelIdArray, function ($a, $b) {
-          return $a[2] - $b[2];
-        });
+        $modelIdArray = DemandRanking::sortListing($modelIdArray, $filter);
       }
 
       $cuttedModelIdArray = array_slice($modelIdArray, $p->getStartModelNumberForPage(), $p->getListingLimit());
@@ -756,9 +755,7 @@ class MainPage
       $modelIdArray = Model::getModelIdsArrayByRazdelAndSubRazdelNames($razdelUrl, $subRazdelUrl, $filter);
 
       if ($p->isKarnaval()) {
-        usort($modelIdArray, function ($a, $b) {
-          return $a[2] - $b[2];
-        });
+        $modelIdArray = DemandRanking::sortListing($modelIdArray, $filter);
       }
 
       $p->setTotalModelsNum(count($modelIdArray));
@@ -981,9 +978,7 @@ class MainPage
       $modelIdArray = Model::getModelIdsArrayByCategoryId($cat->getId(), $filter);
 
       if ($p->isKarnaval()) {
-        usort($modelIdArray, function ($a, $b) {
-          return $a[2] - $b[2];
-        });
+        $modelIdArray = DemandRanking::sortListing($modelIdArray, $filter);
       } else {
         usort($modelIdArray, function ($a, $b) {
           return -$a[1] + $b[1];
