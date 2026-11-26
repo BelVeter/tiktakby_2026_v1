@@ -114,7 +114,19 @@ echo '
 
 ';
 include_once($_SERVER['DOCUMENT_ROOT'] . '/bb/bb_nav.php');
+// Карнавальные страницы доступны только отсюда: в общей панели bb_nav есть лишь «Карнавал» (этот kb.php).
+// Меню пропало 18.02.2026 вместе со старым top_menu (PR #49) — не удалять, см. tests/Feature/Bb/KbCarnivalMenuTest.php
 echo '
+<div class="top_menu">
+	<a class="div_item" href="/bb/kb_lines.php"><strong>Карнавальная таблица</strong></a>
+	<a class="div_item" href="/bb/karn_free.php"><strong>Свободные по дате</strong></a>
+	<a class="div_item" href="/bb/kb_arch.php">Удаленные брони</a>
+	<a class="div_item" href="/bb/kb_zayavki.php" style="background-color: purple; color: wheat;">Карнавальные заявки</a>
+	<form method="post" action="/bb/kr_baza_new.php" style="display:inline-block;">
+		<input type="hidden" name="cat_id" value="2" /><input type="submit" value="КАРНАВАЛЫ" style="width:100px; height:35px; background-color:green; color:white" />
+	</form>
+</div>
+
 <div class="row zv-row">
     <div class="col alert-danger h2 text-center" id="zv_div"></div>
 </div>
